@@ -11,7 +11,7 @@ import {
 import { buildTenantCenterSections } from '@/lib/tenant/tenantCenterSections';
 import { validateEmail, validateIban, validateVatId } from '@/lib/tenant/tenantValidation';
 
-// Native demo behavior remains supported; Web company data is tested live-only separately.
+// Native company records use the same live-only authority as the Web workspace.
 vi.mock('react-native', async original => {
   const actual = await original<typeof import('react-native')>();
   return { ...actual, Platform: { ...actual.Platform, OS: 'android' } };
@@ -84,29 +84,24 @@ describe('0108 tenant center migration destructive checks', () => {
 });
 
 describe('tenantCenterService', () => {
-  it('lädt Demo-Snapshot mit Sektionen', async () => {
+  it('liefert ohne Serververbindung keinen nativen Demo-Snapshot als Unternehmensakte', async () => {
     resetTenantCenterStore();
     seedTenantCenterForTest(DEMO_TENANT_ID);
     const result = await fetchTenantCenter(DEMO_TENANT_ID, 'business_admin');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.data.sections.length).toBeGreaterThan(10);
-    expect(result.data.company.name).toBeTruthy();
+    expect(result).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenbankverbindung') });
   });
 
-  it('speichert Unternehmensdaten im Demo-Modus', async () => {
+  it('meldet ohne Serververbindung keine erfolgreiche native Speicherung', async () => {
     resetTenantCenterStore();
-    seedTenantCenterForTest(DEMO_TENANT_ID);
-    const loaded = await fetchTenantCenter(DEMO_TENANT_ID, 'business_admin');
-    if (!loaded.ok) throw new Error('load failed');
+    const original = seedTenantCenterForTest(DEMO_TENANT_ID);
+    const originalName = original.company.name;
     const saved = await saveTenantCompanyProfile(
       DEMO_TENANT_ID,
-      { ...loaded.data.company, name: 'Mandant Test GmbH' },
+      { ...original.company, name: 'Mandant Test GmbH' },
       'business_admin',
     );
-    expect(saved.ok).toBe(true);
-    if (!saved.ok) return;
-    expect(saved.data.company.name).toBe('Mandant Test GmbH');
+    expect(saved).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenbankverbindung') });
+    expect(original.company.name).toBe(originalName);
   });
 
   it('berechnet Katalog-Zusammenfassung in Sektionen', () => {

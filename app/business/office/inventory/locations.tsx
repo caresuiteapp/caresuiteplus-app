@@ -1,5 +1,5 @@
-import { InventoryListScreen } from '@/product-workflows/screens/inventory/InventoryListScreen';
+import { CompanyInventoryRedirect } from '@/lib/navigation/CompanyInventoryRedirect';
 
-export default function InventoryLocationsRoute() {
-  return <InventoryListScreen variant="locations" />;
+export default function LegacyInventoryRoute() {
+  return <CompanyInventoryRedirect view="locations" />;
 }

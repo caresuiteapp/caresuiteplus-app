@@ -42,6 +42,7 @@ import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 type PortalMode = 'office' | 'employee' | 'client';
 
@@ -94,9 +95,12 @@ function RequestDetailShell({
 export function CsDocumentRequestDetailScreen({
   ...props
 }: Props) {
-  const { source } = useLocalSearchParams<{ source?: string }>();
+  const { source, id } = useLocalSearchParams<{ source?: string; id?: string }>();
+  const actor = usePortalActor();
+  const tenantId = useServiceTenantId();
+  const { profile } = useAuth();
   if (props.mode === 'office' && source === 'portal') return <OfficeSignatureReview />;
-  return <TemplateRequestDetail {...props} />;
+  return <TemplateRequestDetail key={JSON.stringify([tenantId, profile?.id, actor.actorId, actor.roleKey, actor.clientId, actor.employeeId, props.mode, id, actor.familyAccess?.permissions])} {...props} />;
 }
 
 function TemplateRequestDetail({
@@ -115,6 +119,8 @@ function TemplateRequestDetail({
   const portalActor = usePortalActor();
   const text = useAuroraAdaptiveText();
   const isPortal = mode !== 'office';
+  const familyDocumentsAllowed = mode !== 'client' || portalActor.roleKey !== 'family_portal' || familyPortalAllows(portalActor.familyAccess, 'documents');
+  const familySigningAllowed = mode !== 'client' || portalActor.roleKey !== 'family_portal' || familyPortalAllows(portalActor.familyAccess, 'sign_records');
   const [signModal, setSignModal] = useState(false);
   const [working, setWorking] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -136,14 +142,14 @@ function TemplateRequestDetail({
       });
     },
     [tenantId, id, profile?.roleKey, mode, portalActor.roleKey, portalActor.employeeId, portalActor.clientId],
-    { enabled: !!tenantId && !!id && (isPortal ? portalActor.isLinkedReady : permissions.can('office.documents.view')), queryKey: JSON.stringify([tenantId, id, mode, profile?.id, portalActor.actorId, portalActor.roleKey, portalActor.employeeId, portalActor.clientId]) },
+    { enabled: !!tenantId && !!id && familyDocumentsAllowed && (isPortal ? portalActor.isLinkedReady : permissions.can('office.documents.view')), queryKey: JSON.stringify([tenantId, id, mode, profile?.id, portalActor.actorId, portalActor.roleKey, portalActor.employeeId, portalActor.clientId, familyDocumentsAllowed]) },
   );
 
   const item = query.data;
   const effectiveSignerRole = resolvePortalDocumentSignerRole({ mode, roleKey: portalActor.roleKey, pendingRoles: item?.pendingSignatureRoles ?? [], defaultRole: signerRole });
   const employeeSigningBlocked = mode === 'employee' && portalActor.roleKey === 'employee_portal';
   const canSign =
-    !employeeSigningBlocked
+    !employeeSigningBlocked && familySigningAllowed
     && (mode !== 'office' || (permissions.can('office.documents.signatures.manage') && !permissions.isReadOnly))
     && item
     && item.pendingSignatureRoles.includes(effectiveSignerRole)
@@ -241,6 +247,12 @@ function TemplateRequestDetail({
         )}
       </RequestDetailShell>
     );
+  }
+
+  if (!familyDocumentsAllowed) {
+    return <RequestDetailShell mode={mode} title="Dokument" accent={accent}>
+      <EmptyState title="Dokumente nicht freigegeben" message="Dokumente sind für diesen Angehörigenzugang nicht freigegeben." />
+    </RequestDetailShell>;
   }
 
   if (query.loading && !item) {
@@ -360,6 +372,7 @@ function TemplateRequestDetail({
       </RequestDetailShell>
 
       <CareSignatureModal
+        dismissScope={JSON.stringify([tenantId, portalActor.actorId, portalActor.clientId, id])}
         statusMessage={actionError}
         visible={signModal}
         label="Unterschrift bestätigen"

@@ -1,0 +1,522 @@
+// Generated native presentation from src/lib/pflege/vitalHistoryViewRuntime.web.ts. Update through scripts/port-native-workspaces.mjs.
+import { getVitalDefinition } from './vitalCatalog.ts';
+import { vitalHistoryClientChoiceOriginalsWeb } from "./vitalHistoryClientsOriginalRead.native.ts";
+import { createVitalHistoryRuntimeWeb, captureVitalHistoryReadWeb, closeVitalHistoryReadWeb, closeVitalHistoryRuntimeWeb, type VitalHistoryReadLeaseWeb } from "./vitalHistoryRuntime.native.ts";
+import { fetchVitalHistoryOriginalReadWeb, vitalHistoryReadOriginalsWeb } from "./vitalHistoryOriginalRead.native.ts";
+import { captureVitalHistoryProjectionWeb, vitalHistoryNativeTimeWeb, type VitalHistorySelectionWeb } from "./vitalHistoryProjection.native.ts";
+import { vitalHistoryOriginalCsvWeb } from "./vitalHistoryOriginalCsv.native.ts";
+import { carePermissionOwner, carePermissionOwnerIsCurrent, sameCarePermissionOwner, type CarePermissionAuth, type CarePermissionOwner } from "../permissions/carePermissionOwner.native.ts";
+import { getSupabaseClient } from "../supabase/client.ts";
+import { getServiceMode } from '../services/mode';
+import { cloneClientNativeOriginal as clone, freezeClientNativeOriginal as freeze, sameClientNativeOriginal as same } from "../clients/clientRecordNativeOriginal.native.ts";
+export type VitalHistoryViewRuntimeWeb = Readonly<Record<never, never>>;
+export type VitalHistoryViewReadLeaseWeb = Readonly<Record<never, never>>;
+export type VitalHistoryViewFetchWeb = Readonly<Record<never, never>>;
+type Can = (key: 'pflege.vitals.view' | 'pflege.vitals.manage') => unknown;
+type PermissionSource = {
+    tenantId: unknown;
+    roleKey: unknown;
+    can: Can;
+};
+export type VitalHistoryViewRuntimeInputWeb = {
+    auth(): CarePermissionAuth;
+    tenantId(): unknown;
+    permissions(): PermissionSource;
+    alive(): boolean;
+};
+type SDK = NonNullable<ReturnType<typeof getSupabaseClient>>;
+type Runtime = {
+    input: VitalHistoryViewRuntimeInputWeb;
+    closed: boolean;
+    checking: boolean;
+    capturing: boolean;
+    reentered: boolean;
+    generation: number;
+    active: Lease | null;
+};
+type Lease = {
+    runtime: Runtime;
+    owner: CarePermissionOwner;
+    client: SDK;
+    permissionSource: PermissionSource;
+    can: Can;
+    closed: boolean;
+    checking: boolean;
+    token: VitalHistoryViewReadLeaseWeb;
+};
+type Fetch = {
+    lease: Lease;
+    generation: number;
+    closed: boolean;
+};
+const runtimes = new WeakMap<object, Runtime>(), leases = new WeakMap<object, Lease>(), fetches = new WeakMap<object, Fetch>();
+const failure = () => Error('Aktueller eigener nativer Lesezugriff auf den ganzen Klientenverlauf fehlt.');
+const uuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
+function record(value: unknown): Record<string, unknown> { if (!value || typeof value !== 'object' || Array.isArray(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value)))
+    throw failure(); return value as Record<string, unknown>; }
+function field(value: unknown, key: string): unknown { const descriptor = Object.getOwnPropertyDescriptor(record(value), key); if (!descriptor)
+    return undefined; if (!descriptor.enumerable || !Object.hasOwn(descriptor, 'value'))
+    throw failure(); return descriptor.value; }
+function grant(value: unknown) { if (value === true)
+    return true; if (value instanceof Promise)
+    void Promise.prototype.then.call(value, undefined, () => { }); return false; }
+function auth(value: unknown): CarePermissionAuth { for (const key of ['authReady', 'isAuthenticated', 'isLoading', 'profileBootstrapError', 'profile', 'user', 'session', 'portalSession'])
+    if (!Object.hasOwn(record(value), key))
+        throw failure(); for (const key of ['profile', 'user'])
+    if (!uuid(field(field(value, key), 'id')))
+        throw failure(); const actualSession = field(value, 'session'); if (!uuid(field(field(actualSession, 'user'), 'id')) || field(value, 'authReady') !== true || field(value, 'isAuthenticated') !== true || field(value, 'isLoading') !== false || field(value, 'profileBootstrapError') !== null || field(value, 'portalSession') !== null)
+    throw failure(); const identity = (input: unknown, profile = false) => input == null ? null : { id: field(input, 'id'), roleKey: field(input, 'roleKey'), ...(profile ? { tenantId: field(input, 'tenantId') } : {}) }, profile = field(value, 'profile'), user = field(value, 'user'), session = field(value, 'session'), bootstrap = field(value, 'profileBootstrapError'), portal = field(value, 'portalSession'); if (bootstrap !== null && typeof bootstrap !== 'string' || portal !== null && portal !== undefined)
+    throw failure(); return { authReady: field(value, 'authReady'), isAuthenticated: field(value, 'isAuthenticated'), isLoading: field(value, 'isLoading'), profileBootstrapError: bootstrap, portalSession: portal, profile: identity(profile, true), user: identity(user), session: session == null ? null : { user: identity(field(session, 'user')), accessToken: field(session, 'accessToken'), expiresAt: field(session, 'expiresAt') } } as CarePermissionAuth; }
+function invoke(runtime: Runtime, callback: () => unknown) { if (runtime.closed || runtime.reentered)
+    throw failure(); const result = Reflect.apply(callback, runtime.input, []); if (result instanceof Promise) {
+    void Promise.prototype.then.call(result, undefined, () => { });
+    throw failure();
+} if (runtime.closed || runtime.reentered)
+    throw failure(); return result; }
+function scope(runtime: Runtime) { const tenantId = invoke(runtime, runtime.input.tenantId); if (!uuid(tenantId))
+    throw failure(); const owner = carePermissionOwner(auth(invoke(runtime, runtime.input.auth)), tenantId, false); if (!owner || typeof owner.accessToken !== 'string' || !owner.accessToken || !Number.isSafeInteger(owner.expiresAt ?? 0) || !grant(invoke(runtime, runtime.input.alive)))
+    throw failure(); const permissionSource = record(invoke(runtime, runtime.input.permissions)) as PermissionSource, can = field(permissionSource, 'can'); if (field(permissionSource, 'tenantId') !== owner.tenantId || field(permissionSource, 'roleKey') !== owner.roleKey || typeof can !== 'function' || !grant(Reflect.apply(can, permissionSource, ['pflege.vitals.view'])))
+    throw failure(); return { owner, permissionSource, can: can as Can }; }
+function native(lease: Lease) { for (let round = 0; round < 3; round++) {
+    if (getServiceMode() !== 'supabase' || getSupabaseClient() !== lease.client)
+        throw failure();
+} if (lease.closed || lease.runtime.closed || lease.runtime.reentered || lease.runtime.active !== lease || !carePermissionOwnerIsCurrent(lease.owner))
+    throw failure(); }
+function match(lease: Lease, current: ReturnType<typeof scope>) { if (!sameCarePermissionOwner(lease.owner, current.owner) || !grant(Reflect.apply(lease.can, lease.permissionSource, ['pflege.vitals.view'])))
+    throw failure(); }
+function current(lease: Lease) { const runtime = lease.runtime; if (lease.closed || runtime.closed || runtime.active !== lease)
+    throw failure(); if (runtime.checking || lease.checking) {
+    runtime.reentered = true;
+    runtime.closed = true;
+    lease.closed = true;
+    throw failure();
+} runtime.checking = true; lease.checking = true; try {
+    native(lease);
+    match(lease, scope(runtime));
+    native(lease);
+    match(lease, scope(runtime));
+    native(lease);
+    const final = scope(runtime);
+    match(lease, final);
+    native(lease);
+    const finalOwn = scope(runtime);
+    match(lease, finalOwn);
+    if (!grant(Reflect.apply(finalOwn.can, finalOwn.permissionSource, ['pflege.vitals.view'])) || !grant(Reflect.apply(lease.can, lease.permissionSource, ['pflege.vitals.view'])) || lease.closed || runtime.closed || runtime.reentered || runtime.active !== lease || !carePermissionOwnerIsCurrent(lease.owner))
+        throw failure();
+}
+catch (error) {
+    lease.closed = true;
+    throw error;
+}
+finally {
+    runtime.checking = false;
+    lease.checking = false;
+} }
+export function createVitalHistoryViewRuntimeWeb(input: VitalHistoryViewRuntimeInputWeb): VitalHistoryViewRuntimeWeb { const supplied = record(input), keys = ['auth', 'tenantId', 'permissions', 'alive'], captured: Record<string, unknown> = {}; if (Reflect.ownKeys(supplied).length !== keys.length)
+    throw failure(); for (const key of keys) {
+    const callback = field(supplied, key);
+    if (typeof callback !== 'function')
+        throw failure();
+    captured[key] = callback;
+} const token = Object.freeze({}); runtimes.set(token, { input: Object.freeze(captured) as unknown as VitalHistoryViewRuntimeInputWeb, closed: false, checking: false, capturing: false, reentered: false, generation: 0, active: null }); return token; }
+export function captureVitalHistoryViewReadWeb(token: VitalHistoryViewRuntimeWeb): VitalHistoryViewReadLeaseWeb | null { const runtime = runtimes.get(token); if (!runtime || runtime.closed || runtime.reentered)
+    return null; if (runtime.capturing || runtime.checking) {
+    runtime.closed = true;
+    runtime.reentered = true;
+    return null;
+} if (runtime.active) {
+    try {
+        current(runtime.active);
+        return runtime.active.token;
+    }
+    catch {
+        runtime.active.closed = true;
+        runtime.active = null;
+    }
+} runtime.capturing = true; try {
+    const captured = scope(runtime), client = getSupabaseClient();
+    if (!client || getServiceMode() !== 'supabase')
+        throw failure();
+    const token = Object.freeze({}), lease: Lease = { runtime, ...captured, client, token, closed: false, checking: false };
+    runtime.active = lease;
+    current(lease);
+    leases.set(token, lease);
+    return token;
+}
+catch {
+    runtime.active?.closed && (runtime.active = null);
+    return null;
+}
+finally {
+    runtime.capturing = false;
+} }
+export function assertVitalHistoryViewReadWeb(token: VitalHistoryViewReadLeaseWeb): void { const lease = leases.get(token); if (!lease)
+    throw failure(); current(lease); }
+export function closeVitalHistoryViewReadWeb(token: VitalHistoryViewReadLeaseWeb) { const lease = leases.get(token); if (lease)
+    lease.closed = true; }
+export function closeVitalHistoryViewRuntimeWeb(token: VitalHistoryViewRuntimeWeb) { const runtime = runtimes.get(token); if (runtime) {
+    runtime.closed = true;
+    runtime.generation++;
+    if (runtime.active)
+        runtime.active.closed = true;
+} }
+/** Query start retires all prior results synchronously. No SharedQuery/cache token can mint this frame. */
+export function beginVitalHistoryViewFetchWeb(token: VitalHistoryViewReadLeaseWeb): VitalHistoryViewFetchWeb { const lease = leases.get(token); if (!lease)
+    throw failure(); current(lease); const frame = Object.freeze({}); fetches.set(frame, { lease, generation: ++lease.runtime.generation, closed: false }); return frame; }
+export function assertVitalHistoryViewFetchWeb(frame: VitalHistoryViewFetchWeb, token: VitalHistoryViewReadLeaseWeb): void { const fetch = fetches.get(frame), lease = leases.get(token); if (!fetch || !lease || fetch.lease !== lease || fetch.closed || fetch.generation !== lease.runtime.generation)
+    throw failure(); current(lease); if (fetch.closed || fetch.generation !== lease.runtime.generation || lease.runtime.active !== lease)
+    throw failure(); }
+export function closeVitalHistoryViewFetchWeb(frame: VitalHistoryViewFetchWeb) { const fetch = fetches.get(frame); if (fetch)
+    fetch.closed = true; }
+/** Internal minimal SDK/UUID bridge. No credentials, clinical RawDTO or write/actor authority. */
+export function vitalHistoryViewReadContextWeb(frame: VitalHistoryViewFetchWeb, token: VitalHistoryViewReadLeaseWeb) { assertVitalHistoryViewFetchWeb(frame, token); const fetch = fetches.get(frame)!; return Object.freeze({ client: fetch.lease.client, tenantId: fetch.lease.owner.tenantId }); }
+export async function assertVitalHistoryViewSessionWeb(frame: VitalHistoryViewFetchWeb, token: VitalHistoryViewReadLeaseWeb): Promise<void> { const fetch = fetches.get(frame); if (!fetch)
+    throw failure(); const lease = fetch.lease; try {
+    assertVitalHistoryViewFetchWeb(frame, token);
+    const nativeAuth = lease.client.auth, getSession = nativeAuth.getSession, second = nativeAuth.getSession;
+    if (typeof getSession !== 'function' || getSession !== second)
+        throw failure();
+    assertVitalHistoryViewFetchWeb(frame, token);
+    const response = await Reflect.apply(getSession, nativeAuth, []);
+    assertVitalHistoryViewFetchWeb(frame, token);
+    const captured = clone(response);
+    assertVitalHistoryViewFetchWeb(frame, token);
+    if (field(captured, 'error') !== null)
+        throw failure();
+    const session = field(field(captured, 'data'), 'session'), user = field(session, 'user');
+    if (field(user, 'id') !== lease.owner.profileId || field(session, 'access_token') !== lease.owner.accessToken)
+        throw failure();
+    const expires = field(session, 'expires_at');
+    if (typeof expires !== 'number' || !Number.isSafeInteger(expires) || expires * 1000 !== lease.owner.expiresAt || expires * 1000 <= Date.now())
+        throw failure();
+    assertVitalHistoryViewFetchWeb(frame, token);
+}
+catch (error) {
+    if (!fetch.closed && fetch.generation === lease.runtime.generation && lease.runtime.active === lease)
+        lease.closed = true;
+    closeVitalHistoryViewFetchWeb(frame);
+    throw error;
+} }
+// The selector contract and the three-pool history contract have separate receipts.
+// All public tokens are empty: original rows/credentials never become Child props.
+type View = {
+    runtime: VitalHistoryViewRuntimeWeb;
+    scope: VitalHistoryViewReadLeaseWeb;
+    epoch: number;
+    historyGeneration: number;
+    clientId: string;
+    selection: VitalHistorySelectionWeb | null;
+    choices: object | null;
+    history: object | null;
+    historyLease: VitalHistoryReadLeaseWeb | null;
+    historyRuntime: object | null;
+    flags: Map<'clients' | 'history', {
+        token: unknown;
+        blocked: boolean;
+    }>;
+    closed: boolean;
+};
+let chartActionMintSerial = 0n;
+const views = new WeakMap<object, View>(), actions = new WeakMap<object, {
+    view: View;
+    epoch: number;
+    choices: object | null;
+    history: object | null;
+    selection: VitalHistorySelectionWeb | null;
+    chartMintSerial: bigint;
+}>();
+export type VitalHistoryViewWeb = Readonly<Record<never, never>>;
+function viewCurrent(view: View) { if (view.closed)
+    throw failure(); assertVitalHistoryViewReadWeb(view.scope); }
+function retireHistory(view: View) { if (view.historyLease)
+    closeVitalHistoryReadWeb(view.historyLease); if (view.historyRuntime)
+    closeVitalHistoryRuntimeWeb(view.historyRuntime); view.history = null; view.historyLease = null; view.historyRuntime = null; view.epoch++; view.historyGeneration++; }
+function queryReady(view: View, kind: 'clients' | 'history', token: unknown) { const flags = view.flags.get(kind); return !!flags && !flags.blocked && flags.token === token; }
+function choice(view: View) { viewCurrent(view); if (!view.choices || !queryReady(view, 'clients', view.choices))
+    throw failure(); const data = vitalHistoryClientChoiceOriginalsWeb(view.choices, view.scope); if (!data)
+    throw failure(); viewCurrent(view); return data; }
+function membership(view: View) { const data = choice(view); if (!uuid(view.clientId) || data.people.filter(p => p.id === view.clientId).length !== 1)
+    throw failure(); return data; }
+function originals(view: View) { membership(view); if (!view.history || !view.historyLease || !queryReady(view, 'history', view.history))
+    throw failure(); const raw = vitalHistoryReadOriginalsWeb(view.history, view.historyLease); if (!raw || raw.scope.clientId !== view.clientId)
+    throw failure(); viewCurrent(view); return raw; }
+export function createVitalHistoryViewWeb(runtime: VitalHistoryViewRuntimeWeb, scope: VitalHistoryViewReadLeaseWeb): VitalHistoryViewWeb { assertVitalHistoryViewReadWeb(scope); const lease = leases.get(scope); if (!lease || lease.runtime !== runtimes.get(runtime))
+    throw failure(); const token = Object.freeze({}); views.set(token, { runtime, scope, epoch: 0, historyGeneration: 0, clientId: '', selection: null, choices: null, history: null, historyLease: null, historyRuntime: null, flags: new Map(), closed: false }); return token; }
+export function closeVitalHistoryViewWeb(token: VitalHistoryViewWeb) { const view = views.get(token); if (view) {
+    view.closed = true;
+    retireHistory(view);
+} }
+export function bindVitalHistoryViewQueryWeb(token: VitalHistoryViewWeb, kind: 'clients' | 'history', receipt: unknown, input: unknown) { const view = views.get(token); if (!view)
+    return; let blocked = true; try {
+    const flags = record(clone(input)), keys = ['loading', 'refreshing', 'error', 'refreshError', 'previewData', 'tableMissing', 'fromCache', 'partialDetail', 'usedDemoFallback'];
+    blocked = keys.some(k => !Object.hasOwn(flags, k) || flags[k] !== false);
+    viewCurrent(view);
+}
+catch { } view.flags.set(kind, { token: receipt, blocked }); }
+/** Called synchronously before a new selector read starts, including silent refresh. */
+export function beginVitalHistoryViewChoicesWeb(token: VitalHistoryViewWeb) { const view = views.get(token); if (!view)
+    throw failure(); viewCurrent(view); view.choices = null; retireHistory(view); return view.scope; }
+export function acceptVitalHistoryViewChoicesWeb(token: VitalHistoryViewWeb, receipt: object) { const view = views.get(token); if (!view)
+    throw failure(); viewCurrent(view); if (!vitalHistoryClientChoiceOriginalsWeb(receipt, view.scope))
+    throw failure(); viewCurrent(view); view.choices = receipt; }
+export function vitalHistoryViewPeopleWeb(token: VitalHistoryViewWeb) { const view = views.get(token); try {
+    return view ? choice(view).people : null;
+}
+catch {
+    return null;
+} }
+export function captureVitalHistoryViewActionWeb(token: VitalHistoryViewWeb, requireHistory = false) { const view = views.get(token); try {
+    if (!view)
+        throw failure();
+    requireHistory ? originals(view) : choice(view);
+    const action = Object.freeze({});
+    actions.set(action, { view, epoch: view.epoch, choices: view.choices, history: requireHistory ? view.history : null, selection: view.selection, chartMintSerial: ++chartActionMintSerial });
+    return action;
+}
+catch {
+    return null;
+} }
+function actionCurrent(token: unknown, requireHistory = false) { const action = token && typeof token === 'object' ? actions.get(token) : null; if (!action)
+    throw failure(); const view = action.view; if (action.epoch !== view.epoch || action.choices !== view.choices || action.selection !== view.selection || requireHistory && action.history !== view.history)
+    throw failure(); requireHistory ? originals(view) : choice(view); if (action.epoch !== view.epoch || action.choices !== view.choices || action.selection !== view.selection)
+    throw failure(); return view; }
+export function selectVitalHistoryViewClientWeb(action: unknown, id: unknown) { try {
+    const view = actionCurrent(action), data = choice(view);
+    if (!uuid(id) || data.people.filter(p => p.id === id).length !== 1)
+        return false;
+    actionCurrent(action);
+    retireHistory(view);
+    view.clientId = id;
+    view.selection = null;
+    return true;
+}
+catch {
+    return false;
+} }
+export function selectVitalHistoryViewComponentWeb(action: unknown, input: unknown) { try {
+    const view = actionCurrent(action, true), selection = record(clone(input));
+    if (Object.keys(selection).length !== 3 || !['type', 'component', 'unit'].every(k => Object.hasOwn(selection, k) && typeof selection[k] === 'string' && !!selection[k]))
+        return false;
+    const definition = getVitalDefinition(selection.type as string), component = definition?.components.find(c => c.key === selection.component);
+    if (!component || component.unit !== selection.unit)
+        return false;
+    const raw = originals(view), model = captureVitalHistoryProjectionWeb({ scope: raw.scope, measurements: raw.measurements, followUps: raw.followUps, invalidations: raw.invalidations }, selection);
+    if (!model)
+        return false;
+    actionCurrent(action, true);
+    view.selection = freeze(selection) as VitalHistorySelectionWeb;
+    view.epoch++;
+    return true;
+}
+catch {
+    return false;
+} }
+const historyFetchScopes = new WeakMap<object, {
+    view: View;
+    choices: object;
+    clientId: string;
+    generation: number;
+}>(), currentHistoryFetchScopes = new WeakMap<View, object>();
+export function captureVitalHistoryViewFetchWeb(token: VitalHistoryViewWeb) { const view = views.get(token); try {
+    if (!view)
+        throw failure();
+    membership(view);
+    const prior = currentHistoryFetchScopes.get(view), held = prior && historyFetchScopes.get(prior);
+    if (held && held.choices === view.choices && held.clientId === view.clientId && held.generation === view.historyGeneration)
+        return prior;
+    const scope = Object.freeze({});
+    historyFetchScopes.set(scope, { view, choices: view.choices!, clientId: view.clientId, generation: view.historyGeneration });
+    currentHistoryFetchScopes.set(view, scope);
+    return scope;
+}
+catch {
+    return null;
+} }
+export function mayReloadVitalHistoryViewWeb(token: unknown) { const held = token && typeof token === 'object' ? historyFetchScopes.get(token) : null; try {
+    if (!held)
+        throw failure();
+    const view = held.view;
+    membership(view);
+    return held.choices === view.choices && held.clientId === view.clientId && held.generation === view.historyGeneration && currentHistoryFetchScopes.get(view) === token;
+}
+catch {
+    return false;
+} }
+export function mayReloadVitalHistoryChoicesWeb(token: VitalHistoryViewWeb) { const view = views.get(token); try {
+    if (!view)
+        throw failure();
+    viewCurrent(view);
+    return true;
+}
+catch {
+    return false;
+} }
+/** A render captures this exact source/selection scope before Query starts; no latest-source minting. */
+export async function fetchVitalHistoryViewWeb(token: unknown) { const held = token && typeof token === 'object' ? historyFetchScopes.get(token) : null; if (!held)
+    throw failure(); const view = held.view; const currentFetch = () => { viewCurrent(view); membership(view); if (held.choices !== view.choices || held.clientId !== view.clientId || held.generation !== view.historyGeneration || currentHistoryFetchScopes.get(view) !== token)
+    throw failure(); }; currentFetch(); view.history = null; view.epoch++; const generation = view.historyGeneration, lease = leases.get(view.scope)!; if (view.historyRuntime)
+    closeVitalHistoryRuntimeWeb(view.historyRuntime); if (view.historyLease)
+    closeVitalHistoryReadWeb(view.historyLease); view.historyRuntime = null; view.historyLease = null; if (!view.historyRuntime) {
+    const runtime = createVitalHistoryRuntimeWeb({ auth: lease.runtime.input.auth, tenantId: lease.runtime.input.tenantId, clientId: () => view.clientId, permissions: lease.runtime.input.permissions, alive: () => !view.closed && view.historyGeneration === generation && grant(Reflect.apply(lease.runtime.input.alive, lease.runtime.input, [])) });
+    const historyLease = captureVitalHistoryReadWeb(runtime);
+    if (!historyLease)
+        throw failure();
+    view.historyRuntime = runtime;
+    view.historyLease = historyLease;
+} const historyLease = view.historyLease!; try {
+    const result = await fetchVitalHistoryOriginalReadWeb(historyLease);
+    currentFetch();
+    if (view.historyLease !== historyLease || !vitalHistoryReadOriginalsWeb(result, historyLease))
+        throw failure();
+    view.history = result;
+    return result;
+}
+catch (error) {
+    if (view.historyLease === historyLease && !vitalHistoryReadOriginalsWeb(view.history as object, historyLease))
+        view.history = null;
+    throw error;
+} }
+export function clearVitalHistoryViewSelectionWeb(action: unknown) { try {
+    const view = actionCurrent(action, true);
+    view.selection = null;
+    view.epoch++;
+    return true;
+}
+catch {
+    return false;
+} }
+const originalField = (row: Readonly<Record<string, unknown>>, key: string) => Object.getOwnPropertyDescriptor(row, key)?.value;
+const originalIdSame = (a: unknown, b: unknown) => uuid(a) && uuid(b) && a.toLowerCase() === b.toLowerCase();
+export function vitalHistoryViewRowsWeb(token: VitalHistoryViewWeb) { const view = views.get(token); try {
+    if (!view)
+        return null;
+    const raw = originals(view);
+    const rows = raw.measurements.map(row => { const own = (key: string) => originalField(row, key), id = own('id') as string; return { id, type: typeof own('vital_key') === 'string' ? own('vital_key') as string : '', display: typeof own('display_value') === 'string' ? own('display_value') as string : 'Originalwert nicht lesbar', unit: typeof own('unit') === 'string' ? own('unit') as string : 'Einheit nicht bestätigt', actor: typeof own('recorded_by_name') === 'string' ? own('recorded_by_name') as string : 'Originalname nicht geliefert', flagStatus: typeof own('flag_status') === 'string' ? own('flag_status') as string : null, collectionExtent: own('context') && typeof own('context') === 'object' && !Array.isArray(own('context')) ? originalField(own('context') as Readonly<Record<string, unknown>>, 'completeness') : undefined, occurredAt: own('occurred_at'), occurredAtState: vitalHistoryNativeTimeWeb(row, 'occurred_at', 'actual')?.state, recordedAt: own('created_at'), recordedAtState: vitalHistoryNativeTimeWeb(row, 'created_at', 'recorded')?.state, legacyAt: own('measured_at'), legacyAtState: vitalHistoryNativeTimeWeb(row, 'measured_at', 'legacy')?.state, followUps: raw.followUps.filter(r => originalIdSame(originalField(r, 'measurement_id'), id)).map(r => ({ id: originalField(r, 'id') as string, observedAt: originalField(r, 'observed_at'), observedAtState: vitalHistoryNativeTimeWeb(r, 'observed_at', 'control')?.state, recordedAt: originalField(r, 'created_at'), recordedAtState: vitalHistoryNativeTimeWeb(r, 'created_at', 'recorded')?.state, nextReviewAt: originalField(r, 'next_review_at'), nextReviewAtState: vitalHistoryNativeTimeWeb(r, 'next_review_at', 'review_agreement')?.state, actor: originalField(r, 'recorded_by_name'), observation: originalField(r, 'observation'), action: originalField(r, 'action'), outcome: originalField(r, 'outcome') })), invalidations: raw.invalidations.filter(r => originalIdSame(originalField(r, 'measurement_id'), id)).map(r => ({ id: originalField(r, 'id') as string, reason: originalField(r, 'reason'), recordedAt: originalField(r, 'created_at'), recordedAtState: vitalHistoryNativeTimeWeb(r, 'created_at', 'recorded')?.state, actor: originalField(r, 'recorded_by_name') })) }; });
+    originals(view);
+    return freeze(rows);
+}
+catch {
+    return null;
+} }
+export function vitalHistoryViewCsvWeb(action: unknown) { try {
+    const view = actionCurrent(action, true);
+    if (!view.selection)
+        return null;
+    const raw = originals(view), model = captureVitalHistoryProjectionWeb({ scope: raw.scope, measurements: raw.measurements, followUps: raw.followUps, invalidations: raw.invalidations }, view.selection);
+    actionCurrent(action, true);
+    if (!model)
+        return null;
+    const csv = vitalHistoryOriginalCsvWeb(model);
+    actionCurrent(action, true);
+    return csv;
+}
+catch {
+    return null;
+} }
+export function mayUseVitalHistoryViewActionWeb(action: unknown, measurementId?: string) { try {
+    const view = actionCurrent(action, true);
+    if (measurementId && !originals(view).measurements.some(r => r.id === measurementId))
+        return false;
+    actionCurrent(action, true);
+    return true;
+}
+catch {
+    return false;
+} }
+export function vitalHistoryViewManageWeb(token: VitalHistoryViewWeb) { const view = views.get(token); try {
+    if (!view)
+        throw failure();
+    viewCurrent(view);
+    const currentLease = leases.get(view.scope)!;
+    const value = scope(currentLease.runtime);
+    if (!grant(Reflect.apply(value.can, value.permissionSource, ['pflege.vitals.manage'])))
+        return false;
+    viewCurrent(view);
+    return true;
+}
+catch {
+    return false;
+} }
+export function mayUseVitalHistoryChoiceActionWeb(action: unknown) { try {
+    actionCurrent(action);
+    return true;
+}
+catch {
+    return false;
+} }
+/** Additional current technical chart capability. Pure-model copies are never its authority. */
+export type VitalHistoryChartCaptureWeb = Readonly<Record<never, never>>;
+type Chart = {
+    action: object;
+    closed: boolean;
+    view: View;
+    epoch: number;
+    choices: object | null;
+    history: object | null;
+    selection: VitalHistorySelectionWeb | null;
+};
+const charts = new WeakMap<object, Chart>(), chartCache = new WeakMap<View, VitalHistoryChartCaptureWeb>(), chartActionSources = new WeakMap<object, Chart>(), explicitChartCloseCutoffs = new WeakMap<View, bigint>();
+/** Cache the original action and actual source references; never retarget an old token. */
+export function captureVitalHistoryViewChartWeb(action: unknown): VitalHistoryChartCaptureWeb | null { try {
+    const view = actionCurrent(action, true);
+    if (!view.selection || chartActionSources.get(action as object)?.closed || actions.get(action as object)!.chartMintSerial <= (explicitChartCloseCutoffs.get(view) ?? 0n))
+        return null;
+    const prior = chartCache.get(view), cached = prior && charts.get(prior);
+    if (cached && !cached.closed && cached.epoch === view.epoch && cached.choices === view.choices && cached.history === view.history && cached.selection === view.selection) {
+        if (!vitalHistoryViewChartWeb(prior!))
+            return null;
+        actionCurrent(action, true);
+        if (cached.closed)
+            return null;
+        chartActionSources.set(action as object, cached);
+        return prior!;
+    }
+    if (cached && !cached.closed)
+        cached.closed = true;
+    const token = Object.freeze({});
+    charts.set(token, { action: action as object, closed: false, view, epoch: view.epoch, choices: view.choices, history: view.history, selection: view.selection });
+    chartActionSources.set(action as object, charts.get(token)!);
+    chartCache.set(view, token);
+    if (!vitalHistoryViewChartWeb(token))
+        return null;
+    return token;
+}
+catch {
+    return null;
+} }
+/** Explicit disposal retires the original action as well as this empty capture. */
+export function closeVitalHistoryViewChartWeb(token: VitalHistoryChartCaptureWeb) { const chart = charts.get(token); if (chart && !chart.closed) {
+    chart.closed = true;
+    explicitChartCloseCutoffs.set(chart.view, chartActionMintSerial);
+} }
+/** Derived metadata only: no pure model/Rawsidecar, scoped SDK, credentials or Authprops. */
+export function vitalHistoryViewChartWeb(token: VitalHistoryChartCaptureWeb) { const chart = charts.get(token); if (!chart || chart.closed)
+    return null; try {
+    const view = actionCurrent(chart.action, true);
+    if (!view.selection)
+        throw failure();
+    const raw = originals(view), model = captureVitalHistoryProjectionWeb({ scope: raw.scope, measurements: raw.measurements, followUps: raw.followUps, invalidations: raw.invalidations }, view.selection);
+    actionCurrent(chart.action, true);
+    if (!model)
+        throw failure();
+    const snapshot = freeze(clone({ kind: 'current_technical_vital_history_chart', authority: 'inspection_only', selection: model.selection, marks: model.marks, undatedIds: model.undatedIds, clinicalCompletion: 'not_inferred' }));
+    actionCurrent(chart.action, true);
+    if (chart.closed)
+        throw failure();
+    return snapshot;
+}
+catch {
+    chart.closed = true;
+    return null;
+} }
+export function mayUseVitalHistoryViewChartPointWeb(token: VitalHistoryChartCaptureWeb, id: unknown) { const chart = charts.get(token); try {
+    if (!chart || chart.closed || !uuid(id))
+        return false;
+    const data = vitalHistoryViewChartWeb(token);
+    if (!data || !data.marks.some(m => originalIdSame(m.id, id) && m.type === data.selection.type))
+        return false;
+    return mayUseVitalHistoryViewActionWeb(chart.action, id) && !chart.closed;
+}
+catch {
+    return false;
+} }

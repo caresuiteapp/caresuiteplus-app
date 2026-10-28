@@ -29,9 +29,16 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { colors, spacing, typography } from '@/theme';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 export function PortalClientDocumentDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
+  const { tenantId, clientId, actorId, roleKey, familyAccess } = usePortalActor();
+  return <PortalClientDocumentDetailContent key={JSON.stringify([tenantId, actorId, roleKey, clientId, id, source, familyAccess?.permissions])} />;
+}
+
+function PortalClientDocumentDetailContent() {
+  const { id, source } = useLocalSearchParams<{ id: string; source?: string }>();
   const router = useRouter();
   const { refresh: refreshAttention } = useClientSignatureAttention();
   const insets = useSafeAreaInsets();
@@ -42,7 +49,8 @@ export function PortalClientDocumentDetailScreen() {
   const signing = useRef(false);
   const reviewedProofHash = useRef<string | undefined>(undefined);
   const { can, check, roleLabel } = usePermissions();
-  const { tenantId, clientId, actorId } = usePortalActor();
+  const { tenantId, clientId, actorId, roleKey, familyAccess } = usePortalActor();
+  const signAllowed = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'sign_records');
   const canView = can('portal.client.documents.view');
   const canDownload = can('portal.client.documents.download');
 
@@ -61,7 +69,7 @@ export function PortalClientDocumentDetailScreen() {
     downloadError,
     successMessage,
     notFound,
-  } = usePortalDocumentDetail(id, 'client');
+  } = usePortalDocumentDetail(id, 'client', source === 'proof' ? 'service-proof' : undefined);
 
   const scrollPadding = useMemo(
     () => ({
@@ -73,7 +81,7 @@ export function PortalClientDocumentDetailScreen() {
   );
   const handleSignConfirm = useCallback(
     async (dataUrl?: string) => {
-      if (!tenantId || !clientId || !id || signing.current) return;
+      if (!tenantId || !clientId || !id || signing.current || !signAllowed) return;
       signing.current = true;
       setSignLoading(true);
       setSignError(null);
@@ -103,12 +111,12 @@ export function PortalClientDocumentDetailScreen() {
       } catch {
         setSignError("Unterschrift konnte nicht gespeichert werden. Bitte prüfen Sie die Verbindung und versuchen Sie es erneut.");
       } finally {
-        await Promise.all([refresh(), refreshAttention()]);
+        await Promise.allSettled([refresh(), refreshAttention()]);
         signing.current = false;
         setSignLoading(false);
       }
     },
-    [tenantId, clientId, id, actorId, data?.clientName, refresh, refreshAttention],
+    [tenantId, clientId, id, actorId, data?.clientName, refresh, refreshAttention, signAllowed],
   );
 
   if (!canView) {
@@ -145,7 +153,7 @@ export function PortalClientDocumentDetailScreen() {
 
   if (!data) return null;
   const captured = (data as typeof data & { signatureCaptured?: boolean }).signatureCaptured === true;
-  const needsDelivery = captured && (data.signaturePending || !data.downloadReady || (data as typeof data & { signatureDeliveryPending?: boolean }).signatureDeliveryPending === true);
+  const needsDelivery = signAllowed && captured && (data.signaturePending || !data.downloadReady || (data as typeof data & { signatureDeliveryPending?: boolean }).signatureDeliveryPending === true);
 
   return (
     <PortalTabScreen
@@ -166,7 +174,7 @@ export function PortalClientDocumentDetailScreen() {
 
         <PortalDocumentDetailHero document={data} scope="client" />
 
-        {data.canSign && data.signaturePending && !captured ? (
+        {signAllowed && data.canSign && data.signaturePending && !captured ? (
           <ClientPortalGuide
             compact
             title="Ihre Unterschrift fehlt noch"
@@ -195,7 +203,7 @@ export function PortalClientDocumentDetailScreen() {
             <ClientPortalGuide compact title="Ihre Unterschrift ist gespeichert" message="Bitte schließen Sie jetzt die Erstellung und Übergabe des Leistungsnachweises ab. Eine weitere Unterschrift ist nicht nötig." />
             <PremiumButton title="Leistungsnachweis fertigstellen" fullWidth loading={signLoading} onPress={() => void handleSignConfirm()} />
           </View>
-        ) : data.canSign && data.signaturePending ? (
+        ) : signAllowed && data.canSign && data.signaturePending ? (
           <PremiumButton
             title="Unterschreiben"
             testID="client-portal-proof-sign-button"

@@ -1,4 +1,4 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { protectedDataStorage as AsyncStorage } from '@/lib/security/protectedDataStorage';
 import type { SignatureWriteExpectation } from '@/features/assistWorkflow/workflowWriteExpectation';
 import { withWorkflowTimeout } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
 

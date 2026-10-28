@@ -14,9 +14,10 @@ describe('employee portal mobile/tablet parity R10.8', () => {
     for (const source of [entry, webEntry]) {
       expect(source).toContain('if (!auth.authReady)');
       expect(source).toContain('resolveAuthSessionTarget(auth)');
-      expect(source).toContain("canRedirectHome && homePath !== '/'");
       expect(source).toContain('<Redirect href={homePath as never} />');
     }
+    expect(entry).toContain("canRedirectHome && homePath !== '/'");
+    expect(webEntry).toContain('if (!canRedirectHome) return <SessionAccessRecovery />');
     expect(target).toContain('resolveSessionHomeRoute(roleKey, input.portalSession)');
     expect(routing).toContain("['employee_portal', 'caregiver', 'nurse']");
     expect(routing).toMatch(/EMPLOYEE_HOME_ROLES\.includes\(roleKey\)[\s\S]*?return '\/portal\/employee'/);

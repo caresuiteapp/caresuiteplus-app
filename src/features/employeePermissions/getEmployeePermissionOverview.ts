@@ -14,6 +14,7 @@ import {
 } from './employeePermissionCenter';
 import { getEmployeeConsentBundle } from './getEmployeeConsentBundle';
 import { fetchEmployeePermissionStates } from './employeePermissionPersistence';
+import { readDevicePermissions } from '@/lib/platform/devicePermissions';
 
 function mapGpsToBrowserStatus(
   status: EmployeePortalGpsPermissionStatus,
@@ -29,10 +30,11 @@ export async function getEmployeePermissionOverview(
   tenantId: string,
   employeeId: string,
 ): Promise<ServiceResult<EmployeePermissionOverview>> {
-  const [statesResult, consentSnapshot, liveLocation] = await Promise.all([
+  const [statesResult, consentSnapshot, liveLocation, devicePermissions] = await Promise.all([
     fetchEmployeePermissionStates(tenantId, employeeId),
     getEmployeeConsentBundle(tenantId, employeeId),
     getEmployeePortalGpsPermissionStatus(),
+    readDevicePermissions(true).catch(() => []),
   ]);
 
   if (!statesResult.ok) return statesResult as ServiceResult<never>;
@@ -45,12 +47,14 @@ export async function getEmployeePermissionOverview(
   const items: EmployeePermissionOverviewItem[] = PERMISSION_KINDS.map((kind) => {
     const stored = stateMap.get(kind);
     const explanation = EMPLOYEE_PERMISSION_EXPLANATIONS[kind];
-    let browserStatus: EmployeeBrowserPermissionStatus =
-      stored?.browserStatus ?? 'undetermined';
+    // Persisted explanation/snapshot data never proves today's OS permission.
+    const actual = devicePermissions.find(item => item.key === kind)?.status;
+    let browserStatus: EmployeeBrowserPermissionStatus = actual && actual !== 'on_action' ? actual : 'undetermined';
 
     if (kind === 'location') {
       browserStatus = mapGpsToBrowserStatus(liveLocation);
     }
+    if (kind === 'signature') browserStatus = 'unavailable';
 
     return {
       kind,

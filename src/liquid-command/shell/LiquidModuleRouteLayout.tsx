@@ -13,11 +13,13 @@ import {
 } from '../navigation/workflowRoutes';
 import { DeferredSignatureApprovalPopup } from '@/components/assist/DeferredSignatureApprovalPopup';
 import { LiquidVisualModeProvider } from '../components/LiquidPrimitives';
+import { desktopCatalogAreaForRoute } from '../navigation/appsWidgetsCatalogModel.shared';
 
 type LiquidModuleRouteLayoutProps = {
   children?: ReactNode;
   requireRole?: boolean;
   requireProduct?: boolean;
+  nativeRoleOwnerPath?: string;
 };
 
 const transparentContent = { backgroundColor: 'transparent' } as const;
@@ -25,6 +27,7 @@ const transparentContent = { backgroundColor: 'transparent' } as const;
 function LiquidModuleStack() {
   return (
     <Stack
+      screenLayout={Platform.OS === 'web' ? undefined : renderNativeModuleScreen}
       screenOptions={{
         headerShown: false,
         contentStyle: transparentContent,
@@ -48,6 +51,8 @@ const MODULE_ROOTS: Record<LiquidModuleKey, readonly string[]> = {
 };
 
 function inferLiquidModule(pathname: string): LiquidModuleKey {
+  const desktopArea = desktopCatalogAreaForRoute(pathname);
+  if (desktopArea && desktopArea !== 'premium') return desktopArea;
   if (pathname.startsWith('/business/messages') || pathname.startsWith('/business/office')) return 'office';
   if (
     pathname.startsWith('/business/connect') ||
@@ -74,17 +79,12 @@ function isModuleRoot(pathname: string, moduleKey: LiquidModuleKey): boolean {
   return MODULE_ROOTS[moduleKey].includes(pathname);
 }
 
-function LiquidModuleContent() {
+function LiquidModuleFrame({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const moduleKey = inferLiquidModule(pathname);
   if (isModuleRoot(pathname, moduleKey)) {
-    return (
-      <>
-        <LiquidModuleStack />
-        {moduleKey === 'assist' ? <DeferredSignatureApprovalPopup /> : null}
-      </>
-    );
+    return <>{children}</>;
   }
   const routeContext = describeLiquidRoute(pathname, moduleKey);
   const primaryRoute = routeContext.areaId
@@ -95,8 +95,7 @@ function LiquidModuleContent() {
     : null;
 
   return (
-    <>
-      <LiquidCommandShell
+    <LiquidCommandShell
       activeModule={moduleKey}
       activeArea={routeContext.areaId}
       title="Facharbeitsbereich"
@@ -108,8 +107,23 @@ function LiquidModuleContent() {
       contentMode="fill"
       showPageHeader={false}
     >
-      <LiquidModuleStack />
-      </LiquidCommandShell>
+      {children}
+    </LiquidCommandShell>
+  );
+}
+
+function renderNativeModuleScreen({ children }: { children: ReactNode }) {
+  return <LiquidModuleFrame>{children}</LiquidModuleFrame>;
+}
+
+function LiquidModuleContent() {
+  const moduleKey = inferLiquidModule(usePathname());
+  const stack = <LiquidModuleStack />;
+  return (
+    <>
+      {/* Native navigation state must live outside route-dependent chrome.
+          Reparenting Stack when leaving a module home remounts its navigator. */}
+      {Platform.OS === 'web' ? <LiquidModuleFrame>{stack}</LiquidModuleFrame> : stack}
       {moduleKey === 'assist' ? <DeferredSignatureApprovalPopup /> : null}
     </>
   );
@@ -125,6 +139,7 @@ export function LiquidModuleRouteLayout({
   children,
   requireRole = true,
   requireProduct = true,
+  nativeRoleOwnerPath,
 }: LiquidModuleRouteLayoutProps) {
   let content: ReactNode = (
     <PortalPremiumProvider kind="workspace">
@@ -138,7 +153,7 @@ export function LiquidModuleRouteLayout({
     content = <LiquidProductAccessGuard>{content}</LiquidProductAccessGuard>;
   }
   if (requireRole) {
-    content = <RequireRole>{content}</RequireRole>;
+    content = <RequireRole ownerPath={Platform.OS === 'web' ? undefined : nativeRoleOwnerPath}>{content}</RequireRole>;
   }
 
   return (

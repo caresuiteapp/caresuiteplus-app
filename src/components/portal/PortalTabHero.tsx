@@ -12,6 +12,7 @@ import {
   SpatialPortalSection,
 } from '@/components/portal/SpatialPortalSurface';
 import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
+import { AdaptiveKpiGrid } from '@/components/adaptive/AdaptiveKpiGrid';
 
 import type { PortalScope } from '@/types/portal';
 import { designTokens, spacing } from '@/theme';
@@ -146,18 +147,22 @@ function PortalTabHeroSpatial(props: PortalTabHeroProps) {
       subtitle={`${meta} · ${subtitle}`}
       accentColor={spatialCareColors.cyanLight}
     >
-      <View style={stylesSpatial.metrics}>
-        {kpis.map((kpi) => (
-          <SpatialPortalMetric
+      <AdaptiveKpiGrid
+        style={stylesSpatial.metrics}
+        phoneLayout="grid"
+        columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
+        items={kpis.map((kpi) => ({
+          id: kpi.id,
+          node: <SpatialPortalMetric
             key={kpi.id}
             label={kpi.label}
             value={String(kpi.numericValue ?? 0)}
             subValue={kpi.numericValue ? kpi.subValue : kpi.fallbackLabel}
             icon={kpi.icon}
             accentColor={kpi.accentColor ?? spatialCareColors.cyanLight}
-          />
-        ))}
-      </View>
+          />,
+        }))}
+      />
     </SpatialPortalSection>
   );
 }

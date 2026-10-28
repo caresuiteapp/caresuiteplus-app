@@ -6,7 +6,7 @@ import { useCompanyAccess } from '@/hooks/useCompanyAccess.web';
 import type { CompanyAccess } from '@/types/tenant/companyAccess';
 import type { ServiceResult } from '@/types';
 const h = vi.hoisted(() => ({ load: vi.fn() }));
-vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: (...args: unknown[]) => h.load(...args) }));
+vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyAccess: (...args: unknown[]) => h.load(...args) }));
 const access: CompanyAccess = { permissions:['business.tenant.manage','inventory.view'],scopeLimited:false,canManageScopes:true };
 function deferred() { let resolve!: (value: ServiceResult<CompanyAccess>) => void; let reject!: (error: Error) => void; const promise = new Promise<ServiceResult<CompanyAccess>>((res,rej)=>{resolve=res;reject=rej;}); return {promise,resolve,reject}; }
 let root: Root; let host: HTMLDivElement; let result: ReturnType<typeof useCompanyAccess>; let renders: ReturnType<typeof useCompanyAccess>[];

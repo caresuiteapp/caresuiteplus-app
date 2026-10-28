@@ -12,7 +12,7 @@ describe('Client Core K.4 — intake mapping smoke', () => {
     expect(intake).toContain('syncClientCoreAfterIntake');
   });
 
-  it('keeps draft leads and blocks unverified live activation before split writes', () => {
+  it('keeps draft leads and requires the version-bound server completion receipt before activation', () => {
     const intake = readFileSync(resolve(ROOT, 'src/lib/clients/clientIntakeService.ts'), 'utf8');
     const repository = readFileSync(
       resolve(ROOT, 'src/lib/clients/repositories/clientIntakeRepository.supabase.ts'),
@@ -20,7 +20,11 @@ describe('Client Core K.4 — intake mapping smoke', () => {
     );
     expect(repository).toContain("buildIntakeClientRecord(tenantId, form, actorProfileId, 'lead')");
     expect(repository).toContain('export async function activateClientFromIntake');
-    expect(intake).toContain('verifizierte atomare Serverabschluss');
+    expect(intake).toContain("supabase.functions.invoke('complete-client-intake'");
+    expect(intake).toContain("receipt?.contract !== 'client-intake-completion-v1'");
+    expect(intake).toContain('receipt.clientId !== recoverableClientId');
+    expect(intake).toContain('receipt.revision !== expectedRevision');
+    expect(intake).toContain('receipt.confirmed !== true');
     expect(intake).toContain('recoverableClientId');
     expect(intake).not.toContain('await activateClientFromIntake(');
     expect(intake).not.toContain('await createClientFromIntake(');

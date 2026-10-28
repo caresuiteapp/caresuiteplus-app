@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "auditId": "native-ambulatory-workspace-contract-hardening-review",
+  "observedDate": "2026-10-26",
+  "decision": "release_and_database_application_still_blocked",
+  "supersedesSourceFindingsOf": "docs/audit/native-ambulatory-workspace-draft-review.json",
+  "scope": {
+    "personnelRoute": "/business/office/personal/workforce",
+    "financingRoute": "/business/office/clients/[id]/contracts",
+    "remoteReads": false,
+    "remoteWrites": false,
+    "sqlAppliedToProductionOrStaging": false,
+    "newInfrastructure": false,
+    "schemaPrerequisitesInventedForProduction": false
+  },
+  "preparedDraftChanges": [
+    {
+      "id": "PRIVATE-ENTRYPOINT-ACL",
+      "status": "implemented_and_executed_synthetic",
+      "details": "All new private helper EXECUTEs explicitly revoked from PUBLIC/anon/authenticated after function creation. Only the already guarded public wrappers and private entrypoints needed by those INVOKER wrappers are granted. Personnel private schema USAGE restored; no table data grant is added."
+    },
+    {
+      "id": "PERSONNEL-REQUEST-REPLAY",
+      "status": "implemented_and_executed_synthetic",
+      "details": "Current actor, current employee existence and root lock precede request lookup. An exact existing owned request returns its receipt before new-source and stale-CAS checks; altered requests fail. No second event is appended."
+    },
+    {
+      "id": "SERVER-PAYLOAD-TYPES",
+      "status": "implemented_and_executed_synthetic_partial_coverage",
+      "details": "Exact command/payload fields; canonical UUIDs; required typed source snapshots and kinds; active person snapshots; string decimal amount/quantity constraints; actual calendar dates/instants; personnel enum/time/date/coverage constraints and required access originals. Cases do not constitute exhaustive fuzzing of all13/15event kinds."
+    },
+    {
+      "id": "PERSONNEL-TRANSITIONS",
+      "status": "implemented_and_executed_synthetic_partial_coverage",
+      "details": "Matches existing domain qualification/task link, planned staffing acknowledgement/own actor, completed prior absence and one-time correction constraints. Source and people snapshots are compared against current prepared loaders. Qualification/delegation, return and correction paths are executed through actual public writers."
+    },
+    {
+      "id": "COMPANY-SCOPE-CEILING",
+      "status": "implemented_with_controlled_helper_binding",
+      "details": "Prepared tenant-wide DEFINER source APIs additionally require the existing care_security.company_actor rights, preserving its unrestricted-company-scope ceiling. Synthetic helper bindings prove deny propagation, not the real production helper implementation. Individually scoped record support is not introduced."
+    },
+    {
+      "id": "UTC-LEDGER-TIMESTAMPS",
+      "status": "implemented_and_executed_synthetic",
+      "details": "Personnel history, context, commit and confirm format actual UTC timestamps before appending Z. Public context containing the complete synthetic ledger reaches the real app decoder even with a Europe/Berlin database session."
+    }
+  ],
+  "appContractFix": {
+    "file": "src/lib/clients/clientFinancingWorkspaceDomain.web.ts",
+    "reproduction": "The actual prepared public SQL commit emits JSONB with reordered object keys. decodeClientFinancingReceipt previously compared JSON.stringify strings and rejected a valid persisted receipt. One actual SQL→decoder test failed before the fix.",
+    "changes": [
+      "Key-order-insensitive existing sameWoundJson for receipt and source-selection comparison, guarded by strict wire-JSON validation.",
+      "Finite numbers, strings, member presence and array order remain meaningful; undefined/NaN/sparse arrays/getters/symbols/cycles reject.",
+      "Receipt event binds actor/tenant/client/request/event/previousHead/positive integer sequence and recorded microsecond timestamp to the original command."
+    ],
+    "validation": "Actual SQL JSONB receipt passes the real app decoder; changed amount/body, numeric coercion, actor/client/tenant/head/time/version and non-JSON command values fail. Native generation is owned by root."
+  },
+  "executedTests": {
+    "command": "node --test supabase/tests/ambulatory_workspace_contract_review.test.mjs scripts/checks/personnel-workspace.node.test.mjs scripts/checks/client-financing-workspace.node.test.mjs",
+    "total": 80,
+    "passed": 80,
+    "failed": 0,
+    "newPreparedSqlTestEntries": 20,
+    "existingDomainAndSdkTestEntries": 60,
+    "skipped": 0,
+    "log": "/workspace/scratch/bbe6d3a3b50b/android-next-qa/ambulatory-contract-final-tests.log",
+    "environment": "Existing PGlite in-memory PostgreSQL with synthetic roles, identities, source rows and controlled auth/permission/company-actor helpers. The fixture explicitly supplies missing production relation names.",
+    "covered": [
+      "Actual prepared SQL compilation with synthetic prerequisites",
+      "authenticated and anon public wrapper privileges",
+      "Private helper denies",
+      "Exact owned request replay and collision without a second event",
+      "Missing/foreign employee/actor and inactive/revoked actors",
+      "Malformed raw command rollback",
+      "Typed/nonnull/known-kind source binding",
+      "Decimal strings, negative/numeric/excess precision rejects",
+      "SQL JSONB output through actual Personnel and ClientFinancing receipt decoders",
+      "Source-bound qualification/delegation, completed absence and single correction",
+      "Unmapped limited-company actors denied at new APIs",
+      "Non-UTC database session produces correct UTC-labelled Personnel context/history through actual app decoder"
+    ],
+    "notEstablished": [
+      "Production schema compatibility or missing RPC deployment",
+      "Real production helper/identity/session/RLS/default ACL behavior",
+      "Every event kind or every transition of both domains",
+      "PostgREST transport/public API schema-cache or actual Supabase JWT identity",
+      "Two-session concurrency, source edit/commit race, deadlock and rollback across concurrent sessions",
+      "Actual Android/device/UI workflow and persistence acceptance"
+    ],
+    "newSqlSuitePortability": "Real TS decoders are compiled with the existing esbuild inside the Node test. The new SQL suite does not rely on Node24 type stripping;20/20 portable suite entries passed locally. Existing60domain scripts retain their existing runner requirements."
+  },
+  "remainingReleaseBlockers": [
+    {
+      "id": "ACTUAL-SCHEMA-MAPPING",
+      "details": "Fresh name catalog still lacks Personnel user_roles, employee_training_records, employee_assignment_eligibility, employee_time_entries, employee_portal_access, employee_hr_documents and Finance client_service_records. Tables were supplied only synthetically in tests; no substitute is chosen by name similarity. Column/types/relations still need exact production mapping."
+    },
+    {
+      "id": "IDENTITY-SESSION-COMPATIBILITY",
+      "details": "Current app repositories and old actors assume actor ID equals Auth UID/profile ID. The actual current profile/auth mapping and private auth.sessions column/privilege contract are not established by name-only catalogs. Personnel actor still needs full session freshness/locking reconciliation; extra status/permission/company ceilings are not a complete authentication review."
+    },
+    {
+      "id": "ORGANIZATION-SCOPE",
+      "details": "Tenant-wide new readers now fail closed for limited-company actors via existing company_actor ceiling. Current limited record-specific semantics are unimplemented; broadening to company_record_access needs concrete original record organization mapping and readback tests."
+    },
+    {
+      "id": "CONCURRENT-SOURCE-AND-ACL-DRIFT",
+      "details": "PGlite suite is single connection and uses synthetic prerequisites/helpers. Personnel current source/person selections are not a two-session source-lock/permission-revocation proof. Finance existing table share locks and role locks need actual deadlock/concurrency/performance review. Existing private schema contents/owners/default ACLs/exposed schemas and definition/grant drift require a fresh reviewed gate."
+    },
+    {
+      "id": "NO-ORIGINAL-WRITER-CLAIM",
+      "details": "Both packages append evidence ledger records. They do not perform native HR payroll, access-provider revocation, source financing/billing or service-proof original writes. Labels and acceptance must keep those outcomes separate."
+    },
+    {
+      "id": "PRODUCTION-APPROVAL",
+      "details": "No migration or SQL application has been attempted. The older four-packet remains blocked and must not be retried or bypassed. Only a newly compatible, concrete, separately reviewed package can be proposed to the user."
+    }
+  ],
+  "sourceFingerprints": {
+    "supabase/patches/ambulatory_personnel_workspace.sql": "14d2bb979a45a21c50b518a0246eb60e336fcc3a58ea314b7426039843369e84",
+    "supabase/patches/ambulatory_client_financing_workspace.sql": "3fbe71b2dbe3f45e9305fe84e76df6f624e4721743d206209ce4c40695a4b368",
+    "supabase/tests/ambulatory_workspace_contract_review.test.mjs": "c5ac8dd44e125213fc568c7b15143d8003c788cb5ade3b45af184aed8f66ff13",
+    "src/lib/clients/clientFinancingWorkspaceDomain.web.ts": "b764591ae99681afd9ed5873124b3699c32bc06005f78a74d2a261c01f8f7b54"
+  }
+}

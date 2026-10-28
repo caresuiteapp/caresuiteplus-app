@@ -1,0 +1,31 @@
+{
+  "sourceBefore": "d01206e8e0bb9999f7d0953ce67ae7edcd5aa438",
+  "finding": "The real native client billing profile renders an unstyled browser details element with the default label Details. DocumentRecommendations selects its JSX host via const Surface = compact ? 'details' : 'section'; this local component choice was not translated.",
+  "evidence": {
+    "run": 40425783975,
+    "artifact": 12699563251,
+    "archiveSha256": "2804836578d67933aefbcdc6160d9069273190eacecdcbec0233671e5ff73833",
+    "image": "admin-audit-client-billing-default-ready-1280x800-scale-1.png",
+    "imageSha256": "0aa20707cf7c870200b17f466654ac76ae683d145d304a64a19a9f3bee1b1a7b"
+  },
+  "correction": "Use TypeScript symbol identity to detect local component choices with literal host values, including aliases and actual React factory references. Preserve the original variable and all its data uses; create a separate component binding that resolves its selected host to the existing native adapters once. Keep ordinary component values and shadowed parameters separate.",
+  "checks": {
+    "newHostDetectionCases": 4,
+    "newActualComponentCases": 2,
+    "scope": "All generated modules/receiving routes are scanned for remaining dynamic host literals. The actual compact recommendations expand and collapse natively; the normal section stays native. The actual billing page must show Dokumentvorschläge and exposes an expanded detail capture."
+  },
+  "handover": "The existing strict source gate remains a failure until regenerated files are committed. A temporary existing-CI export captures the exact regenerated sources, then executes the existing host/emitter test files. It must be removed after source adoption.",
+  "releaseAcceptance": false,
+  "validation": "CI 183 passed source synchronization, 34+276+211 pre-image tests, and the administration browser checks including expansion/collapse. TypeScript rejected the overly broad ElementType return because it includes void HTML hosts; the helper now returns the registry's actual native component union and preserves non-string component types. Full CI pending.",
+  "handoverReceipt": {
+    "run": 40427909484,
+    "source": "da41e42094249896369e47fe597baa416e93493b",
+    "artifact": 12700148805,
+    "archiveSha256": "9896ec4c88de8be6e581872bc22b3a60bf80e0b555bd22a4284b1b77bf6786de",
+    "files": [
+      "src/components/documents/DocumentRecommendations.native.tsx"
+    ],
+    "targetedTests": 21,
+    "result": "Actual host/emitter test files passed after generation. The strict source check remained failed until source adoption."
+  }
+}

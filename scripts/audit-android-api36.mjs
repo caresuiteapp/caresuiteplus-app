@@ -32,7 +32,7 @@ const manifest = JSON.stringify(androidMods?.manifest ?? {});
 const checks = {
   portalRouterRoot: config.extra?.router?.root === 'app-portal',
   androidPackage: config.android?.package === 'app.caresuitehealthos',
-  appVersion: config.version === '0.4.0',
+  appVersion: config.version === '0.8.0',
   versionCodeBaseline: Number(config.android?.versionCode) >= 41,
   minSdk24: properties.get('android.minSdkVersion') === '24',
   compileSdk36: properties.get('android.compileSdkVersion') === '36',
@@ -57,3 +57,4 @@ console.log(JSON.stringify({ status: failed.length === 0 ? 'ok' : 'failed', chec
 if (failed.length > 0) {
   throw new Error(`Android-API-36-Audit fehlgeschlagen: ${failed.join(', ')}`);
 }
+

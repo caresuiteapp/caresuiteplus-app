@@ -2,7 +2,7 @@
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import type { EmployeeAssignmentNoticeInbox } from '@/lib/portal/employeeAssignmentNoticeService.web';
+import type { EmployeeAssignmentNoticeInbox } from '@/lib/portal/employeeAssignmentNoticeService';
 const h = vi.hoisted(() => ({
   actor: { tenantId: 'tenant-a', employeeId: 'employee-a', isLinkedReady: true, employeeLinkReadOnly: false },
   authUserId: 'auth-a', accountId: 'account-a', pathname: '/portal/employee',
@@ -21,7 +21,7 @@ vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ user: { id: h.authUserI
 vi.mock('@/design/tokens/carelightadaptive', () => ({ useCareLightPalette: () => ({ c: {} }) }));
 vi.mock('@/hooks/core/useAsyncQuery', () => ({ useAsyncQuery: () => ({ data: h.inbox, setData: h.setData, refresh: h.refresh }) }));
 vi.mock('@/lib/realtime/subscribeToTenantTables', () => ({ subscribeToTenantTables: () => () => {} }));
-vi.mock('@/lib/portal/employeeAssignmentNoticeService.web', () => ({
+vi.mock('@/lib/portal/employeeAssignmentNoticeService', () => ({
   fetchEmployeeAssignmentNotices: vi.fn(), acknowledgeEmployeeAssignmentNotices: h.acknowledge,
   resolveEmployeeAssignmentNoticeRoute: h.route,
 }));

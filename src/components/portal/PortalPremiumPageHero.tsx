@@ -34,7 +34,7 @@ function resolveIcon(title: string, kind: PortalPremiumKind): IoniconName {
 }
 
 const breakLongWords = Platform.OS === 'web'
-  ? ({ overflowWrap: 'normal', wordBreak: 'normal' } as unknown as TextStyle)
+  ? ({ overflowWrap: 'break-word', wordBreak: 'normal', hyphens: 'auto' } as unknown as TextStyle)
   : null;
 
 export function PortalPremiumPageHero({ kind, title, subtitle, eyebrow, compact = false }: Props) {
@@ -42,6 +42,9 @@ export function PortalPremiumPageHero({ kind, title, subtitle, eyebrow, compact 
   const type = resolveGalaxyTypography(width);
   const mobile = isPhone || width < 760;
   const icon = resolveIcon(title, kind);
+  // Optional compound boundaries keep enlarged German titles readable even
+  // when the host has no German hyphenation dictionary installed.
+  const displayTitle = title.replaceAll('Notfallnummern', 'Notfall\u00ADnummern').replaceAll('Alltagsbegleitung', 'Alltags\u00ADbegleitung');
 
   return (
     <View
@@ -64,9 +67,9 @@ export function PortalPremiumPageHero({ kind, title, subtitle, eyebrow, compact 
       <View style={styles.copy}>
         <View style={styles.pill}>
           <Ionicons name={kind === 'employee' ? 'briefcase' : 'shield-checkmark'} color={portalPremium.accent.blueDark} size={14} />
-          <Text numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85} style={styles.eyebrow}>{eyebrow}</Text>
+          <Text style={styles.eyebrow}>{eyebrow}</Text>
         </View>
-        <Text adjustsFontSizeToFit={title.length < 24} minimumFontScale={0.8} numberOfLines={title.length < 24 ? 1 : undefined} style={[type.h1, styles.title, mobile && styles.titleMobile, breakLongWords]}>{title}</Text>
+        <Text accessibilityLabel={title} android_hyphenationFrequency="normal" textBreakStrategy="highQuality" style={[type.h1, styles.title, mobile && styles.titleMobile, breakLongWords]}>{displayTitle}</Text>
         {subtitle ? <Text style={[type.body, styles.subtitle, breakLongWords]}>{subtitle}</Text> : null}
       </View>
 

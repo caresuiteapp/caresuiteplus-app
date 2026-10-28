@@ -55,6 +55,7 @@ function useClientTabQuery<T>(
   clientId: string,
   fetcher: (tenantId: string, clientId: string) => Promise<{ ok: boolean; data?: T; error?: string }>,
   enabled = true,
+  dataset?: string,
 ) {
   const tenantId = useServiceTenantId();
   return useAsyncQuery<T>(
@@ -63,7 +64,10 @@ function useClientTabQuery<T>(
       return fetcher(tenantId, clientId) as Promise<{ ok: true; data: T } | { ok: false; error: string }>;
     },
     [tenantId, clientId],
-    { enabled: enabled && !!tenantId && !!clientId },
+    {
+      enabled: enabled && !!tenantId && !!clientId,
+      queryKey: dataset ? `${dataset}:${tenantId ?? ''}:${clientId}` : undefined,
+    },
   );
 }
 
@@ -220,7 +224,7 @@ export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProp
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [note, setNote] = useState('');
-  const query = useClientTabQuery(clientId, (tid, cid) => fetchClientTimeline(tid, cid));
+  const query = useClientTabQuery(clientId, fetchClientTimeline, true, 'client-timeline');
 
   async function handleAdd() {
     if (!tenantId || isReadOnly || !note.trim()) return;
@@ -263,7 +267,7 @@ export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProp
             message="Änderungen an Stammdaten, Dokumenten, Portal und Aufgaben erscheinen hier automatisch. Sie können auch manuelle Notizen hinzufügen."
           />
         ) : (
-          <Timeline items={items} maxItems={500} />
+          <Timeline items={items} maxItems={500} expandEntries />
         )}
       </SectionPanel>
       {internalNotes.length > 0 ? (

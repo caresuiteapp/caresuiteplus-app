@@ -17,6 +17,7 @@ vi.mock('react-native', () => {
     Linking: { openURL: h.openURL, openSettings: vi.fn().mockResolvedValue(undefined) },
     Platform: { OS: 'android' }, StyleSheet: { create: (styles: any) => styles } };
 });
+vi.mock('@/components/auth/AccountSecurityCenter', () => ({ AccountSecurityCenter: () => <section aria-label="Kontosicherheit" /> }));
 vi.mock('expo-router', () => ({ useLocalSearchParams: () => ({}) }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: null, portalSession: { roleKey: 'employee_portal', accountId: 'account-a' } }) }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => 'tenant-a' }));

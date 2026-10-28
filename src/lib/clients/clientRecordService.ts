@@ -45,9 +45,12 @@ export async function resolveCareContextsForClient(
 export async function fetchClientRecord(
   tenantId: string,
   clientId: string,
+  options?: { canViewSensitive?: boolean },
 ): Promise<ServiceResult<ClientRecordView>> {
   return runService(async () => {
-    const detailResult = await fetchClientFullDetail(tenantId, clientId);
+    const detailResult = await fetchClientFullDetail(tenantId, clientId, {
+      canViewSensitive: options?.canViewSensitive ?? false,
+    });
     if (!detailResult.ok) return detailResult;
 
     if (isDemoClientBackend()) {

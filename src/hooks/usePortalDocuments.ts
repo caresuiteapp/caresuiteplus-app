@@ -29,10 +29,10 @@ export function usePortalDocuments(audience: OperationalPortalAudience) {
   const scopedClientId = audience === 'client' && roleMatchesAudience ? clientId : null;
   const scopedEmployeeId = audience === 'employee' && roleMatchesAudience ? employeeId : null;
   const resolvingLink = audience === 'employee' ? isResolvingEmployeeLink : isResolvingClientLink;
-  const scopeKey = JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId]);
-  useEffect(() => setShowSuccess(false), [scopeKey]);
   const familyDocumentsAllowed =
     roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'documents');
+  const scopeKey = JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId, familyDocumentsAllowed]);
+  useEffect(() => setShowSuccess(false), [scopeKey]);
 
   const query = useAsyncQuery(
     () =>

@@ -17,15 +17,16 @@ export type PortalContextState = {
 };
 
 export function usePortalContext(): PortalContextState {
-  const { tenantId, clientId, roleKey, actorId, displayName, isReady: actorReady, isResolvingClientLink } = usePortalActor();
+  const { tenantId, clientId, roleKey, actorId, displayName, familyAccess, isReady: actorReady, isResolvingClientLink } = usePortalActor();
   const { portalSession } = useAuth();
   const displayNameRef = useRef(displayName);
   displayNameRef.current = displayName;
-  const key = JSON.stringify([tenantId, clientId, roleKey, actorId, portalSession?.accountId, portalSession?.tenantName]);
+  const key = JSON.stringify([tenantId, clientId, roleKey, actorId, portalSession?.accountId, portalSession?.tenantName, familyAccess?.permissions]);
   const query = useAsyncQuery(async () => {
     const context = await sharedPortalRead(`context:${key}`, () => resolvePortalContext({
       tenantId: tenantId!, clientId: clientId!, roleKey: roleKey!,
       displayName: displayNameRef.current, tenantNameHint: portalSession?.tenantName ?? null,
+      familyAccess,
     }));
     return { ok: true as const, data: context };
   }, [key], { enabled: actorReady && !!tenantId && !!roleKey && !!clientId, queryKey: key });

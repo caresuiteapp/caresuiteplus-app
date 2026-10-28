@@ -2,7 +2,7 @@ import { rememberWebLoginReturn, clearReachedWebLoginReturn } from '@/lib/naviga
 import { ReactNode, useEffect } from 'react';
 import { runAppTransition } from '@/lib/react/runAppTransition';
 import type { Href } from 'expo-router';
-import { usePathname, useRouter } from 'expo-router';
+import { useIsFocused, usePathname, useRouter } from 'expo-router';
 import { LoadingState } from '@/components/ui';
 import { useHydrated } from '@/hooks/useHydrated';
 import { getLoginRedirectForPath } from '@/lib/navigation';
@@ -23,12 +23,13 @@ export function RequireAuth({
 }: RequireAuthProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const focused = useIsFocused();
   const hydrated = useHydrated();
   const { authReady, isAuthenticated, authMode } = useAuth();
   const sessionPending = useSupabaseSessionProbe(authMode, authReady, isAuthenticated);
 
   useEffect(() => {
-    if (!hydrated || !authReady) return;
+    if (!focused || !hydrated || !authReady) return;
     if (isAuthenticated) { clearReachedWebLoginReturn(); return; }
 
     let cancelled = false;
@@ -54,7 +55,11 @@ export function RequireAuth({
     return () => {
       cancelled = true;
     };
-  }, [authMode, authReady, hydrated, isAuthenticated, pathname, redirectTo, router]);
+  }, [authMode, authReady, focused, hydrated, isAuthenticated, pathname, redirectTo, router]);
+
+  // StateViews publish global feedback. An inactive scene must stay blocked
+  // quietly instead of opening a native modal over the foreground route.
+  if (!focused && (!hydrated || !authReady || sessionPending || !isAuthenticated)) return null;
 
   if (!hydrated || !authReady || sessionPending) {
     return <LoadingState message={loadingMessage} />;

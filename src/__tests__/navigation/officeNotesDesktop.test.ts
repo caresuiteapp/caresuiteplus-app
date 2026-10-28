@@ -47,13 +47,13 @@ describe('Office Notes desktop entry and route', () => {
     expect(web.describeLiquidRoute(route, 'office')).toMatchObject({ areaId: 'notes', contextLabel: 'Notizen' });
   });
 
-  it('keeps the Android catalogue, navigation, defaults and registry unchanged', () => {
+  it('offers the native note workspace in the same default desktop order as Web', () => {
     const android = catalog('android');
-    expect(android.WIDGETS.some((item: DesktopApp) => item.id === 'notes')).toBe(false);
-    expect(android.DEFAULT_DESKTOP_IDS).not.toContain('notes');
-    expect(android.buildDesktopApps(android.WIDGETS, 'business_admin').some((item: DesktopApp) => item.route === route)).toBe(false);
-    expect(android.officeNav.groups.flatMap((group: any) => group.items).some((item: any) => item.href === route)).toBe(false);
-    expect(android.APP_ROUTES.some((item: any) => item.path === route)).toBe(false);
+    expect(android.WIDGETS.some((item: DesktopApp) => item.id === 'notes')).toBe(true);
+    expect(android.DEFAULT_DESKTOP_IDS).toEqual(catalog('web').DEFAULT_DESKTOP_IDS);
+    expect(android.buildDesktopApps(android.WIDGETS, 'business_admin').some((item: DesktopApp) => item.route === route)).toBe(true);
+    expect(android.officeNav.groups.flatMap((group: any) => group.items).some((item: any) => item.href === route)).toBe(true);
+    expect(android.APP_ROUTES.some((item: any) => item.path === route)).toBe(true);
   });
 
   it('appends once to a full saved desktop without moving or dropping existing widgets', () => {

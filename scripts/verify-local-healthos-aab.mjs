@@ -112,7 +112,7 @@ export function manifestIdentity(data) {
 }
 
 export function requireIdentity(identity, baseline) {
-  if (identity.applicationId !== 'app.caresuitehealthos' || identity.versionName !== '0.4.0') throw new Error('AAB gehört nicht zur vollständigen CareSuite HealthOS 0.4.0.');
+  if (identity.applicationId !== 'app.caresuitehealthos' || identity.versionName !== '0.8.0') throw new Error('AAB gehört nicht zur vollständigen CareSuite HealthOS 0.8.0.');
   if (!Number.isInteger(baseline) || baseline < 40 || !Number.isInteger(identity.versionCode) || identity.versionCode <= baseline || identity.versionCode > 2100000000) throw new Error('AAB enthält keinen gültigen erhöhten Versionscode.');
 }
 

@@ -160,7 +160,6 @@ function EmployeePortalVisitExecutionContent() {
   const router = useRouter();
   const { can, check, roleLabel } = usePermissions();
   const canExecute = can('assist.execution.manage');
-  const workflowPersistence = useWorkflowPersistence(id);
 
   const {
     data: visit,
@@ -213,6 +212,7 @@ function EmployeePortalVisitExecutionContent() {
   const { tenantId: portalTenantId, employeeId: portalEmployeeId } = usePortalActor();
   const { user, profile, portalSession } = useAuth();
   const actorId = user?.id ?? profile?.id ?? portalEmployeeId ?? '';
+  const workflowPersistence = useWorkflowPersistence(id, { scopeKey: portalTenantId && actorId ? `${portalTenantId}:${actorId}:${portalEmployeeId ?? ''}:${portalSession?.accountId ?? ''}:${user?.roleKey ?? ''}` : null });
 
   const effectiveStatus: AssignmentStatus =
     hookEffectiveStatus ?? visit?.status ?? 'geplant';

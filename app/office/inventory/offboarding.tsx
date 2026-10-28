@@ -1,1 +1,5 @@
-export { default } from '../../business/office/inventory/offboarding';
+import { CompanyInventoryRedirect } from '@/lib/navigation/CompanyInventoryRedirect';
+
+export default function LegacyInventoryRoute() {
+  return <CompanyInventoryRedirect view="offboarding" />;
+}

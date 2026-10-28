@@ -10,11 +10,12 @@ import { useHydrated } from '@/hooks/useHydrated';
  */
 export function useHydrationSafeWindowDimensions() {
   const hydrated = useHydrated();
-  const { width, height } = useWindowDimensions();
+  const { width, height, fontScale = 1 } = useWindowDimensions();
 
   return {
     width: resolveHydrationSafeWidth(width, hydrated),
     height: resolveHydrationSafeHeight(height, hydrated),
+    fontScale,
     hydrated,
   };
 }

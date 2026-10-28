@@ -1,0 +1,203 @@
+// Generated native presentation from src/lib/pflege/careDocumentationPathWorkspaceDomain.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+export const careDocumentationPathVersion = '2026-10-16.5' as const;
+export const careDocumentationPathKinds = ['care_report', 'planned_service_record', 'partial_service_record', 'non_service_record', 'refusal_record', 'incident_report', 'incident_closure', 'protocol_record', 'content_confirmation', 'history_review', 'control_order', 'control_result', 'control_nonperformance', 'external_document_review', 'documentation_review_request', 'documentation_review_return', 'documentation_review_decision', 'correction'] as const;
+export type CareDocumentationPathKind = (typeof careDocumentationPathKinds)[number];
+export type CareDocumentationPathSource = {
+    kind: string;
+    id: string;
+    snapshot: Record<string, unknown>;
+};
+type Field = {
+    key: string;
+    label: string;
+    type?: 'text' | 'date' | 'instant' | 'uuid' | 'sha256' | 'enum';
+    values?: readonly string[];
+};
+type Source = {
+    key: string;
+    label: string;
+    kinds: readonly string[];
+    eventKinds?: readonly string[];
+};
+export type CareDocumentationPathDefinition = {
+    group: string;
+    label: string;
+    right: string;
+    extraRights?: readonly string[];
+    sources: readonly Source[];
+    fields: readonly Field[];
+};
+const f = (key: string, label: string, type: Field['type'] = 'text', values?: readonly string[]): Field => ({ key, label, type, ...(values ? { values } : {}) });
+const s = (key: string, label: string, ...kinds: string[]): Source => ({ key, label, kinds });
+const e = (key: string, label: string, ...eventKinds: string[]): Source => ({ key, label, kinds: ['care_documentation_path_event'], eventKinds });
+const p = (key: string, label: string, ...eventKinds: string[]): Source => ({ key, label, kinds: ['care_plan_path_event'], eventKinds });
+export const careDocumentationPathDefinitions: Record<CareDocumentationPathKind, CareDocumentationPathDefinition> = {
+    care_report: { group: 'Pflegebericht', label: 'Beobachtung und tatsächliche Handlung als Pflegebericht erfassen', right: 'pflege.documentation.create', sources: [s('client', 'Pflegefalloriginal', 'client_record'), s('visit', 'Einsatzoriginal', 'care_visit')], fields: [f('observation', 'Tatsächliche Beobachtung'), f('action', 'Tatsächliche Handlung'), f('result', 'Beobachtetes Ergebnis')] },
+    planned_service_record: { group: 'Leistungsdokumentation', label: 'Geplante Leistung mit tatsächlicher Durchführung verbinden', right: 'pflege.documentation.create', sources: [p('plan', 'Freigegebene Planfassung', 'plan_release_decision'), s('visit', 'Einsatzoriginal', 'care_visit'), s('execution', 'Durchführungsoriginal', 'care_execution')], fields: [f('performedAt', 'Tatsächlicher Zeitpunkt', 'instant'), f('performedScope', 'Tatsächlicher Umfang'), f('result', 'Ergebnis')] },
+    partial_service_record: { group: 'Leistungsdokumentation', label: 'Teilleistung mit Grund und Reaktion dokumentieren', right: 'pflege.documentation.create', sources: [p('plan', 'Freigegebene Planfassung', 'plan_release_decision'), s('visit', 'Einsatzoriginal', 'care_visit')], fields: [f('performedPart', 'Erbrachter Teil'), f('missingPart', 'Nicht erbrachter Teil'), f('reason', 'Konkreter Grund'), f('reaction', 'Tatsächliche Reaktion')] },
+    non_service_record: { group: 'Leistungsdokumentation', label: 'Nichtleistung ohne positiven Durchführungsnachweis dokumentieren', right: 'pflege.documentation.create', sources: [p('plan', 'Freigegebene Planfassung', 'plan_release_decision'), s('visit', 'Einsatzoriginal', 'care_visit')], fields: [f('reason', 'Konkreter Nichtleistungsgrund'), f('reaction', 'Tatsächliche Reaktion'), f('followUp', 'Prüfbarer Folgeauftrag')] },
+    refusal_record: { group: 'Ablehnung & Vorkommnis', label: 'Ablehnung mit Beratung und Folgeschritt dokumentieren', right: 'pflege.documentation.create', sources: [p('measure', 'Geplante Maßnahme', 'measure_plan'), s('visit', 'Einsatzoriginal', 'care_visit')], fields: [f('offeredMeasure', 'Angebotene Maßnahme'), f('statedReason', 'Geäußerter Grund'), f('consultation', 'Tatsächliche Beratung'), f('followUp', 'Folgeschritt')] },
+    incident_report: { group: 'Ablehnung & Vorkommnis', label: 'Besonderes Vorkommnis von Beobachtung bis Weitergabe erfassen', right: 'pflege.documentation.create', sources: [s('visit', 'Einsatzoriginal', 'care_visit'), s('people', 'Beteiligtenoriginal', 'client_record', 'employee_profile')], fields: [f('incidentType', 'Ereignisart'), f('finding', 'Tatsächliche Feststellung'), f('immediateAction', 'Sofortmaßnahme'), f('forwardedTo', 'Weitergabe')] },
+    incident_closure: { group: 'Ablehnung & Vorkommnis', label: 'Vorkommnis mit tatsächlichem Abschlussbeleg schließen', right: 'pflege.audit.view', sources: [e('incident', 'Vorkommnisoriginal', 'incident_report'), s('reviewer', 'Prüfpersonenoriginal', 'employee_profile')], fields: [f('outcome', 'Abschlussergebnis'), f('followUp', 'Nachhalteergebnis'), f('closureSha256', 'Abschlussbeleg', 'sha256')] },
+    protocol_record: { group: 'Protokolle', label: 'Strukturiertes Protokoll gegen Fachvorlage erfassen', right: 'pflege.documentation.create', sources: [s('template', 'Fachvorlage', 'documentation_template'), s('visit', 'Einsatzoriginal', 'care_visit')], fields: [f('protocolType', 'Protokolltyp'), f('templateVersion', 'Fachversion'), f('fieldSetSha256', 'Ausgefüllter Feldsatz', 'sha256'), f('measuredAt', 'Mess- oder Beobachtungszeitpunkt', 'instant')] },
+    content_confirmation: { group: 'Bestätigung & Verlauf', label: 'Unveränderte Inhaltsfassung personengebunden bestätigen', right: 'pflege.documentation.sign', sources: [s('document', 'Dokumentationsoriginal', 'care_documentation'), s('person', 'Bestätigendenoriginal', 'employee_profile', 'client_record', 'representative_record')], fields: [f('role', 'Bestätigende Rolle'), f('scope', 'Bestätigter Umfang'), f('basis', 'Identitäts- oder Vertretungsgrundlage'), f('contentSha256', 'Inhaltsbindung', 'sha256')] },
+    history_review: { group: 'Bestätigung & Verlauf', label: 'Vollständigen paginierten Verlauf prüfen und ausgeben', right: 'pflege.documentation.view', sources: [s('document', 'Dokumentationsoriginal', 'care_documentation')], fields: [f('fromAt', 'Zeitraum ab', 'instant'), f('toAt', 'Zeitraum bis', 'instant'), f('pageCount', 'Vollständig gelesene Seiten'), f('exportSha256', 'Ausgabebeleg', 'sha256')] },
+    control_order: { group: 'Kontrollprotokoll', label: 'Kontrollauftrag mit Zuständigkeit und Frist setzen', right: 'pflege.documentation.create', sources: [s('basis', 'Dokumentations- oder Planoriginal', 'care_documentation', 'care_plan_path_event')], fields: [f('cause', 'Kontrollanlass'), f('frequency', 'Frequenz'), f('responsible', 'Zuständige Person oder Rolle'), f('dueAt', 'Kontrollfrist', 'instant')] },
+    control_result: { group: 'Kontrollprotokoll', label: 'Tatsächliches Kontrollergebnis dokumentieren', right: 'pflege.documentation.create', sources: [e('order', 'Kontrollauftrag', 'control_order'), s('evidence', 'Ergebnisoriginal', 'care_documentation', 'care_execution')], fields: [f('observedAt', 'Kontrollzeitpunkt', 'instant'), f('result', 'Tatsächliches Ergebnis'), f('followUp', 'Folgehandlung')] },
+    control_nonperformance: { group: 'Kontrollprotokoll', label: 'Nichterfüllte Kontrolle begründet nachhalten', right: 'pflege.documentation.create', sources: [e('order', 'Kontrollauftrag', 'control_order')], fields: [f('reason', 'Konkreter Nichterfüllungsgrund'), f('reaction', 'Tatsächliche Reaktion'), f('newDueAt', 'Neue Frist', 'instant')] },
+    external_document_review: { group: 'Fremddokumentation', label: 'Fremddokumentation gekennzeichnet übernehmen und prüfen', right: 'pflege.documentation.create', sources: [s('external', 'Externes Dokumentoriginal', 'external_document')], fields: [f('source', 'Externe Quelle'), f('author', 'Externer Autor'), f('receivedAt', 'Eingangszeitpunkt', 'instant'), f('eventAt', 'Externer Ereigniszeitpunkt', 'instant'), f('review', 'Eigene Prüfung ohne Eigenleistungsbehauptung')] },
+    documentation_review_request: { group: 'Fachprüfung', label: 'Vollständige Dokumentationsfassung zur Prüfung geben', right: 'pflege.documentation.create', sources: [s('document', 'Dokumentationsoriginal', 'care_documentation'), s('history', 'Vollständiger Verlaufsbeleg', 'care_documentation_history')], fields: [f('reason', 'Prüfanlass'), f('packetSha256', 'Prüfpaketbeleg', 'sha256')] },
+    documentation_review_return: { group: 'Fachprüfung', label: 'Dokumentationsfassung begründet zurückgeben', right: 'pflege.audit.view', sources: [e('review', 'Prüfanfrage', 'documentation_review_request')], fields: [f('reason', 'Rückgabegrund'), f('requiredChange', 'Erforderliche Änderung')] },
+    documentation_review_decision: { group: 'Fachprüfung', label: 'Qualifizierte Fachentscheidung getrennt dokumentieren', right: 'pflege.audit.view', sources: [e('review', 'Prüfanfrage', 'documentation_review_request'), s('reviewer', 'Prüfpersonenoriginal', 'employee_profile')], fields: [f('decision', 'Entscheidung', 'enum', ['accepted', 'returned']), f('rationale', 'Entscheidungsbegründung'), f('decisionSha256', 'Entscheidungsbeleg', 'sha256')] },
+    correction: { group: 'Berichtigung', label: 'Unveränderlichen Dokumentationspfadvorgang berichtigen', right: 'pflege.documentation.create', sources: [], fields: [f('targetId', 'Zu berichtigender Vorgang', 'uuid'), f('reason', 'Berichtigungsgrund'), f('evidenceSha256', 'Berichtigungsbeleg', 'sha256')] }
+};
+export const careDocumentationPathReadRights = ['pflege.documentation.view'] as const;
+export const careDocumentationPathWorkspaceDefinitions = careDocumentationPathDefinitions;
+export const careDocumentationPathWorkspaceReadRights = careDocumentationPathReadRights;
+export type CareDocumentationPathWorkspaceKind = CareDocumentationPathKind;
+export type CareDocumentationPathCommand = {
+    version: typeof careDocumentationPathVersion;
+    requestId: string;
+    eventId: string;
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    expectedHeadId: string | null;
+    kind: CareDocumentationPathKind;
+    occurredAt: string;
+    note: string;
+    payload: Record<string, unknown>;
+};
+export type CareDocumentationPathEvent = {
+    id: string;
+    sequence: number;
+    previousId: string | null;
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    actorName: string;
+    recordedAt: string;
+    command: CareDocumentationPathCommand;
+};
+export type CareDocumentationPathHistory = {
+    version: typeof careDocumentationPathVersion;
+    tenantId: string;
+    clientId: string;
+    count: number;
+    headId: string | null;
+    events: CareDocumentationPathEvent[];
+};
+export type CareDocumentationPathContext = {
+    version: typeof careDocumentationPathVersion;
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    loadedAt: string;
+    sources: {
+        count: number;
+        rows: CareDocumentationPathSource[];
+    };
+    history: CareDocumentationPathHistory;
+};
+export type CareDocumentationPathReceipt = {
+    version: typeof careDocumentationPathVersion;
+    requestId: string;
+    command: CareDocumentationPathCommand;
+    event: CareDocumentationPathEvent;
+};
+export type CareDocumentationPathState = {
+    headId: string | null;
+    events: CareDocumentationPathEvent[];
+    corrected: string[];
+};
+const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+const instant = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
+const sha = /^[0-9a-f]{64}$/;
+const object = (v: unknown): v is Record<string, unknown> => typeof v === 'object' && v !== null && !Array.isArray(v);
+const text = (v: unknown, label: string) => { if (typeof v !== 'string' || !v.trim())
+    throw Error(`${label} fehlt.`); return v; };
+const id = (v: unknown, label: string) => { const x = text(v, label); if (!uuid.test(x) || x !== x.toLowerCase())
+    throw Error(`${label} ist ungültig.`); return x; };
+const time = (v: unknown, label: string) => { const x = text(v, label); if (!instant.test(x) || Number.isNaN(Date.parse(x)))
+    throw Error(`${label} ist ungültig.`); return x; };
+export function careDocumentationPathSource(v: unknown, label = 'Originalquelle'): asserts v is CareDocumentationPathSource { if (!object(v) || Object.keys(v).sort().join(',') !== 'id,kind,snapshot')
+    throw Error(`${label} ist unvollständig.`); id(v.id, `${label}-ID`); text(v.kind, `${label}-Art`); if (!object(v.snapshot) || v.snapshot.id !== v.id)
+    throw Error(`${label} stimmt nicht mit dem nativen Original überein.`); }
+function validateField(value: unknown, rule: Field) { const x = text(value, rule.label); if (rule.type === 'uuid')
+    id(x, rule.label); if (rule.type === 'instant')
+    time(x, rule.label); if (rule.type === 'sha256' && !sha.test(x))
+    throw Error(`${rule.label} ist ungültig.`); if (rule.type === 'enum' && !rule.values?.includes(x))
+    throw Error(`${rule.label} hat einen unbekannten Wert.`); }
+export function validateCareDocumentationPathCommand(c: CareDocumentationPathCommand) { if (!object(c) || c.version !== careDocumentationPathVersion)
+    throw Error('Dokumentationspfadvorgang oder Version ist ungültig.'); id(c.requestId, 'Anfrage-ID'); id(c.eventId, 'Ereignis-ID'); id(c.tenantId, 'Mandant'); id(c.clientId, 'Pflegefall'); id(c.actorId, 'Akteur'); if (c.expectedHeadId !== null)
+    id(c.expectedHeadId, 'Erwarteter Verlaufskopf'); if (!careDocumentationPathKinds.includes(c.kind))
+    throw Error('Dokumentationspfadvorgang ist unbekannt.'); time(c.occurredAt, 'Tatsächlicher Vorgangszeitpunkt'); if (text(c.note, 'Nachvollziehbarer Anlass').length > 4000)
+    throw Error('Anlass ist zu lang.'); if (!object(c.payload))
+    throw Error('Vorgangsangaben fehlen.'); const d = careDocumentationPathDefinitions[c.kind], keys = [...d.sources.map(x => x.key), ...d.fields.map(x => x.key)].sort(); if (Object.keys(c.payload).sort().join(',') !== keys.join(','))
+    throw Error('Vorgangsfelder sind unvollständig oder enthalten Fremdfelder.'); const selected: CareDocumentationPathSource[] = []; for (const rule of d.sources) {
+    const value = c.payload[rule.key];
+    careDocumentationPathSource(value, rule.label);
+    if (!rule.kinds.includes(value.kind))
+        throw Error(`${rule.label} hat die falsche Originalart.`);
+    if (rule.eventKinds) {
+        const eventKind = object(value.snapshot.command) ? value.snapshot.command.kind : null;
+        if (typeof eventKind !== 'string' || !rule.eventKinds.includes(eventKind))
+            throw Error(`${rule.label} hat die falsche fachliche Vorgangsart.`);
+    }
+    selected.push(value);
+} for (const source of selected) {
+    if (source.snapshot.tenant_id !== undefined && source.snapshot.tenant_id !== c.tenantId)
+        throw Error('Ausgewählte Originale gehören nicht zum aktuellen Mandanten.');
+    if (source.snapshot.client_id !== undefined && source.snapshot.client_id !== c.clientId)
+        throw Error('Ausgewählte Originale gehören nicht zum aktuellen Pflegefall.');
+} for (const rule of d.fields)
+    validateField(c.payload[rule.key], rule); }
+export const emptyCareDocumentationPathState = (): CareDocumentationPathState => ({ headId: null, events: [], corrected: [] });
+export function applyCareDocumentationPathCommand(state: CareDocumentationPathState, c: CareDocumentationPathCommand) { validateCareDocumentationPathCommand(c); if (c.expectedHeadId !== state.headId)
+    throw Error('Der  Dokumentationspfadverlauf wurde zwischenzeitlich geändert.'); if (state.events.some(x => x.id === c.eventId || x.command.requestId === c.requestId))
+    throw Error('Anfrage oder Ereignis ist bereits vorhanden.'); const corrected = [...state.corrected]; if (c.kind === 'correction') {
+    const target = String(c.payload.targetId);
+    if (!state.events.some(x => x.id === target && x.command.kind !== 'correction') || corrected.includes(target))
+        throw Error('Nur ein vorhandener noch nicht berichtigter Originalvorgang kann berichtigt werden.');
+    corrected.push(target);
+} return { headId: c.eventId, events: [...state.events], corrected }; }
+export function decodeCareDocumentationPathHistory(value: unknown, scope: {
+    tenantId: string;
+    clientId: string;
+}) { if (!object(value) || value.version !== careDocumentationPathVersion || value.tenantId !== scope.tenantId || value.clientId !== scope.clientId || !Array.isArray(value.events) || value.count !== value.events.length)
+    throw Error('Der  Dokumentationspfadverlauf ist unvollständig.'); let state = emptyCareDocumentationPathState(); for (let i = 0; i < value.events.length; i++) {
+    const raw = value.events[i];
+    if (!object(raw) || raw.sequence !== i + 1 || raw.previousId !== state.headId || raw.tenantId !== scope.tenantId || raw.clientId !== scope.clientId || !object(raw.command))
+        throw Error('Der  Dokumentationspfadverlauf ist abgeschnitten oder falsch zugeordnet.');
+    const c = structuredClone(raw.command) as CareDocumentationPathCommand;
+    validateCareDocumentationPathCommand(c);
+    if (raw.id !== c.eventId || c.tenantId !== scope.tenantId || c.clientId !== scope.clientId)
+        throw Error('Der  Dokumentationspfadverlauf enthält ein fremdes Original.');
+    state = applyCareDocumentationPathCommand(state, c);
+    state.events.push(structuredClone(raw) as CareDocumentationPathEvent);
+} if (value.headId !== state.headId)
+    throw Error('Der  Dokumentationspfadverlauf hat keinen eindeutigen Kopf.'); return { history: structuredClone(value) as CareDocumentationPathHistory, state }; }
+export function decodeCareDocumentationPathContext(value: unknown, expected: {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+}) { if (!object(value) || Object.keys(value).sort().join(',') !== 'actorId,clientId,history,loadedAt,sources,tenantId,version' || value.version !== careDocumentationPathVersion || value.tenantId !== expected.tenantId || value.clientId !== expected.clientId || value.actorId !== expected.actorId || !object(value.sources) || !Array.isArray(value.sources.rows) || value.sources.count !== value.sources.rows.length)
+    throw Error('Vollständige Dokumentationsoriginale konnten nicht bestätigt werden.'); time(value.loadedAt, 'Lesezeitpunkt'); const seen = new Set<string>(); for (const row of value.sources.rows) {
+    careDocumentationPathSource(row);
+    const key = `${row.kind}:${row.id}`;
+    if (seen.has(key))
+        throw Error('Originalquelle ist doppelt.');
+    seen.add(key);
+    if (row.snapshot.tenant_id !== undefined && row.snapshot.tenant_id !== expected.tenantId)
+        throw Error('Originalquelle gehört zu einem anderen Mandanten.');
+    if (row.snapshot.client_id !== undefined && row.snapshot.client_id !== expected.clientId)
+        throw Error('Originalquelle gehört zu einem anderen Pflegefall.');
+} decodeCareDocumentationPathHistory(value.history, expected); return structuredClone(value) as CareDocumentationPathContext; }
+export function assertCareDocumentationPathSelectionCurrent(c: CareDocumentationPathCommand, context: CareDocumentationPathContext) { validateCareDocumentationPathCommand(c); for (const rule of careDocumentationPathDefinitions[c.kind].sources) {
+    const source = c.payload[rule.key] as CareDocumentationPathSource;
+    if (!context.sources.rows.some(row => JSON.stringify(row) === JSON.stringify(source)))
+        throw Error('Eine ausgewählte Dokumentationsgrundlage ist nicht mehr aktuell.');
+} }
+export function decodeCareDocumentationPathReceipt(value: unknown, c: CareDocumentationPathCommand) { if (!object(value) || value.version !== careDocumentationPathVersion || value.requestId !== c.requestId || !object(value.command) || JSON.stringify(value.command) !== JSON.stringify(c) || !object(value.event) || value.event.id !== c.eventId || JSON.stringify(value.event.command) !== JSON.stringify(c))
+    throw Error('Die native Dokumentationsquittung stimmt nicht mit der gesicherten Anfrage überein.'); return structuredClone(value) as CareDocumentationPathReceipt; }

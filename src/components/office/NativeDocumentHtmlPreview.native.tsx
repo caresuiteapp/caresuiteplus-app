@@ -1,5 +1,6 @@
+import { CareSuiteNativeText as Text } from '@/components/ui/CareSuiteNativeText';
 import { useMemo, useState, type ReactNode } from 'react';
-import { Image, ScrollView, Text, View, StyleSheet } from 'react-native';
+import { Image, ScrollView, View, StyleSheet } from 'react-native';
 import { SvgXml } from 'react-native-svg';
 import { PremiumButton } from '@/components/ui';
 import { parseNativeDocumentContent, type NativeDocumentNode } from '@/lib/documents/nativeDocumentContent';

@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { systemLiquidGlass, SYSTEM_BLUE_GRADIENT, SYSTEM_LIQUID_COLORS } from '@/design/tokens/systemLiquidGlass';
+import { resolveLightColoredTextColor } from '@/design/tokens/accentContrast';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 
 type ClientWorkspaceKpiCardProps = {
@@ -29,7 +30,7 @@ export function ClientWorkspaceKpiCard({ label, value, hint, icon, accentColor, 
         <View style={[styles.kpiIcon, { borderColor: accentColor, backgroundColor: `${accentColor}12` }]}><SemanticArtwork style={styles.kpiIconText} webSize={24} webColor={accentColor}>{icon}</SemanticArtwork></View>
         <Text style={[typography.caption, styles.kpiLabel]}>{label}</Text>
       </View>
-      <Text style={[typography.h2, styles.kpiValue, { color: accentColor }]}>{value}</Text>
+      <Text style={[typography.h2, styles.kpiValue, { color: resolveLightColoredTextColor(accentColor) }]}>{value}</Text>
       {hint ? <Text style={[typography.caption, styles.kpiHint]} numberOfLines={2}>{hint}</Text> : null}
     </View>
   );

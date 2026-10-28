@@ -58,12 +58,16 @@ export const portalPremium = {
 export function PortalPremiumProvider({
   kind,
   children,
+  localOnly = false,
+  active = true,
 }: {
+  localOnly?: boolean;
+  active?: boolean;
   kind: PortalPremiumKind;
   children: ReactNode;
 }) {
   useEffect(() => {
-    if (typeof document === 'undefined') return;
+    if (!active || localOnly || typeof document === 'undefined') return;
 
     const root = document.documentElement;
     const previous = root.getAttribute('data-cs-portal-premium');
@@ -74,10 +78,10 @@ export function PortalPremiumProvider({
       if (previous) root.setAttribute('data-cs-portal-premium', previous);
       else root.removeAttribute('data-cs-portal-premium');
     };
-  }, [kind]);
+  }, [active, kind, localOnly]);
 
   return (
-    <PortalPremiumContext.Provider value={{ active: true, kind }}>
+    <PortalPremiumContext.Provider value={{ active, kind: active ? kind : null }}>
       {children}
     </PortalPremiumContext.Provider>
   );

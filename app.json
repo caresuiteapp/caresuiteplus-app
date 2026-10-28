@@ -2,7 +2,7 @@
   "expo": {
     "name": "CareSuite+",
     "slug": "caresuite-plus",
-    "version": "0.4.0",
+    "version": "0.8.0",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "caresuiteplus",
@@ -20,7 +20,7 @@
         "backgroundColor": "#F8FAFC"
       },
       "package": "app.caresuitehealthos",
-      "versionCode": 41,
+      "versionCode": 56,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "INTERNET",
@@ -76,6 +76,13 @@
             }
           ]
         }
+      ],
+      "blockedPermissions": [
+        "android.permission.READ_MEDIA_IMAGES",
+        "android.permission.READ_MEDIA_VIDEO",
+        "android.permission.READ_MEDIA_VISUAL_USER_SELECTED",
+        "android.permission.READ_EXTERNAL_STORAGE",
+        "android.permission.WRITE_EXTERNAL_STORAGE"
       ]
     },
     "web": {
@@ -90,7 +97,12 @@
         "expo-router",
         {
           "root": "app",
-          "asyncRoutes": { "web": true, "android": false, "ios": false, "default": false }
+          "asyncRoutes": {
+            "web": true,
+            "android": false,
+            "ios": false,
+            "default": false
+          }
         }
       ],
       "expo-asset",
@@ -100,7 +112,8 @@
         {
           "image": "./assets/splash-icon.png",
           "resizeMode": "contain",
-          "backgroundColor": "#040b19"
+          "backgroundColor": "#F8FAFC",
+          "imageWidth": 200
         }
       ],
       [
@@ -143,7 +156,14 @@
           "microphonePermission": "CareSuite benötigt Zugriff auf das Mikrofon, damit Videos mit Ton aufgenommen werden können."
         }
       ],
-      "expo-notifications",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/android-icon-monochrome.png",
+          "color": "#6246EA",
+          "defaultChannel": "caresuite-important"
+        }
+      ],
       [
         "expo-video",
         {
@@ -160,6 +180,12 @@
             "com.google.android.googlequicksearchbox",
             "com.google.android.tts"
           ]
+        }
+      ],
+      [
+        "expo-sqlite",
+        {
+          "useSQLCipher": true
         }
       ]
     ],

@@ -68,7 +68,7 @@ const EMPTY_PORTAL_DATA: PortalData = {
   documents: [],
 };
 
-function PortalAmbientPulse() {
+function PortalAmbientPulse({ compact = false }: { compact?: boolean }) {
   const progress = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -97,6 +97,7 @@ function PortalAmbientPulse() {
       pointerEvents="none"
       style={[
         styles.routePulse,
+        compact && styles.routePulsePhone,
         {
           opacity: progress.interpolate({ inputRange: [0, 0.22, 1], outputRange: [0.52, 0.3, 0] }),
           transform: [{ scale: progress.interpolate({ inputRange: [0, 1], outputRange: [0.72, 1.55] }) }],
@@ -621,28 +622,28 @@ function Overview({
           style={[styles.routeCard, layout.isPhone && styles.dashboardCardPhone]}
           contentStyle={styles.routeCardContent}
         >
-          <View style={styles.routeHeader}>
+          <View style={[styles.routeHeader, layout.isPhone && styles.routeHeaderPhone]}>
             <View>
-              <LiquidText variant="kicker">ARBEITSCOCKPIT</LiquidText>
+              <LiquidText variant="kicker">{portal === 'employee' ? 'ARBEITSCOCKPIT' : 'IHRE VERSORGUNG'}</LiquidText>
               <LiquidText variant="section">Heute auf einen Blick</LiquidText>
             </View>
             <LiquidStatus
-              label={nextAppointment ? 'Bereit' : 'Kein Einsatz'}
+              label={nextAppointment ? 'Bereit' : portal === 'employee' ? 'Kein Einsatz' : 'Kein weiterer Termin'}
               tone={nextAppointment ? 'live' : 'neutral'}
             />
           </View>
-          <View style={styles.routeStage}>
-            <PortalAmbientPulse />
-            <View style={styles.routeOrbitOuter} />
-            <View style={styles.routeOrbitInner} />
-            <View style={styles.routePin}><LiquidGlyph active glyph="➤" size={24} /></View>
+          <View style={[styles.routeStage, layout.isPhone && styles.routeStagePhone]}>
+            <PortalAmbientPulse compact={layout.isPhone} />
+            <View style={[styles.routeOrbitOuter, layout.isPhone && styles.routeOrbitOuterPhone]} />
+            <View style={[styles.routeOrbitInner, layout.isPhone && styles.routeOrbitInnerPhone]} />
+            <View style={[styles.routePin, layout.isPhone && styles.routePinPhone]}><LiquidGlyph active glyph="➤" size={24} /></View>
             <View style={styles.routeStageCopy}>
               <Text style={styles.routeStageEyebrow}>{nextAppointment ? 'NÄCHSTER START' : 'TAGESSTATUS'}</Text>
               <Text style={styles.routeStageTitle}>
-                {nextAppointment ? formatDateTime(nextAppointment.startsAt) : 'Alles erledigt'}
+                {nextAppointment ? formatDateTime(nextAppointment.startsAt) : portal === 'employee' ? 'Alles erledigt' : 'Alles im Blick'}
               </Text>
               <Text style={styles.routeStageMeta} numberOfLines={2}>
-                {nextAppointment?.location || 'Neue Einsätze erscheinen hier automatisch.'}
+                {nextAppointment?.location || (portal === 'employee' ? 'Neue Einsätze erscheinen hier automatisch.' : 'Neue freigegebene Termine erscheinen hier automatisch.')}
               </Text>
             </View>
           </View>
@@ -657,9 +658,9 @@ function Overview({
           </View>
           <LiquidButton
             compact
-            label={nextAppointment ? 'Einsatz und Anfahrt öffnen' : 'Einsätze öffnen'}
+            label={portal === 'employee' ? (nextAppointment ? 'Einsatz und Anfahrt öffnen' : 'Einsätze öffnen') : 'Freigegebene Termine öffnen'}
             icon="➤"
-            onPress={() => onNavigate(portal === 'employee' ? 'assignments' : 'live')}
+            onPress={() => onNavigate(portal === 'employee' ? 'assignments' : 'appointments')}
           />
         </LiquidSurface>
       </View>
@@ -873,8 +874,8 @@ export function PortalHomeScreen({
     <LiquidVisualModeProvider mode="classic">
       <LiquidBackdrop>
       <View style={styles.root}>
-        <View style={styles.topBar}>
-          <LiquidLogo compact />
+        <View style={[styles.topBar, layout.isPhone && styles.topBarPhone]}>
+          <LiquidLogo compact width={layout.isPhone ? Math.max(116, Math.min(224, layout.width - 152)) : undefined} />
           {layout.isDesktop ? (
             <View style={styles.topContext}>
               <Text style={styles.topEyebrow}>{definition.eyebrow}</Text>
@@ -986,6 +987,7 @@ const styles = StyleSheet.create({
     gap: liquidSpace.lg,
   },
   topContext: { flex: 1 },
+  topBarPhone: { paddingHorizontal: 16, gap: 8 },
   topEyebrow: {
     color: liquidColors.blue300,
     fontSize: 10,
@@ -1159,7 +1161,9 @@ const styles = StyleSheet.create({
     flex: 1.3,
   },
   dashboardCardPhone: {
-    flex: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
     minWidth: 0,
     width: '100%',
     maxWidth: '100%',
@@ -1169,6 +1173,7 @@ const styles = StyleSheet.create({
     gap: liquidSpace.md,
   },
   routeHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', gap: liquidSpace.md },
+  routeHeaderPhone: { flexDirection: 'column', gap: 8 },
   routeStage: {
     position: 'relative',
     minHeight: 150,
@@ -1195,6 +1200,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.7,
     shadowRadius: 18,
   },
+  routeStagePhone: { paddingLeft: 96, paddingRight: 14, minHeight: 144 },
+  routeOrbitOuterPhone: { left: 10, top: 34, width: 72, height: 72, borderRadius: 36 },
+  routeOrbitInnerPhone: { left: 22, top: 46, width: 48, height: 48, borderRadius: 24 },
+  routePinPhone: { left: 30, top: 54, width: 32, height: 32, borderRadius: 16 },
+  routePulsePhone: { left: 18, top: 42, width: 56, height: 56, borderRadius: 28 },
   routePulse: {
     position: 'absolute', left: 35, top: 33, width: 84, height: 84,
     borderRadius: 42, borderWidth: 2, borderColor: liquidColors.blue300,

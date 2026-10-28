@@ -62,12 +62,12 @@ describe('navigation cleanup', () => {
     expect(entries.filter(entry => entry.label === 'Unternehmen')).toHaveLength(1);
     expect(entries.some(entry => entry.label === 'Office-Arbeitsbereiche')).toBe(false);
   });
-  it('preserves the native Office destination and label', () => {
+  it('uses the same company destination and label on native and Web', () => {
     const original = Object.getOwnPropertyDescriptor(Platform, 'OS')!;
     Object.defineProperty(Platform, 'OS', { ...original, value: 'android' });
     try {
       const entries = buildModuleDesktopNavigation([app('/office')], 'office').flatMap(group => group.items);
-      expect(entries[0]).toMatchObject({ route: '/office', label: 'Office-Arbeitsbereiche' });
+      expect(entries[0]).toMatchObject({ route: '/unternehmen', label: 'Unternehmen' });
     } finally {
       Object.defineProperty(Platform, 'OS', original);
     }

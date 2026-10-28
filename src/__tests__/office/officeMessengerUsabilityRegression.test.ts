@@ -81,7 +81,8 @@ describe('Office messenger usability regression', () => {
     expect(composer).toContain('setComposerWidth(Math.round(event.nativeEvent.layout.width))');
     expect(composer).toContain("textAlignVertical: 'top'");
     expect(composer).toContain("flexWrap: 'nowrap'");
-    expect(header).toContain('minHeight: compact ? 54');
+    expect(header).toContain('compact: { minHeight: 64');
+    expect(header).toContain("back: { minHeight: 44");
     expect(threadHeader).toContain('width: 32');
   });
 

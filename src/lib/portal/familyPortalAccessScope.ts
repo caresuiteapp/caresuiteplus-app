@@ -71,7 +71,40 @@ export function decodeFamilyPortalAccessScope(
   });
 }
 
+export function familyPortalScopeIsCurrent(
+  scope: FamilyPortalAccessScope | null | undefined,
+  nowMs = Date.now(),
+): scope is FamilyPortalAccessScope {
+  return !!scope && Number.isFinite(nowMs) && time(scope.validFrom) && Date.parse(scope.validFrom) <= nowMs &&
+    (scope.expiresAt === null || time(scope.expiresAt) && Date.parse(scope.expiresAt) > nowMs);
+}
+
 export const familyPortalAllows = (
   scope: FamilyPortalAccessScope | null | undefined,
   capability: FamilyPortalCapability,
-): boolean => scope?.permissions[capability] === true;
+  nowMs = Date.now(),
+): boolean => familyPortalScopeIsCurrent(scope, nowMs) && scope.permissions[capability] === true;
+
+/** Presentation/data-loader ceiling; authenticated server rules stay authoritative. */
+export function familyPortalFeatureAllowed(
+  context: {
+    roleKey?: string | null;
+    tenantId?: string | null;
+    clientId?: string | null;
+    familyAccess?: FamilyPortalAccessScope | null;
+  },
+  feature: string,
+): boolean {
+  if (context.roleKey !== 'family_portal') return true;
+  const scope = context.familyAccess;
+  if (!familyPortalScopeIsCurrent(scope) || scope.tenantId !== context.tenantId || scope.clientId !== context.clientId) return false;
+  if (feature === 'hilfe') return true;
+  const capabilities: Partial<Record<string, FamilyPortalCapability>> = {
+    appointments: 'appointments', betreuung: 'appointments', trips: 'appointments', care_team: 'appointments',
+    documents: 'documents', messages: 'messages', nachweise: 'service_records', invoices: 'invoices',
+  };
+  const capability = capabilities[feature];
+  // Mixed activity/request feeds, uploads, budgets and clinical modules have
+  // no matching individual family grant. They must not inherit a client grant.
+  return capability !== undefined && familyPortalAllows(scope, capability);
+}

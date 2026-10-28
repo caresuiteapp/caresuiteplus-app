@@ -189,7 +189,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
   ],
   office: [
     ...(Platform.OS === 'web' ? [{ id: 'notes', label: 'Notizen', description: 'Persönliche Notizen, Ideen und Aufgaben sammeln und wiederfinden.', pageType: 'work-list' as const, route: '/office/notizen' }] : []),
-    { id: 'company', label: 'Unternehmen', description: Platform.OS === 'web' ? 'Stammdaten, Kontakte und Organisation' : 'Stammdaten, Standorte und Organisation', pageType: 'record', route: Platform.OS === 'web' ? '/unternehmen' : '/business/office/dashboard' },
+    { id: 'company', label: 'Unternehmen', description: 'Stammdaten, Kontakte und Organisation', pageType: 'record', route: '/unternehmen' },
     { id: 'clients', label: 'Klient:innen', description: 'Stammdaten, Akten, Kostenträger und Portale', pageType: 'work-list', route: '/business/office/clients' },
     { id: 'people', label: 'Personal', description: 'Mitarbeitende und Personalakten', pageType: 'work-list', route: '/business/office/employees' },
     { id: 'timekeeping', label: 'Arbeitszeit', description: 'Prüfungen, Abwesenheiten und Zeitkonten', pageType: 'review', route: '/business/office/time-tracking' },
@@ -199,7 +199,7 @@ export const liquidWorkAreas: Record<LiquidModuleKey, readonly LiquidWorkArea[]>
     { id: 'document-catalog', label: 'Dokumentenkatalog', description: 'Zentrale Vorlagen mit Daten aus der ausgewählten Akte', pageType: 'work-list', route: '/business/office/document-catalog' },
     { id: 'communication', label: 'Nachrichten', description: 'Posteingang, Unterhaltungen, Aufgaben und Vorlagen', pageType: 'work-list', route: '/business/messages' },
     { id: 'portals', label: 'Portale & Zugänge', description: 'Konten, Codes, Rollen und Freigaben', pageType: 'settings', route: '/business/office/portals' },
-    { id: 'inventory', label: 'Inventar', description: 'Geräte, Ausgabe und Rückgabe', pageType: 'work-list', route: Platform.OS === 'web' ? '/unternehmen/inventar' : '/business/office/inventory' },
+    { id: 'inventory', label: 'Inventar', description: 'Geräte, Ausgabe und Rückgabe', pageType: 'work-list', route: '/unternehmen/inventar' },
     { id: 'audit', label: 'Audit', description: 'Nachvollziehbare Änderungen und Exporte', pageType: 'analytics', route: '/business/office/audit-log' },
   ],
   assist: [

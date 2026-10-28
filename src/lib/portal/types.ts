@@ -1,5 +1,6 @@
 import type { RoleKey } from '@/types';
 import type { PortalClientCareProfile } from '@/lib/portal/engine/portalFeatureAccess';
+import type { FamilyPortalAccessScope } from '@/lib/portal/familyPortalAccessScope';
 
 /** Care modules that compose the adaptive Klient:innenportal. */
 export type PortalModuleKey = 'office' | 'assist' | 'pflege' | 'stationaer' | 'beratung' | 'akademie';
@@ -63,6 +64,7 @@ export type PortalContext = {
   tenantId: string;
   clientId: string;
   roleKey: RoleKey;
+  familyAccess?: FamilyPortalAccessScope | null;
   portalRole: PortalActorRole;
   displayName: string;
   tenantName: string;

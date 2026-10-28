@@ -228,7 +228,7 @@ export const BACKGROUNDS: readonly BackgroundDefinition[] = [
 const notesArtwork = Platform.OS === 'web' ? { uri: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="360" height="280" viewBox="0 0 360 280"><defs><linearGradient id="cover" x2="1" y2="1"><stop stop-color="#38b9ba"/><stop offset="1" stop-color="#147c91"/></linearGradient><linearGradient id="paper" x2="0" y2="1"><stop stop-color="#fffef6"/><stop offset="1" stop-color="#f7ead8"/></linearGradient></defs><ellipse cx="181" cy="251" rx="125" ry="14" fill="#123c59" opacity=".17"/><g transform="rotate(-8 165 145)"><rect x="66" y="35" width="181" height="218" rx="19" fill="#12677b"/><rect x="70" y="27" width="177" height="219" rx="18" fill="url(#cover)"/><rect x="90" y="34" width="150" height="201" rx="11" fill="url(#paper)"/><path d="M112 82h96M112 106h75M112 130h96M112 154h55" stroke="#c7d5d4" stroke-width="5" stroke-linecap="round"/><path d="M80 56h19M80 85h19M80 114h19M80 143h19M80 172h19M80 201h19" stroke="#e6f8f6" stroke-width="7" stroke-linecap="round"/><rect x="155" y="174" width="72" height="54" rx="6" fill="#f6c660" transform="rotate(7 190 200)"/><path d="m173 199 9 9 22-23" fill="none" stroke="#91643a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="rotate(32 272 143)"><rect x="260" y="61" width="19" height="142" rx="7" fill="#16485f"/><path d="M260 192h19l-9 29z" fill="#e0b995"/><path d="m266 213 4 8 4-8" fill="#16374b"/><rect x="260" y="62" width="19" height="20" rx="7" fill="#f0b66e"/><path d="M266 91v91" stroke="#70b9c4" stroke-width="3" stroke-linecap="round"/></g></svg>')}` } : undefined;
 
 export const WIDGETS: readonly WidgetDefinition[] = [
-  ...(Platform.OS === 'web' ? [{ id: 'notes', label: 'Notizen', description: 'Persönliche Notizen, Ideen und Aufgaben sammeln und wiederfinden.', category: 'Verwaltung' as const, route: '/office/notizen', images: { small: notesArtwork!, medium: notesArtwork!, large: notesArtwork! } }] : []),
+  { id: 'notes', label: 'Notizen', description: 'Persönliche Notizen, Ideen und Aufgaben sammeln und wiederfinden.', category: 'Verwaltung', route: '/office/notizen', ...(notesArtwork ? { images: { small: notesArtwork, medium: notesArtwork, large: notesArtwork } } : {}) },
   { id: 'document-catalog', label: 'Dokumentenkatalog', description: '450 Vorlagen für Pflege, Betreuung, Personal und Verwaltung. Daten übernehmen, PDF erstellen und in der Akte ablegen.', category: 'Verwaltung', route: '/business/office/document-catalog', permission: 'office.documents.view', images: {
     small: require('../../../assets/healthos/widgets-premium/document-catalog.png'),
     medium: require('../../../assets/healthos/widgets-premium/document-catalog.png'),
@@ -238,7 +238,7 @@ export const WIDGETS: readonly WidgetDefinition[] = [
   { id: "google-calendar", label: "Google-Kalender", description: "Kommende Termine und Videokonferenzen", category: "Workspace", route: "/business/connect/google-workspace?service=calendar", workspaceService: "calendar" },
   { id: "google-drive", label: "Google Drive", description: "Zuletzt bearbeitete Dateien und Dokumente", category: "Workspace", route: "/business/connect/google-workspace?service=drive", workspaceService: "drive" },
   { id: "google-tasks", label: "Google Tasks", description: "Offene Aufgaben aus Ihrer Google-Standardliste", category: "Workspace", route: "/business/connect/google-workspace?service=tasks", workspaceService: "tasks" },
-  { id: "company", label: "Unternehmen", description: Platform.OS === 'web' ? 'Stammdaten, Kontakte und Organisation' : 'Steuerung, Kennzahlen und Unternehmensübersicht', category: "Übersicht", route: Platform.OS === 'web' ? '/unternehmen' : '/business/office/dashboard', images: {
+  { id: "company", label: "Unternehmen", description: 'Stammdaten, Kontakte und Organisation', category: "Übersicht", route: '/unternehmen', images: {
     small: require("../../../assets/healthos/widgets-premium/compact/01-unternehmen.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/01-unternehmen.png"),
     large: require("../../../assets/healthos/widgets-premium/large/01-unternehmen.png") } },
@@ -278,7 +278,7 @@ export const WIDGETS: readonly WidgetDefinition[] = [
     small: require("../../../assets/healthos/widgets-premium/compact/09-portale-zugaenge.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/09-portale-zugaenge.png"),
     large: require("../../../assets/healthos/widgets-premium/large/09-portale-zugaenge.png") } },
-  { id: "inventory", label: "Inventar", description: "Bestände, Hilfsmittel und Geräte organisieren", category: "Verwaltung", route: Platform.OS === 'web' ? '/unternehmen/inventar' : '/business/office/inventory', images: {
+  { id: "inventory", label: "Inventar", description: "Bestände, Hilfsmittel und Geräte organisieren", category: "Verwaltung", route: '/unternehmen/inventar', images: {
     small: require("../../../assets/healthos/widgets-premium/compact/10-inventar.png"),
     medium: require("../../../assets/healthos/widgets-premium/medium/10-inventar.png"),
     large: require("../../../assets/healthos/widgets-premium/large/10-inventar.png") } },
@@ -329,7 +329,7 @@ export const WIDGETS: readonly WidgetDefinition[] = [
 ] as const;
 
 export const DEFAULT_DESKTOP_IDS = [
-  ...(Platform.OS === 'web' ? ['notes'] : []),
+  'notes',
   "clients", "messages", "live", "proofs",
   "office", "people", "calendar", "assignments",
   "salary", "logbook", "documents", "billing",

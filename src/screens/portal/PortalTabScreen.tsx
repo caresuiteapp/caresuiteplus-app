@@ -137,6 +137,7 @@ export function PortalTabScreen({
   if (isClientPortal && !messengerFocusActive) {
     const page = (
       <ClientPortalPageFrame
+        scrollable={scroll}
         title={title}
         subtitle={subtitle}
         eyebrow={eyebrow}

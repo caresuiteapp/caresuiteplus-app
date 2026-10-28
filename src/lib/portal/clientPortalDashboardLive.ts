@@ -27,33 +27,26 @@ const EMPTY_METRICS: ClientPortalLiveMetrics = {
 export async function fetchClientPortalLiveMetrics(
   tenantId: string,
   clientId?: string,
+  allowed: { appointments?: boolean; documents?: boolean; messages?: boolean } = {},
 ): Promise<ClientPortalLiveMetrics> {
   const client = getSupabaseClient();
-  if (!client) return EMPTY_METRICS;
+  if (!client || !tenantId.trim() || !clientId?.trim()) return EMPTY_METRICS;
 
   const now = new Date().toISOString();
 
-  let threadsQuery = client
+  const threadsQuery = allowed.messages === false ? null : client
     .from('message_threads')
     .select('portal_unread_count')
     .eq('tenant_id', tenantId)
-    .eq('thread_type', 'client');
+    .eq('thread_type', 'client').eq('client_id', clientId);
 
-  if (clientId?.trim()) {
-    threadsQuery = threadsQuery.eq('client_id', clientId);
-  }
-
-  let assignmentsQuery = fromUnknownTable(client, 'assignments')
+  const assignmentsQuery = allowed.appointments === false ? null : fromUnknownTable(client, 'assignments')
     .select('*', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
     .gte('planned_start_at', now)
-    .in('status', [...PORTAL_UPCOMING_ASSIGNMENT_STATUSES]);
+    .in('status', [...PORTAL_UPCOMING_ASSIGNMENT_STATUSES]).eq('client_id', clientId);
 
-  if (clientId?.trim()) {
-    assignmentsQuery = assignmentsQuery.eq('client_id', clientId);
-  }
-
-  const documentsQuery = clientId?.trim()
+  const documentsQuery = allowed.documents !== false
     ? fromUnknownTable(client, 'client_documents')
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenantId)
@@ -64,7 +57,7 @@ export async function fetchClientPortalLiveMetrics(
         .neq('category', PORTAL_PROOFS_CATEGORY)
     : null;
 
-  let visitsQuery = clientId?.trim()
+  const visitsQuery = allowed.appointments !== false
     ? fromUnknownTable(client, 'assist_visits')
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenantId)
@@ -73,8 +66,8 @@ export async function fetchClientPortalLiveMetrics(
     : null;
 
   const [threadsResult, assignmentsResult, documentsResult, visitsResult] = await Promise.all([
-    threadsQuery,
-    assignmentsQuery,
+    threadsQuery ?? Promise.resolve({ data: [], error: null }),
+    assignmentsQuery ?? Promise.resolve({ count: 0, error: null }),
     documentsQuery ?? Promise.resolve({ count: 0, error: null }),
     visitsQuery ?? Promise.resolve({ count: 0, error: null }),
   ]);

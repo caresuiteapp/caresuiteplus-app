@@ -24,6 +24,7 @@ import {
 import { filterVisibleFeatures, resolvePortalActorRole } from './portalVisibility';
 import { getWidgetsForModules } from './portalWidgetRegistry';
 import { isPortalModuleKey, sortPortalModules } from './portalModuleKeys';
+import { familyPortalFeatureAllowed, type FamilyPortalAccessScope } from '@/lib/portal/familyPortalAccessScope';
 
 export type ResolvePortalContextInput = {
   tenantId: string;
@@ -31,6 +32,7 @@ export type ResolvePortalContextInput = {
   roleKey: RoleKey;
   displayName: string;
   tenantNameHint?: string | null;
+  familyAccess?: FamilyPortalAccessScope | null;
 };
 
 const EMPTY_METRICS: PortalLiveMetrics = {
@@ -202,16 +204,22 @@ export async function resolvePortalContext(
   input: ResolvePortalContextInput,
 ): Promise<PortalContext> {
   const portalRole = resolvePortalActorRole(input.roleKey);
+  const family = input.roleKey === 'family_portal';
+  const allowedMetrics = family ? {
+    appointments: familyPortalFeatureAllowed(input, 'appointments'),
+    documents: familyPortalFeatureAllowed(input, 'documents'),
+    messages: familyPortalFeatureAllowed(input, 'messages'),
+  } : undefined;
 
   const [assignmentsResult, metrics, tenantName, visibilityRules, careProfile, dbFeatures,, clientDisplayName] =
     await Promise.all([
       fetchClientModuleAssignments(input.tenantId, input.clientId),
-      fetchClientPortalLiveMetrics(input.tenantId, input.clientId).catch(() => EMPTY_METRICS),
+      fetchClientPortalLiveMetrics(input.tenantId, input.clientId, allowedMetrics).catch(() => EMPTY_METRICS),
       input.tenantNameHint?.trim()
         ? Promise.resolve(input.tenantNameHint.trim())
         : fetchTenantDisplayName(input.tenantId),
       fetchVisibilityRules(input.tenantId),
-      fetchPortalClientCareProfile(input.tenantId, input.clientId),
+      family ? Promise.resolve(EMPTY_PORTAL_CARE_PROFILE) : fetchPortalClientCareProfile(input.tenantId, input.clientId),
       fetchFeatureMatrixFromDb(),
       fetchWidgetRegistryFromDb(),
       fetchClientPortalDisplayName(input.tenantId, input.clientId),
@@ -226,7 +234,7 @@ export async function resolvePortalContext(
   const hasModuleAssignments = !assignmentLoadFailed && activeModuleKeys.length > 0;
   const resolvedMetrics = metrics ?? EMPTY_METRICS;
 
-  const widgetMetrics = hasModuleAssignments
+  const widgetMetrics = hasModuleAssignments && !family
     ? await fetchPortalWidgetData({
         tenantId: input.tenantId,
         clientId: input.clientId,
@@ -249,7 +257,7 @@ export async function resolvePortalContext(
         visibilityRules,
         careProfile,
         baseVisibleFeatures,
-      })
+      }).filter(feature => familyPortalFeatureAllowed(input, feature.featureKey))
     : [];
 
   const resolvedDisplayName = resolvePortalContextDisplayName({
@@ -263,6 +271,7 @@ export async function resolvePortalContext(
     tenantId: input.tenantId,
     clientId: input.clientId,
     roleKey: input.roleKey,
+    familyAccess: input.familyAccess ?? null,
     portalRole,
     displayName: resolvedDisplayName,
     tenantName,
@@ -292,6 +301,7 @@ export function resolvePortalContextFromData(input: {
   widgetMetrics?: PortalWidgetMetrics;
   visibilityRules?: PortalVisibilityRule[];
   careProfile?: PortalClientCareProfile;
+  familyAccess?: FamilyPortalAccessScope | null;
 }): PortalContext {
   const portalRole = resolvePortalActorRole(input.roleKey);
   const activeModuleKeys = sortPortalModules(
@@ -312,13 +322,14 @@ export function resolvePortalContextFromData(input: {
         visibilityRules: rules,
         careProfile,
         baseVisibleFeatures,
-      })
+      }).filter(feature => familyPortalFeatureAllowed(input, feature.featureKey))
     : [];
 
   return {
     tenantId: input.tenantId,
     clientId: input.clientId,
     roleKey: input.roleKey,
+    familyAccess: input.familyAccess ?? null,
     portalRole,
     displayName: input.displayName,
     tenantName: input.tenantName,

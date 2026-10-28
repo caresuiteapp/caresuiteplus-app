@@ -5,7 +5,7 @@ type Query = { table: string; action: string; payload?: unknown; filters: [strin
 type Result = { data: unknown; error: unknown; count?: number | null };
 const f = vi.hoisted(() => ({ queries: [] as Query[], replies: [] as Result[], permission: vi.fn(), access: vi.fn(), tenant: vi.fn(), platform: 'web' }));
 vi.mock('react-native', () => ({ Platform: { get OS() { return f.platform; } } }));
-vi.mock('@/lib/tenant/companyAccessService.web', () => ({ loadCompanyAccess: (...args: unknown[]) => f.access(...args) }));
+vi.mock('@/lib/tenant/companyAccessService', () => ({ loadCompanyAccess: (...args: unknown[]) => f.access(...args) }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: f.permission }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ isLiveServiceMode: () => true, guardServiceTenant: f.tenant }));
@@ -210,18 +210,46 @@ describe('company catalogue loads complete web inventories', () => {
     }
   });
 
-  it('preserves the native query flow without counts, pages or module filters', async () => {
+  it('requires complete module-scoped native catalogue and price reads', async () => {
     f.platform = 'android';
     f.replies = [success([catalogRow()]), success([priceRow()])];
     expect((await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).ok).toBe(true);
     expect(f.queries).toHaveLength(2);
-    expect(f.queries[0].orders).toEqual(['sort_order']);
-    expect(f.queries[0].filters).toEqual([['tenant_id', 'tenant-a']]);
-    expect(f.queries[1].orders).toEqual([]);
+    expect(f.queries[0].orders).toEqual(['id']);
+    expect(f.queries[0].filters).toEqual([['tenant_id', 'tenant-a'], ['module_key', 'assist']]);
+    expect(f.queries[1].orders).toEqual(['id']);
     expect(f.queries[1].inFilters).toEqual([['catalog_id', ['item-a']]]);
     for (const query of f.queries) {
-      expect(query.count).toBeUndefined();
-      expect(query.range).toBeUndefined();
+      expect(query.count).toBe('exact');
+      expect(query.range).toEqual([0, 249]);
     }
+  });
+});
+
+describe.each(['android', 'ios'])('native company catalogue integrity on %s', (platform) => {
+  beforeEach(() => { f.platform = platform; });
+
+  it('loads all catalogue pages before returning a priced snapshot', async () => {
+    const rows = Array.from({ length: 251 }, (_, index) => catalogRow(`item-${index}`));
+    f.replies = [success(rows.slice(0, 250), 251), success(rows.slice(250), 251), success(rows.slice(0, 150).map(row => priceRow(row.id))), success(rows.slice(150).map(row => priceRow(row.id)))];
+    const result = await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist');
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.items).toHaveLength(251);
+    expect(result.data.items.every(row => row.defaultPriceNet === 30)).toBe(true);
+  });
+
+  it('returns no truncated catalogue or ambiguous default price', async () => {
+    f.replies = [success([catalogRow()], 2)];
+    expect((await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).ok).toBe(false);
+    f.replies = [success([catalogRow()]), success([priceRow('item-a', 'a'), priceRow('item-a', 'b')])];
+    expect(await fetchTenantServiceCatalog('tenant-a', 'business_admin', 'assist')).toMatchObject({ ok: false, error: expect.stringContaining('mehrere Standardpreise') });
+  });
+
+  it('preserves an explicit price validity end when saving from native', async () => {
+    f.replies = [success(), success(oldPrice), success(), success(), success([])];
+    expect((await saveTenantServiceCatalogItem('tenant-a', { ...input, validFrom: '2026-01-01', validTo: '2027-12-31' }, 'business_admin')).ok).toBe(true);
+    expect(f.queries.find(query => query.table === 'tenant_service_prices' && query.action === 'update')?.payload).toMatchObject({ valid_to: '2027-12-31' });
+    expect(f.queries.find(query => query.table === 'tenant_service_catalog' && query.action === 'select')?.filters).toContainEqual(['module_key', 'assist']);
   });
 });

@@ -4,7 +4,7 @@ import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
 import { PlatformShellLayout as DesktopPlatformShell } from '@/components/platformConsole/PlatformShellLayout.web';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useLocalSearchParams, useRouter } from 'expo-router';
 
@@ -307,7 +307,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
   return (
 
-    <DesktopPlatformShell scroll={false} title={tenantName} subtitle="Unternehmen, kostenlose Nutzung, Funktionen und Support">
+    <DesktopPlatformShell title={tenantName} subtitle="Unternehmen, kostenlose Nutzung, Funktionen und Support">
 
       <View style={styles.navigation}>
         <View style={styles.groupTabs}>
@@ -349,7 +349,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
 
 
-      <ScrollView contentContainerStyle={styles.content}>
+      <View style={styles.content}>
         {dossierOwner && dossier.loading ? <div className="cs-console"><div role="status" className="cs-notice">Vollständige Mandantenakte und Einrichtungsstand werden geprüft…</div></div> : null}
         {dossierOwner && dossier.error ? <div className="cs-console"><div role="alert" className="cs-notice error">{dossier.error}</div><button className="cs-btn" onClick={dossier.reload}>Mandantenakte erneut laden</button></div> : null}
         {dossierOwner && dossier.data ? <TenantDossierHeader dossier={dossier.data} onOpen={view => void changeTab(view)} /> : null}
@@ -453,7 +453,7 @@ function TenantDetailContent({ tenantId }: { tenantId: string }) {
 
         {tab === 'audit' ? <TenantAuditTab tenantId={tid} /> : null}
 
-      </ScrollView>
+      </View>
 
 
 

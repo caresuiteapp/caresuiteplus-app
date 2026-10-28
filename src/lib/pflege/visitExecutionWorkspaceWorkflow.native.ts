@@ -1,0 +1,82 @@
+// Generated native presentation from src/lib/pflege/visitExecutionWorkspaceWorkflow.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone,nativeNavigator as navigator} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { sameWoundJson, woundUuid } from './woundCareDomain.ts';
+import { decodeVisitReceipt, visitExecutionVersion, visitObject, validateVisitCommand, type VisitCommand, type VisitReceipt } from "./visitExecutionWorkspaceDomain.native.ts";
+import type { VisitResult } from "./visitExecutionWorkspaceRepository.native.ts";
+export type VisitJournalScope = {
+    tenantId: string;
+    stopId: string;
+    actorId: string;
+};
+export type VisitJournal = {
+    version: typeof visitExecutionVersion;
+    scope: VisitJournalScope;
+    phase: 'prepared' | 'dispatched' | 'confirmed' | 'rejected';
+    command: VisitCommand;
+    receipt: VisitReceipt | null;
+    rejection: string | null;
+};
+type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+export type VisitLock = <T>(key: string, action: () => Promise<T>) => Promise<T>;
+type Dependencies = {
+    storage: Store;
+    lock: VisitLock;
+    isCurrent(): boolean;
+    commit(command: VisitCommand): Promise<VisitResult<VisitReceipt>>;
+    confirm(command: VisitCommand): Promise<VisitResult<VisitReceipt>>;
+};
+export function visitJournalKey(scope: VisitJournalScope) { if (!Object.values(scope).every(v => woundUuid(v) && v === v.toLowerCase()))
+    throw Error('Der lokale Einsatzkontext ist ungültig.'); return `caresuite.visit-execution-workspace.v1:${scope.tenantId}:${scope.actorId}:${scope.stopId}`; }
+export function decodeVisitJournal(raw: string, scope: VisitJournalScope): VisitJournal { const value: unknown = JSON.parse(raw); if (!visitObject(value) || Object.keys(value).sort().join(',') !== 'command,phase,receipt,rejection,scope,version' || value.version !== visitExecutionVersion || !sameWoundJson(value.scope, scope) || !['prepared', 'dispatched', 'confirmed', 'rejected'].includes(String(value.phase)))
+    throw Error('Der gesicherte Einsatzvorgang ist beschädigt. Neue Übertragung bleibt gesperrt.'); validateVisitCommand(value.command); const command = value.command; if (command.tenantId !== scope.tenantId || command.stopId !== scope.stopId || command.actorId !== scope.actorId)
+    throw Error('Der gesicherte Vorgang gehört zu einem anderen Konto oder Einsatz.'); if (value.phase === 'confirmed')
+    decodeVisitReceipt(value.receipt, command);
+else if (value.receipt !== null)
+    throw Error('Die lokale Einsatzbestätigung ist widersprüchlich.'); if (value.phase === 'rejected' ? typeof value.rejection !== 'string' || !value.rejection : value.rejection !== null)
+    throw Error('Der lokale Speicherstatus ist widersprüchlich.'); return structuredClone(value) as VisitJournal; }
+export class VisitExecutionWorkflow {
+    private key: string;
+    private inFlight = false;
+    private scope: VisitJournalScope;
+    private dependencies: Dependencies;
+    constructor(scope: VisitJournalScope, dependencies: Dependencies) { this.scope = structuredClone(scope); this.dependencies = dependencies; this.key = visitJournalKey(scope); }
+    read() { const raw = this.dependencies.storage.getItem(this.key); return raw === null ? null : decodeVisitJournal(raw, this.scope); }
+    private current() { if (!this.dependencies.isCurrent())
+        throw Error('Konto, Einsatz oder Berechtigung wurde geändert. Vorgang neu öffnen.'); }
+    private persist(value: VisitJournal) { const raw = JSON.stringify(value); this.dependencies.storage.setItem(this.key, raw); if (this.dependencies.storage.getItem(this.key) !== raw)
+        throw Error('Der Einsatzvorgang konnte nicht zuverlässig gesichert werden.'); decodeVisitJournal(raw, this.scope); }
+    private async exclusive<T>(action: () => Promise<T>) { if (this.inFlight)
+        throw Error('Ein Einsatzvorgang wird bereits geprüft.'); this.inFlight = true; try {
+        return await this.dependencies.lock(this.key, async () => { this.current(); return action(); });
+    }
+    finally {
+        this.inFlight = false;
+    } }
+    async dispatch(command: VisitCommand): Promise<VisitResult<VisitReceipt>> { const copy = structuredClone(command); validateVisitCommand(copy); if (copy.tenantId !== this.scope.tenantId || copy.stopId !== this.scope.stopId || copy.actorId !== this.scope.actorId)
+        throw Error('Die Anfrage gehört zu einem anderen Einsatzkontext.'); return this.exclusive(async () => { if (this.read())
+        throw Error('Zuerst den gesicherten Vorgang prüfen und mit dem Originalverlauf abgleichen.'); const prepared: VisitJournal = { version: visitExecutionVersion, scope: structuredClone(this.scope), phase: 'prepared', command: copy, receipt: null, rejection: null }; this.persist(prepared); const dispatched: VisitJournal = { ...prepared, phase: 'dispatched' }; this.persist(dispatched); this.current(); let result: VisitResult<VisitReceipt>; try {
+        result = await this.dependencies.commit(structuredClone(copy));
+    }
+    catch {
+        result = { ok: false, uncertain: true, error: 'Die Speicherantwort fehlt. Nur die native Quittung der gesicherten Anfrage prüfen.' };
+    } this.current(); if (result.ok) {
+        const receipt = decodeVisitReceipt(result.data, copy);
+        this.persist({ ...dispatched, phase: 'confirmed', receipt });
+        return { ok: true, data: receipt };
+    } if (result.rejected === true && result.uncertain !== true)
+        this.persist({ ...dispatched, phase: 'rejected', rejection: result.error }); return result; }); }
+    async confirm(): Promise<VisitResult<VisitReceipt>> { return this.exclusive(async () => { const saved = this.read(); if (!saved)
+        throw Error('Kein gesicherter Einsatzvorgang vorhanden.'); if (saved.phase === 'confirmed')
+        return { ok: true, data: structuredClone(saved.receipt!) }; if (saved.phase !== 'dispatched')
+        throw Error('Dieser Vorgang wurde nicht unklar übertragen.'); const result = await this.dependencies.confirm(structuredClone(saved.command)); this.current(); if (!result.ok)
+        return { ok: false, uncertain: true, error: result.error }; const receipt = decodeVisitReceipt(result.data, saved.command); this.persist({ ...saved, phase: 'confirmed', receipt }); return { ok: true, data: receipt }; }); }
+    async releaseConfirmed(events: unknown[]) { return this.exclusive(async () => { const saved = this.read(); if (!saved || saved.phase !== 'confirmed' || !saved.receipt || !events.some(event => sameWoundJson(event, saved.receipt!.event)))
+        throw Error('Der bestätigte Originalbeleg fehlt im vollständig neu geladenen Verlauf.'); this.dependencies.storage.removeItem(this.key); if (this.dependencies.storage.getItem(this.key) !== null)
+        throw Error('Der bestätigte Einsatzvorgang konnte lokal nicht freigegeben werden.'); }); }
+    async discardUnsentOrRejected() { return this.exclusive(async () => { const saved = this.read(); if (!saved || !['prepared', 'rejected'].includes(saved.phase))
+        throw Error('Ein möglicherweise gespeicherter Vorgang darf nicht verworfen werden.'); this.dependencies.storage.removeItem(this.key); if (this.dependencies.storage.getItem(this.key) !== null)
+        throw Error('Der lokale Einsatzvorgang konnte nicht freigegeben werden.'); }); }
+}
+export const browserVisitLock: VisitLock = async (key, action) => { if (typeof navigator === 'undefined' || !navigator.locks)
+    throw Error('Dieser Browser kann gleichzeitige Einsatzvorgänge nicht sicher sperren.'); return navigator.locks.request(key, { mode: 'exclusive', ifAvailable: true }, async (lock) => { if (!lock)
+    throw Error('Der Einsatzvorgang wird in einem anderen Fenster bearbeitet.'); return action(); }); };

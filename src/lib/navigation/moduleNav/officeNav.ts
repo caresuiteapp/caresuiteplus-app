@@ -52,7 +52,7 @@ export const officeNav: ModuleNavConfig = {
     {
       title: 'Organisation',
       items: [
-        ...(Platform.OS === 'web' ? [{ key: 'notes', label: 'Notizen', icon: '📝', href: '/office/notizen' }] : []),
+        { key: 'notes', label: 'Notizen', icon: '📝', href: '/office/notizen' },
         { key: 'qm', label: 'Qualitätsmanagement', icon: '✅', href: '/business/office/qm' },
         { key: 'reporting', label: 'Office Reporting', icon: '📈', href: '/business/office/reporting' },
         { key: 'inventory', label: 'Inventar', icon: '📦', href: Platform.OS === 'web' ? '/unternehmen/inventar' : '/business/office/inventory' },

@@ -1,0 +1,24 @@
+{
+  "sourceBefore": "d01206e8e0bb9999f7d0953ce67ae7edcd5aa438",
+  "finding": "The short draft metric content sits at the top of the native button while the Web button centers it vertically alongside the taller paused metric.",
+  "evidence": {
+    "run": 40425783975,
+    "artifact": 12701150391,
+    "archiveSha256": "66fb7cff406257157ae25fc6405e480e294406cc4d50d0b51d2639dfd6262b14",
+    "native": {
+      "image": "clients-320x740.png",
+      "sha256": "8cb7a2b739e7021027fa003bf04b95440a0788f9ad75acdce1d74baf3f38384f"
+    },
+    "web": {
+      "image": "web-clients-320x740.png",
+      "sha256": "bc84a9cf18b5147f01b9c4a3f9c746cb21a744accad466298e3e25ead41522c8"
+    }
+  },
+  "correction": "Only a button without an authored display rule that contains block content uses the Web's vertical content centering. Authored flex/grid alignment and normal native action fallback stay separate.",
+  "checks": {
+    "newExecutingCases": 2,
+    "browser": "Both actual client list previews compare the short metric's content center with its button center at 320px."
+  },
+  "validation": "Pending full CI and fresh original review.",
+  "releaseAcceptance": false
+}

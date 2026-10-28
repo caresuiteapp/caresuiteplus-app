@@ -10,7 +10,7 @@ import {
 import { careSpacing } from '@/design/tokens/spacing';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { usePortalActor } from '@/hooks/usePortalActor';
+import { usePortalActor, type PortalActor } from '@/hooks/usePortalActor';
 import {
   createExpenseClaim, decidePayrollStatement,
   formatPayrollBalanceMinutes, formatPayrollMoney, formatPayrollMinutes, getPayrollPdfUrl,
@@ -25,7 +25,17 @@ const expenseStatus: Record<string, string> = { draft: 'Entwurf', submitted: 'Zu
 const statementStatus: Record<string, string> = { published: 'Bitte prüfen', confirmed: 'Bestätigt', rejected: 'Abgelehnt', locked: 'Gesperrt', paid: 'Ausgezahlt' };
 
 export function EmployeePayrollMonthScreen() {
-  const now = new Date(); const actor = usePortalActor();
+  const actor = usePortalActor();
+  const scope = JSON.stringify([actor.tenantId, actor.actorId, actor.employeeId, actor.roleKey]);
+  return <EmployeePayrollMonthContent key={scope} actor={actor} />;
+}
+
+function EmployeePayrollMonthContent({ actor }: { actor: PortalActor }) {
+  const now = new Date();
+  // The keyed owner clears personal drafts immediately. In-flight native work
+  // may still resolve after unmount; it must not start its next transport phase.
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   const { isPhone } = useDeviceClass();
   const [year, setYear] = useState(now.getFullYear()); const [month, setMonth] = useState(now.getMonth() + 1);
   const [category, setCategory] = useState<ExpenseCategory>('receipt');
@@ -53,8 +63,15 @@ export function EmployeePayrollMonthScreen() {
   const label = useMemo(() => new Date(year, month - 1, 1).toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }), [year, month]);
   const changeMonth = (delta: number) => { const date = new Date(year, month - 1 + delta, 1); setYear(date.getFullYear()); setMonth(date.getMonth() + 1); setExpenseDate(`${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-01`); setFeedback(null); };
   async function chooseReceipt() {
-    const result = await DocumentPicker.getDocumentAsync({ type: ['image/*', 'application/pdf'], copyToCacheDirectory: true });
-    if (!result.canceled && result.assets[0]) setReceipt({ uri: result.assets[0].uri, name: result.assets[0].name, mimeType: result.assets[0].mimeType });
+    try {
+      const result = await DocumentPicker.getDocumentAsync({ type: ['image/*', 'application/pdf'], copyToCacheDirectory: true });
+      if (!active.current) return;
+      if (!result.canceled && result.assets[0]) setReceipt({ uri: result.assets[0].uri, name: result.assets[0].name, mimeType: result.assets[0].mimeType });
+    } catch (cause) {
+      if (!active.current) return;
+      const detail = cause instanceof Error ? cause.message.trim() : '';
+      setFeedback({ kind: 'error', message: detail ? `Beleg konnte nicht ausgewählt werden: ${detail}` : 'Beleg konnte nicht ausgewählt werden. Bitte erneut versuchen.' });
+    }
   }
   async function submitExpense() {
     if (!actor.tenantId || !actor.employeeId || saveLock.current) return;
@@ -69,6 +86,7 @@ export function EmployeePayrollMonthScreen() {
       if (receipt) {
         setBusyMessage('Beleg wird sicher hochgeladen…');
         const uploaded = await uploadExpenseReceipt({ tenantId: actor.tenantId, employeeId: actor.employeeId, uri: receipt.uri, fileName: receipt.name, mimeType: receipt.mimeType });
+        if (!active.current) return;
         if (!uploaded.ok) { setFeedback({ kind: 'error', message: uploaded.error }); return; }
         receiptPath = uploaded.data.path;
       }
@@ -76,30 +94,33 @@ export function EmployeePayrollMonthScreen() {
       const km = Number(mileageKm.replace(',', '.')); const rateCents = Math.round(Number(mileageRate.replace(',', '.')) * 100);
       const amountCents = category === 'mileage' ? Math.round(km * rateCents) : Math.round(Number(amount.replace(',', '.')) * 100);
       const result = await createExpenseClaim({ tenantId: actor.tenantId, employeeId: actor.employeeId, expenseDate, category, description, businessPurpose: purpose, amountCents, receiptPath, mileageKm: category === 'mileage' ? km : null, mileageRateCents: category === 'mileage' ? rateCents : null, origin: origin || null, destination: destination || null, vehicleLabel: vehicle || null });
+      if (!active.current) return;
       if (!result.ok) { setFeedback({ kind: 'error', message: result.error }); return; }
       setBusyMessage('Monatsübersicht wird aktualisiert…');
       setDescription(''); setPurpose(''); setAmount(''); setMileageKm(''); setOrigin(''); setDestination(''); setVehicle(''); setReceipt(null);
       const refreshed = await query.refreshWithResult();
+      if (!active.current) return;
       setFeedback({ kind: refreshed === false ? 'warning' : 'success', message: refreshed === false ? 'Auslage wurde eingereicht. Die Monatsübersicht konnte noch nicht aktualisiert werden.' : 'Auslage wurde mit Beleg zur Prüfung eingereicht.' });
-    } catch (cause) { setFeedback({ kind: 'error', message: cause instanceof Error ? cause.message : 'Auslage konnte nicht eingereicht werden. Bitte erneut versuchen.' });
+    } catch (cause) { if (!active.current) return; setFeedback({ kind: 'error', message: cause instanceof Error ? cause.message : 'Auslage konnte nicht eingereicht werden. Bitte erneut versuchen.' });
     } finally {
-      saveLock.current = false; setBusyMessage(null);
-      setSaving(false);
+      if (active.current) { saveLock.current = false; setBusyMessage(null); setSaving(false); }
     }
   }
   async function decide(decision: 'confirm' | 'reject') {
     const statement = query.data?.statement; if (!statement || saveLock.current || query.loading) return;
-    if (decision === 'reject' && rejectReason.trim().length < 3) { setFeedback({ kind: 'warning', message: 'Bitte einen Ablehnungsgrund mit mindestens drei Zeichen eintragen.' }); return; }
+    if (decision === 'reject' && Array.from(rejectReason.trim()).length < 10) { setFeedback({ kind: 'warning', message: 'Bitte einen konkreten Ablehnungsgrund mit mindestens 10 Zeichen eintragen.' }); return; }
     saveLock.current = true;
     setSaving(true); setFeedback(null); setBusyMessage(decision === 'confirm' ? 'Monatsübersicht wird bestätigt…' : 'Rückmeldung wird übermittelt…');
     try {
       const result = await decidePayrollStatement(statement.id, decision, rejectReason);
+      if (!active.current) return;
       if (!result.ok) { setFeedback({ kind: 'error', message: result.error }); return; }
       setRejectReason(''); const refreshed = await query.refreshWithResult();
+      if (!active.current) return;
       setFeedback({ kind: refreshed === false ? 'warning' : 'success', message: refreshed === false ? 'Rückmeldung wurde gespeichert. Die Monatsübersicht konnte noch nicht aktualisiert werden.' : decision === 'confirm' ? 'Monatsübersicht verbindlich bestätigt.' : 'Monatsübersicht wurde mit Begründung abgelehnt.' });
-    } catch (cause) { setFeedback({ kind: 'error', message: cause instanceof Error ? cause.message : 'Rückmeldung konnte nicht gespeichert werden. Bitte erneut versuchen.' });
+    } catch (cause) { if (!active.current) return; setFeedback({ kind: 'error', message: cause instanceof Error ? cause.message : 'Rückmeldung konnte nicht gespeichert werden. Bitte erneut versuchen.' });
     } finally {
-      saveLock.current = false; setBusyMessage(null); setSaving(false);
+      if (active.current) { saveLock.current = false; setBusyMessage(null); setSaving(false); }
     }
   }
   async function open(path: string | null) {
@@ -107,12 +128,15 @@ export function EmployeePayrollMonthScreen() {
     setFeedback(null); setBusyMessage('Dokument wird vorbereitet…');
     try {
       const result = await getPayrollPdfUrl(path);
+      if (!active.current) return;
       if (!result.ok) { setFeedback({ kind: 'error', message: result.error }); return; }
       await Linking.openURL(result.data);
-    } catch (cause) { setFeedback({ kind: 'error', message: cause instanceof Error ? cause.message : 'Dokument konnte nicht geöffnet werden. Bitte erneut versuchen.' });
-    } finally { setBusyMessage(null); }
+    } catch (cause) { if (!active.current) return; setFeedback({ kind: 'error', message: cause instanceof Error ? cause.message : 'Dokument konnte nicht geöffnet werden. Bitte erneut versuchen.' });
+    } finally { if (active.current) setBusyMessage(null); }
   }
 
+  if (!actor.isReady || actor.isResolvingEmployeeLink) return <PortalTabScreen title="Gehalt & Auslagen"><LoadingState message="Mitarbeitendenkonto wird geprüft…" /></PortalTabScreen>;
+  if (!actor.tenantId || !actor.employeeId) return <PortalTabScreen title="Gehalt & Auslagen"><ErrorState presentation="inline" title="Nicht verfügbar" message="Das Mitarbeitendenkonto ist noch nicht vollständig verknüpft. Bitte wenden Sie sich an die Verwaltung." /></PortalTabScreen>;
   if (query.loading && !query.data) return <PortalTabScreen title="Gehalt & Auslagen"><LoadingState message="Monatsübersicht wird geladen…" /></PortalTabScreen>;
   if (query.error && !query.data) return <PortalTabScreen title="Gehalt & Auslagen"><ErrorState title="Nicht verfügbar" message={query.error} onRetry={() => void query.refresh()} /></PortalTabScreen>;
   const statement = query.data?.statement; const snapshot = statement?.snapshot;

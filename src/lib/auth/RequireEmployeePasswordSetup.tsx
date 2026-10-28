@@ -1,6 +1,6 @@
 import { ReactNode, useEffect } from 'react';
 import { runAppTransition } from '@/lib/react/runAppTransition';
-import { useRouter } from 'expo-router';
+import { useIsFocused, useRouter } from 'expo-router';
 import { LoadingState } from '@/components/ui';
 import { useHydrated } from '@/hooks/useHydrated';
 import { resolveEmployeeFirstLoginHref } from './loginRouter';
@@ -13,6 +13,7 @@ type RequireEmployeePasswordSetupProps = {
 /** Blocks employee portal until a permanent password replaces the one-time password. */
 export function RequireEmployeePasswordSetup({ children }: RequireEmployeePasswordSetupProps) {
   const router = useRouter();
+  const focused = useIsFocused();
   const hydrated = useHydrated();
   const { authReady, portalSession } = useAuth();
 
@@ -22,11 +23,13 @@ export function RequireEmployeePasswordSetup({ children }: RequireEmployeePasswo
     Boolean(portalSession.accountId);
 
   useEffect(() => {
-    if (!hydrated || !authReady || !needsSetup || !portalSession?.accountId) return;
+    if (!focused || !hydrated || !authReady || !needsSetup || !portalSession?.accountId) return;
     runAppTransition(() => {
       router.replace(resolveEmployeeFirstLoginHref(portalSession.accountId) as never);
     });
-  }, [authReady, hydrated, needsSetup, portalSession?.accountId, router]);
+  }, [authReady, focused, hydrated, needsSetup, portalSession?.accountId, router]);
+
+  if (!focused && (!hydrated || !authReady || needsSetup)) return null;
 
   if (!hydrated || !authReady) {
     return <LoadingState message="Sitzung wird geprüft…" />;

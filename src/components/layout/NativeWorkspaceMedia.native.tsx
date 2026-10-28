@@ -1,0 +1,5 @@
+import {useEffect,useState} from 'react';
+import {View,type ViewStyle} from 'react-native';
+import {useVideoPlayer,VideoView} from 'expo-video';
+import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+export function NativeWorkspaceMedia({uri,audio,autoPlay=false,loop=false,style}:{uri:string;audio?:boolean;autoPlay?:boolean;loop?:boolean;style?:ViewStyle}){const [error,setError]=useState(''),player=useVideoPlayer(uri,instance=>{instance.loop=loop;if(autoPlay)instance.play();});useEffect(()=>{const listener=player.addListener('statusChange',event=>setError(event.status==='error'?'Das Medium konnte nicht geladen werden. Bitte die Verbindung und die Datei prüfen.':''));return()=>listener.remove();},[player]);return <View style={{width:'100%',gap:8}}><VideoView player={player} nativeControls contentFit="contain" style={[{width:'100%',height:audio?90:240,backgroundColor:'#102d4c',borderRadius:12},style]}/>{error?<Text accessibilityRole="alert" style={{color:'#ad263d'}}>{error}</Text>:null}</View>;}

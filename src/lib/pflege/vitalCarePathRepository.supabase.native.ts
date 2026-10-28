@@ -1,0 +1,149 @@
+// Generated native presentation from src/lib/pflege/vitalCarePathRepository.supabase.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { getSupabaseClient } from "../supabase/client.ts";
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
+import { vitalCareOriginalIssue, vitalCarePacketIssue, vitalCareSourcesIssue, type VitalCareOriginal, type VitalCarePacket, type VitalCareSources } from "./vitalCarePathPacket.native.ts";
+type Row = Record<string, unknown>;
+type Context = {
+    tenantId: string;
+    clientId: string;
+    measurementId: string;
+    actorId: string;
+    isCurrent(): boolean;
+};
+type Result<T> = {
+    ok: true;
+    data: T;
+} | {
+    ok: false;
+    error: string;
+    uncertain?: boolean;
+    rejected?: boolean;
+};
+const unavailable = 'Der vollständige Messungs-, Grenz-, Geräte-, Kalibrierungs-, Reaktions-, Korrektur-, Personen- und Vitalpfadbezug konnte nicht bestätigt werden.';
+const object = (v: unknown): v is Row => !!v && typeof v === 'object' && !Array.isArray(v);
+const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+const stable = (v: unknown) => JSON.stringify(v, (_key, item: unknown) => object(item) ? Object.fromEntries(Object.keys(item).sort().map(k => [k, item[k]])) : item);
+const dbClient = () => getSupabaseClient() as unknown as {
+    auth: {
+        getSession(): Promise<{
+            data: {
+                session: null | {
+                    user: {
+                        id: string;
+                    };
+                    access_token: string;
+                    expires_at?: number;
+                };
+            };
+            error: unknown;
+        }>;
+        getUser(token?: string): Promise<{
+            data: {
+                user: null | {
+                    id: string;
+                };
+            };
+            error: unknown;
+        }>;
+    };
+    rpc(name: string, args: Row): Promise<{
+        data: unknown;
+        error: unknown;
+        status?: number;
+    }>;
+} | null;
+async function authority(c: Context) { const db = dbClient(); if (!db || !c.isCurrent())
+    throw Error(unavailable); const session = await db.auth.getSession(); if (!c.isCurrent() || session.error || !session.data.session || session.data.session.user.id !== c.actorId || session.data.session.expires_at !== undefined && session.data.session.expires_at * 1000 <= Date.now())
+    throw Error(unavailable); const user = await db.auth.getUser(session.data.session.access_token); if (!c.isCurrent() || user.error || user.data.user?.id !== c.actorId || dbClient() !== db)
+    throw Error(unavailable); return db; }
+function decode(v: unknown, c: Pick<Context, 'tenantId' | 'clientId' | 'measurementId'>) { const issue = vitalCareOriginalIssue(v, c); if (issue)
+    throw Error(issue); return structuredClone(v as VitalCareOriginal); }
+export async function readVitalCareSources(c: Context): Promise<Result<VitalCareSources>> { try {
+    const db = await authority(c), response: {
+        data: unknown;
+        error: unknown;
+        status?: number;
+    } = await withServiceQueryTimeout(db.rpc('web_read_vital_care_path_context', { p_tenant_id: c.tenantId, p_client_id: c.clientId, p_measurement_id: c.measurementId, p_actor_profile_id: c.actorId }), 'Vitalpfadquellen vollständig laden', 20000);
+    if (!c.isCurrent() || dbClient() !== db || response.error || vitalCareSourcesIssue(response.data))
+        return { ok: false, error: unavailable };
+    return { ok: true, data: structuredClone(response.data as VitalCareSources) };
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+} }
+export async function readVitalCarePage(c: Context): Promise<Result<VitalCareOriginal[]>> { try {
+    const db = await authority(c), rows: VitalCareOriginal[] = [];
+    let recorded: string | null = null, id: string | null = null;
+    for (let page = 0; page < 100; page++) {
+        const response: {
+            data: unknown;
+            error: unknown;
+            status?: number;
+        } = await withServiceQueryTimeout(db.rpc('web_read_vital_care_path_page', { p_tenant_id: c.tenantId, p_client_id: c.clientId, p_measurement_id: c.measurementId, p_actor_profile_id: c.actorId, p_cursor_recorded_at: recorded, p_cursor_id: id, p_page_size: 100 }), 'Vitalpfadverlauf vollständig laden', 20000);
+        if (!c.isCurrent() || dbClient() !== db || response.error || !object(response.data) || !Array.isArray(response.data.rows) || response.data.rows.length > 100)
+            return { ok: false, error: unavailable };
+        if (response.data.rows.length === 0)
+            return { ok: true, data: rows };
+        if (typeof response.data.nextCursorRecordedAt !== 'string' || !uuid(response.data.nextCursorId) || response.data.nextCursorRecordedAt === recorded && response.data.nextCursorId === id)
+            return { ok: false, error: unavailable };
+        for (const raw of response.data.rows) {
+            const row = decode(raw, c);
+            if (rows.some(x => x.id === row.id))
+                throw Error(unavailable);
+            rows.push(row);
+        }
+        recorded = response.data.nextCursorRecordedAt;
+        id = response.data.nextCursorId;
+    }
+    return { ok: false, error: 'Der Vitalpfadverlauf überschreitet die sicher vollständig lesbare Grenze.' };
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+} }
+function receipt(v: unknown, p: VitalCarePacket): VitalCareOriginal | null { if (!object(v) || v.requestId !== p.requestId || stable(v.packet) !== stable(p))
+    return null; try {
+    return decode(v.original, p);
+}
+catch {
+    return null;
+} }
+export async function commitVitalCarePacket(p: VitalCarePacket, isCurrent: () => boolean): Promise<Result<VitalCareOriginal>> { const captured = structuredClone(p), issue = vitalCarePacketIssue(captured); if (issue)
+    return { ok: false, error: issue, rejected: true }; let dispatched = false; try {
+    const c = { tenantId: captured.tenantId, clientId: captured.clientId, measurementId: captured.measurementId, actorId: captured.actorId, isCurrent };
+    const db = await authority(c);
+    dispatched = true;
+    const response: {
+        data: unknown;
+        error: unknown;
+        status?: number;
+    } = await withServiceQueryTimeout(db.rpc('web_commit_vital_care_path_packet', { p_packet: captured }), 'Vitalpfadpaket transaktional speichern', 20000);
+    if (!isCurrent() || dbClient() !== db)
+        return { ok: false, error: unavailable, uncertain: true };
+    if (response.error) {
+        const code = object(response.error) ? String(response.error.code ?? '') : '';
+        return { ok: false, error: toGermanSupabaseError(response.error as Parameters<typeof toGermanSupabaseError>[0]), ...(response.data === null && ['22007', '22008', '22023', '22P02', '23514', '40001', '42501', 'P0K01', 'P0K02'].includes(code) ? { rejected: true } : { uncertain: true }) };
+    }
+    const saved = receipt(response.data, captured);
+    return saved ? { ok: true, data: saved } : { ok: false, error: unavailable, uncertain: true };
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable, uncertain: dispatched };
+} }
+export async function confirmVitalCarePacket(p: VitalCarePacket, isCurrent: () => boolean): Promise<Result<VitalCareOriginal>> { const captured = structuredClone(p), issue = vitalCarePacketIssue(captured); if (issue)
+    return { ok: false, error: issue, rejected: true }; try {
+    const c = { tenantId: captured.tenantId, clientId: captured.clientId, measurementId: captured.measurementId, actorId: captured.actorId, isCurrent };
+    const db = await authority(c), response: {
+        data: unknown;
+        error: unknown;
+        status?: number;
+    } = await withServiceQueryTimeout(db.rpc('web_confirm_vital_care_path_packet', { p_tenant_id: captured.tenantId, p_client_id: captured.clientId, p_measurement_id: captured.measurementId, p_actor_profile_id: captured.actorId, p_request_id: captured.requestId, p_packet: captured }), 'Unklaren Vitalpfadausgang anhand nativer Quittung prüfen', 20000);
+    if (!c.isCurrent() || dbClient() !== db || response.error)
+        return { ok: false, error: unavailable };
+    const saved = receipt(response.data, captured);
+    return saved ? { ok: true, data: saved } : { ok: false, error: unavailable };
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+} }

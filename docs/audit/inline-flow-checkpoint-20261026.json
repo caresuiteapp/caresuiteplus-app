@@ -1,0 +1,74 @@
+{
+  "sourceBefore": "9f85801d25f0503d2dd00886852dc246ba219dcc",
+  "comparisonSource": "9d760ed94721a32fba98b3061d25f698a718cbac",
+  "comparisonCiRun": 40385597787,
+  "comparisonArtifact": {
+    "id": 12681883015,
+    "sha256": "9c1bcee751b48f4b6c4584840bef7e0f4945829600da6f5a363da5ad9764d271"
+  },
+  "reviewedPairs": {
+    "cases": [
+      "employees",
+      "academy",
+      "notes"
+    ],
+    "widths": [
+      320,
+      1280
+    ]
+  },
+  "confirmed": [
+    "Personnel search and its three filters share the original wide row.",
+    "Four academy KPI cards fill their row.",
+    "The note template grid uses the authored three wide columns."
+  ],
+  "remainingFinding": "The native note-start action still stretches across ordinary block flow; inline status markers can inherit the same cross-axis stretch.",
+  "correction": "Keep inline boxes and default buttons at content width in ordinary block flow. Preserve explicit widths, explicit alignment and flex/grid parent rules.",
+  "validation": {
+    "targetedTests": 134,
+    "testFiles": 15,
+    "preparedPortalCases": 65,
+    "newBrowserAssertion": "The note-start action retains inline width at the wide breakpoint.",
+    "freshImagesPending": true,
+    "nativeInlineSubsetTests": 65,
+    "selectCssContractTests": 2,
+    "rerunNote": "One feedback-focus test timed out in a concurrent pre-publish run; all 21 feedback-focus tests and both computed-CSS tests then passed with one worker. No test timeout was increased."
+  },
+  "reactReview": [
+    "Hooks remain unconditional; layout derives from scoped CSS without new effects or requests.",
+    "Display-name sets are hoisted; the new optional context field carries layout semantics only.",
+    "Permission, backend and release gates remain intact."
+  ],
+  "limits": [
+    "Table intrinsic column widths and spacing still differ in browser comparisons.",
+    "Browser renderings with isolated data do not prove Android font metrics, hardware, Realtime or server persistence.",
+    "The full 692-page visual and interactive acceptance remains open."
+  ],
+  "releaseAcceptance": false,
+  "referenceLayoutPreserved": "The original normal-phone arrangement is retained where the copy fits. Feedback headers stack below 360 logical pixels and guides below 300, using viewport width divided by system font scale.",
+  "ci164Checkpoint": {
+    "sourceCommit": "9f85801d25f0503d2dd00886852dc246ba219dcc",
+    "run": 40388542592,
+    "nativeWebParity": "passed including TypeScript",
+    "administrationCases": 108,
+    "administrationJob": "passed",
+    "employeeCases": 408,
+    "employeeJob": "passed",
+    "clientAndFamilyCases": 528,
+    "clientAndFamilyJob": "failed: six request-form field overlap assertions",
+    "failureFinding": "The flex:0 shorthand collapsed stacked form fields in the real Web rendering. The original images confirmed this regression.",
+    "correction": "ListFilterSelect now has grow=false for stacked fields; its root receives a standalone style with no flex shorthand, flex-grow:0, flex-shrink:0 and flex-basis:auto. Default filter-bar growth remains unchanged.",
+    "regressionEvidence": "Two tests render the actual React Native Web host and check computed CSS for intrinsic fields and default flexible filters; both pass. The real-browser overlap assertion remains active for the next run.",
+    "artifacts": {
+      "employee": {
+        "id": 12684100239,
+        "sha256": "5d5e5b8db494c2652234d2c37239962dedf44e5bc74d4b0528940b9dba6f0f61"
+      },
+      "clientAndFamily": {
+        "id": 12684280685,
+        "sha256": "f2193397a660ad54cdd8d9a4f13e910576209e9317b7439b39a3b48c0bb0c775"
+      }
+    },
+    "releaseAcceptance": false
+  }
+}

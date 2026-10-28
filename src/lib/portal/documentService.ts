@@ -19,6 +19,8 @@ export type PortalDocumentsPortalContext = {
   tenantId?: string | null;
   clientId?: string | null;
   employeeId?: string | null;
+  /** A proof deep link may read proof sources only, never arbitrary documents. */
+  contentKind?: 'service-proof';
 };
 
 const SIMULATED_DELAY_MS = 350;
@@ -180,6 +182,8 @@ export async function fetchPortalDocumentDetail(
   if (getServiceMode() === 'supabase') {
     if (audience === 'employee') return fetchEmployeePortalDocumentDetail(tenantId ?? '', portalContext?.employeeId ?? '', documentId, roleKey);
     if ((scope === 'portal_client' || scope === 'portal_family') && tenantId?.trim() && clientId?.trim()) {
+      if (portalContext?.contentKind === 'service-proof') return fetchLivePortalDocumentDetail(tenantId, clientId, documentId, { proofOnly: true });
+      if (roleKey === 'family_portal') return fetchLivePortalDocumentDetail(tenantId, clientId, documentId, { documentOnly: true });
       return fetchLivePortalDocumentDetail(tenantId, clientId, documentId);
     }
     return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
@@ -249,6 +253,8 @@ export async function downloadPortalDocument(
       return { ok: false, error: 'Download konnte nicht vorbereitet werden.' };
     }
 
+    if (portalContext?.contentKind === 'service-proof') return downloadLivePortalDocument(tenantId, clientId, documentId, { proofOnly: true });
+    if (roleKey === 'family_portal') return downloadLivePortalDocument(tenantId, clientId, documentId, { documentOnly: true });
     return downloadLivePortalDocument(tenantId, clientId, documentId);
   }
 

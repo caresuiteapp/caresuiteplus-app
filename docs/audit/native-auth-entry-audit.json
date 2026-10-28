@@ -1,0 +1,891 @@
+{
+  "schemaVersion": 1,
+  "observedDate": "2026-10-26",
+  "scope": "Actual Android shared access, auth, organization registration, recovery, first-password, device login and legacy onboarding entries; source/native selection audited separately from end-to-end acceptance",
+  "releaseAcceptance": "not_established",
+  "matrixReference": "docs/audit/native-portal-route-matrix.json",
+  "selectedEntryCount": 28,
+  "sourceSnapshot": [
+    {
+      "file": "src/liquid-command/screens/AccessScreens.tsx",
+      "sha256": "1dc87193b317eeed8b4dcaacb009a1dc70e117f767a2482834c9bcc0efc6f5bb"
+    },
+    {
+      "file": "src/components/auth/PhoneDeviceApproval.web.tsx",
+      "sha256": "f1dc47578d075367fe81980904d2f75f23d4b948817554da1fd31166e9c422dc"
+    },
+    {
+      "file": "src/components/brand/AppStartIntro.native.tsx",
+      "sha256": "da8cb1d42eb34c0726e9d815f628ee813ae50dfb7fcf54c89904e8a96ad88b6b"
+    },
+    {
+      "file": "src/components/brand/AppStartIntro.web.tsx",
+      "sha256": "ce10f3d4b7e588966e78d8d19f169ddebdb4a9d2f20854ecdaf3a4269ddda783"
+    },
+    {
+      "file": "src/lib/auth/RedirectIfAuthenticated.tsx",
+      "sha256": "2bd68bdfbe002eb62d326614d079c3726820962bb45fbb59aedfa15073ec749a"
+    },
+    {
+      "file": "src/lib/auth/AuthProvider.tsx",
+      "sha256": "14201dfba3fc998e5c2c120a2b7197affa666a0ed682cd44a54a6402134a5b98"
+    },
+    {
+      "file": "src/components/auth/PhoneDeviceApproval.native.tsx",
+      "sha256": "746477651a79e3d88b8bad3365248ce25fd6ba81a0226aae46235bddd28fff54"
+    }
+  ],
+  "groups": {
+    "access_hub": {
+      "paths": [
+        "/",
+        "/auth",
+        "/liquid-command/access"
+      ],
+      "tests": [
+        "src/__tests__/auth/accessHubRedesign.test.ts",
+        "src/__tests__/auth/nativeLiquidCommandEntry.test.tsx"
+      ],
+      "flow": "Root/access hub selects Verwaltung, Mitarbeiter or Klient without activating unreleased modules."
+    },
+    "business_login": {
+      "paths": [
+        "/auth/business-login",
+        "/liquid-command/access/business"
+      ],
+      "tests": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/businessAccessSessionContract.test.ts"
+      ],
+      "flow": "Email/password → loginBusinessUser → signInWithSupabaseSession → canonical business route; existing generation/mounted guard. New focused mounted attempt boundary also prevents late retained-scene installation/navigation."
+    },
+    "employee_login": {
+      "paths": [
+        "/auth/employee-login",
+        "/auth/employee-portal-login",
+        "/liquid-command/access/employee"
+      ],
+      "tests": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx"
+      ],
+      "flow": "Username/password → edge login → secure portal token completion → employee session → first-password route if required; new focus/mount/attempt boundary and synchronous submit lock."
+    },
+    "client_login": {
+      "paths": [
+        "/auth/client-login",
+        "/auth/portal-code-login",
+        "/liquid-command/access/client"
+      ],
+      "tests": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx",
+        "src/__tests__/auth/clientPortalAccess.test.ts"
+      ],
+      "flow": "Normalized username/code → client/family login → secure portal token completion → client session; new focus/mount/attempt boundary and synchronous submit lock."
+    },
+    "registration": {
+      "paths": [
+        "/auth/register",
+        "/auth/register-business",
+        "/liquid-command/access/register",
+        "/onboarding/company-setup",
+        "/onboarding/wizard"
+      ],
+      "tests": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/businessRegistrationPlatforms.test.ts",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx",
+        "src/__tests__/auth/businessRegistrationDatabaseContract.test.ts"
+      ],
+      "flow": "Canonical free organization registration, five steps, safe non-password draft, validated catalogue inputs, no product selection or billing data requirement; confirmed registration offers separate login."
+    },
+    "first_password": {
+      "paths": [
+        "/auth/employee-first-login",
+        "/liquid-command/access/employee-first-login"
+      ],
+      "tests": [
+        "src/__tests__/auth/employeeFirstLoginLifecycle.test.tsx",
+        "src/__tests__/auth/requireEmployeePasswordSetup.test.ts",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx"
+      ],
+      "flow": "Existing exact portal-session scope → completeFirstLogin → update own mustChangePassword → employee portal; mounted/session-bound and duplicate guarded."
+    },
+    "recovery": {
+      "paths": [
+        "/auth/forgot-password",
+        "/auth/reset-password",
+        "/auth/recovery-bridge",
+        "/liquid-command/access/recovery",
+        "/liquid-command/access/reset-password"
+      ],
+      "tests": [
+        "src/__tests__/auth/nativeAdditionalFlows.test.tsx",
+        "src/__tests__/auth/publicRecoveryMount.test.tsx",
+        "src/__tests__/auth/passwordReset.test.ts",
+        "src/__tests__/auth/nativeBusinessRecoveryService.test.ts"
+      ],
+      "flow": "Android selects native business recovery/reset screen. Email request and recovery token/password completion have distinct states; controlled mocks prove retry/input retention, not actual mail delivery."
+    },
+    "aliases": {
+      "paths": [
+        "/auth/login",
+        "/liquid-command/access/family"
+      ],
+      "tests": [
+        "src/__tests__/auth/loginRedirect.test.ts",
+        "src/__tests__/navigation/nativeExpoRouteResolution.test.ts"
+      ],
+      "flow": "Legacy business login redirects to /auth/business-login; family access alias redirects to /auth/client-login. No new native Academy-family activation."
+    },
+    "phone_device_approval": {
+      "paths": [
+        "/device/confirm"
+      ],
+      "tests": [
+        "src/__tests__/auth/phoneDeviceApprovalLifecycle.test.tsx"
+      ],
+      "flow": "Public random challenge inspection; explicit matching-number consent; correct authenticated role; decision scoped to challenge plus active account/session; abort/ignore stale requests and lock duplicate decisions. Server may already have accepted a request before local abort: no undo claim."
+    },
+    "tv_device_login": {
+      "paths": [
+        "/device/tv"
+      ],
+      "tests": [
+        "scripts/audit/tvDeviceSignOutScope.test.mjs"
+      ],
+      "flow": "Explicit role → challenge/poll → single consume → installed role-matching session; existing TV session marker, own-device revoke/cleanup and role-bound destination. No real QR/session request executed by this audit."
+    },
+    "legacy_onboarding": {
+      "paths": [
+        "/onboarding"
+      ],
+      "tests": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx"
+      ],
+      "flow": "Legacy introductory wizard routes to canonical organization registration. It is not counted as a new released module or fully visually accepted page."
+    }
+  },
+  "rows": [
+    {
+      "id": "app/index.tsx",
+      "routeTemplate": "/",
+      "selectedFile": "app/index.tsx",
+      "group": "access_hub",
+      "receiverTrace": [
+        "app/index.tsx",
+        "src/liquid-command/screens/LiquidCommandEntryScreen.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/screens/AccessHubScreen.tsx",
+        "src/liquid-command/screens/AccessHubBaseScreen.tsx",
+        "src/lib/auth/RequireRole.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/accessHubRedesign.test.ts",
+        "src/__tests__/auth/nativeLiquidCommandEntry.test.tsx"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/index.tsx",
+      "routeTemplate": "/auth",
+      "selectedFile": "app/auth/index.tsx",
+      "group": "access_hub",
+      "receiverTrace": [
+        "app/auth/index.tsx",
+        "src/liquid-command/screens/AccessHubScreen.tsx",
+        "src/liquid-command/screens/AccessHubBaseScreen.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/accessHubRedesign.test.ts",
+        "src/__tests__/auth/nativeLiquidCommandEntry.test.tsx"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/business-login.tsx",
+      "routeTemplate": "/auth/business-login",
+      "selectedFile": "app/auth/business-login.tsx",
+      "group": "business_login",
+      "receiverTrace": [
+        "app/auth/business-login.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/businessAccessSessionContract.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/client-login.tsx",
+      "routeTemplate": "/auth/client-login",
+      "selectedFile": "app/auth/client-login.tsx",
+      "group": "client_login",
+      "receiverTrace": [
+        "app/auth/client-login.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx",
+        "src/__tests__/auth/clientPortalAccess.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/employee-first-login.tsx",
+      "routeTemplate": "/auth/employee-first-login",
+      "selectedFile": "app/auth/employee-first-login.tsx",
+      "group": "first_password",
+      "receiverTrace": [
+        "app/auth/employee-first-login.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/employeeFirstLoginLifecycle.test.tsx",
+        "src/__tests__/auth/requireEmployeePasswordSetup.test.ts",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/employee-login.tsx",
+      "routeTemplate": "/auth/employee-login",
+      "selectedFile": "app/auth/employee-login.tsx",
+      "group": "employee_login",
+      "receiverTrace": [
+        "app/auth/employee-login.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/employee-portal-login.tsx",
+      "routeTemplate": "/auth/employee-portal-login",
+      "selectedFile": "app/auth/employee-portal-login.tsx",
+      "group": "employee_login",
+      "receiverTrace": [
+        "app/auth/employee-portal-login.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/forgot-password.tsx",
+      "routeTemplate": "/auth/forgot-password",
+      "selectedFile": "app/auth/forgot-password.tsx",
+      "group": "recovery",
+      "receiverTrace": [
+        "app/auth/forgot-password.tsx",
+        "src/screens/auth/BusinessPasswordRecovery.native.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/components/images/CareSuiteImage.native.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/nativeAdditionalFlows.test.tsx",
+        "src/__tests__/auth/publicRecoveryMount.test.tsx",
+        "src/__tests__/auth/passwordReset.test.ts",
+        "src/__tests__/auth/nativeBusinessRecoveryService.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/login.tsx",
+      "routeTemplate": "/auth/login",
+      "selectedFile": "app/auth/login.tsx",
+      "group": "aliases",
+      "receiverTrace": [
+        "app/auth/login.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/loginRedirect.test.ts",
+        "src/__tests__/navigation/nativeExpoRouteResolution.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/portal-code-login.tsx",
+      "routeTemplate": "/auth/portal-code-login",
+      "selectedFile": "app/auth/portal-code-login.tsx",
+      "group": "client_login",
+      "receiverTrace": [
+        "app/auth/portal-code-login.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx",
+        "src/__tests__/auth/clientPortalAccess.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/recovery-bridge.tsx",
+      "routeTemplate": "/auth/recovery-bridge",
+      "selectedFile": "app/auth/recovery-bridge.tsx",
+      "group": "recovery",
+      "receiverTrace": [
+        "app/auth/recovery-bridge.tsx",
+        "src/screens/auth/BusinessPasswordRecovery.native.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/components/images/CareSuiteImage.native.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/nativeAdditionalFlows.test.tsx",
+        "src/__tests__/auth/publicRecoveryMount.test.tsx",
+        "src/__tests__/auth/passwordReset.test.ts",
+        "src/__tests__/auth/nativeBusinessRecoveryService.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/register.tsx",
+      "routeTemplate": "/auth/register",
+      "selectedFile": "app/auth/register.tsx",
+      "group": "registration",
+      "receiverTrace": [
+        "app/auth/register.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/CompanyRegistrationSelect.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/businessRegistrationPlatforms.test.ts",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx",
+        "src/__tests__/auth/businessRegistrationDatabaseContract.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/register-business.tsx",
+      "routeTemplate": "/auth/register-business",
+      "selectedFile": "app/auth/register-business.tsx",
+      "group": "registration",
+      "receiverTrace": [
+        "app/auth/register-business.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/CompanyRegistrationSelect.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/businessRegistrationPlatforms.test.ts",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx",
+        "src/__tests__/auth/businessRegistrationDatabaseContract.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/auth/reset-password.tsx",
+      "routeTemplate": "/auth/reset-password",
+      "selectedFile": "app/auth/reset-password.tsx",
+      "group": "recovery",
+      "receiverTrace": [
+        "app/auth/reset-password.tsx",
+        "src/screens/auth/BusinessPasswordRecovery.native.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/components/images/CareSuiteImage.native.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/nativeAdditionalFlows.test.tsx",
+        "src/__tests__/auth/publicRecoveryMount.test.tsx",
+        "src/__tests__/auth/passwordReset.test.ts",
+        "src/__tests__/auth/nativeBusinessRecoveryService.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/device/confirm.native.tsx",
+      "routeTemplate": "/device/confirm",
+      "selectedFile": "app/device/confirm.native.tsx",
+      "group": "phone_device_approval",
+      "receiverTrace": [
+        "app/device/confirm.native.tsx",
+        "src/components/auth/PhoneDeviceApproval.native.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/phoneDeviceApprovalLifecycle.test.tsx"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/device/tv.native.tsx",
+      "routeTemplate": "/device/tv",
+      "selectedFile": "app/device/tv.native.tsx",
+      "group": "tv_device_login",
+      "receiverTrace": [
+        "app/device/tv.native.tsx",
+        "app/device/tv.native.tsx"
+      ],
+      "testReferences": [
+        "scripts/audit/tvDeviceSignOutScope.test.mjs"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/liquid-command/access/index.tsx",
+      "routeTemplate": "/liquid-command/access",
+      "selectedFile": "app/liquid-command/access/index.tsx",
+      "group": "access_hub",
+      "receiverTrace": [
+        "app/liquid-command/access/index.tsx",
+        "src/liquid-command/screens/AccessHubScreen.tsx",
+        "src/liquid-command/screens/AccessHubBaseScreen.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/accessHubRedesign.test.ts",
+        "src/__tests__/auth/nativeLiquidCommandEntry.test.tsx"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/liquid-command/access/business.tsx",
+      "routeTemplate": "/liquid-command/access/business",
+      "selectedFile": "app/liquid-command/access/business.tsx",
+      "group": "business_login",
+      "receiverTrace": [
+        "app/liquid-command/access/business.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/businessAccessSessionContract.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/liquid-command/access/client.tsx",
+      "routeTemplate": "/liquid-command/access/client",
+      "selectedFile": "app/liquid-command/access/client.tsx",
+      "group": "client_login",
+      "receiverTrace": [
+        "app/liquid-command/access/client.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx",
+        "src/__tests__/auth/clientPortalAccess.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/liquid-command/access/employee.tsx",
+      "routeTemplate": "/liquid-command/access/employee",
+      "selectedFile": "app/liquid-command/access/employee.tsx",
+      "group": "employee_login",
+      "receiverTrace": [
+        "app/liquid-command/access/employee.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/liquid-command/access/employee-first-login.tsx",
+      "routeTemplate": "/liquid-command/access/employee-first-login",
+      "selectedFile": "app/liquid-command/access/employee-first-login.tsx",
+      "group": "first_password",
+      "receiverTrace": [
+        "app/liquid-command/access/employee-first-login.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/employeeFirstLoginLifecycle.test.tsx",
+        "src/__tests__/auth/requireEmployeePasswordSetup.test.ts",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/liquid-command/access/family.tsx",
+      "routeTemplate": "/liquid-command/access/family",
+      "selectedFile": "app/liquid-command/access/family.tsx",
+      "group": "aliases",
+      "receiverTrace": [
+        "app/liquid-command/access/family.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/loginRedirect.test.ts",
+        "src/__tests__/navigation/nativeExpoRouteResolution.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/liquid-command/access/recovery.tsx",
+      "routeTemplate": "/liquid-command/access/recovery",
+      "selectedFile": "app/liquid-command/access/recovery.tsx",
+      "group": "recovery",
+      "receiverTrace": [
+        "app/liquid-command/access/recovery.tsx",
+        "src/screens/auth/BusinessPasswordRecovery.native.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/components/images/CareSuiteImage.native.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/nativeAdditionalFlows.test.tsx",
+        "src/__tests__/auth/publicRecoveryMount.test.tsx",
+        "src/__tests__/auth/passwordReset.test.ts",
+        "src/__tests__/auth/nativeBusinessRecoveryService.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/liquid-command/access/register.tsx",
+      "routeTemplate": "/liquid-command/access/register",
+      "selectedFile": "app/liquid-command/access/register.tsx",
+      "group": "registration",
+      "receiverTrace": [
+        "app/liquid-command/access/register.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/CompanyRegistrationSelect.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/businessRegistrationPlatforms.test.ts",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx",
+        "src/__tests__/auth/businessRegistrationDatabaseContract.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/liquid-command/access/reset-password.tsx",
+      "routeTemplate": "/liquid-command/access/reset-password",
+      "selectedFile": "app/liquid-command/access/reset-password.tsx",
+      "group": "recovery",
+      "receiverTrace": [
+        "app/liquid-command/access/reset-password.tsx",
+        "src/screens/auth/BusinessPasswordRecovery.native.tsx",
+        "src/liquid-command/screens/AccessScreens.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/components/images/CareSuiteImage.native.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx",
+        "src/liquid-command/components/LiquidPrimitives.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/nativeAdditionalFlows.test.tsx",
+        "src/__tests__/auth/publicRecoveryMount.test.tsx",
+        "src/__tests__/auth/passwordReset.test.ts",
+        "src/__tests__/auth/nativeBusinessRecoveryService.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/onboarding/index.tsx",
+      "routeTemplate": "/onboarding",
+      "selectedFile": "app/onboarding/index.tsx",
+      "group": "legacy_onboarding",
+      "receiverTrace": [
+        "app/onboarding/index.tsx",
+        "src/screens/onboarding/OnboardingWelcomeScreen.tsx",
+        "src/components/auth/index.ts",
+        "src/components/auth/OnboardingWelcomeHero.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/onboarding/company-setup.tsx",
+      "routeTemplate": "/onboarding/company-setup",
+      "selectedFile": "app/onboarding/company-setup.tsx",
+      "group": "registration",
+      "receiverTrace": [
+        "app/onboarding/company-setup.tsx",
+        "src/screens/onboarding/CompanySetupScreen.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/businessRegistrationPlatforms.test.ts",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx",
+        "src/__tests__/auth/businessRegistrationDatabaseContract.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    },
+    {
+      "id": "app/onboarding/wizard.tsx",
+      "routeTemplate": "/onboarding/wizard",
+      "selectedFile": "app/onboarding/wizard.tsx",
+      "group": "registration",
+      "receiverTrace": [
+        "app/onboarding/wizard.tsx"
+      ],
+      "testReferences": [
+        "src/__tests__/auth/businessRegistrationLifecycle.test.tsx",
+        "src/__tests__/auth/businessRegistrationPlatforms.test.ts",
+        "src/__tests__/auth/nativeBusinessRegistration.test.tsx",
+        "src/__tests__/auth/businessRegistrationDatabaseContract.test.ts"
+      ],
+      "runtimeBoundary": "Components/hooks with inert native hosts and controlled transports; no live authentication or Android device execution",
+      "visualAcceptance": false,
+      "liveServerAcceptance": false,
+      "hardwareAcceptance": false
+    }
+  ],
+  "executed": {
+    "preFixAuthSuite": {
+      "tests": 587,
+      "passed": 587,
+      "file": "android-next-qa/auth-final-audit-tests.json",
+      "limit": "Old suite passed while newly reproduced races were absent from coverage."
+    },
+    "newLoginRegressionBefore": {
+      "failed": 7,
+      "passed": 13,
+      "file": "android-next-qa/auth-portal-login-before.log"
+    },
+    "newQrRegressionBefore": {
+      "failed": 4,
+      "passed": 1,
+      "file": "android-next-qa/auth-device-approval-before.log"
+    },
+    "targetedAfter": {
+      "tests": 100,
+      "passed": 100,
+      "file": "android-next-qa/auth-entry-targeted-final.log",
+      "includes": "20 common registration/login lifecycle,11 native registration harness,5 QR approval lifecycle,21 native intro,43 web intro; controlled boundaries, not optical/device acceptance"
+    },
+    "broadAfterPortalQr": {
+      "tests": 663,
+      "passed": 663,
+      "file": "android-next-qa/auth-final-after-tests.json",
+      "limit": "Snapshot before two final business-focus cases; auth and intro quantities overlap targeted tests."
+    },
+    "businessFocusBefore": {
+      "tests": 22,
+      "passed": 20,
+      "failed": 2,
+      "file": "android-next-qa/auth-business-focus-before.log"
+    },
+    "businessFocusAfter": {
+      "tests": 38,
+      "passed": 38,
+      "file": "android-next-qa/auth-business-focus-after.log"
+    },
+    "broadFinal": {
+      "tests": 665,
+      "passed": 665,
+      "failed": 0,
+      "file": "android-next-qa/auth-final-complete-tests.json",
+      "scope": "All existing src/__tests__/auth plus native and Web intro suites, one worker. Controlled service/native boundaries; no live auth transactions or visual/hardware acceptance."
+    }
+  },
+  "confirmedCorrections": [
+    {
+      "source": "src/liquid-command/screens/AccessScreens.tsx",
+      "problem": "Retained or unmounted business/employee/client login views continued late responses into session installation/navigation; client also allowed duplicate synchronous submits.",
+      "change": "Focused mounted attempt generation plus synchronous lock, phase checks, sensitive input clearing on blur. Business retains existing user-generation guard; employee destination uses completed canonical session."
+    },
+    {
+      "source": "src/components/auth/PhoneDeviceApproval.web.tsx",
+      "problem": "QR decision could be duplicated; change of challenge/account/session retained consent or applied old decision result.",
+      "change": "Synchronous in-flight controller, consent bound to full challenge/account/session scope, abort on scope change, stale completion checks; source must be regenerated to actual native file."
+    }
+  ],
+  "remainingGaps": [
+    "No real Android startup/auth/logout/recovery/QR/keyboard/large-font run performed. Actual cryptographic/session and business server transactions were not invoked.",
+    "All rows still need appropriate full-shell visual evidence; component DOM tests cannot certify layout.",
+    "UI cancellation prevents subsequent local portal-context installation and navigation but cannot undo an already-started SDK setSession or already-accepted server request.",
+    "Phone/TV device flow has no executed real challenge/poll/consume/approve or revoke acceptance in this audit.",
+    "Combined legacy desktopCompanyFlows test aborts before tests because new platform-dossier imports transitively initialize Expo without a suitable native boundary; no product __DEV__ workaround applied. Root/business audit owns current console contract.",
+    "Production organization registration and recovery mail/session delivery were not exercised; isolated SQL/domain tests do not prove deployed backend compatibility."
+  ],
+  "prohibitedActionsPerformed": {
+    "productionMutations": false,
+    "realCredentialsUsed": false,
+    "realEmailsOrMessagesSent": false,
+    "aabBuilt": false,
+    "deployment": false
+  },
+  "nativePhoneSourceRegenerated": true
+}

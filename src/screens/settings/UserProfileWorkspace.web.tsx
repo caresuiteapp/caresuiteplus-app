@@ -5,6 +5,7 @@ import { USER_PROFILE_WORKSPACE_CSS } from './userProfileWorkspaceCss.web';
 export type ProfileField = 'firstName' | 'lastName' | 'phone';
 
 export type UserProfileWorkspaceProps = {
+  securityContent?: ReactNode;
   profile: {
     firstName: string;
     lastName: string;
@@ -180,6 +181,8 @@ export function UserProfileWorkspace(props: UserProfileWorkspaceProps) {
           </section>
         </div>
       </div>
+
+      {props.securityContent}
 
       <div className="cs-profile-session">
         <div><span className="cs-profile-session-icon"><ProfileIcon name="logout" /></span><p><strong>Von CareSuite abmelden</strong><span>Ihre gespeicherten Angaben bleiben erhalten.</span></p></div>

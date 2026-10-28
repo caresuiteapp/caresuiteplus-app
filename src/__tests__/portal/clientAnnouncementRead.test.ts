@@ -11,6 +11,20 @@ beforeEach(() => {
   h.markRead.mockResolvedValue({ ok: true });
 });
 describe('client announcement full-read workflow', () => {
+  it('does not write a read receipt after the originating portal scope has been left', async () => {
+    let current = true;
+    let finish!: (value: unknown) => void;
+    h.detail.mockReturnValueOnce(new Promise(resolve => { finish = resolve; }));
+    const pending = readClientPortalAnnouncement('tenant-1', 'user-1', item, undefined, { isCurrent: () => current });
+    current = false;
+    finish({ ok: true, data: { body: 'Volltext des alten Kontos' } });
+    expect((await pending).ok).toBe(false);
+    expect(h.markRead).not.toHaveBeenCalled();
+  });
+  it('does not start a full read for an already inactive origin', async () => {
+    expect((await readClientPortalAnnouncement('tenant-1', 'user-1', item, undefined, { isCurrent: () => false })).ok).toBe(false);
+    expect(h.detail).not.toHaveBeenCalled(); expect(h.markRead).not.toHaveBeenCalled();
+  });
   it('marks read only after the complete authorized text was loaded', async () => {
     const result = await readClientPortalAnnouncement('tenant-1', 'user-1', item);
     expect(result).toEqual({ ok: true, data: { body: 'Der vollständige Text der Mitteilung.', readWarning: null } });

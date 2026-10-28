@@ -13,7 +13,11 @@ export function AssistPortalShell({ children }: AssistPortalShellProps) {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
+    width: '100%',
+    minWidth: 0,
+    flexGrow: 0,
+    flexShrink: 0,
+    flexBasis: 'auto',
     gap: careSpacing.md,
   },
 });

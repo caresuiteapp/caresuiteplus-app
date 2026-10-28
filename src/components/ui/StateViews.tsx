@@ -16,6 +16,7 @@ import { sanitizeUiText } from '@/lib/ui/uiVisibility';
 import { PremiumButton } from './PremiumButton';
 import { CareLightButton } from './CareLightButton';
 import { useWorkflowFeedback } from './GlobalWorkflowFeedback';
+import { useStateFeedbackFocus } from './useStateFeedbackFocus';
 
 type StatePresentation = 'overlay' | 'inline';
 
@@ -60,6 +61,7 @@ type LoadingStateProps = {
 
 export function LoadingState({ message, presentation = 'overlay' }: LoadingStateProps) {
   const feedback = useWorkflowFeedback();
+  const feedbackFocused = useStateFeedbackFocus();
   const { typography } = useLegacyTheme();
   const textColors = useStateTextColors();
   const { isPhone } = useDeviceClass();
@@ -90,10 +92,10 @@ export function LoadingState({ message, presentation = 'overlay' }: LoadingState
   );
 
   useEffect(() => {
-    if (presentation !== 'overlay') return;
+    if (presentation !== 'overlay' || !feedbackFocused) return;
     const id = feedback.showLoading(message);
     return () => feedback.dismiss(id);
-  }, [feedback, message, presentation]);
+  }, [feedback, feedbackFocused, message, presentation]);
 
   if (presentation === 'overlay') return null;
 
@@ -176,6 +178,7 @@ export function ErrorState({
   presentation = 'overlay',
 }: ErrorStateProps) {
   const feedback = useWorkflowFeedback();
+  const feedbackFocused = useStateFeedbackFocus();
   const onRetryRef = useRef(onRetry);
   onRetryRef.current = onRetry;
   const hasRetry = Boolean(onRetry);
@@ -212,14 +215,14 @@ export function ErrorState({
   );
 
   useEffect(() => {
-    if (presentation !== 'overlay') return;
+    if (presentation !== 'overlay' || !feedbackFocused) return;
     const id = feedback.showError(
       displayMessage,
       displayTitle,
       hasRetry ? () => onRetryRef.current?.() : undefined,
     );
     return () => feedback.dismiss(id);
-  }, [displayMessage, displayTitle, feedback, hasRetry, presentation]);
+  }, [displayMessage, displayTitle, feedback, feedbackFocused, hasRetry, presentation]);
 
   if (presentation === 'overlay') return null;
 
@@ -250,6 +253,7 @@ export function SuccessState({
   presentation = 'overlay',
 }: SuccessStateProps) {
   const feedback = useWorkflowFeedback();
+  const feedbackFocused = useStateFeedbackFocus();
   const { colors, typography } = useLegacyTheme();
   const textColors = useStateTextColors();
   const containerSurface = useStateContainerStyle();
@@ -278,10 +282,10 @@ export function SuccessState({
   );
 
   useEffect(() => {
-    if (presentation !== 'overlay') return;
+    if (presentation !== 'overlay' || !feedbackFocused) return;
     const id = feedback.showSuccess(sanitizeUiText(message), sanitizeUiText(title));
     return () => feedback.dismiss(id);
-  }, [feedback, message, presentation, title]);
+  }, [feedback, feedbackFocused, message, presentation, title]);
 
   if (presentation === 'overlay') return null;
 

@@ -2,7 +2,7 @@ import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme, type LegacyColors } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 
 import { buildPortalAnnouncementsKpis } from '@/lib/portal/portalAnnouncementsStats';
@@ -11,6 +11,7 @@ import {
   PORTAL_EMPLOYEE_LABEL,
 } from '@/lib/portal/portalDisplayLabels';
 import { designTokens, spacing } from '@/theme';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 type PortalAnnouncementsHeroProps = {
   scope: 'portal_employee' | 'portal_client';
@@ -43,11 +44,14 @@ export function PortalAnnouncementsHero({
 }: PortalAnnouncementsHeroProps) {
   const { colors, typography, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
+  const { width } = useDeviceClass();
+  const { fontScale } = useWindowDimensions();
+  const stackedHeading = width / Math.max(1, fontScale || 1) < 300;
   const styles = useMemo(
     () =>
       StyleSheet.create({
-  topRow: { flexDirection: 'row', gap: spacing.md },
-  textCol: { flex: 1, gap: 2 },
+  topRow: { flexDirection: stackedHeading ? 'column' : 'row', gap: spacing.md },
+  textCol: { flex: stackedHeading ? undefined : 1, width: stackedHeading ? '100%' : undefined, gap: 2 },
   eyebrow: {
     ...typography.caption,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
@@ -68,7 +72,7 @@ export function PortalAnnouncementsHero({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 }),
-    [typography.caption, heroText.title, heroText.meta, colors.bgElevated],
+    [typography.caption, heroText.title, heroText.meta, colors.bgElevated, stackedHeading],
   );
 
 

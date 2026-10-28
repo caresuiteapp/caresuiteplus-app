@@ -29,7 +29,7 @@ describe('employee logbook standalone module P0', () => {
   it('uses a standalone detailed page with overview, recording, trips, receipts and profile', () => {
     const screen = read('src/screens/portal/EmployeeLogbookScreen.tsx');
 
-    expect(screen).toContain("useState<Tab>('overview')");
+    expect(screen).toContain("usePageTab<Tab>('EmployeeLogbookScreen.tab', 'overview')");
     expect(screen).toContain("['overview','Übersicht']");
     expect(screen).toContain("['record','Aufzeichnen']");
     expect(screen).toContain("['trips','Meine Fahrten']");

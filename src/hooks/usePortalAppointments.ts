@@ -84,7 +84,7 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
     [profileId, scopedRoleKey, tenantId, scopedClientId, scopedEmployeeId, isOffline],
     {
       enabled: queryEnabled,
-      queryKey: JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId]),
+      queryKey: JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId, familyAppointmentsAllowed]),
       live: liveConfig,
       initialCache:
         Platform.OS !== 'web' && queryEnabled

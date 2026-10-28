@@ -1,0 +1,74 @@
+// Generated native presentation from src/lib/clients/clientFinancingWorkspaceWorkflow.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone,nativeNavigator as navigator} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { decodeClientFinancingReceipt, validateClientFinancingCommand, type ClientFinancingCommand, type ClientFinancingReceipt } from "./clientFinancingWorkspaceDomain.native.ts";
+import type { ClientFinancingResult } from "./clientFinancingWorkspaceRepository.native.ts";
+type Scope = {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+};
+type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+export type ClientFinancingJournal = {
+    version: '2026-10-16.1';
+    scope: Scope;
+    phase: 'prepared' | 'dispatched' | 'confirmed' | 'rejected';
+    command: ClientFinancingCommand;
+    receipt: ClientFinancingReceipt | null;
+    rejection: string | null;
+};
+type Lock = <T>(key: string, action: () => Promise<T>) => Promise<T>;
+type Dependencies = {
+    storage: Store;
+    lock: Lock;
+    isCurrent(): boolean;
+    commit(command: ClientFinancingCommand): Promise<ClientFinancingResult<ClientFinancingReceipt>>;
+    confirm(command: ClientFinancingCommand): Promise<ClientFinancingResult<ClientFinancingReceipt>>;
+};
+const key = (scope: Scope) => `caresuite.client-financing-journal.v1:${scope.tenantId}:${scope.actorId}:${scope.clientId}`;
+export function decodeClientFinancingJournal(raw: string, scope: Scope): ClientFinancingJournal { const value: unknown = JSON.parse(raw); if (typeof value !== 'object' || value === null)
+    throw Error('Gesicherter Finanzierungsvorgang ist beschädigt.'); const journal = value as ClientFinancingJournal; if (journal.version !== '2026-10-16.1' || JSON.stringify(journal.scope) !== JSON.stringify(scope) || !['prepared', 'dispatched', 'confirmed', 'rejected'].includes(journal.phase))
+    throw Error('Gesicherter Finanzierungsvorgang ist beschädigt.'); validateClientFinancingCommand(journal.command); if (journal.phase === 'confirmed')
+    decodeClientFinancingReceipt(journal.receipt, journal.command);
+else if (journal.receipt !== null)
+    throw Error('Lokale Finanzierungsbestätigung ist widersprüchlich.'); return structuredClone(journal); }
+export class ClientFinancingWorkflow {
+    private busy = false;
+    private journalKey: string;
+    private scope: Scope;
+    private deps: Dependencies;
+    constructor(scope: Scope, deps: Dependencies) { this.scope = scope; this.deps = deps; this.journalKey = key(scope); }
+    read() { const raw = this.deps.storage.getItem(this.journalKey); return raw === null ? null : decodeClientFinancingJournal(raw, this.scope); }
+    private current() { if (!this.deps.isCurrent())
+        throw Error('Konto, Pflegefall oder Rechte wurden geändert. Vorgang neu öffnen.'); }
+    private persist(value: ClientFinancingJournal) { const raw = JSON.stringify(value); this.deps.storage.setItem(this.journalKey, raw); if (this.deps.storage.getItem(this.journalKey) !== raw)
+        throw Error('Finanzierungsvorgang konnte nicht zuverlässig gesichert werden.'); decodeClientFinancingJournal(raw, this.scope); }
+    private async exclusive<T>(fn: () => Promise<T>) { if (this.busy)
+        throw Error('Ein Finanzierungsvorgang wird bereits geprüft.'); this.busy = true; try {
+        return await this.deps.lock(this.journalKey, async () => { this.current(); return fn(); });
+    }
+    finally {
+        this.busy = false;
+    } }
+    async dispatch(command: ClientFinancingCommand) { const copy = structuredClone(command); validateClientFinancingCommand(copy); return this.exclusive(async () => { if (this.read())
+        throw Error('Zuerst den gesicherten Finanzierungsvorgang abgleichen.'); const prepared: ClientFinancingJournal = { version: '2026-10-16.1', scope: structuredClone(this.scope), phase: 'prepared', command: copy, receipt: null, rejection: null }; this.persist(prepared); const sent = { ...prepared, phase: 'dispatched' as const }; this.persist(sent); let result: ClientFinancingResult<ClientFinancingReceipt>; try {
+        result = await this.deps.commit(structuredClone(copy));
+    }
+    catch {
+        result = { ok: false, uncertain: true, error: 'Speicherantwort fehlt. Nur native Quittung prüfen.' };
+    } this.current(); if (result.ok) {
+        const receipt = decodeClientFinancingReceipt(result.data, copy);
+        this.persist({ ...sent, phase: 'confirmed', receipt });
+        return result;
+    } if (result.rejected === true && result.uncertain !== true)
+        this.persist({ ...sent, phase: 'rejected', rejection: result.error }); return result; }); }
+    async confirm() { return this.exclusive(async () => { const saved = this.read(); if (!saved || saved.phase !== 'dispatched')
+        throw Error('Kein unklar versandter Vorgang vorhanden.'); const result = await this.deps.confirm(structuredClone(saved.command)); this.current(); if (result.ok)
+        this.persist({ ...saved, phase: 'confirmed', receipt: decodeClientFinancingReceipt(result.data, saved.command) }); return result; }); }
+    async releaseConfirmed(events: unknown[]) { return this.exclusive(async () => { const saved = this.read(); if (!saved || saved.phase !== 'confirmed' || !events.some(event => JSON.stringify(event) === JSON.stringify(saved.receipt?.event)))
+        throw Error('Bestätigter Originalbeleg fehlt im vollständig neu geladenen Verlauf.'); this.deps.storage.removeItem(this.journalKey); }); }
+    async discardUnsentOrRejected() { return this.exclusive(async () => { const saved = this.read(); if (!saved || !['prepared', 'rejected'].includes(saved.phase))
+        throw Error('Möglicherweise gespeicherter Vorgang darf nicht verworfen werden.'); this.deps.storage.removeItem(this.journalKey); }); }
+}
+export const browserClientFinancingLock: Lock = async (keyName, action) => { if (typeof navigator === 'undefined' || !navigator.locks)
+    throw Error('Dieser Browser kann gleichzeitige Finanzierungsvorgänge nicht sicher sperren.'); return navigator.locks.request(keyName, { mode: 'exclusive', ifAvailable: true }, async (lock) => { if (!lock)
+    throw Error('Finanzierungsvorgang wird in einem anderen Fenster bearbeitet.'); return action(); }); };

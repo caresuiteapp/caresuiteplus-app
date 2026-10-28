@@ -112,6 +112,7 @@ export function C14vSubpageShell({
   return (
     <ScreenShell
       title={title}
+      contentOwnsHeader={contentOwnsHero}
       subtitle={resolvedSubtitle}
       showBack={showBack}
       scroll={scroll}

@@ -11,6 +11,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { runService } from '@/lib/services/serviceRunner';
+import { familyPortalAllows, familyPortalFeatureAllowed } from '@/lib/portal/familyPortalAccessScope';
 
 import {
   PORTAL_UPCOMING_ASSIGNMENT_STATUSES,
@@ -154,13 +155,19 @@ export async function fetchAssistDashboardData(
     | 'activeModuleKeys'
     | 'visibilityRules'
     | 'careProfile'
-  >,
+  > & Partial<Pick<PortalContext, 'roleKey' | 'familyAccess'>>,
 ): Promise<ServiceResult<AssistDashboardData>> {
   return runService(async () => {
     const { tenantId, clientId } = context;
-    const tripsReleased = canAccessPortalFeature(context, 'assist', 'trips');
-    const budgetReleased = canAccessPortalFeature(context, 'assist', 'budget');
-    const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
+    const family = context.roleKey === 'family_portal' || context.portalRole === 'relative';
+    const actorContext = { ...context, roleKey: family ? 'family_portal' : context.roleKey };
+    const appointmentsAllowed = familyPortalFeatureAllowed(actorContext, 'appointments');
+    const messagesAllowed = familyPortalFeatureAllowed(actorContext, 'messages');
+    const documentsAllowed = familyPortalFeatureAllowed(actorContext, 'documents');
+    const signaturesAllowed = !family || (documentsAllowed && familyPortalAllows(context.familyAccess, 'sign_records'));
+    const tripsReleased = canAccessPortalFeature(actorContext, 'assist', 'trips');
+    const budgetReleased = canAccessPortalFeature(actorContext, 'assist', 'budget');
+    const proofsReleased = canAccessPortalFeature(actorContext, 'assist', 'nachweise');
     const [
       metrics,
       upcomingAppointments,
@@ -173,19 +180,19 @@ export async function fetchAssistDashboardData(
       requestsResult,
       budgetResult,
     ] = await Promise.all([
-      fetchClientPortalLiveMetrics(tenantId, clientId),
-      fetchUpcomingAppointments(tenantId, clientId),
-      fetchPortalClientContactPhone(tenantId, clientId),
+      fetchClientPortalLiveMetrics(tenantId, clientId, family ? { appointments: appointmentsAllowed, messages: messagesAllowed, documents: documentsAllowed } : undefined),
+      appointmentsAllowed ? fetchUpcomingAppointments(tenantId, clientId) : Promise.resolve([]),
+      family ? Promise.resolve(null) : fetchPortalClientContactPhone(tenantId, clientId),
       countBegleitungen(tenantId, clientId, tripsReleased),
-      countOpenRequests(tenantId, clientId),
-      countSignatures(tenantId, clientId),
+      family ? Promise.resolve(0) : countOpenRequests(tenantId, clientId),
+      signaturesAllowed ? countSignatures(tenantId, clientId) : Promise.resolve(0),
       proofsReleased ? countOpenPortalServiceProofs(tenantId, clientId) : Promise.resolve(0),
-      listPortalActivities(tenantId, clientId, 8),
-      listPortalRequests(tenantId, clientId, {
+      family ? Promise.resolve({ ok: true as const, data: [] }) : listPortalActivities(tenantId, clientId, 8),
+      family ? Promise.resolve({ ok: true as const, data: [] }) : listPortalRequests(tenantId, clientId, {
         status: ['offen', 'in_bearbeitung'],
         limit: 5,
       }),
-      fetchPortalBudgetVisuals(tenantId, clientId),
+      family ? Promise.resolve({ ok: true as const, data: [] }) : fetchPortalBudgetVisuals(tenantId, clientId),
     ]);
 
     const budgetVisuals = budgetResult.ok ? budgetResult.data : [];

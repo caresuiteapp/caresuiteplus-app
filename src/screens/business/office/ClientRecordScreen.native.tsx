@@ -1,0 +1,317 @@
+// Generated native presentation from src/screens/business/office/ClientRecordScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {NativeP,NativeDiv,NativeDetails,NativeSummary} from '@/components/layout/NativeWorkspaceElements.native';
+import { usePageFlag } from "../../../hooks/usePageFlag.native.ts";
+import { useBudgetRecordTabs } from "../../../hooks/useBudgetRecordTabs.native.ts";
+import { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAiPageContext } from '@/ai/useAiPageContext';
+import { DetailInfoRow } from '@/components/detail';
+import { ClientRecordNavigation, ClientRecordMetrics } from "../../../components/office/ClientRecordNavigation.native.tsx";
+import { ClientRecordHero } from "../../../components/office/ClientRecordHero.native.tsx";
+import { ClientSectionEditModal } from '@/components/office/ClientSectionEditModal';
+import { ClientMasterDataEditModal } from '@/components/office/ClientMasterDataEditModal';
+import { useSectionEditModal } from "../../../hooks/useSectionEditModal.native.ts";
+import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
+import { ClientRecordOverviewPanel } from "../../../components/office/ClientRecordOverviewPanel.native.tsx";
+import { ScreenShell } from '@/components/layout';
+import { EmptyState, ErrorState, LoadingState, PremiumButton, SectionPanel, } from '@/components/ui';
+import { useClientRecord } from '@/hooks/useClientRecord';
+import { useClientFullDetail } from '@/hooks/useClientFullDetail';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+import { clientIntakeResumeRoute } from '@/lib/navigation/clientRoutes';
+import { archiveClient, deleteClient } from '@/lib/office';
+import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
+import { resolveClientInsuranceDisplay } from "../../../lib/clients/clientInsurancePresentation.native.ts";
+import { buildClientRecordOverview, resolveClientCostBearer } from "../../../lib/clients/clientRecordOverview.native.ts";
+import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatters';
+import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
+import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { CLIENT_RECORD_TAB_LABELS, clientRecordTabsForRequestedView, resolveClientRecordTabKey, type ClientCareContext, type ClientRecordTabKey, type IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
+import { ClientRecordTabContent } from "./ClientRecordTabPanels.native.tsx";
+import { AngehoerigeTab, KontaktAdresseTab } from '@/screens/office/ClientFullDetailTabs';
+import { careSpacing } from '@/design/tokens/spacing';
+import { spacing } from '@/theme';
+import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
+function resolvePrimaryAddress(detail: NonNullable<ReturnType<typeof useClientRecord>['detail']>, fullClient: ReturnType<typeof useClientFullDetail>['data']): string {
+    const primary = fullClient?.addresses.find((a) => a.isPrimary) ?? fullClient?.addresses[0];
+    if (primary) {
+        return formatClientAddressLine(primary.street, primary.zip, primary.city) || '—';
+    }
+    return formatClientAddressLine(detail.street, detail.zip, detail.city) || '—';
+}
+function StammdatenTab({ detail, fullClient, canViewSensitive, careContexts, onEditMasterData, }: {
+    detail: NonNullable<ReturnType<typeof useClientRecord>['detail']>;
+    fullClient: ReturnType<typeof useClientFullDetail>['data'];
+    canViewSensitive: boolean;
+    careContexts: ClientCareContext[];
+    onEditMasterData?: () => void;
+}) {
+    const serviceTypes = careContexts.length > 0
+        ? careContexts.map((ctx) => getCatalogLabel('leistungsart', ctx)).join(' · ')
+        : '—';
+    const phone = detail.phone ?? detail.primaryContactPhone ?? fullClient?.phone ?? '—';
+    const email = detail.email ?? fullClient?.email ?? '—';
+    return (<View style={styles.tabPanel}>
+      <SectionPanel title="Stammdaten">
+        <DetailInfoRow label="Name" value={`${detail.firstName} ${detail.lastName}`.trim()}/>
+        <DetailInfoRow label="Geburtsdatum" value={detail.dateOfBirth
+            ? new Date(detail.dateOfBirth).toLocaleDateString('de-DE')
+            : fullClient?.core.dateOfBirth
+                ? new Date(fullClient.core.dateOfBirth).toLocaleDateString('de-DE')
+                : null}/>
+        <DetailInfoRow label="Adresse" value={resolvePrimaryAddress(detail, fullClient)}/>
+        <DetailInfoRow label="Telefon" value={phone}/>
+        <DetailInfoRow label="E-Mail" value={email}/>
+        <DetailInfoRow label="Pflegegrad" value={formatCareLevel(detail.careLevel) || '—'}/>
+        <DetailInfoRow label="Kostenträger" value={resolveClientCostBearer(detail)}/>
+        <DetailInfoRow label="Versichertennummer" value={resolveClientInsuranceDisplay(fullClient ?? detail, canViewSensitive)}/>
+        <DetailInfoRow label="Leistungsart" value={serviceTypes}/>
+      </SectionPanel>
+      {fullClient ? (<SectionPanel title="Weitere Stammdaten">
+          <DetailInfoRow label="Anrede" value={formatSalutation(fullClient.core.salutation) || '—'}/>
+          <DetailInfoRow label="Geschlecht" value={fullClient.core.gender ? getCatalogLabel('gender', fullClient.core.gender) : null}/>
+          <DetailInfoRow label="Status" value={WORKFLOW_STATUS_LABELS[detail.status]}/>
+          <DetailInfoRow label="Schlüsseltresor" value={fullClient.core.keySafeCode
+                ? canViewSensitive
+                    ? fullClient.core.keySafeCode
+                    : '••• Geschützt'
+                : null}/>
+          {fullClient.core.diagnoses.length > 0 ? (<DetailInfoRow label="Diagnosen" value={canViewSensitive
+                    ? fullClient.core.diagnoses.join(', ')
+                    : '••• Geschützt'}/>) : null}
+        </SectionPanel>) : null}
+      {onEditMasterData ? (<PremiumButton title="Stammdaten bearbeiten" variant="secondary" onPress={onEditMasterData}/>) : null}
+    </View>);
+}
+export function ClientRecordScreen(props: {
+    initialTabOverride?: ClientRecordTabKey;
+    clientId?: string;
+    embedded?: boolean;
+    embeddedInModal?: boolean;
+    onDeleted?: () => void;
+    onEditMasterData?: () => void;
+    initialMasterDataEditOpen?: boolean;
+} = {}) {
+    const { id: routeId } = useLocalSearchParams<{
+        id: string;
+    }>();
+    const tenantId = useServiceTenantId();
+    const { user, profile } = useAuth();
+    const recordScope = `${tenantId}:${props.clientId ?? routeId}:${user?.id ?? profile?.id}:${profile?.roleKey}`;
+    return (<SurfaceContrastProvider tone="light">
+      <ClientRecordScreenContent key={recordScope} {...props}/>
+    </SurfaceContrastProvider>);
+}
+function ClientRecordScreenContent({ initialTabOverride, clientId: clientIdProp, embedded = false, onDeleted, onEditMasterData, initialMasterDataEditOpen = false, }: {
+    initialTabOverride?: ClientRecordTabKey;
+    clientId?: string;
+    embedded?: boolean;
+    embeddedInModal?: boolean;
+    onDeleted?: () => void;
+    onEditMasterData?: () => void;
+    /** Opens ClientMasterDataEditModal on first render (e.g. list deep link ?edit=1). */
+    initialMasterDataEditOpen?: boolean;
+} = {}) {
+    const { id: routeId, tab: rawTabParam, edit: editParam, csPage_ClientRecordScreen_activeTab: rawStoredTab } = useLocalSearchParams<{
+        id: string;
+        tab?: string | string[];
+        edit?: string;
+        csPage_ClientRecordScreen_activeTab?: string | string[];
+    }>();
+    const tabParam = Array.isArray(rawTabParam) ? rawTabParam[0] : rawTabParam;
+    const storedUrlTab = resolveClientRecordTabKey(Array.isArray(rawStoredTab) ? rawStoredTab[0] : rawStoredTab);
+    const id = clientIdProp ?? routeId;
+    const router = useRouter();
+    const { profile } = useAuth();
+    const tenantId = useServiceTenantId();
+    const { can } = usePermissions();
+    const { detail, careContexts, tabs: contextTabs, loading, error, refresh } = useClientRecord(id);
+    const fullQuery = useClientFullDetail(id);
+    const fullClient = fullQuery.data?.id === id ? fullQuery.data : null;
+    const [archiving, setArchiving] = useState(false);
+    const [archiveError, setArchiveError] = useState<string | null>(null);
+    const resolvedTabParam = resolveClientRecordTabKey(initialTabOverride ?? tabParam);
+    const canViewBilling = can('clients.billing_profile.view');
+    const tabs = useMemo(() => clientRecordTabsForRequestedView(contextTabs, resolvedTabParam, canViewBilling), [contextTabs, resolvedTabParam, canViewBilling]);
+    const initialChoice = resolvedTabParam ?? storedUrlTab;
+    const initialTab = initialChoice && tabs.includes(initialChoice)
+        ? initialChoice
+        : 'uebersicht';
+    const { activeTab, selectTab, onBudgetDirtyChange, onBudgetBusyChange, budgetNavigationNotice } = useBudgetRecordTabs({ tabs, initialTab, requestedTab: resolvedTabParam, storedUrlTab });
+    const [masterDataEditOpen, setMasterDataEditOpen] = usePageFlag('ClientRecordScreen.masterDataEditOpen', initialMasterDataEditOpen);
+    const sectionEdit = useSectionEditModal<IntakeSectionKey>();
+    const handleEditMasterData = onEditMasterData ?? (() => setMasterDataEditOpen(true));
+    const hostsLocalEditModal = !onEditMasterData;
+    useEffect(() => {
+        if (embedded || editParam !== '1' || !detail)
+            return;
+        if (!can('office.clients.edit'))
+            return;
+        if (onEditMasterData) {
+            onEditMasterData();
+        }
+        else {
+            setMasterDataEditOpen(true);
+        }
+        router.setParams({ edit: undefined } as never);
+    }, [editParam, embedded, detail, router, onEditMasterData, can, setMasterDataEditOpen]);
+    const overview = useMemo(() => (detail ? buildClientRecordOverview(detail, careContexts, tabs, undefined, fullQuery.canViewSensitive) : null), [detail, careContexts, tabs, fullQuery.canViewSensitive]);
+    useAiPageContext({
+        pageTitle: 'Klient:innenakte',
+        entityType: 'client',
+        entityId: detail?.id,
+        entityLabel: detail ? `${detail.firstName} ${detail.lastName}`.trim() : undefined,
+        activeTab,
+        summary: overview?.fullName,
+        metadata: {
+            careContexts,
+            status: detail?.status,
+            careLevel: detail?.careLevel,
+        },
+    });
+    if (loading) {
+        return embedded ? (<LoadingState message="Akte wird geladen…"/>) : (<ScreenShell title="Klient:innenakte" subtitle="Wird geladen…">
+        <LoadingState message="Akte wird geladen…"/>
+      </ScreenShell>);
+    }
+    if (error) {
+        return embedded ? (<ErrorState message={error} onRetry={refresh}/>) : (<ScreenShell title="Klient:innenakte" subtitle="Fehler">
+        <ErrorState message={error} onRetry={refresh}/>
+      </ScreenShell>);
+    }
+    if (!detail || !overview) {
+        return embedded ? (<EmptyState title="Nicht gefunden" message="Klient:in nicht gefunden."/>) : (<ScreenShell title="Klient:innenakte" subtitle="Nicht gefunden">
+        <EmptyState title="Nicht gefunden" message="Klient:in nicht gefunden."/>
+      </ScreenShell>);
+    }
+    const unavailableTitle = resolvedTabParam && !tabs.includes(resolvedTabParam)
+        ? `${CLIENT_RECORD_TAB_LABELS[resolvedTabParam] ?? 'Angeforderter Aktenbereich'} nicht verfügbar`
+        : null;
+    const unavailableNotice = unavailableTitle ? <SectionPanel title={unavailableTitle}><NativeP>Dieser Bereich steht in dieser Akte derzeit nicht zur Verfügung. Die angeforderte Ansicht wurde nicht geöffnet.</NativeP><PremiumButton title="Zur Aktenübersicht" variant="secondary" onPress={() => router.replace(`/business/office/clients/${encodeURIComponent(detail.id)}` as never)}/></SectionPanel> : null;
+    if (unavailableNotice && activeTab === 'uebersicht') {
+        return embedded ? unavailableNotice : <ScreenShell title="Klient:innenakte" subtitle={unavailableTitle ?? undefined}>{unavailableNotice}</ScreenShell>;
+    }
+    const canEdit = can('office.clients.edit');
+    const canArchive = can('office.clients.archive') && detail.status !== 'archiviert';
+    const canDelete = can('office.clients.delete');
+    async function handleRecordRefresh() {
+        await Promise.all([refresh(), fullQuery.refresh()]);
+    }
+    async function handleArchive() {
+        if (!detail || !tenantId)
+            return;
+        setArchiving(true);
+        setArchiveError(null);
+        const result = await archiveClient(detail.id, tenantId, profile?.roleKey, profile?.id, profile?.displayName);
+        setArchiving(false);
+        if (result.ok) {
+            await handleRecordRefresh();
+            return;
+        }
+        setArchiveError(result.error);
+    }
+    const recordBody = (<NativeDiv className="cr-shell">
+      <ClientRecordHero clientId={detail.id} firstName={detail.firstName} lastName={detail.lastName} careLevel={detail.careLevel} city={detail.city ?? null} status={detail.status} careContexts={careContexts} archiveError={archiveError} showEdit={canEdit} onEdit={handleEditMasterData}/>
+
+      {detail.status === 'entwurf' && can('office.clients.create') ? <SectionPanel title="Diese Aufnahme ist noch offen"><NativeP>Öffnen Sie den gespeicherten Entwurf, um Angaben und Unterlagen zu vervollständigen und die Aufnahme abzuschließen.</NativeP><PremiumButton title="Aufnahme fortsetzen" size="sm" onPress={() => router.push(clientIntakeResumeRoute(detail.id) as never)}/></SectionPanel> : null}
+
+      <ClientRecordMetrics documents={detail.contextCounts.documents} appointments={detail.contextCounts.appointments} assignments={detail.contextCounts.assignments} openItems={overview.openItemsCount} tabs={tabs} onChange={selectTab}/>
+
+      <ClientRecordNavigation tabs={tabs} value={activeTab} onChange={selectTab}>
+      <View style={styles.tabPanel}>
+        {unavailableNotice}
+        {budgetNavigationNotice ? <NativeP role="status" style={{ margin: 0, padding: '12px 15px', border: '1px solid #dfc88d', borderRadius: 12, background: '#fff8e8', color: '#79551d', fontSize: 'calc(12px * var(--app-font-scale, 1))' }}>{budgetNavigationNotice}</NativeP> : null}
+        {activeTab === 'uebersicht' && overview ? (<ClientRecordOverviewPanel overview={overview} onNavigateTab={selectTab} clientId={detail.id}/>) : null}
+        {activeTab === 'stammdaten' && (<StammdatenTab detail={detail} fullClient={fullClient} canViewSensitive={fullQuery.canViewSensitive} careContexts={careContexts} onEditMasterData={canEdit ? handleEditMasterData : undefined}/>)}
+        {activeTab === 'kontakt' && fullClient ? (<View style={styles.tabStack}>
+            <KontaktAdresseTab client={fullClient}/>
+            <AngehoerigeTab client={fullClient}/>
+          </View>) : activeTab === 'kontakt' ? (<SectionPanel title="Kontakt & Adresse">
+            <DetailInfoRow label="Adresse" value={formatClientAddressLine(detail.street, detail.zip, detail.city) || '—'}/>
+            <DetailInfoRow label="Telefon" value={detail.phone ?? '—'}/>
+            <DetailInfoRow label="E-Mail" value={detail.email ?? '—'}/>
+          </SectionPanel>) : null}
+        {activeTab === 'leistungsbereiche' ? (<ClientRecordTabContent tab="leistungsbereiche" clientId={detail.id} fullClient={fullClient} canViewSensitive={fullQuery.canViewSensitive} onRecordRefresh={handleRecordRefresh} onBudgetDirtyChange={onBudgetDirtyChange} onBudgetBusyChange={onBudgetBusyChange}/>) : null}
+        {activeTab === 'abrechnung' && !fullClient ? (fullQuery.loading ? <LoadingState message="Abrechnungsdaten werden geladen…"/> : <ErrorState message={fullQuery.error ?? 'Die Abrechnungsdaten dieser Akte sind derzeit nicht verfügbar.'} onRetry={fullQuery.refresh}/>) : !['uebersicht', 'stammdaten', 'kontakt', 'leistungsbereiche'].includes(activeTab) ? (<ClientRecordTabContent tab={activeTab} clientId={detail.id} fullClient={fullClient} canViewSensitive={fullQuery.canViewSensitive} onRecordRefresh={handleRecordRefresh} onBudgetDirtyChange={onBudgetDirtyChange} onBudgetBusyChange={onBudgetBusyChange}/>) : null}
+      </View>
+
+      </ClientRecordNavigation>
+
+      {canArchive || canDelete ? (<NativeDetails className="cr-record-management">
+          <NativeSummary>Akte verwalten</NativeSummary>
+          <NativeP>Archivierte Akten bleiben erhalten. Das Löschen entfernt die Akte dauerhaft.</NativeP>
+          <NativeDiv className="cr-management-actions">
+            {canArchive ? <PremiumButton title="Akte archivieren" size="sm" variant="ghost" loading={archiving} onPress={handleArchive}/> : null}
+            {canDelete ? (<OfficeRecordDeleteButton recordLabel="Klient:in" displayName={`${detail.firstName} ${detail.lastName}`} confirmTitle="Klient:in wirklich löschen?" buttonTitle="Klient:in löschen" onDelete={() => {
+                    if (!tenantId) {
+                        return Promise.resolve({ ok: false as const, error: 'Die Unternehmenszuordnung fehlt.' });
+                    }
+                    return deleteClient(detail.id, tenantId, profile?.roleKey, profile?.id, profile?.displayName);
+                }} onDeleted={() => {
+                    if (onDeleted) {
+                        onDeleted();
+                        return;
+                    }
+                    router.replace('/office/clients' as never);
+                }}/>) : null}
+          </NativeDiv>
+        </NativeDetails>) : null}
+    </NativeDiv>);
+    if (embedded) {
+        return (<>
+        <View style={styles.embeddedRoot}>{recordBody}</View>
+        {hostsLocalEditModal && sectionEdit.activeSection ? (<ClientSectionEditModal visible={sectionEdit.isOpen} clientId={detail.id} section={sectionEdit.activeSection} onClose={sectionEdit.closeSection} onSaved={() => {
+                    sectionEdit.closeSection();
+                    void handleRecordRefresh();
+                }}/>) : null}
+        {hostsLocalEditModal && masterDataEditOpen ? (<ClientMasterDataEditModal visible={masterDataEditOpen} clientId={detail.id} onClose={() => setMasterDataEditOpen(false)} onSaved={() => {
+                    setMasterDataEditOpen(false);
+                    void handleRecordRefresh();
+                }}/>) : null}
+      </>);
+    }
+    return (<>
+      <ScreenShell title="Klient:innenakte" subtitle="Betreuung, Unterlagen und Kontakt an einem Ort">
+        {recordBody}
+      </ScreenShell>
+      {hostsLocalEditModal && sectionEdit.activeSection ? (<ClientSectionEditModal visible={sectionEdit.isOpen} clientId={detail.id} section={sectionEdit.activeSection} onClose={sectionEdit.closeSection} onSaved={() => {
+                sectionEdit.closeSection();
+                void handleRecordRefresh();
+            }}/>) : null}
+      {hostsLocalEditModal && masterDataEditOpen ? (<ClientMasterDataEditModal visible={masterDataEditOpen} clientId={detail.id} onClose={() => setMasterDataEditOpen(false)} onSaved={() => {
+                setMasterDataEditOpen(false);
+                void handleRecordRefresh();
+            }}/>) : null}
+    </>);
+}
+const styles = StyleSheet.create({
+    headerActions: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: careSpacing.sm,
+    },
+    tabStack: {
+        gap: careSpacing.md,
+    },
+    tabPanel: {
+        gap: careSpacing.md,
+        paddingBottom: spacing.xxl,
+    },
+    embeddedRoot: {
+        gap: careSpacing.md,
+        padding: careSpacing.md,
+        paddingBottom: spacing.xxl,
+    },
+    kpiGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: careSpacing.sm,
+    },
+    kpiCard: {
+        flex: 1,
+        minWidth: 142,
+    },
+});
