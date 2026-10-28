@@ -90,7 +90,10 @@ export async function enrollMfaFactor(expectedUserId: string) {
   const isolated = await isolatedMfaClient(expectedUserId);
   const result = await isolated.auth.mfa.enroll({ factorType: 'totp', issuer: 'CareSuite HealthOS', friendlyName: `CareSuite ${new Date().toISOString()}` });
   if (result.error) throw new Error('Der Authenticator konnte nicht eingerichtet werden. Bitte erneut versuchen.');
-  return result.data;
+  // The installed Auth SDK prefixes the raw SVG with a data URI; SvgXml expects XML.
+  const prefix = 'data:image/svg+xml;utf-8,';
+  const qr = result.data.totp.qr_code;
+  return { ...result.data, totp: { ...result.data.totp, qr_code: qr.startsWith(prefix) ? qr.slice(prefix.length) : qr } };
 }
 export async function verifyMfaFactor(expectedUserId: string, factorId: string, code: string): Promise<void> {
   if (!/^\d{6}$/.test(code)) throw new Error('Bitte den sechsstelligen Authenticator-Code eingeben.');
