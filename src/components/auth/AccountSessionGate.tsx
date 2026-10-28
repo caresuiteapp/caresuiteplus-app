@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { ActivityIndicator, AppState, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
+import { ActivityIndicator, AppState, Keyboard, Modal, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useAuth } from '@/lib/auth/context';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { PremiumButton } from '@/components/ui';
@@ -26,6 +26,8 @@ function AccountSessionContent({ children, identity, ready }: { children: ReactN
   const [state, setState] = useState<AccountSecurityState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
+  const [privacyHidden, setPrivacyHidden] = useState(false);
+  const workspaceRef = useRef<View>(null);
   const [unlocking, setUnlocking] = useState(false);
   const [unlockError, setUnlockError] = useState<string | null>(null);
   const active = useRef(true), inFlight = useRef(false), unlockLock = useRef(false);
@@ -71,7 +73,8 @@ function AccountSessionContent({ children, identity, ready }: { children: ReactN
   useEffect(() => {
     const timer = setInterval(() => { if (Date.now() - activity.current >= INACTIVITY_MS) setLocked(true); }, 5_000);
     const listener = AppState.addEventListener('change', status => {
-      if (status !== 'active') { background.current ??= Date.now(); return; }
+      if (status !== 'active') { background.current ??= Date.now(); setPrivacyHidden(true); return; }
+      setPrivacyHidden(false);
       if (!portalSession && background.current && Date.now() - background.current >= FOREGROUND_LOCK_MS) setLocked(true);
       background.current = null; void refresh();
     });
@@ -101,12 +104,20 @@ function AccountSessionContent({ children, identity, ready }: { children: ReactN
       <PremiumButton title="Abmelden" variant="secondary" onPress={() => void signOut()} />
     </View>
   </ScrollView> : null;
-  if (!workspaceOpened.current) return securityScreen;
-  const obscured = locked || blocked;
+  const obscured = locked || blocked || privacyHidden;
+  const underlyingHidden = workspaceOpened.current ? obscured : privacyHidden;
+  useLayoutEffect(() => {
+    if (Platform.OS === 'web') {
+      const node = workspaceRef.current as unknown as HTMLElement | null;
+      node?.toggleAttribute('inert', underlyingHidden);
+      if (underlyingHidden && node?.contains(document.activeElement)) (document.activeElement as HTMLElement | null)?.blur();
+    } else if (underlyingHidden) Keyboard.dismiss();
+  }, [underlyingHidden]);
   return <View style={styles.root} onStartShouldSetResponderCapture={() => { if (!locked) activity.current = Date.now(); return false; }} onMoveShouldSetResponderCapture={() => { if (!locked) activity.current = Date.now(); return false; }}>
-    <View style={styles.root} pointerEvents={obscured ? 'none' : 'auto'} accessibilityElementsHidden={obscured} importantForAccessibility={obscured ? 'no-hide-descendants' : 'auto'}>{children}</View>
-    {blocked ? <View style={styles.overlay} accessibilityViewIsModal>{securityScreen}</View> : locked ? <View style={styles.overlay} accessibilityViewIsModal>
-      <View style={styles.panel}>
+    <View ref={workspaceRef} style={styles.root} pointerEvents={underlyingHidden ? 'none' : 'auto'} accessibilityElementsHidden={underlyingHidden} importantForAccessibility={underlyingHidden ? 'no-hide-descendants' : 'auto'}>{workspaceOpened.current ? children : securityScreen}</View>
+    <Modal visible={(workspaceOpened.current && obscured) || privacyHidden} animationType="none" presentationStyle="fullScreen" onRequestClose={() => {}}>
+    <View style={styles.overlay} accessibilityViewIsModal>
+    {privacyHidden ? <View style={styles.panel}><Text style={styles.title}>CareSuite geschützt</Text><Text style={styles.text}>Ihre Inhalte sind im Hintergrund ausgeblendet.</Text></View> : blocked ? securityScreen : <View style={styles.panel}>
         <Text style={styles.title}>CareSuite gesperrt</Text>
         <Text style={styles.text}>Ihre Eingaben bleiben geöffnet. Bestätigen Sie Ihre Identität, um weiterzuarbeiten.</Text>
         {unlockError ? <Text accessibilityRole="alert" style={styles.error}>{unlockError}</Text> : null}
@@ -120,8 +131,9 @@ function AccountSessionContent({ children, identity, ready }: { children: ReactN
             .finally(() => { unlockLock.current = false; if (active.current) setUnlocking(false); });
         }} /> : null}
         <PremiumButton title="Abmelden und erneut anmelden" variant="secondary" onPress={() => void signOut()} />
-      </View>
-    </View> : null}
+      </View>}
+    </View>
+    </Modal>
   </View>;
 }
 const styles = StyleSheet.create({
