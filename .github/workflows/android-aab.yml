@@ -197,7 +197,7 @@ jobs:
       - name: Bestehende Projektabhängigkeiten laden
         run: npm ci
       - name: Standort-Start und veraltete Einwilligungsantworten prüfen
-        run: npx vitest run src/__tests__/portal/employeeLocationBootstrap.test.ts src/__tests__/portal/employeeMobilityNetworkRecovery.test.ts src/__tests__/portal/employeeLogbookRlsBoundary.test.ts --maxWorkers=1
+        run: npx vitest run src/__tests__/portal/employeeLocationBootstrap.test.ts src/__tests__/portal/employeeMobilityNetworkRecovery.test.ts src/__tests__/portal/employeeLogbookRlsBoundary.test.ts src/__tests__/hooks/useAsyncQueryScope.test.tsx src/__tests__/portal/employeeLogbookLoadingTransition.test.tsx --maxWorkers=1
       - name: Gemeinsame Kontosicherheit und geschützte Entwürfe prüfen
         run: |
           node --test supabase/tests/account_security_platform_sync.test.mjs
