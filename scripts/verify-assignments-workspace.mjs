@@ -33,6 +33,7 @@ const groups = {
     'assist/assignmentEditForm.test.ts',
     'assist/planningFormsScopeInteraction.test.tsx',
     'assist/visitPlanningConflictReads.test.ts',
+    'assist/visitPlanningCompleteness.test.ts',
     'assist/visitPlanningMutationTruth.test.ts',
     'assist/visitPlanningRepositoryReceipt.test.ts',
     'assist/visitEditCompletionRecovery.test.ts',

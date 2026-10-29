@@ -18,6 +18,7 @@ vi.mock('expo-router/react-navigation', () => ({ usePreventRemove: f.prevent }))
 vi.mock('@/lib/platform/confirmAction', () => ({ confirmAction: f.confirm }));
 vi.mock('@/components/layout/ScreenShell.web', () => ({ ScreenShell: ({ children }: any) => <main>{children}</main> }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: { id: f.actor, roleKey: f.roleKey } }) }));
+vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => null }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => f.tenant }));
 vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ can: (key: string) => key === 'assist.assignments.view' ? f.canView : key === 'assist.assignments.manage' ? f.canManage : f.allowed, isReadOnly: f.readonly, roleKey: f.roleKey }) }));
 vi.mock('@/hooks/core/useLiveRefresh', () => ({ useLiveRefresh: () => ({ isLiveConnected: false }), DEFAULT_LIVE_POLL_MS: 30000 }));
@@ -62,6 +63,30 @@ function button(label: string) { const found = [...host.querySelectorAll('button
 async function click(label: string) { await act(async () => button(label).click()); }
 
 describe('Web assignment detail interactions', () => {
+  it('shows the client address without an incomplete warning for a planned visit with open required tasks', async () => {
+    const { fetchAssignmentExecutionSnapshotBatch } = await import('@/lib/assist/resolveAssignmentExecutionSnapshot');
+    const { applySnapshotToDetail } = await import('@/lib/assist/overlayVisitDispositionFromAssignment');
+    const { resolveVisitLocation } = await import('@/lib/assist/resolveVisitLocation');
+    const tasks = Array.from({ length: 11 }, (_, index) => ({
+      id: `task-${index}`, title: `Aufgabe ${index + 1}`, status: 'open' as const,
+      isRequired: true, notDoneReason: null,
+    }));
+    const detail = visit({
+      addressSnapshot: null, location: resolveVisitLocation({ client: {
+        street: 'Musterstraße', house_number: '13', postal_code: '44135', city: 'Dortmund',
+      } }), tasks, isIncomplete: false,
+    });
+    const results = await fetchAssignmentExecutionSnapshotBatch(f.tenant, [{
+      assignmentId: 'assignment-a', visitId: detail.id, fallbackStatus: 'geplant', fallbackTasks: tasks,
+    }]);
+    const snapshot = results.get('assignment-a')!;
+    f.read.mockResolvedValue({ ok: true, data: applySnapshotToDetail(detail, snapshot) });
+    await mount({ mode: 'preview' });
+    expect(host.textContent).toContain('Musterstraße 13, 44135 Dortmund');
+    expect(host.textContent).toContain('0 von 11 erledigt');
+    expect(host.textContent).not.toContain('Angaben unvollständig');
+    expect(snapshot.openRequiredTasks).toBe(11);
+  });
   it('keeps the detail visible after a rejected status write and permits retry', async () => {
     await mount(); await click('Bestätigt');
     expect(f.status).toHaveBeenCalledOnce(); expect(host.textContent).toContain('Statusänderung nicht erlaubt');
