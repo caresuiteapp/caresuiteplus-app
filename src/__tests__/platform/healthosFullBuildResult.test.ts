@@ -8,7 +8,7 @@ const directories: string[] = [];
 const commit = 'a'.repeat(40);
 const fixture = () => ({
   id: '821300e7-838d-4289-9087-b1b0a7b4bf41', platform: 'ANDROID', status: 'FINISHED',
-  appVersion: '0.8.0', appBuildVersion: '41', buildProfile: 'healthos-full-aab', gitCommitHash: commit,
+  appVersion: JSON.parse(readFileSync(join(process.cwd(), 'app.json'), 'utf8')).expo.version, appBuildVersion: '41', buildProfile: 'healthos-full-aab', gitCommitHash: commit,
   project: { id: '567bda34-8356-4de8-9349-a0de3143567e' }, artifacts: { buildUrl: 'https://artifacts.example.test/full.aab' },
 });
 function run(value: unknown, baseline: unknown = '40') {
@@ -39,6 +39,7 @@ describe('full native AAB response verification', () => {
     ['old portal profile', { buildProfile: 'portal-only-aab' }],
     ['unchanged build code', { appBuildVersion: '39' }],
     ['wrong app version', { appVersion: '0.3.6' }],
+    ['previous app release', { appVersion: '0.8.0' }],
     ['wrong project', { project: { id: 'another-project' } }],
     ['wrong commit', { gitCommitHash: 'b'.repeat(40) }],
     ['failed build', { status: 'ERRORED' }],

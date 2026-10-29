@@ -111,8 +111,8 @@ export function manifestIdentity(data) {
   };
 }
 
-export function requireIdentity(identity, baseline) {
-  if (identity.applicationId !== 'app.caresuitehealthos' || identity.versionName !== '0.8.0') throw new Error('AAB gehört nicht zur vollständigen CareSuite HealthOS 0.8.0.');
+export function requireIdentity(identity, baseline, expectedVersion = JSON.parse(readFileSync(new URL('../app.json', import.meta.url), 'utf8')).expo.version) {
+  if (identity.applicationId !== 'app.caresuitehealthos' || !expectedVersion || identity.versionName !== expectedVersion) throw new Error('AAB gehört nicht zur erwarteten vollständigen CareSuite HealthOS-Version.');
   if (!Number.isInteger(baseline) || baseline < 40 || !Number.isInteger(identity.versionCode) || identity.versionCode <= baseline || identity.versionCode > 2100000000) throw new Error('AAB enthält keinen gültigen erhöhten Versionscode.');
 }
 
@@ -148,7 +148,7 @@ export async function verifyLocalAab({ bundle, r8Archive, baseline, code, source
   if (new Set(names).size !== names.length) throw new Error('Doppelte AAB-Dateieinträge.');
   if (!names.includes('BundleConfig.pb') || names.filter(x => /^META-INF\/[^/]+\.(RSA|DSA|EC)$/i.test(x)).length !== 1) throw new Error('Keine eindeutig signierte AAB-Struktur.');
   const identity = manifestIdentity(await readCommand(unzipBinary, ['-p', bundle, 'base/manifest/AndroidManifest.xml'], MIB));
-  requireIdentity(identity, baseline);
+  requireIdentity(identity, baseline, JSON.parse(readFileSync(join(sourceRoot, 'app.json'), 'utf8')).expo.version);
   if (identity.versionCode !== code) throw new Error('AAB-Versionscode stimmt nicht mit der reservierten EAS-Version überein.');
   const native = names.filter(x => x.startsWith('base/assets/') && x.endsWith('.bundle'));
   if (native.length !== 1) throw new Error('Genau ein nativer Hermes-Bundle erwartet.');
