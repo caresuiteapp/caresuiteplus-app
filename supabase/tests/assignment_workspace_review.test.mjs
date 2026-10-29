@@ -5,6 +5,7 @@ import { readFileSync } from 'node:fs';
 import { companyFixture, id } from './company_access_fixture.mjs';
 
 const sql = readFileSync(new URL('../migrations/20261016082544_assignment_workspace_review.sql', import.meta.url), 'utf8');
+const permissionSql = readFileSync(new URL('../patches/assignment_legacy_manage_permission.sql', import.meta.url), 'utf8');
 const { db, actor, owner } = await companyFixture();
 const tenant = id(10), foreignTenant = id(11), visit = id(60), assignment = id(61), account = id(70), portalAccount = id(80);
 const captured = JSON.parse(readFileSync(new URL('../../docs/workflow-server-identity-helper-metadata-20261011.json', import.meta.url), 'utf8'));
@@ -64,6 +65,7 @@ try {
   await db.exec(documentGuard);
   await db.query("INSERT INTO role_permissions(role_id,permission_key) VALUES($1,'assist.assignments.manage'),($1,'assist.execution.manage'),($2,'assist.assignments.manage')", [id(2),id(3)]);
   await db.exec(sql);
+  await db.exec(permissionSql);
 
   async function reset() {
     await owner();
@@ -94,13 +96,60 @@ try {
   const bulk=()=>db.query('SELECT public.admin_bulk_update_assist_visit_tasks($1,$2,$3) result',[visit,JSON.stringify([{task_id:id(151),status:'done'}]),'Verwaltung geprüft']);
   const finish=()=>db.query('SELECT public.admin_reconcile_complete_assist_visit_follow_up($1,$2,$3)',[visit,JSON.stringify([{task_id:id(151),status:'done'}]),'Abschluss geprüft']);
 
-  await test('migration is repeatable and leaves all business rows untouched',async()=>{await reset(); const before=await snapshot(); await owner(); await db.exec(sql); await db.exec(sql); assert.deepEqual(await snapshot(),before);});
+  await test('migration is repeatable and leaves all business rows untouched',async()=>{await reset(); const before=await snapshot(); await owner(); await db.exec(sql); await db.exec(sql); await db.exec(permissionSql); await db.exec(permissionSql); assert.deepEqual(await snapshot(),before);});
   await test('authorized planning deletion releases budget, deletes its exact mirror and cascades atomically',async()=>{
     await reset(); const receipt=(await remove()).rows[0].receipt;
     assert.deepEqual(receipt,{deleted:true,visitId:visit,legacyAssignmentId:assignment,budgetReservationsReleased:1});
     const after=await snapshot(); assert.equal(after.assist_visits.length,0);assert.equal(after.assignments.length,0);
     assert.equal(after.client_budget_accounts[0].reserved_cents,0); assert.equal(after.client_budget_accounts[0].used_cents,200);
     assert.equal(after.assignment_budget_allocations[0].allocation_status,'released'); assert.equal(after.client_budget_transactions.filter(x=>x.transaction_type==='release').length,1);
+  });
+  await test('legacy assignment management authorizes the same atomic deletion without requiring a newly seeded exact key',async()=>{
+    await reset();
+    await admin("DELETE FROM role_permissions WHERE role_id=$1 AND permission_key='assist.assignments.manage'",[id(2)]);
+    try {
+      await admin("INSERT INTO role_permissions(role_id,permission_key,can_view,can_update,can_delete) VALUES($1,'assignments',true,true,false)",[id(2)]);
+      const receipt=(await remove()).rows[0].receipt;
+      assert.equal(receipt.deleted,true);
+      const after=await snapshot();
+      assert.equal(after.assist_visits.length,0);
+      assert.equal(after.assignments.length,0);
+      assert.equal(after.client_budget_accounts[0].reserved_cents,0);
+      assert.equal(after.client_budget_transactions.filter(row=>row.transaction_type==='release').length,1);
+    } finally {
+      await admin("DELETE FROM role_permissions WHERE role_id=$1 AND permission_key='assignments'",[id(2)]);
+      await admin("INSERT INTO role_permissions(role_id,permission_key) VALUES($1,'assist.assignments.manage')",[id(2)]);
+    }
+  });
+  await test('legacy assignment management still respects read-only flags, tenant role replacements, explicit denies and scope',async()=>{
+    await reset();
+    await admin("DELETE FROM role_permissions WHERE role_id=$1 AND permission_key='assist.assignments.manage'",[id(2)]);
+    try {
+      await admin("INSERT INTO role_permissions(role_id,permission_key,can_view,can_update,can_delete) VALUES($1,'assignments',true,false,true)",[id(2)]);
+      await deny(()=>remove());
+      await admin("UPDATE role_permissions SET can_update=true WHERE role_id=$1 AND permission_key='assignments'",[id(2)]);
+      await admin("UPDATE role_permissions SET tenant_id=$1 WHERE role_id=$2 AND permission_key='assignments'",[foreignTenant,id(2)]);
+      await deny(()=>remove());
+      await admin("UPDATE role_permissions SET tenant_id=NULL WHERE role_id=$1 AND permission_key='assignments'",[id(2)]);
+      await admin("INSERT INTO role_permission_sets(tenant_id,role_key,permission_key) VALUES($1,'business_manager','assist.assignments.view')",[tenant]);
+      await deny(()=>remove());
+      await admin("DELETE FROM role_permission_sets WHERE tenant_id=$1 AND role_key='business_manager'",[tenant]);
+      await admin("INSERT INTO employee_permission_overrides(tenant_id,employee_id,permission_key,allowed) VALUES($1,$2,'assist.assignments.manage',false)",[tenant,id(40)]);
+      await deny(()=>remove());
+      await admin('DELETE FROM employee_permission_overrides');
+      await admin('INSERT INTO company_scope_profiles(tenant_id,profile_id,scope_limited,updated_by) VALUES($1,$2,true,$2)',[tenant,id(21)]);
+      await deny(()=>remove());
+      await deny(()=>remove(foreignTenant));
+      await admin('DELETE FROM company_scope_profiles');
+      await portal();
+      await deny(()=>remove());
+    } finally {
+      await admin("DELETE FROM role_permission_sets WHERE tenant_id=$1 AND role_key='business_manager'",[tenant]);
+      await admin('DELETE FROM employee_permission_overrides');
+      await admin('DELETE FROM company_scope_profiles');
+      await admin("DELETE FROM role_permissions WHERE role_id=$1 AND permission_key='assignments'",[id(2)]);
+      await admin("INSERT INTO role_permissions(role_id,permission_key) VALUES($1,'assist.assignments.manage')",[id(2)]);
+    }
   });
   await test('existing authorized deletion of completed work keeps the established performed-budget and evidence semantics',async()=>{
     await reset(); await admin("UPDATE assist_visits SET canonical_status='completed'"); await admin("UPDATE client_budget_transactions SET lifecycle_status='durchgefuehrt'");

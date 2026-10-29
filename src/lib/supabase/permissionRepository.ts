@@ -52,10 +52,20 @@ export async function fetchRuntimePermissions(
   if (roleRow?.id) {
     const { data: globalPerms, error: globalError } = await client
       .from('role_permissions')
-      .select('permission_key')
+      .select('permission_key,can_view,can_update,tenant_id')
       .eq('role_id', roleRow.id);
     if (globalError) return [];
-    permissions = (globalPerms ?? []).map(row => row.permission_key as PermissionKey);
+    permissions = (globalPerms ?? []).flatMap(row => {
+      if (row.tenant_id && row.tenant_id !== tenantId) return [];
+      const grants = [row.permission_key as PermissionKey];
+      // Match the server's established legacy assignment module flags.
+      // Explicit tenant role lists below still replace this complete result.
+      if (row.permission_key === 'assignments') {
+        if (row.can_view === true) grants.push('assist.assignments.view');
+        if (row.can_update === true) grants.push('assist.assignments.manage');
+      }
+      return grants;
+    });
   }
 
   if (tenantId) {
