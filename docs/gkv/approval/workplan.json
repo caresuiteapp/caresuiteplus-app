@@ -137,7 +137,19 @@
         "services/gkv/monthly-original-store.mjs",
         "services/gkv/monthly-original-pdf.mjs",
         "services/gkv/monthly-signature-png.mjs",
-        "docs/gkv/sql/monthly-original-verifier-draft.sql"
+        "docs/gkv/sql/monthly-original-verifier-draft.sql",
+        "src/components/office/gkv/GkvMonthlySignature.web.tsx",
+        "src/lib/gkvExchange/monthlyCapture.ts",
+        "src/lib/gkvExchange/monthlyOriginalContract.ts",
+        "src/lib/gkvExchange/monthlyOriginalClient.ts",
+        "api/gkv/monthly-originals.ts",
+        "api/_lib/monthly-host-handler.mjs",
+        "api/_lib/monthly-host-transport.mjs",
+        "services/gkv/monthly-host.mjs",
+        "services/gkv/monthly-host-entry.mjs",
+        "services/gkv/monthly-auth.mjs",
+        "services/gkv/monthly-rest-database.mjs",
+        "docs/gkv/sql/monthly-worker-bridge-draft.sql"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -145,9 +157,10 @@
         "tests/gkv-exchange/monthly-proofs.database.mjs",
         "tests/gkv-exchange/monthly-workspace.test.mjs",
         "tests/gkv-exchange/monthly-ui-check.mjs",
-        "tests/gkv-exchange/monthly-originals.test.mjs"
+        "tests/gkv-exchange/monthly-originals.test.mjs",
+        "tests/gkv-exchange/monthly-host.test.mjs"
       ],
-      "nextStep": "Privater Dienstkern für persönliche Bestätigungen mit Original-PDF, verschlüsselter Ablage, Byteprüfung und Belegerteilung ist implementiert und lokal integriert geprüft. Persönlich authentisierte Host-/App-Anbindung, Vertreterprüfung, Druck/Scan und Zielrechte/Migration fehlen weiterhin.",
+      "nextStep": "Original-PDF, frische Web-Unterschrift, persönlicher mTLS-Host und sitzungsgebundene SQL-Brücke sind implementiert und lokal integriert geprüft. Zielrechte/Migration, Schlüssel/Zertifikate, echte Anmeldung, visuelle Abnahme, Vertreterprüfung und Druck/Scan bleiben offen.",
       "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",
       "dependsOn": [
         "proof-capture"

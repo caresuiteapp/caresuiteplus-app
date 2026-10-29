@@ -1,0 +1,76 @@
+import {useEffect,useRef,useState} from 'react';
+import type {RoleKey} from '@/types';
+import {CareSignatureCanvas} from '@/components/inputs/CareSignatureCanvas.web';
+import type {MonthlyProof} from '@/lib/gkvExchange/monthlyProof';
+import {MonthlyCaptureSession} from '@/lib/gkvExchange/monthlyCapture';
+import {monthlyBase64,type MonthlyOriginalReceipt,type MonthlyOriginalResponse} from '@/lib/gkvExchange/monthlyOriginalContract';
+import {requestMonthlyOriginal} from '@/lib/gkvExchange/repository.web';
+type Original=Extract<MonthlyOriginalResponse,{kind:'original'}>;
+type Props={proof:MonthlyProof;roleKey:RoleKey;canSign:boolean;disabled:boolean;
+  onWorkState:(state:{dirty:boolean;busy:boolean})=>void;onConfirm:(receipt:MonthlyOriginalReceipt)=>Promise<void>};
+const css=`.gx-signature{min-width:0}.gx-signature iframe{display:block;width:100%;height:min(70vh,720px);min-height:320px;border:1px solid var(--gx-border,#cbd5e1);border-radius:12px;background:#fff}.gx-signature .gx-signature-choice{display:flex;align-items:flex-start;gap:12px;line-height:1.55}.gx-signature-choice input{flex:0 0 auto;margin-top:5px}.gx-signature .gx-actions{display:flex;gap:10px;flex-wrap:wrap}.gx-signature .gx-actions button{white-space:normal;overflow-wrap:anywhere}.gx-signature p,.gx-signature a{overflow-wrap:anywhere}.gx-signature-pad{min-width:0;max-width:100%;border:1px solid #b6c5cf;border-radius:12px;padding:12px;background:#f7fafc}@media(max-width:600px){.gx-signature .gx-actions>*{flex:1 1 100%}.gx-signature iframe{height:55vh;min-height:280px}.gx-signature-pad{padding:8px}}`;
+function OriginalViewer({original,onOpened}:{original:Original;onOpened?:()=>void}){
+  const [url,setUrl]=useState('');const callback=useRef(onOpened);callback.current=onOpened;
+  useEffect(()=>{const next=URL.createObjectURL(new Blob([new Uint8Array(monthlyBase64(original.pdfBase64))],{type:'application/pdf'}));setUrl(next);return()=>URL.revokeObjectURL(next);},[original.pdfBase64]);
+  return <div className="gx-stack"><iframe title="Originalfassung des Monatsnachweises" src={url || undefined} onLoad={()=>{if(url)callback.current?.();}} />
+    {url && <p><a href={url} target="_blank" rel="noopener noreferrer" onClick={()=>callback.current?.()}>Original als PDF öffnen</a> · Bitte alle Seiten prüfen.</p>}</div>;
+}
+export function GkvMonthlySignature(props:Props){
+  return <MonthlySignaturePanel key={`${props.proof.id}:${props.proof.revision}:${props.canSign}`} {...props}/>;
+}
+function MonthlySignaturePanel({proof,roleKey,canSign,disabled,onWorkState,onConfirm}:Props){
+  const [capture,setCapture]=useState<MonthlyCaptureSession|null>(null),[archive,setArchive]=useState<Original|null>(null);
+  const [busy,setBusy]=useState(false),[error,setError]=useState(''),[opened,setOpened]=useState(false),[reviewed,setReviewed]=useState(false);
+  const [,render]=useState(0),mounted=useRef(true),lock=useRef(false),controller=useRef<AbortController|null>(null);
+  const work=useRef(onWorkState);work.current=onWorkState;
+  useEffect(()=>{mounted.current=true;controller.current=new AbortController();return()=>{mounted.current=false;controller.current?.abort();controller.current=null;work.current({dirty:false,busy:false});};},[]);
+  useEffect(()=>{work.current({dirty:!!capture,busy:busy || !!capture?.pending});},[capture,busy,capture?.pending]);
+  const request=(command:Parameters<typeof requestMonthlyOriginal>[2])=>{
+    if(!mounted.current || !controller.current)throw Error('Die Erfassung wurde geschlossen.');
+    return requestMonthlyOriginal(proof.tenant_id,roleKey,command,controller.current.signal);
+  };
+  async function run(action:()=>Promise<unknown>){
+    if(lock.current || disabled)return;lock.current=true;setBusy(true);setError('');
+    try{await action();}catch(e){if(mounted.current)setError(e instanceof Error?e.message:'Die Erfassung konnte nicht abgeschlossen werden.');}
+    finally{lock.current=false;if(mounted.current){setBusy(false);render(n=>n+1);}}
+  }
+  function start(){
+    if(!canSign || capture || disabled || lock.current)return;
+    const next=new MonthlyCaptureSession({tenantId:proof.tenant_id,proofId:proof.id,revision:proof.revision,captureId:crypto.randomUUID()},proof.content_sha256,request);
+    setCapture(next);setOpened(false);setReviewed(false);void run(()=>next.prepare());
+  }
+  const final=proof.status!=='open';
+  if(final && proof.confirmation?.kind!=='signature')return null;
+  if(!final && !canSign)return null;
+  const original=capture?.original || archive;
+  return <section className="gx-card gx-stack gx-signature" aria-label={final?'Archiviertes PDF-Original':'Persönliche Monatsbestätigung'} aria-busy={busy}>
+    <style>{css}</style><div><h3>{final?'Archiviertes PDF-Original':'Monatsnachweis persönlich bestätigen'}</h3>
+    <p className="gx-muted">{final?'Die PDF zeigt die vor der Unterschrift geprüfte Fassung. Ihren aktuellen Bestätigungsstatus sehen Sie darunter.':`${proof.payload.clientName} bestätigt ausschließlich diese Leistungsart und Fassung. Die Unterschrift muss jetzt neu gezeichnet werden.`}</p></div>
+    {error && <p className="gx-notice" data-tone="error" role="alert">{error}</p>}
+    {busy && <p role="status">Original und Erfassungsstand werden geprüft …</p>}
+    {final && <><p className="gx-notice" data-tone={proof.status==='invalidated'?'error':undefined}>{proof.status==='invalidated'?'Diese Fassung wurde durch eine Korrektur ungültig.':'Diese Fassung ist bestätigt.'}</p>
+      <button type="button" disabled={disabled || busy} onClick={()=>void run(async()=>{
+        if(proof.confirmation?.kind!=='signature')return;
+        const result=await request({tenantId:proof.tenant_id,proofId:proof.id,revision:proof.revision,captureId:proof.confirmation.captureId,action:'archive'});
+        if(result.kind!=='original' || result.original.contentSha256!==proof.content_sha256 || result.original.originalSha256!==proof.confirmation.originalSha256
+          || result.archive?.status!==proof.status)throw Error('Das Archivoriginal passt nicht zu dieser Fassung. Bitte die Monatsnachweise neu laden.');
+        if(mounted.current)setArchive(result);
+      })}>{archive?'Archivoriginal erneut lesen':'Archivoriginal öffnen'}</button></>}
+    {!final && !capture && <button type="button" className="gx-primary" disabled={disabled || busy} onClick={start}>Original zur Bestätigung öffnen</button>}
+    {original && <OriginalViewer original={original} onOpened={()=>setOpened(true)}/>}
+    {capture?.pending && !busy && <div className="gx-subtle" role="alert"><h4>Erfassungsantwort noch offen</h4><p>Prüfen Sie zuerst den gespeicherten Stand. Die Abfrage übermittelt keine neue Unterschrift und bestätigt keinen Monatsnachweis.</p><div className="gx-actions">
+      <button type="button" disabled={disabled} onClick={()=>void run(()=>capture.check())}>Erfassung prüfen</button>
+      {capture.checked && <button type="button" disabled={disabled} onClick={()=>void run(()=>capture.retry())}>Erfassung unverändert wiederholen</button>}
+    </div></div>}
+    {capture?.original && !capture.pending && !capture.receipt && !capture.original.original.acknowledged && <>
+      <label className="gx-signature-choice"><input type="checkbox" checked={reviewed} disabled={disabled || busy || !opened} onChange={e=>setReviewed(e.target.checked)}/><span>Die pflegebedürftige Person hat die angezeigte Originalfassung einschließlich aller Seiten geprüft und möchte sie persönlich unterschreiben.</span></label>
+      <button type="button" className="gx-primary" disabled={disabled || busy || !opened || !reviewed} onClick={()=>void run(()=>capture.acknowledge())}>Geprüft, Unterschrift erfassen</button></>}
+    {capture?.original?.original.acknowledged && !capture.pending && !capture.receipt && <div className="gx-stack"><p>Bitte mit Stift, Finger oder Maus unterschreiben. Vertreterunterschriften sind in diesem Ablauf noch nicht verfügbar.</p>
+      <div className="gx-signature-pad"><CareSignatureCanvas label={`Unterschrift von ${proof.payload.clientName}`} showLabel={false} size="large" height={200} disabled={disabled || busy}
+        renderActions={({disabled:blocked,hasStroke,onClear,onConfirm:save})=><div className="gx-actions"><button type="button" disabled={blocked} onClick={onClear}>Unterschrift löschen</button><button type="button" className="gx-primary" disabled={blocked || !hasStroke} onClick={save}>Unterschrift prüfen und übernehmen</button></div>}
+        onConfirm={data=>{if(!data.startsWith('data:image/png;base64,')){setError('Die Unterschrift konnte nicht als PNG erfasst werden.');return;}void run(()=>capture.verify(data.slice(22)));}}/></div></div>}
+    {capture?.receipt && !capture.pending && <div className="gx-subtle"><p>Original und Unterschriftsdatei wurden gespeichert und geprüft. Der Monatsnachweis wird erst mit dem nächsten Schritt endgültig bestätigt.</p>
+      <button type="button" className="gx-primary" disabled={disabled || busy} onClick={()=>void run(()=>onConfirm(capture.receipt!))}>Monatsbestätigung speichern</button></div>}
+    {capture && <button type="button" disabled={disabled || busy} onClick={()=>{if(window.confirm('Diese Erfassung schließen? Ein bereits erteilter Prüfbeleg bleibt im Archiv. Dadurch wird kein Monatsnachweis bestätigt oder zurückgenommen.')){setCapture(null);setOpened(false);setReviewed(false);setError('');}}}>Erfassung schließen</button>}
+  </section>;
+}

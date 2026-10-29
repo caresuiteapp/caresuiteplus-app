@@ -5,9 +5,11 @@ bewahrt deren Bytes zusammen mit einer neu erfassten PNG-Unterschrift auf und
 erstellt nach dem Zurücklesen einen gebundenen Prüfbeleg. Dieser wird im lokalen
 Prüflauf vom bestehenden SQL-Befehl `confirm` tatsächlich verbraucht.
 
-**Es gibt noch keine freigegebene Host-/App-Anbindung für diesen Ablauf.** Der
-SQL-Entwurf ist nicht eingespielt. Keine Rolle erhält durch den Entwurf einen
-Ausführungszugang. Vertreter, Druck/Scan und Fach-XML sind nicht implementiert.
+**Die [Host-/App-Anbindung](monthly-host.md) ist implementiert und lokal geprüft,
+aber noch nicht aktiviert.** Die SQL-Entwürfe sind nicht eingespielt. Die privaten
+Belegfunktionen bleiben gesperrt; der zusätzliche Worker-Wrapper verlangt eine
+aktive persönliche Sitzung und einen Host-MAC. Vertreter, Druck/Scan und Fach-XML
+sind nicht implementiert.
 Das ist keine abgeschlossene ITSG-Prüfung und keine Freigabe zum Echtversand.
 
 ## Ablauf
@@ -16,17 +18,18 @@ Das ist keine abgeschlossene ITSG-Prüfung und keine Freigabe zum Echtversand.
 | --- | --- |
 | `prepare` | Prüft persönliche Beauftragung, offene Fassung und aktuelle kanonische Quellen. Erzeugt die PDF selbst und liest sie aus dem verschlüsselten Archiv zurück. |
 | `readOriginal` | Liest genau diese gespeicherten Bytes, solange Akteur, Fassung und Erfassung unverändert und nicht abgelaufen sind. |
-| `acknowledge` | Bindet die ausdrückliche Bestätigung der angezeigten Originalfassung an deren SHA-256. Das Backend kann damit keine tatsächliche Betrachtung beweisen; diese Aktion muss später aus der geprüften Ansicht kommen. |
+| `acknowledge` | Bindet die ausdrückliche Bestätigung der angezeigten Originalfassung an deren SHA-256. Das Backend kann damit keine tatsächliche Betrachtung beweisen; die App verlangt dafür eine ausdrückliche Bestätigung nach dem Öffnen. |
 | `verify` | Prüft und archiviert die PNG-Bytes einmalig. Liest Original und PNG zurück, prüft Berechtigung und Quellen erneut und lässt den privaten SQL-Erzeuger den Prüfbeleg anlegen. |
 | vorhandenes `confirm` | Verbraucht diesen Beleg unter derselben persönlichen Identität und wiederholt Quellen-/Fassungsprüfung. Erst dieser getrennte Auftrag finalisiert den Monatsdatensatz. |
 | `readArchivedOriginal` | Liest die ursprünglich angezeigte PDF zu einem tatsächlich bestätigten oder später entwerteten Nachweis. Benötigt aktuelle Leserechte, keine Schreibbeauftragung. Liefert den aktuellen Archivstatus und keine wiederverwendbare Unterschriftsdatei. |
 
-Die neue Erfassungskennung gehört genau zu einer persönlichen Sitzung im Sinne
-des serverseitig aufgelösten Akteurs, einer Nachweis-ID und deren Bearbeitungsstand.
-Es wird noch keine separate Auth-Sitzungs-ID gespeichert. Die spätere Gateway-
-Anbindung muss die tatsächliche, aktuelle Anmeldung prüfen; eine vom Aufrufer
-mitgeteilte Benutzerkennung genügt nicht. `auth.uid()` und der vorhandene
-Office-Berechtigungsprüfer werden bei jedem SQL-Zugriff erneut ausgewertet.
+Die Erfassungskennung gehört genau zu Akteur, tatsächlicher Auth-Sitzungs-ID,
+Nachweis-ID und Bearbeitungsstand. Der persönlich authentisierte Host übernimmt
+keine Benutzerkennung vom Aufrufer. Die Worker-Brücke prüft die aktuelle
+`auth.sessions`-Zeile bei jedem SQL-Zugriff; Belegerteilung und endgültiger
+Verbrauch müssen unter derselben aktiven Anmeldung erfolgen. Der private
+Dienstkern unterstützt weiterhin die isolierten Tests ohne Auth-Server; der
+Produktionsadapter verlangt immer eine gültige Sitzung.
 
 Die interne Erfassungsfrist beträgt 30 Minuten. Das ist eine eigene technische
 Begrenzung, keine behauptete gesetzliche Frist. Browserzeitstempel werden nicht
@@ -49,9 +52,10 @@ Unterzeichnernamen, Vertreterangaben oder Hashbehauptungen entgegen.
 
 Für die persönliche Bestätigung wird der Name aus dem gebundenen
 Klientendatensatz verwendet. Das beweist weder die Identität der tatsächlich
-zeichnenden Person noch ihre Einwilligung. Die echte Unterschriftserfassung,
-die eindeutige Anzeige vor dem Zeichnen und die Zuordnung zur Person müssen
-noch in der App umgesetzt und am gesamten Ablauf geprüft werden.
+zeichnenden Person noch ihre Einwilligung. Originalanzeige und frische
+Unterschrift sind in der Webansicht umgesetzt. Die persönliche Zuordnung und
+der gesamte Ablauf mit tatsächlichem PDF-Viewer und Zeichenereignissen müssen
+noch in der Zielumgebung geprüft werden.
 
 Der begrenzte PNG-Leser akzeptiert nicht verschachtelte, nicht animierte RGB-
 und RGBA-Bilder mit acht Bit je Kanal. Er prüft Chunk-Grenzen, CRC, zulässige
@@ -103,17 +107,17 @@ ein anderes Unterschriftsbild.
 ## SQL-Vertrauensgrenze
 
 [Der zusätzliche Review-Entwurf](sql/monthly-original-verifier-draft.sql)
-ergänzt die private Belegtabelle um den Bildfingerabdruck. Drei ausschließlich
+ergänzt die private Belegtabelle um den Bildfingerabdruck. Vier ausschließlich
 private Funktionen lesen den aktuellen Kontext, lesen einen Archivkontext
-oder übernehmen einen Prüfbeleg. Sie haben einen festen Suchpfad und prüfen
+übernehmen einen Prüfbeleg oder lesen dessen unveränderten Status. Sie haben einen festen Suchpfad und prüfen
 die persönliche Office-Berechtigung, beim Schreiben auch die aktuelle
 fachliche Beauftragung. Keine rohe Tabellenfreigabe ist erforderlich.
 
 `PUBLIC`, `anon`, `authenticated` und `service_role` dürfen diese Funktionen
 nicht ausführen. Auch ein RLS-Bypass allein erteilt kein Funktionsrecht. Die
-Funktionen sind keine öffentlichen RPC-Wrapper. Die spätere explizite Freigabe
-eines verifizierenden Hosts und seiner persönlichen Authentisierung ist
-weiter offen. Nur der byteprüfende Dienst darf einen solchen Zugang erhalten;
+Funktionen sind keine öffentlichen RPC-Wrapper. Die implementierte [Worker-Brücke](sql/monthly-worker-bridge-draft.sql)
+authentisiert einen verifizierenden Host zusätzlich mit einem mandantengebundenen
+MAC und einer aktiven persönlichen Sitzung. Ihre Einrichtung ist weiter offen. Nur der byteprüfende Dienst darf einen solchen Zugang erhalten;
 die Datenbank kann die Inhalte seines lokalen Archivs nicht selbst nachlesen.
 
 Bei der Belegübernahme werden Serie und Nachweis in derselben Reihenfolge wie
@@ -147,7 +151,7 @@ Bestätigung und unveränderte Archivansicht für reine Leser.
 
 Die neuen Fälle sind Bestandteil von `verify:gkv:monthly-proofs` und damit des
 bestehenden Webbuilds. Die bisherigen 27 Vertragsfälle, 24 SQL-Testmeldungen und
-zehn React-Bedienabläufe bestehen ebenfalls. Alle drei mit Poppler gerenderten
+15 React-Bedienabläufe sowie 15 zusätzliche Host-Testmeldungen bestehen ebenfalls. Alle drei mit Poppler gerenderten
 synthetischen PDF-Seiten wurden auf Umbrüche, Umlaute und Lesbarkeit angesehen:
 Leistungsblöcke bleiben vollständig, Folgeblätter wiederholen den Fassungskopf.
 Das belegt keine schmale
@@ -158,6 +162,6 @@ Die Implementierung bereitet die Bestätigungs- und Korrekturabläufe aus dem
 vor. Die Fälle 3.6–3.11 und 5.1/5.2 sind damit noch nicht bestanden. Die aktuelle
 Pflegeseite und der Prüfkatalog wurden am 29.10.2026 erneut gelesen.
 
-Offen sind die Host-/Gateway-Freigabe, die tatsächliche persönliche Anmeldung,
-Originalanzeige und Erfassungsoberfläche, die Vertreterprüfung, der Druck-/
-Scan-Pfad, signiertes Fach-XML mit XSD-/CMS-Prüfung und die unabhängige Abnahme.
+Offen sind die Aktivierung und Zielprüfung der implementierten Host-/App-Anbindung
+mit echten persönlichen Anmeldungen, die visuelle Abnahme, Vertreterprüfung,
+Druck/Scan, signiertes Fach-XML mit XSD-/CMS-Prüfung und die unabhängige Abnahme.

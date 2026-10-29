@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   LayoutChangeEvent,
   Platform,
@@ -106,6 +106,7 @@ type Props = {
   showLabel?: boolean;
   fillAvailable?: boolean;
   actionLayout?: 'default' | 'bar';
+  renderActions?: (actions: {disabled: boolean; hasStroke: boolean; onClear: () => void; onConfirm: () => void}) => ReactNode;
 };
 
 function resolveDimensions(
@@ -203,6 +204,7 @@ function WebSignatureCanvas({
   showLabel = true,
   fillAvailable = false,
   actionLayout = 'default',
+  renderActions,
 }: Props) {
   const styles = useSignatureCanvasStyles(fillAvailable, actionLayout);
   const insets = useSafeAreaInsets();
@@ -610,7 +612,7 @@ function WebSignatureCanvas({
           onMouseLeave={handleMouseUp}
         />
       </View>
-      <SignatureActions
+      {renderActions ? renderActions({disabled: !!disabled, hasStroke, onClear: handleClear, onConfirm: handleConfirm}) : <SignatureActions
         actionLayout={actionLayout}
         styles={styles}
         disabled={disabled}
@@ -619,7 +621,7 @@ function WebSignatureCanvas({
         onCancel={onCancel}
         onConfirm={handleConfirm}
         safeBottom={actionLayout === 'bar' ? insets.bottom : 0}
-      />
+      />}
     </View>
   );
 }

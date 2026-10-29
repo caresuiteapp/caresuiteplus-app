@@ -3,6 +3,8 @@ import type { RoleKey } from '@/types';
 import { SERVICE_TYPES, isMonth, type ServiceType } from '@/lib/gkvExchange/model';
 import { type MonthlyProof, type MonthlyProofCommand } from '@/lib/gkvExchange/monthlyProof';
 import { MonthlyProofWriter } from '@/lib/gkvExchange/monthlyWriter';
+import {GkvMonthlySignature} from './GkvMonthlySignature.web';
+import type {MonthlyOriginalReceipt} from '@/lib/gkvExchange/monthlyOriginalContract';
 import { MONTHLY_STATUS, monthlyDifferences, type MonthlyClient, type MonthlySource, type MonthlyWorkspace } from '@/lib/gkvExchange/monthlyWorkspace';
 import { checkMonthlyRequest, commandMonthlyProof, listMonthlyClients, listMonthlySources, listMonthlyEvents, loadMonthlyProof,
   loadMonthlyWorkspace, readMonthlyProofHistory, type MonthlyEvent } from '@/lib/gkvExchange/repository.web';
@@ -35,6 +37,7 @@ function MonthlyWorkspacePanel({tenantId, roleKey, canCreate, onWorkState}: Prop
   const [events, setEvents] = useState<MonthlyEvent[]>([]), [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [mode, setMode] = useState<'missing' | 'correct' | null>(null), [reason, setReason] = useState(''), [reviewed, setReviewed] = useState(false);
   const [busy, setBusy] = useState(''), [error, setError] = useState(''), [notice, setNotice] = useState('');
+  const [captureWork,setCaptureWork]=useState<MonthlyWorkState>({dirty:false,busy:false});
   const mounted = useRef(true), running = useRef(false), operation = useRef(0);
   const scope = useRef(0);
   const workCallback = useRef(onWorkState); workCallback.current = onWorkState;
@@ -43,15 +46,15 @@ function MonthlyWorkspacePanel({tenantId, roleKey, canCreate, onWorkState}: Prop
     status: requestId => checkMonthlyRequest(tenantId, roleKey, requestId),
   }, () => crypto.randomUUID()));
   const sourceChanged = idsKey(selectedIds) !== idsKey(proof?.payload.records.map(r => r.recordId) || []);
-  const dirty = sourceChanged || !!reason.trim() || !!writer.pending;
-  const locked = !!busy || !!writer.pending;
+  const dirty = sourceChanged || !!reason.trim() || !!writer.pending || captureWork.dirty;
+  const locked = !!busy || !!writer.pending || captureWork.dirty || captureWork.busy;
   const writable = canCreate && workspace?.canWrite === true;
   const editable = writable && (!proof || proof.status === 'open') && !locked && !mode;
   const storedSources = proof?.payload.records.filter(record => !sources.some(source => source.id === record.recordId)) || [];
   const differences = proof && comparison ? monthlyDifferences(comparison, proof) : [];
 
   const unresolved = !!writer.pending;
-  useEffect(() => { workCallback.current({dirty, busy: !!busy || unresolved}); }, [dirty, busy, unresolved]);
+  useEffect(() => { workCallback.current({dirty, busy: !!busy || unresolved || captureWork.busy}); }, [dirty, busy, unresolved, captureWork.busy]);
   useEffect(() => {
     mounted.current = true;
     void run('Klienten laden', () => loadClients(currentMonth(), '', false));
@@ -129,6 +132,12 @@ function MonthlyWorkspacePanel({tenantId, roleKey, canCreate, onWorkState}: Prop
     if (!writable || locked) return;
     await run('Monatsnachweis speichern', async () => { await accept(await writer.submit(command)); });
   }
+  async function confirmSignature(receipt:MonthlyOriginalReceipt){
+    if(!proof || !writable || busy || writer.pending || sourceChanged || receipt.tenantId!==tenantId || receipt.proofId!==proof.id
+      || receipt.revision!==proof.revision || receipt.contentSha256!==proof.content_sha256)return;
+    await run('Monatsbestätigung speichern',async()=>{await accept(await writer.submit({action:'confirm',input:{id:proof.id,revision:proof.revision,
+      content_sha256:proof.content_sha256,receipt_id:receipt.receiptId}}));});
+  }
   function saveSources() {
     if (!workspace || !selectedIds.length || selectedIds.length > 500) return;
     if (proof) void write({action: 'replace_sources', input: {id: proof.id, revision: proof.revision, source_ids: selectedIds, reason: reason.trim()}});
@@ -165,7 +174,7 @@ function MonthlyWorkspacePanel({tenantId, roleKey, canCreate, onWorkState}: Prop
         {!writable && <p className="gx-muted">Änderungen benötigen eine aktive Beauftragung als verantwortliche Pflegefachperson oder Vertretung.</p>}
         <label className="gx-field"><span>Leistungsart des Monatsnachweises</span><select value={serviceType} disabled={locked} onChange={e => { const type = e.target.value as ServiceType; if (mayChangeSelection()) void run('Fassung laden', () => chooseType(type)); }}>{Object.entries(SERVICE_TYPES).map(([id, label]) => <option key={id} value={id}>{label}{workspace.proofs.some(p => p.serviceType === id) ? ' · Nachweis vorhanden' : ''}</option>)}</select></label>
         {proof ? <div className="gx-monthly-meta"><span className="gx-badge" data-tone={proof.status === 'open' ? undefined : 'warn'}>{MONTHLY_STATUS[proof.status]}</span><span>Fassung {proof.version} · Bearbeitungsstand {proof.revision}</span><span>{time(proof.updated_at)}</span></div> : <p className="gx-muted">Für diese Leistungsart wurde noch kein Monatsnachweis angelegt.</p>}
-        <p className="gx-subtle">Die Monatsunterschrift ist noch nicht freigeschaltet. Vorhandene Einsatzunterschriften ersetzen diese Bestätigung nicht. Eine endgültige Fassung ist hier noch nicht für die elektronische Abrechnung freigegeben.</p>
+        <p className="gx-subtle">Vorhandene Einsatzunterschriften ersetzen die persönliche Monatsbestätigung nicht. Eine endgültige Fassung ist hier noch nicht für die elektronische Abrechnung freigegeben.</p>
       </div>
       {(!proof || proof.status === 'open') && <section className="gx-card gx-stack" aria-label="Leistungen auswählen">
         <div><h3>Leistungen zusammenstellen</h3><p className="gx-muted">Die Auswahl wird beim Speichern erneut an den Originalnachweisen geprüft. Ein vollständiger Einsatz kann nur einem Monatsnachweis zugeordnet werden.</p></div>
@@ -181,6 +190,8 @@ function MonthlyWorkspacePanel({tenantId, roleKey, canCreate, onWorkState}: Prop
           <button type="button" className="gx-primary" disabled={!editable || !!mode || !selectedIds.length || selectedIds.length > 500 || (!!proof && reason.trim().length < 3)} onClick={saveSources}>{proof ? 'Quellen abgleichen und speichern' : 'Monatsnachweis anlegen'}</button></>}
       </section>}
       {proof && <>
+        <GkvMonthlySignature proof={proof} roleKey={roleKey} canSign={writable && !sourceChanged && !mode && !reason.trim()}
+          disabled={!!busy || !!writer.pending} onWorkState={setCaptureWork} onConfirm={confirmSignature}/>
         <MonthlyProofContent proof={proof} />
         {writable && proof.status !== 'invalidated' && <section className="gx-card gx-stack" aria-label="Fassung bearbeiten">
           {!mode ? <div className="gx-actions">{proof.status === 'final' ? <button type="button" disabled={locked} onClick={() => { setMode('correct'); setReason(''); setReviewed(false); }}>Korrektur beginnen</button>
@@ -197,7 +208,8 @@ function MonthlyWorkspacePanel({tenantId, roleKey, canCreate, onWorkState}: Prop
           {historyMore && <button type="button" disabled={locked} onClick={() => void run('Ältere Fassungen laden', async () => { const ticket = scope.current; const page = await readMonthlyProofHistory(tenantId, roleKey, proof.series_id, history.at(-1)?.version); if (current(ticket)) { setHistory(previous => [...previous, ...page.rows.filter(p => !previous.some(x => x.id === p.id))]); setHistoryMore(page.hasMore); } })}>Ältere Fassungen laden</button>}
           {comparison && <><div className="gx-card-title"><h3>Vergleich: Fassung {comparison.version} → {proof.version}</h3><button type="button" disabled={locked} onClick={() => setComparison(null)}>Vergleich schließen</button></div>
             {!differences.length ? <p className="gx-muted">Die übernommenen Leistungsdaten sind gleich. Status und Bestätigung können sich unterscheiden.</p> : <div className="gx-monthly-differences">{differences.map(d => <article key={d.key}><h4>{d.label}</h4><div><section><h5>Ausgewählte Fassung</h5><p>{d.before}</p></section><section><h5>Aktuelle Ansicht</h5><p>{d.after}</p></section></div></article>)}</div>}
-            <details><summary>Ausgewählte Fassung vollständig ansehen</summary><MonthlyProofContent proof={comparison} /></details></>}
+            <details><summary>Ausgewählte Fassung vollständig ansehen</summary><MonthlyProofContent proof={comparison} />
+              {comparison.id!==proof.id && <GkvMonthlySignature proof={comparison} roleKey={roleKey} canSign={false} disabled={locked} onWorkState={()=>{}} onConfirm={async()=>{}}/>}</details></>}
         </section>
         <section className="gx-card gx-stack" aria-label="Bearbeitungsprotokoll"><h3>Bearbeitungsprotokoll dieser Fassung</h3>{events.map(event => <article className="gx-event" key={event.id}><time>{time(event.created_at)}</time><p><strong>{eventLabels[event.action] || 'Bearbeitung dokumentiert'}</strong></p>{event.reason && <p>{event.reason}</p>}</article>)}{!events.length && <p className="gx-muted">Keine Protokolleinträge geladen.</p>}<p className="gx-limit">Die 30 neuesten Einträge dieser Fassung.</p></section>
       </>}

@@ -2,7 +2,7 @@
 
 Stand: 29.10.2026. Dieser Baustein verbindet den serverseitigen Speichervertrag
 mit der Web-/Desktop-Ansicht „Monatsnachweise“. **Die Datenbankentwürfe sind noch
-nicht aktiviert; eine echte Monatsunterschrift und die XML-Ausgabe fehlen.**
+nicht aktiviert; echte Betriebsnachweise und die XML-Ausgabe fehlen.**
 Speichervertrag, Leseabfragen und React-Bedienabläufe sind lokal geprüft.
 Visuelle Abnahme, echte Auth-/Storage-Prüfung und ITSG-Fälle bleiben offen.
 
@@ -118,8 +118,9 @@ SQL-Prüfung vor der Belegerteilung. Sein integrierter Test erzeugt Belege aus
 echten synthetischen Datei-Bytes und verbraucht sie über `confirm`. Die ältere
 SQL-Vertragssuite verwendet weiterhin ausdrücklich direkt angelegte Fixtures.
 
-**Die tatsächliche Host-/App-Anbindung und deren Berechtigung fehlen noch.**
-Es gibt keinen öffentlichen Erzeuger und keine Freigabe für `service_role`.
+**Die Host-/App-Anbindung ist implementiert, ihre Zielaktivierung steht aus.**
+Der zusätzliche Worker-Wrapper verlangt einen Host-MAC und eine aktive persönliche
+Anmeldung. Der private Erzeuger bleibt unzugänglich; `service_role` erhält keine Freigabe.
 Die private Schnittstelle unterstützt persönliche Patientenbestätigungen;
 Vertreter- und Scan-Fälle bleiben gesperrt. Bestehende Einsatzunterschriften
 werden nicht als Monatsbestätigung hochgestuft. Die neue Original-PDF ist die
@@ -181,8 +182,10 @@ Zehn React-Prüfabläufe testen die tatsächliche Komponente und Office-Navigati
 mit synthetischen API-/Auth-Grenzen, einschließlich StrictMode, Doppelaktionen,
 Verbindungsabbruch, Korrektur, Leserechten und Mandantenwechsel.
 
-Am 29.10.2026 besteht `npm run verify:gkv:monthly-web` vollständig: 27 Vertragsfälle,
-23 SQL-Unterfälle plus zusammenfassender Hauptfall und zehn React-Bedienabläufe.
+Der aktuelle Lauf am 29.10.2026 besteht mit 27 Vertragsfällen, 24 bisherigen
+SQL-Testmeldungen, 20 Originaldatei-Testmeldungen, 15 Host-Testmeldungen und
+15 React-Bedienabläufen. Die folgenden Angaben dokumentieren den vorherigen
+Speicher-/Webstand mit zehn React-Abläufen und noch ohne Hostverbindung.
 Der letzte SQL-Unterfall benötigte eine Korrektur seiner Testdatenvorbereitung:
 derselbe UUID-Parameter wird vor der Umwandlung in einen JSON-Textwert ausdrücklich
 als UUID typisiert. Dadurch entfällt PostgreSQL `42P08`; die Seitennavigationsprüfung
@@ -219,13 +222,24 @@ Korrektur; zusammen mit drei weiteren Positiv-/Wiederherstellungsprüfungen best
 jetzt alle 27 Vertragsfälle. Auch nachträglich entwertete Originale und später
 bearbeitete offene Fassungen können weiterhin korrekt wiedergefunden werden.
 
+## Persönliche Originalanzeige und Unterschrift
+
+Die [Host-/App-Anbindung](monthly-host.md) ist implementiert: Original-PDF öffnen,
+ausdrücklich prüfen, im vorhandenen Web-Zeichenfeld neu unterschreiben und mit
+einem getrennten Auftrag endgültig bestätigen. Der Browser prüft die PDF-Bytes;
+Gateway, mTLS-Host und SQL-Brücke prüfen persönliche Anmeldung, Sitzung und
+Hostfreigabe. Verlorene Erfassungs- und Abschlussantworten werden lesend geklärt.
+Archivoriginale bleiben nach Korrekturen mit dem aktuellen Status erreichbar.
+Die SQL-Entwürfe, Schlüssel und Hostkonfiguration sind noch nicht aktiviert.
+
 ## Nächste Umsetzung
 
-1. Den privaten Verifizierer an den persönlich authentisierten Host/Gateway
-   anbinden. Zielrechte und Migration vor jeder Aktivierung prüfen.
-2. Originalansicht und frische Unterschrift pro Leistungsart in der App anbinden
-   und breit/schmal prüfen. Private Originalablage, Byteprüfung und Archivabruf
-   sind implementiert; Vertreterberechtigung und Druck-/Scan-Pfad fehlen noch.
+1. Zielrechte, vier SQL-Entwürfe, Hostschlüssel und Zertifikate vor einer
+   gesonderten Aktivierung prüfen. Tatsächliche Anmeldung, Sitzungswiderruf und
+   Parallelität gegen die Zielumgebung nachweisen.
+2. Den implementierten PDF-/Unterschriftsablauf breit/schmal mit echten
+   Zeichenereignissen, Schriftvergrößerung und Tastaturfokus abnehmen.
+   Vertreterberechtigung und Druck-/Scan-Pfad ergänzen.
 3. Verantwortliche Pflegefachpersonen/Vertretungen administrativ verwalten und
    deren Entzug gegen laufende Bestätigungen prüfen.
 4. Gemischte Leistungsarten innerhalb eines Einsatzes fachlich aufteilen,
@@ -233,5 +247,4 @@ bearbeitete offene Fassungen können weiterhin korrekt wiedergefunden werden.
 5. Fach-XML, XSD- und komponentenbezogene CMS-Prüfung sowie die gebundene
    Übergabe der aktuellen finalen Fassung an die Abrechnung ergänzen.
 6. Danach die ITSG-Fälle am tatsächlichen Ablauf mit persönlichen Testkonten
-   und breiter/schmaler Darstellung ausführen. Für diesen Speicherbaustein
-   ist die neue Oberfläche implementiert, aber noch nicht visuell abgenommen.
+   und breiter/schmaler Darstellung ausführen.

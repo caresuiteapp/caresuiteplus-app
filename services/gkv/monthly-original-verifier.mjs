@@ -36,6 +36,11 @@ export function monthlyOriginalDatabase(query) {
       if (result.rows?.length !== 1) fail('MONTHLY_VERIFIER_RECEIPT');
       return result.rows[0].value;
     },
+    async receiptStatus(receipt) {
+      const result = await query('SELECT care_security.gkv_monthly_verified_receipt_status($1::jsonb) value', [JSON.stringify(receipt)]);
+      if (result.rows?.length !== 1) fail('MONTHLY_VERIFIER_RECEIPT');
+      return result.rows[0].value;
+    },
   };
 }
 
@@ -52,11 +57,14 @@ export class MonthlyOriginalVerifier {
     const proof = readMonthlyProof(context.proof, input.tenantId);
     if (proof.id !== input.proofId || proof.revision !== input.revision || proof.status !== 'open'
       || Date.parse(proof.updated_at) > Date.parse(context.checkedAt)) fail('MONTHLY_VERIFIER_CONTEXT');
-    return structuredClone({ actorId: context.actorId, checkedAt: context.checkedAt, proof });
+    if (context.sessionId !== undefined && !isUuid(context.sessionId)) fail('MONTHLY_VERIFIER_CONTEXT');
+    return structuredClone({ actorId: context.actorId, checkedAt: context.checkedAt, proof,
+      ...(context.sessionId !== undefined ? {sessionId: context.sessionId} : {}) });
   }
   #bound(input, context) {
     const stored = this.#store.get(input.tenantId, input.captureId);
     if (!stored || stored.snapshot.actorId !== context.actorId
+      || stored.snapshot.sessionId !== context.sessionId
       || canonical(stored.snapshot.proof) !== canonical(context.proof)) fail('MONTHLY_CAPTURE_CONTEXT_CHANGED');
     const age = Date.parse(context.checkedAt) - Date.parse(stored.snapshot.preparedAt);
     if (!Number.isFinite(age) || age < 0 || age > 30 * 60 * 1000) fail('MONTHLY_CAPTURE_EXPIRED');
@@ -74,7 +82,8 @@ export class MonthlyOriginalVerifier {
     const input = request(value), context = await this.#context(input);
     let stored = this.#store.get(input.tenantId, input.captureId);
     if (stored) return this.#original(this.#bound(input, context));
-    const snapshot = { actorId: context.actorId, proof: context.proof, captureId: input.captureId, preparedAt: context.checkedAt };
+    const snapshot = { actorId: context.actorId, proof: context.proof, captureId: input.captureId, preparedAt: context.checkedAt,
+      ...(context.sessionId !== undefined ? {sessionId: context.sessionId} : {}) };
     const bytes = renderMonthlyOriginal(snapshot);
     this.#store.create(snapshot, bytes);
     // Read back encrypted bytes and recheck current identity/delegation/sources
@@ -85,6 +94,19 @@ export class MonthlyOriginalVerifier {
   async readOriginal(value) {
     const input = request(value);
     return this.#original(this.#bound(input, await this.#context(input)));
+  }
+  async status(value) {
+    const input = request(value), context = await this.#context(input);
+    if (!this.#store.get(input.tenantId, input.captureId)) return {state: 'absent', original: null, receipt: null};
+    const stored = this.#bound(input, context), {bytes, ...original} = this.#original(stored);
+    const receipt = stored.receipt?.verified_at ? await this.#db.receiptStatus(structuredClone(stored.receipt)) : null;
+    if (receipt !== null && canonical(receipt) !== canonical(this.#receipt(input, context, stored))) fail('MONTHLY_VERIFIER_RECEIPT');
+    return {state: receipt ? 'verified' : stored.acknowledgedAt ? 'acknowledged' : 'prepared', original, receipt};
+  }
+  #receipt(input, context, stored) {
+    return { receiptId: stored.receipt.id, captureId: input.captureId, proofId: input.proofId,
+      revision: input.revision, tenantId: input.tenantId, actorId: context.actorId, contentSha256: stored.receipt.content_sha256,
+      originalSha256: stored.receipt.original_sha256, signatureSha256: stored.receipt.signature_sha256 };
   }
   async readArchivedOriginal(value) {
     if (!value || Object.keys(value).some(k => !['tenantId','proofId','captureId'].includes(k))
@@ -141,9 +163,7 @@ export class MonthlyOriginalVerifier {
     this.#bound(input, verified);
     stored = this.#store.sealVerification(input.tenantId, input.captureId, verified.checkedAt);
     const result = await this.#db.issue(structuredClone(stored.receipt));
-    const expected = { receiptId: stored.receipt.id, captureId: input.captureId, proofId: input.proofId,
-      revision: input.revision, tenantId: input.tenantId, actorId: context.actorId, contentSha256: stored.receipt.content_sha256,
-      originalSha256: stored.receipt.original_sha256, signatureSha256: stored.receipt.signature_sha256 };
+    const expected = this.#receipt(input, context, stored);
     if (canonical(result) !== canonical(expected)) fail('MONTHLY_VERIFIER_RECEIPT');
     return expected;
   }

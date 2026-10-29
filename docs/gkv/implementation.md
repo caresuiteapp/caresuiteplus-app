@@ -1,6 +1,6 @@
 # Pflegekassen-Datenaustausch nach § 105 SGB XI
 
-Stand: 23.10.2026. Diese Änderung ist ein prüfbarer Entwicklungsstand für den
+Stand: 29.10.2026. Diese Änderung ist ein prüfbarer Entwicklungsstand für den
 klassischen Datenaustausch. Sie ist **keine vollständige produktive Umsetzung**
 aller GKV-Fachprofile und keine Bestätigung einer Abnahme oder Zertifizierung.
 Veröffentlichung, Datenbankfreigabe und Echtbetrieb sind eigenständige Schritte.
@@ -15,9 +15,12 @@ Quellen, getrennte Fassungen je Leistungsart und eine atomare Korrekturkette.
 Die Webansicht ergänzt Monats-/Klientenauswahl, Leistungsarten, Quellenabgleich,
 Fassungsvergleich, protokollierte Korrektur und Auftragsklärung. Der bisherige
 Speicherentwurf ist lokal geprüft; neue SQL-/React-Tests sind im vorhandenen
-Preview-Build verpflichtend. Datenbankaktivierung, visuelle Abnahme und der
-tatsächliche Originaldatei-/Unterschriftsprüfer fehlen noch; eine private Bestätigungsquittung kann nicht durch Browserangaben ersetzt
-werden. Die ITSG-Fälle bleiben bis zur Vorführung des gesamten Ablaufs offen.
+Preview-Build verpflichtend. Originaldatei-/Unterschriftsprüfer und persönlich
+authentisierte Host-/Web-Anbindung sind inzwischen implementiert und lokal geprüft
+(siehe [Monatsbestätigung](monthly-host.md)). Datenbankaktivierung, Zielbetrieb
+und visuelle Abnahme fehlen noch. Eine private Bestätigungsquittung kann nicht
+durch Browserangaben ersetzt werden. Die ITSG-Fälle bleiben bis zur Vorführung
+des gesamten Ablaufs offen.
 
 Der Auftrag umfasst seit 20.10.2026 ausdrücklich **Eigenentwicklung von DTA und
 KIM einschließlich eigenem Fachdienst**. Der neue ausführbare Dienstkern und die

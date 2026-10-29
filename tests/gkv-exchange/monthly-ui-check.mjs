@@ -7,13 +7,14 @@ import {Window} from 'happy-dom';
 import {runInThisContext} from 'node:vm';
 import {resolve} from 'node:path';
 import {existsSync} from 'node:fs';
-import {randomUUID} from 'node:crypto';
-import {tenant,client,user,month,fixture,finalProof,workspace,sources,deferred} from './monthly-fixtures.mjs';
+import {randomUUID,createHash} from 'node:crypto';
+import {tenant,client,user,month,fixture,finalProof,signedProof,workspace,sources,deferred} from './monthly-fixtures.mjs';
 
 const apiNames=['checkMonthlyRequest','commandMonthlyProof','listMonthlyClients','listMonthlySources','listMonthlyEvents','loadMonthlyProof',
  'loadMonthlyWorkspace','readMonthlyProofHistory','command','downloadBytes','readBatch','readDirectory','readEvents','readInvoiceCase',
- 'readInvoiceSources','readRevision','readRevisions','readWorkspace','requestTestExport'];
+ 'readInvoiceSources','readRevision','readRevisions','readWorkspace','requestTestExport','requestMonthlyOriginal'];
 const stubs={
+ '@/components/inputs/CareSignatureCanvas.web':"import {createElement} from 'react'; export const CareSignatureCanvas=({onConfirm,disabled})=>createElement('button',{disabled,onClick:()=>onConfirm('data:image/png;base64,'+globalThis.monthlySignaturePng)},'Unterschrift im Test zeichnen');",
  '@/components/layout/ScreenShell.web':"import {createElement} from 'react'; export const ScreenShell=({children})=>createElement('main',null,children);",
  '@/components/office/gkv/GkvKimHost.web':'export const KimHostPanel=()=>null;',
  '@/components/office/gkv/GkvRevisionHistory.web':'export const RevisionHistory=()=>null;',
@@ -36,7 +37,7 @@ const bundle=await build({stdin:{contents:entry,resolveDir:process.cwd(),loader:
    if(args.path.startsWith('@/')){const base=resolve('src',args.path.slice(2));const path=[base,base+'.ts',base+'.tsx'].find(existsSync);if(path)return {path};}});
   b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:stubs[args.path],loader:'js',resolveDir:process.cwd()}));
  }}]});
-const window=new Window();
+const window=new Window({settings:{disableIframePageLoading:true}});
 for(const key of ['window','document','HTMLElement','HTMLInputElement','HTMLTextAreaElement','HTMLSelectElement','Event','MouseEvent','Node'])globalThis[key]=key==='window'?window:window[key];
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 const OriginalChannel=globalThis.MessageChannel,channels=[];
@@ -44,8 +45,9 @@ globalThis.MessageChannel=class extends OriginalChannel{constructor(){super();ch
 runInThisContext(bundle.outputFiles[0].text);
 const {React,createRoot,GkvMonthlyProofs,GkvKassenabrechnungScreen,MonthlyProofWriteError}=globalThis.monthlyPanel;
 const container=document.createElement('div');document.body.append(container);const root=createRoot(container);
-const calls=[],work=[];let p,ws,list,history,pageAfter=null,key=0,passed=0;
+const calls=[],work=[];let p,ws,list,history,pageAfter=null,key=0,passed=0,captureState;
 function reset(){p=fixture();ws=workspace(null);list=sources(p);history=[];pageAfter=null;calls.length=0;work.length=0;
+ captureState={original:null,receipt:null};globalThis.monthlySignaturePng=Buffer.from('synthetic canvas boundary').toString('base64');
  globalThis.monthlyTenant=tenant;globalThis.monthlyAuth={authReady:true,isAuthenticated:true,user:{id:user},portalSession:null};
  globalThis.monthlyPermissions=['office.invoices.view','office.invoices.create'];globalThis.monthlyNavigation=[];
  globalThis.monthlyApi={
@@ -57,10 +59,35 @@ function reset(){p=fixture();ws=workspace(null);list=sources(p);history=[];pageA
   readMonthlyProofHistory:async()=>({rows:structuredClone(history),hasMore:false}),listMonthlyEvents:async()=>[],
   commandMonthlyProof:async(_tenant,_role,command,id)=>{calls.push(['write',structuredClone(command),id]);p.id=command.input.new_id||p.id;ws=workspace(p);history=[p];return structuredClone(p);},
   checkMonthlyRequest:async(_tenant,_role,id)=>{calls.push(['status',id]);return {state:'applied',proof:structuredClone(p)};},
+  requestMonthlyOriginal:async(_tenant,_role,command)=>{
+    calls.push(['capture',structuredClone(command)]);const {action,pngBase64,originalSha256,...scope}=command;
+    const common={version:1,...scope,actorId:user};
+    if(action==='prepare' || action==='read' || action==='archive'){
+      captureState.original??={captureId:command.captureId,proofId:p.id,revision:p.revision,contentSha256:p.content_sha256,originalSha256:'b'.repeat(64),originalVersion:randomUUID(),acknowledged:false};
+      return {...common,kind:'original',original:structuredClone(captureState.original),pdfBase64:Buffer.from('%PDF- synthetic viewer boundary').toString('base64'),
+        archive:action==='archive'?{status:p.status,version:p.version,finalizedAt:p.finalized_at,invalidatedAt:p.invalidated_at}:null};
+    }
+    if(action==='acknowledge'){captureState.original.acknowledged=true;return {...common,kind:'acknowledged',originalSha256};}
+    if(action==='verify'){
+      captureState.receipt={receiptId:randomUUID(),captureId:command.captureId,proofId:p.id,revision:p.revision,tenantId:tenant,actorId:user,
+        contentSha256:p.content_sha256,originalSha256:captureState.original.originalSha256,signatureSha256:createHash('sha256').update(Buffer.from(pngBase64,'base64')).digest('hex')};
+      return {...common,kind:'receipt',receipt:structuredClone(captureState.receipt)};
+    }
+    return {...common,kind:'state',state:captureState.receipt?'verified':captureState.original?.acknowledged?'acknowledged':captureState.original?'prepared':'absent',
+      original:structuredClone(captureState.original),receipt:structuredClone(captureState.receipt)};
+  },
  };
  window.confirm=()=>true;
 }
 const button=name=>[...container.querySelectorAll('button')].find(b=>b.textContent===name);
+function applySignedCapture(){
+ const value=signedProof(p,captureState.receipt.receiptId);value.confirmation.captureId=captureState.receipt.captureId;
+ const prefix=`tenant/${tenant}/gkv/monthly/${p.id}/captures/${captureState.receipt.captureId}`;
+ value.confirmation.originalPath=prefix+'/original.pdf';value.confirmation.signaturePath=prefix+'/signature.png';
+ value.confirmation.originalVersion=captureState.original.originalVersion;
+ value.confirmation.originalSha256=captureState.receipt.originalSha256;value.confirmation.signatureSha256=captureState.receipt.signatureSha256;
+ p=value;ws=workspace(p);history=[p];return structuredClone(p);
+}
 const field=name=>[...container.querySelectorAll('label')].find(l=>l.querySelector('span')?.textContent===name)?.querySelector('input,select,textarea');
 const click=async name=>{const b=button(name);assert.ok(b,`button ${name} exists`);assert.equal(b.disabled,false,`${name} enabled`);await React.act(async()=>b.click());};
 async function input(element,value){assert.ok(element,'input exists');await React.act(async()=>{
@@ -156,5 +183,49 @@ try{
   await React.act(async()=>root.render(React.createElement(GkvKassenabrechnungScreen,{key})));assert.equal(button('Speicherung klären'),undefined);
   assert.equal(button('Abrechnungspakete').getAttribute('aria-pressed'),'true');assert.equal(button('Rechnungen').disabled,false);
  });
- process.stdout.write(`Monthly UI: ${passed} checks passed (synthetic API, DOM only; no visual approval).\n`);
+ await check('personal confirmation requires opened PDF and review before the new canvas capture; final command is separate',async()=>{
+  ws=workspace(p);history=[p];await mount();await selectClient();await click('Original zur Bestätigung öffnen');
+  assert.equal(field('Leistungsmonat').disabled,true);assert.equal(work.at(-1).dirty,true);
+  assert.equal(button('Geprüft, Unterschrift erfassen').disabled,true);assert.equal(button('Unterschrift im Test zeichnen'),undefined);
+  await React.act(async()=>container.querySelector('iframe[title="Originalfassung des Monatsnachweises"]').dispatchEvent(new window.Event('load')));
+  await React.act(async()=>container.querySelector('.gx-signature-choice input').click());await click('Geprüft, Unterschrift erfassen');
+  await click('Unterschrift im Test zeichnen');assert.equal(calls.filter(c=>c[0]==='write').length,0);
+  let command;globalThis.monthlyApi.commandMonthlyProof=async(_t,_r,c,id)=>{command=c;calls.push(['write',c,id]);
+    return applySignedCapture();};
+  await click('Monatsbestätigung speichern');assert.equal(command.action,'confirm');assert.equal(command.input.receipt_id,captureState.receipt.receiptId);
+  assert.equal(button('Unterschrift im Test zeichnen'),undefined);assert.ok(button('Archivoriginal öffnen'));assert.equal(work.at(-1).dirty,false);
+ });
+ await check('lost final confirmation stays locked and reads the applied receipt without confirming or signing twice',async()=>{
+  ws=workspace(p);history=[p];await mount();await selectClient();await click('Original zur Bestätigung öffnen');
+  await React.act(async()=>container.querySelector('iframe').dispatchEvent(new window.Event('load')));
+  await React.act(async()=>container.querySelector('.gx-signature-choice input').click());await click('Geprüft, Unterschrift erfassen');await click('Unterschrift im Test zeichnen');
+  globalThis.monthlyApi.commandMonthlyProof=async(_t,_r,c,id)=>{calls.push(['write',c,id]);applySignedCapture();throw new MonthlyProofWriteError('Antwort fehlt',true);};
+  await click('Monatsbestätigung speichern');assert.equal(field('Leistungsmonat').disabled,true);assert.ok(button('Speicherung klären'));
+  assert.equal(button('Monatsbestätigung speichern').disabled,true);await click('Speicherung klären');
+  assert.ok(button('Archivoriginal öffnen'));assert.equal(work.at(-1).dirty,false);assert.equal(calls.filter(c=>c[0]==='write').length,1);
+  assert.equal(calls.filter(c=>c[0]==='capture'&&c[1].action==='verify').length,1);
+ });
+ await check('lost verification response blocks navigation and recovers the receipt without signing or issuing twice',async()=>{
+  ws=workspace(p);history=[p];const api=globalThis.monthlyApi.requestMonthlyOriginal;
+  globalThis.monthlyApi.requestMonthlyOriginal=async(...args)=>{const result=await api(...args);if(args[2].action==='verify')throw Error('Antwort fehlt');return result;};
+  await mount();await selectClient();await click('Original zur Bestätigung öffnen');
+  await React.act(async()=>container.querySelector('iframe').dispatchEvent(new window.Event('load')));
+  await React.act(async()=>container.querySelector('.gx-signature-choice input').click());await click('Geprüft, Unterschrift erfassen');await click('Unterschrift im Test zeichnen');
+  assert.equal(work.at(-1).busy,true);assert.equal(field('Leistungsmonat').disabled,true);assert.equal(button('Unterschrift im Test zeichnen'),undefined);
+  await click('Erfassung prüfen');assert.ok(button('Monatsbestätigung speichern'));assert.equal(calls.filter(c=>c[0]==='capture'&&c[1].action==='verify').length,1);
+  assert.equal(calls.filter(c=>c[0]==='write').length,0);
+ });
+ await check('unconfigured host is visible, never simulated, and an explicit close releases the selection',async()=>{
+  ws=workspace(p);history=[p];globalThis.monthlyApi.requestMonthlyOriginal=async()=>{throw Error('Die Verbindung für Monatsunterschriften ist noch nicht eingerichtet.');};
+  await mount();await selectClient();await click('Original zur Bestätigung öffnen');assert.match(container.textContent,/noch nicht eingerichtet/);
+  assert.equal(button('Unterschrift im Test zeichnen'),undefined);assert.equal(button('Monatsbestätigung speichern'),undefined);
+  await click('Erfassung schließen');assert.equal(field('Leistungsmonat').disabled,false);assert.equal(work.at(-1).dirty,false);
+ });
+ await check('a late original response cannot return after tenant switch or revoked write delegation',async()=>{
+  ws=workspace(p);history=[p];const wait=deferred(),api=globalThis.monthlyApi.requestMonthlyOriginal;let response;
+  globalThis.monthlyApi.requestMonthlyOriginal=async(...args)=>{response=await api(...args);return wait.promise;};
+  await mount();await selectClient();await React.act(async()=>button('Original zur Bestätigung öffnen').click());
+  await mount({canCreate:false});await React.act(async()=>wait.resolve(response));assert.equal(container.querySelector('iframe'),null);assert.equal(button('Monatsbestätigung speichern'),undefined);
+ });
+ process.stdout.write(`Monthly UI: ${passed} checks passed (synthetic API/canvas boundaries, DOM only; no visual approval).\n`);
 }finally{await React.act(async()=>root.unmount());await window.happyDOM.abort();for(const channel of channels){channel.port1.close();channel.port2.close();}}

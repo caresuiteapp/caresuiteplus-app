@@ -24,6 +24,22 @@ BEGIN
  PERFORM care_security.gkv_monthly_assert_current_sources(p,s);
  RETURN jsonb_build_object('actorId',auth.uid(),'checkedAt',clock_timestamp(),'proof',to_jsonb(p));
 END $$;
+CREATE FUNCTION care_security.gkv_monthly_verified_receipt_status(p_receipt jsonb)
+ RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE r care_security.gkv_monthly_confirmation_receipts;
+BEGIN
+ IF jsonb_typeof(p_receipt) IS DISTINCT FROM 'object' OR octet_length(p_receipt::text)>8000 THEN
+  RAISE EXCEPTION 'Ungültige Belegabfrage'; END IF;
+ PERFORM care_security.gkv_monthly_verifier_context((p_receipt->>'tenant_id')::uuid,(p_receipt->>'proof_id')::uuid,(p_receipt->>'proof_revision')::integer);
+ SELECT * INTO r FROM care_security.gkv_monthly_confirmation_receipts WHERE id=(p_receipt->>'id')::uuid;
+ IF NOT FOUND THEN RETURN NULL; END IF;
+ IF r.actor_id IS DISTINCT FROM auth.uid() OR r.consumed_at IS NOT NULL
+  OR (to_jsonb(r)-'consumed_at') IS DISTINCT FROM p_receipt THEN
+  RAISE EXCEPTION 'Beleg gehört nicht zur offenen Erfassung' USING ERRCODE='40001'; END IF;
+ RETURN jsonb_build_object('receiptId',r.id,'captureId',r.capture_id,'proofId',r.proof_id,
+  'revision',r.proof_revision,'tenantId',r.tenant_id,'actorId',r.actor_id,'contentSha256',r.content_sha256,
+  'originalSha256',r.original_sha256,'signatureSha256',r.signature_sha256);
+END $$;
 
 CREATE FUNCTION care_security.gkv_monthly_original_read_context(p_tenant uuid,p_proof uuid)
  RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
@@ -82,5 +98,6 @@ END $$;
 -- write delegation or read permission; no runtime role is authorized here.
 REVOKE ALL ON FUNCTION care_security.gkv_monthly_verifier_context(uuid,uuid,integer),
  care_security.gkv_monthly_original_read_context(uuid,uuid),
+ care_security.gkv_monthly_verified_receipt_status(jsonb),
  care_security.gkv_monthly_accept_verified_receipt(jsonb) FROM PUBLIC,anon,authenticated,service_role;
 COMMIT;

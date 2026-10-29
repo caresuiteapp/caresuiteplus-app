@@ -2,6 +2,56 @@
 
 Stand: 29.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
+## Persönliche Host-/Web-Anbindung am 29.10.2026
+
+Der Arbeitsstand nach `1a6f6ed` ergänzt die [vollständige lokale Verbindung](monthly-host.md)
+von Originalanzeige und frischer Web-Unterschrift über das Gateway zum privaten
+mTLS-Host und zur SQL-Worker-Brücke. Gateway und Host prüfen den persönlichen
+Bearer online; SQL verlangt zusätzlich einen mandantengebundenen Host-MAC und
+eine aktive Auth-Sitzung. Erfassung und endgültiger Belegverbrauch bleiben an
+denselben Akteur und dieselbe Anmeldung gebunden. Private Belegfunktionen und
+Schlüsseltabellen werden nicht für Browserrollen geöffnet.
+
+Die Oberfläche trennt Öffnen/Prüfen, neue Zeichnung, Dateiverifikation und
+endgültige Bestätigung. Verlorene Erfassungs- und Abschlussantworten werden mit
+rein lesenden Abfragen geklärt. Auswahl und Navigation bleiben bis zur Klärung
+gesperrt; es wird weder automatisch erneut unterschrieben noch finalisiert.
+Archivansichten zeigen auch nach einer Korrektur die ursprünglichen PDF-Bytes
+und den aktuellen Status. Android wurde nicht geändert.
+
+`npm run verify:gkv:monthly-web` besteht mit **27 Vertragsfällen, 24 bisherigen
+SQL-Testmeldungen, 20 Originaldatei-Testmeldungen, 15 Host-Testmeldungen und
+15 React-/Office-Abläufen**. Die Host-Suite führt eine echte lokale HTTPS-/mTLS-
+Verbindung, verschlüsselte SQLite-Dateien und alle vier SQL-Entwürfe mit echtem
+`pgcrypto` in PGlite aus. Sie prüft vollständigen Abschluss und Korrektur,
+Sitzungswechsel/-widerruf, MAC-Manipulation, Schlüsselwiderruf, fremde Mandanten,
+Rechte-/Quellenwechsel, Zertifikat-Pins, veränderte PDF-Bytes und verlorene
+Antworten. Die React-Suite prüft zusätzlich die verlorene Antwort nach einer
+bereits gespeicherten endgültigen Bestätigung, ohne einen zweiten Schreibauftrag.
+
+Der vollständige lokale `npm run build:web:production` endet mit **Exitcode 0**:
+App-Typcheck, 14 weitere Release-Gates mit **3.795 Vitest-Fällen**, **725 statische
+Routen** und sämtliche Abschlussaudits. Die abschließende Entkopplung des
+Gateway-Auth-Helfers vom privaten SQLite-Modul wurde anschließend mit allen
+15 Host-Testmeldungen und einem tatsächlichen gebündelten API-Einstieg geprüft:
+GET liefert 405, POST ohne Anmeldung 401. 47 bestehende Canvas-/Signatur-/Portal-
+Regressionen sowie neun Katalogtests und der Konsistenzcheck bestehen ebenfalls.
+Es wurden keine Pakete installiert oder Versionen geändert.
+
+Auth-/REST-Server, Office-Quellrechte sowie die UI-API-/Viewer-/Canvas-Grenzen
+sind synthetisch. Die Tests belegen keine echte Supabase-Anmeldung, produktive
+PostgreSQL-Parallelität, tatsächliche Patientenidentität oder Hardware/TI.
+Die lokale Browserlaufzeit ist nicht vorhanden; das erneut abgefragte verbundene
+Gerät war offline. Breite/schmale Darstellung, Schriftvergrößerung, Tastaturfokus,
+PDF-Viewer und tatsächliche Zeichenereignisse bleiben als visuelle Abnahme offen.
+
+Vier SQL-Entwürfe, Hostschlüssel und Zertifikate sind **nicht aktiviert**.
+Derzeit ist ein fester Host für einen Mandanten vorgesehen; allgemeines
+Mehrmandanten-Routing fehlt. Vertreter, Druck/Scan, administrative Beauftragung,
+Fach-XML/XSD/CMS und unabhängige ITSG-/gematik-Abnahme bleiben offen.
+`productionReady` und `submissionDossierComplete` bleiben `false`.
+Die folgenden Abschnitte und Previewnachweise dokumentieren frühere Stände.
+
 ## Privater Originaldatei-Verifizierer am 29.10.2026
 
 Nach `885783a` ist der [Dienstkern für persönliche Bestätigungen](monthly-original-verifier.md)

@@ -9,6 +9,8 @@ import { importInvoiceCase, readSourceSnapshot, UUID } from './sources';
 import type { RevisionSummary, SavedRevision } from './history';
 import { readKimHostStatus, type KimHostStatus } from './kimHostContract';
 import { postKimHostCommand } from './kimHostClient';
+import {postMonthlyOriginalCommand} from './monthlyOriginalClient';
+import type {MonthlyOriginalCommand} from './monthlyOriginalContract';
 import type { KimHostCommand } from './kimReceiveContract';
 import { readMonthlyClients, readMonthlyWorkspace, readMonthlySources, readMonthlyRequestStatus } from './monthlyWorkspace';
 export type { RevisionSummary, SavedRevision } from './history';
@@ -19,6 +21,13 @@ export type Event = {id:string;event_type:string;created_at:string;details:Recor
 export type DirectoryRow = {id:string;filename:string;source_text:string;imported_at:string};
 type Row=Record<string,unknown>;
 export type SourceInvoice={id:string;invoice_number:string;status:string;total_amount:number;updated_at:string;client_id:string|null};
+export async function requestMonthlyOriginal(tenantId:string,role:RoleKey,input:MonthlyOriginalCommand,signal?:AbortSignal){
+  if(input.tenantId!==tenantId)throw Error('Die Erfassung gehört nicht zum aktuellen Mandanten.');
+  const client=connection(tenantId,role,input.action!=='archive');
+  const {data,error}=await client.auth.getSession();
+  if(error || !data.session)throw Error('Bitte erneut anmelden.');
+  return postMonthlyOriginalCommand(input,data.session.access_token,data.session.user.id,signal);
+}
 export async function requestKimHost(tenantId: string, role: RoleKey, action: 'status' | 'start', requestId?: string, signal?: AbortSignal): Promise<KimHostStatus> {
   const value = await requestKimHostCommand(tenantId, role, action === 'status' ? { tenantId, action } : { tenantId, action, requestId: requestId ?? '' }, signal);
   try { return readKimHostStatus(value, tenantId); }
