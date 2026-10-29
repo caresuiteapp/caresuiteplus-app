@@ -74,6 +74,15 @@ export function monthlyDifferences(before: MonthlyProof, after: MonthlyProof): M
   if (before.tenant_id !== after.tenant_id || before.series_id !== after.series_id || before.payload.clientId !== after.payload.clientId
     || before.payload.month !== after.payload.month || before.payload.serviceType !== after.payload.serviceType) fail();
   const changes: MonthlyDifference[] = [];
+  const factsText = (p: MonthlyProof) => {
+    const f = p.payload.xmlFacts, c = f?.content;
+    return f && c ? [`IK ${c.providerIk} · ${c.firstName} ${c.lastName} · ${c.insuranceNumber}`,
+      `Verantwortliche Pflegefachperson: ${c.responsibleEmployeeNumber}`,
+      ...c.days.flatMap(d => d.visits.flatMap(v => [`${d.date} · Einsatz ${v.sequence} · ${v.startTime.slice(0,2)}:${v.startTime.slice(2)}`,
+        ...v.lines.map(l => `${l.code} · ${l.description} · ${l.quantity !== undefined ? `Anzahl ${l.quantity}` : `${l.minutes} Minuten`} · ${l.employeeNumbers.join(', ')}`)])),
+      `Übernommen: ${f.boundAt}`].join('\n') : 'Noch nicht übernommen';
+  };
+  if (factsText(before) !== factsText(after)) changes.push({key:'xmlFacts',label:'Fachangaben',before:factsText(before),after:factsText(after)});
   const old = new Map(before.payload.records.map(r => [r.recordId, r]));
   const next = new Map(after.payload.records.map(r => [r.recordId, r]));
   for (const id of new Set([...old.keys(), ...next.keys()])) {

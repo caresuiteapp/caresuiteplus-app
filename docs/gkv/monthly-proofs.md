@@ -1,8 +1,10 @@
 # Monatsnachweise: Webansicht, gespeicherte Quellen und Korrekturkette
 
-Stand: 29.10.2026. Dieser Baustein verbindet den serverseitigen Speichervertrag
+Stand: 29.10.2026. Neuer Anschluss:
+[Fachangaben vor der Bestätigung](monthly-facts.md). Dieser Baustein verbindet den
+serverseitigen Speichervertrag
 mit der Web-/Desktop-Ansicht „Monatsnachweise“. **Die Datenbankentwürfe sind noch
-nicht aktiviert; echte Betriebsnachweise und die angebundene XML-Ausgabe fehlen.**
+nicht aktiviert; echte Betriebsnachweise und die freigegebene XML/CMS-Ausgabe fehlen.**
 Speichervertrag, Leseabfragen und React-Bedienabläufe sind lokal geprüft.
 Visuelle Abnahme, echte Auth-/Storage-Prüfung und ITSG-Fälle bleiben offen.
 Ein separater [XML-Generator mit amtlicher XSD-Prüfung](monthly-xml.md) ist
@@ -238,7 +240,7 @@ Die SQL-Entwürfe, Schlüssel und Hostkonfiguration sind noch nicht aktiviert.
 
 ## Nächste Umsetzung
 
-1. Zielrechte, fünf SQL-Entwürfe, Hostschlüssel und Zertifikate vor einer
+1. Zielrechte, sechs SQL-Entwürfe einschließlich Fachangaben, Hostschlüssel und Zertifikate vor einer
    gesonderten Aktivierung prüfen. Tatsächliche Anmeldung, Sitzungswiderruf und
    Parallelität gegen die Zielumgebung nachweisen.
 2. Den implementierten PDF-/Unterschriftsablauf breit/schmal mit echten
@@ -248,7 +250,8 @@ Die SQL-Entwürfe, Schlüssel und Hostkonfiguration sind noch nicht aktiviert.
    deren Entzug gegen laufende Bestätigungen prüfen.
 4. Gemischte Leistungsarten innerhalb eines Einsatzes fachlich aufteilen,
    gemeinsame Leistungen und Beschäftigtennummern bis ins XML verfolgen.
-5. Fach-XML, XSD- und komponentenbezogene CMS-Prüfung sowie die gebundene
-   Übergabe der aktuellen finalen Fassung an die Abrechnung ergänzen.
+5. Die angebundene Fach-XML-/XSD-Prüfung um unmittelbare Komponentensignatur,
+   unabhängige CMS-Prüfung, atomare Archivierung und die gebundene Übergabe
+   der aktuellen finalen Fassung an die Abrechnung ergänzen.
 6. Danach die ITSG-Fälle am tatsächlichen Ablauf mit persönlichen Testkonten
    und breiter/schmaler Darstellung ausführen.

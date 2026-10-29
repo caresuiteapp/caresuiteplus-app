@@ -66,7 +66,7 @@ export async function monthlyHostFixture(){
   const command=async(action,input,requestId=randomUUID(),identity=claims())=>(await as(identity,'SELECT public.gkv_monthly_proof_command($1,$2,$3,$4::jsonb) value',[tenant,requestId,action,JSON.stringify(input)])).rows[0].value;
   async function proof({clientId=randomUUID(),serviceType='01'}={}){
     const client=clientId,record=randomUUID(),visit=randomUUID();
-    await db.query("INSERT INTO clients VALUES($1,$2,'Fiktive','Person') ON CONFLICT DO NOTHING",[client,tenant]);
+    await db.query("INSERT INTO clients(id,tenant_id,first_name,last_name) VALUES($1,$2,'Fiktive','Person') ON CONFLICT DO NOTHING",[client,tenant]);
     const receipt={tenant_id:tenant,client_id:client,employee_id:employee,proof_id:visit,proof_payload_hash:'sha256:'+'a'.repeat(64),visit_id:visit};
     await db.query("INSERT INTO service_records VALUES($1,$2,$3,$4,'2026-10-03T12:00Z','2026-10-03','approved',45,$5,true)",[record,tenant,client,employee,JSON.stringify(receipt)]);
     await db.query('INSERT INTO assist_visit_proofs VALUES($1,$2,$1,$3,$4)',[visit,tenant,receipt.proof_payload_hash,JSON.stringify({documentationNote:'Vollständige Unterstützung bei der Körperpflege.',tasks:[]})]);

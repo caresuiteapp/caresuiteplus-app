@@ -5,6 +5,7 @@ import {readPaperReceipt,type PaperReceipt} from './monthlyPaper';
  */
 import { UUID } from './sources';
 import { isDate, isMonth, SERVICE_TYPES, type ServiceType } from './model';
+import {readMonthlyFacts, type MonthlyFacts} from './monthlyFacts';
 
 type Row = Record<string, unknown>;
 export type MonthlyProofRecord = {
@@ -16,6 +17,7 @@ export type MonthlyProofRecord = {
 export type MonthlyProofPayload = {
   schema: 'gkv-monthly-source-v1'; tenantId: string; clientId: string; clientName: string;
   month: string; serviceType: ServiceType; records: MonthlyProofRecord[];
+  xmlFacts?: MonthlyFacts;
 };
 export type MonthlyProofConfirmation = {
   kind: 'missing_signature'; contentSha256: string; reason: string; recordedBy: string;
@@ -37,6 +39,7 @@ type VersionInput = {id: string; revision: number};
 export type MonthlyProofCommand =
   | {action: 'create'; input: {new_id: string; client_id: string; month: string; service_type: ServiceType; source_ids: string[]}}
   | {action: 'replace_sources'; input: VersionInput & {source_ids: string[]; reason: string}}
+  | {action: 'freeze_facts'; input: VersionInput}
   | {action: 'correct'; input: VersionInput & {new_id: string; reason: string}}
   | {action: 'finalize_missing'; input: VersionInput & {content_sha256: string; reason: string}}
   | {action: 'confirm'; input: VersionInput & {content_sha256: string; receipt_id: string}};
@@ -75,6 +78,10 @@ export function readMonthlyProof(value: unknown, tenantId: string): MonthlyProof
       || !object(row.sourceReceipt) || row.sourceReceipt.tenant_id !== tenantId
       || row.sourceReceipt.client_id !== payload.clientId || row.sourceReceipt.employee_id !== row.employeeId) invalid();
     ids.add(row.recordId);
+  }
+  if (payload.xmlFacts !== undefined) {
+    const facts = readMonthlyFacts(payload.xmlFacts, payload as MonthlyProofPayload);
+    if (Date.parse(facts.boundAt) > Date.parse(String(value.updated_at))) invalid();
   }
   const confirmation = value.confirmation;
   if (value.status === 'open') {
@@ -120,6 +127,7 @@ export function assertMonthlyCommandResult(proof: MonthlyProof, command: Monthly
   if (!current) {
     const expectedStatus = command.action === 'confirm' || command.action === 'finalize_missing' ? 'final' : 'open';
     if (proof.status !== expectedStatus || proof.revision !== revision) invalid();
+    if (command.action === 'freeze_facts' && !proof.payload.xmlFacts) invalid();
     if (command.action === 'create' || command.action === 'replace_sources') {
       const requested = new Set(command.input.source_ids);
       if (requested.size !== command.input.source_ids.length || requested.size !== proof.payload.records.length
@@ -141,6 +149,7 @@ export async function executeMonthlyProofCommand(rpc: MonthlyProofRpc, tenantId:
     if (['42P01','42883','PGRST202','PGRST205'].includes(String(code))) throw new MonthlyProofWriteError('Der Speicherablauf für Monatsnachweise ist noch nicht aktiviert.', false);
     if (code === '42501') throw new MonthlyProofWriteError('Für diese Änderung fehlt die aktive Beauftragung als verantwortliche Pflegefachperson oder Vertretung.', false);
     if (code === '40001') throw new MonthlyProofWriteError('Die Fassung oder ihre Quellen wurden geändert. Bitte neu laden und abgleichen.', false);
+    if (code === '22023' && command.action === 'freeze_facts') throw new MonthlyProofWriteError('Die Fachangaben sind noch nicht vollständig hinterlegt oder passen nicht zu den Originalleistungen. Bitte die fachliche Zuordnung prüfen lassen.', false);
     throw new MonthlyProofWriteError('Der Monatsnachweis wurde nicht bestätigt. Bitte gespeicherten Stand und Prüfmeldung kontrollieren.', !/^(22|23|P0001$)/.test(String(code)));
   }
   const proof = readMonthlyProof(data, tenantId);

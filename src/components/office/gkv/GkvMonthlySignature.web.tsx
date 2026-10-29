@@ -29,6 +29,7 @@ function MonthlySignaturePanel({proof,roleKey,canSign,disabled,onWorkState,onCon
   const [busy,setBusy]=useState(false),[error,setError]=useState(''),[opened,setOpened]=useState(false),[reviewed,setReviewed]=useState(false);
   const [,render]=useState(0),mounted=useRef(true),lock=useRef(false),controller=useRef<AbortController|null>(null);
   const work=useRef(onWorkState);work.current=onWorkState;
+  const paperUnavailable=!!proof.payload.xmlFacts && !authority;
   useEffect(()=>{mounted.current=true;controller.current=new AbortController();return()=>{mounted.current=false;controller.current?.abort();controller.current=null;work.current({dirty:false,busy:false});};},[]);
   useEffect(()=>{work.current({dirty:!!capture || authorityWork.dirty,busy:busy || !!capture?.pending || authorityWork.busy});},[capture,busy,capture?.pending,authorityWork]);
   const request=(command:Parameters<typeof requestMonthlyOriginal>[2])=>{
@@ -41,7 +42,7 @@ function MonthlySignaturePanel({proof,roleKey,canSign,disabled,onWorkState,onCon
     finally{lock.current=false;if(mounted.current){setBusy(false);render(n=>n+1);}}
   }
   function start(resume=false){
-    if(!canSign || capture || disabled || lock.current || authority===null || authorityWork.dirty || authorityWork.busy)return;
+    if(!canSign || capture || disabled || lock.current || authority===null || authorityWork.dirty || authorityWork.busy || method==='paper' && paperUnavailable)return;
     const next=new MonthlyCaptureSession({tenantId:proof.tenant_id,proofId:proof.id,revision:proof.revision,captureId:resume?resumeId.trim().toLowerCase():crypto.randomUUID(),...(method==='paper'?{method:'paper' as const}:{}),...(authority?{authorityId:authority.id}:{})},proof.content_sha256,request);
     setCapture(next);setOpened(false);setReviewed(false);void run(()=>resume?next.resume():next.prepare());
   }
@@ -66,11 +67,12 @@ function MonthlySignaturePanel({proof,roleKey,canSign,disabled,onWorkState,onCon
     {!final && <GkvMonthlyRepresentative proof={proof} roleKey={roleKey} disabled={disabled || busy || !!capture} value={authority} onChange={setAuthority} onWorkState={setAuthorityWork}/>}
     {!final && !capture && <div className="gx-stack"><fieldset disabled={disabled || busy || authorityWork.dirty || authorityWork.busy}><legend>Wie wird unterschrieben?</legend>
       <label className="gx-signature-choice"><input type="radio" name="monthly-method" checked={method==='canvas'} onChange={()=>setMethod('canvas')}/><span>Direkt am Bildschirm unterschreiben</span></label>
-      <label className="gx-signature-choice"><input type="radio" name="monthly-method" checked={method==='paper'} onChange={()=>setMethod('paper')}/><span>Ausdrucken und unterschrieben einscannen</span></label></fieldset>
-      <button type="button" className="gx-primary" disabled={disabled || busy || authority===null || authorityWork.dirty || authorityWork.busy} onClick={()=>start()}>{method==='paper'?'Neue Druckfassung öffnen':'Original zur Bestätigung öffnen'}</button>
+      <label className="gx-signature-choice"><input type="radio" name="monthly-method" disabled={paperUnavailable} checked={method==='paper'} onChange={()=>setMethod('paper')}/><span>Ausdrucken und unterschrieben einscannen</span></label></fieldset>
+      {paperUnavailable && <p className="gx-muted">Für diesen Leistungsnachweis ist der Papierweg derzeit nur für eine geprüfte Vertretung verfügbar. Die pflegebedürftige Person kann direkt am Bildschirm unterschreiben.</p>}
+      <button type="button" className="gx-primary" disabled={disabled || busy || authority===null || authorityWork.dirty || authorityWork.busy || method==='paper' && paperUnavailable} onClick={()=>start()}>{method==='paper'?'Neue Druckfassung öffnen':'Original zur Bestätigung öffnen'}</button>
       {method==='paper' && <details><summary>Bereits ausgegebene Druckfassung fortsetzen</summary><p>Die Erfassungskennung steht auf jeder gedruckten Seite. Fortsetzen ist innerhalb von sieben Tagen mit derselben persönlichen Anmeldung und unverändertem Monatsnachweis möglich. Bei Vertretung dieselbe geprüfte Berechtigung auswählen.</p>
         <label className="gx-stack"><span>Erfassungskennung auf dem Ausdruck</span><input value={resumeId} disabled={disabled || busy} onChange={e=>setResumeId(e.target.value)} autoComplete="off"/></label>
-        <button type="button" disabled={disabled || busy || !resumeId.trim() || authority===null || authorityWork.dirty || authorityWork.busy} onClick={()=>start(true)}>Druckfassung fortsetzen</button></details>}
+        <button type="button" disabled={disabled || busy || !resumeId.trim() || authority===null || authorityWork.dirty || authorityWork.busy || paperUnavailable} onClick={()=>start(true)}>Druckfassung fortsetzen</button></details>}
     </div>}
     {original && <OriginalViewer original={original} onOpened={()=>setOpened(true)}/>}
     {final && proof.confirmation?.kind==='signature' && proof.confirmation.paper && <button type="button" disabled={disabled || busy} onClick={()=>void run(async()=>{

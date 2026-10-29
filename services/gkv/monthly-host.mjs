@@ -9,7 +9,7 @@ import {readMonthlyOriginalCommand,readMonthlyOriginalResponse,monthlyBase64,MON
 
 export const monthlyError = error => {
   const code = error?.message;
-  if (['MONTHLY_AUTH','MONTHLY_FORBIDDEN','MONTHLY_STALE','MONTHLY_UNCONFIGURED','MONTHLY_BUSY','MONTHLY_FILE_SIZE'].includes(code)) return code;
+  if (['MONTHLY_AUTH','MONTHLY_FORBIDDEN','MONTHLY_STALE','MONTHLY_UNCONFIGURED','MONTHLY_BUSY','MONTHLY_FILE_SIZE','MONTHLY_PAPER_PROFILE'].includes(code)) return code;
   if (code === 'MONTHLY_SIGNATURE_PNG' || code === 'MONTHLY_ORIGINAL_CONTRACT' || code === 'MONTHLY_PAPER_INPUT') return 'MONTHLY_INPUT';
   if (code === 'MONTHLY_SIGNATURE_REUSED') return code;
   if (code === 'MONTHLY_STORE_QUOTA') return 'MONTHLY_QUOTA';
@@ -17,7 +17,7 @@ export const monthlyError = error => {
   return 'MONTHLY_UNAVAILABLE';
 };
 export const monthlyHttpStatus = code => code === 'MONTHLY_AUTH' ? 401 : code === 'MONTHLY_FORBIDDEN' ? 403
-  : code === 'MONTHLY_INPUT' ? 400 : code === 'MONTHLY_FILE_SIZE' ? 413
+  : ['MONTHLY_INPUT','MONTHLY_PAPER_PROFILE'].includes(code) ? 400 : code === 'MONTHLY_FILE_SIZE' ? 413
   : ['MONTHLY_STALE','MONTHLY_SIGNATURE_REUSED','MONTHLY_QUOTA','MONTHLY_BUSY'].includes(code) ? 409 : 503;
 
 export class MonthlyOriginalHost {

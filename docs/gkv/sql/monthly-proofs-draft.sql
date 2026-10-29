@@ -164,8 +164,14 @@ CREATE FUNCTION care_security.gkv_monthly_assert_current_sources(p public.gkv_mo
 DECLARE ids uuid[];
 BEGIN
  SELECT array_agg((r->>'recordId')::uuid ORDER BY r->>'recordId') INTO ids FROM jsonb_array_elements(p.payload->'records') r;
- IF care_security.gkv_monthly_payload(s,ids) IS DISTINCT FROM p.payload THEN
+ IF care_security.gkv_monthly_payload(s,ids) IS DISTINCT FROM (p.payload-'xmlFacts') THEN
   RAISE EXCEPTION 'Quellen wurden geändert. Monatsnachweis erneut abgleichen' USING ERRCODE='40001';
+ END IF;
+ IF p.payload?'xmlFacts' THEN
+  IF care_security.gkv_monthly_build_facts(p,(p.payload->'xmlFacts'->>'responsibleActorId')::uuid,
+    (p.payload->'xmlFacts'->>'boundAt')::timestamptz) IS DISTINCT FROM p.payload->'xmlFacts' THEN
+   RAISE EXCEPTION 'Fachangaben wurden geändert. Erneut übernehmen und persönlich bestätigen' USING ERRCODE='40001';
+  END IF;
  END IF;
 END $$;
 
@@ -176,10 +182,11 @@ DECLARE p public.gkv_monthly_proofs; old public.gkv_monthly_proofs; s public.gkv
  v_hash text; v_ids uuid[]; v_keys text[]; v_payload jsonb; v_reason text; v_before jsonb; v_id uuid;
 BEGIN
  IF care_security.gkv_monthly_writer(p_tenant_id) IS NOT TRUE THEN RAISE EXCEPTION 'Aktive Beauftragung der verantwortlichen Pflegefachperson erforderlich' USING ERRCODE='42501'; END IF;
- IF p_request_id IS NULL OR p_action IS NULL OR p_action NOT IN ('create','replace_sources','confirm','finalize_missing','correct')
+ IF p_request_id IS NULL OR p_action IS NULL OR p_action NOT IN ('create','replace_sources','freeze_facts','confirm','finalize_missing','correct')
  OR jsonb_typeof(p_input) IS DISTINCT FROM 'object' OR octet_length(p_input::text)>50000 THEN RAISE EXCEPTION 'Ungültiger Monatsnachweisauftrag'; END IF;
  v_keys:=CASE p_action WHEN 'create' THEN ARRAY['new_id','client_id','month','service_type','source_ids']
  WHEN 'replace_sources' THEN ARRAY['id','revision','source_ids','reason']
+ WHEN 'freeze_facts' THEN ARRAY['id','revision']
  WHEN 'confirm' THEN ARRAY['id','revision','content_sha256','receipt_id']
  WHEN 'finalize_missing' THEN ARRAY['id','revision','content_sha256','reason']
  ELSE ARRAY['id','revision','new_id','reason'] END;
@@ -236,6 +243,14 @@ BEGIN
    IF p_action='replace_sources' THEN
     v_payload:=care_security.gkv_monthly_payload(s,v_ids);
     PERFORM care_security.gkv_monthly_claim_sources(s,v_ids);
+    UPDATE public.gkv_monthly_proofs SET payload=v_payload,content_sha256=care_security.gkv_monthly_hash(p.id,s.id,p.version,v_payload),
+     revision=revision+1,updated_at=clock_timestamp() WHERE id=p.id RETURNING * INTO p;
+   ELSIF p_action='freeze_facts' THEN
+    SELECT array_agg((r->>'recordId')::uuid) INTO v_ids FROM jsonb_array_elements(p.payload->'records') r;
+    IF care_security.gkv_monthly_payload(s,v_ids) IS DISTINCT FROM (p.payload-'xmlFacts') THEN
+     RAISE EXCEPTION 'Leistungsquellen zuerst abgleichen' USING ERRCODE='40001';
+    END IF;
+    v_payload:=(p.payload-'xmlFacts')||jsonb_build_object('xmlFacts',care_security.gkv_monthly_freeze_facts(p));
     UPDATE public.gkv_monthly_proofs SET payload=v_payload,content_sha256=care_security.gkv_monthly_hash(p.id,s.id,p.version,v_payload),
      revision=revision+1,updated_at=clock_timestamp() WHERE id=p.id RETURNING * INTO p;
    ELSE

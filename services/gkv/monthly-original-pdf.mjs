@@ -58,14 +58,33 @@ export function renderMonthlyOriginalDocument({ proof: input, captureId, prepare
     text(`Prüfkennung: ${authority.id}`, 8, '#527083', 4);
   }
   text('Bitte prüfen Sie alle Seiten, bevor Sie diesen Monatsnachweis persönlich bestätigen.', 10, '#406174', 7);
+  const facts = proof.payload.xmlFacts;
+  if (facts) {
+    const c = facts.content;
+    text(`Leistungserbringer-IK: ${c.providerIk}`, 10, '#173c52', 3);
+    text(`Versichertennummer: ${c.insuranceNumber}`, 10, '#173c52', 3);
+    text(`Vorname: ${c.firstName} · Nachname: ${c.lastName}`, 10, '#173c52', 3);
+    text(`Leistungsart: ${c.serviceType} · Verantwortliche Pflegefachperson: ${c.responsibleEmployeeNumber}`, 10, '#173c52', 6);
+  }
   const taskStatus = new Map([['done', 'Erledigt'], ['not_done', 'Nicht durchgeführt'], ['open', 'Offen'], ['skipped', 'Ausgelassen']]);
   let number = 0;
-  for (const record of proof.payload.records) {
+  const byId = new Map(proof.payload.records.map(r => [r.recordId, r]));
+  const records = facts ? facts.sources.map(s => byId.get(s.recordId)) : proof.payload.records;
+  for (const record of records) {
     const lines = [
       [`${++number}. Leistung am ${day(record.serviceDate)} · ${record.actualMinutes} Minuten`, 11, '#173c52', 2],
       [`Erbracht von: ${record.employeeName}`, 10, '#1d3344', 3],
       [record.description, 10, '#1d3344', 3],
     ];
+    if (facts) {
+      const source = facts.sources.find(s => s.recordId === record.recordId);
+      const visit = facts.content.days.find(d => d.date === source.date).visits.find(v => v.sequence === source.sequence);
+      lines.push([`Einsatz ${visit.sequence} · Beginn ${visit.startTime.slice(0,2)}:${visit.startTime.slice(2)} Uhr`, 10, '#173c52', 3]);
+      for (const item of visit.lines) {
+        lines.push([`${item.code} · ${item.description}`, 10, '#1d3344', 2]);
+        lines.push([`${item.quantity !== undefined ? `Anzahl: ${item.quantity}` : `Minuten: ${item.minutes}`} · Beschäftigtennummer: ${item.employeeNumbers.join(', ')}`, 10, '#406174', 4]);
+      }
+    }
     for (const task of record.tasks) {
       const status = taskStatus.get(task.status) || `Status: ${task.status}`;
       lines.push([`${task.title} · ${status}`, 10, '#1d3344', 1]);

@@ -38,7 +38,7 @@ export function callMonthlyHost(env,input,authorization) {
           try {
             if (!incoming.complete) throw Error(); const value=JSON.parse(Buffer.concat(chunks).toString('utf8'));
             if (incoming.statusCode !== 200) {
-              const allowed=['MONTHLY_AUTH','MONTHLY_FORBIDDEN','MONTHLY_STALE','MONTHLY_BUSY','MONTHLY_FILE_SIZE','MONTHLY_INPUT','MONTHLY_SIGNATURE_REUSED','MONTHLY_QUOTA'];
+              const allowed=['MONTHLY_AUTH','MONTHLY_FORBIDDEN','MONTHLY_STALE','MONTHLY_BUSY','MONTHLY_FILE_SIZE','MONTHLY_PAPER_PROFILE','MONTHLY_INPUT','MONTHLY_SIGNATURE_REUSED','MONTHLY_QUOTA'];
               return finish(allowed.includes(value?.error) ? value.error : 'MONTHLY_UNAVAILABLE');
             }
             finish(null,value);

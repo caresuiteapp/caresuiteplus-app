@@ -18,7 +18,7 @@ const currentMonth = () => {
   const parts = new Intl.DateTimeFormat('en', {timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit'}).formatToParts(new Date());
   return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}`;
 };
-const eventLabels: Record<string, string> = {create: 'Monatsnachweis angelegt', replace_sources: 'Quellen mit Begründung abgeglichen',
+const eventLabels: Record<string, string> = {create: 'Monatsnachweis angelegt', replace_sources: 'Quellen mit Begründung abgeglichen', freeze_facts: 'Fachangaben übernommen',
   finalize_missing: 'Ausnahme ohne Unterschrift dokumentiert', confirm: 'Monatsnachweis bestätigt', correct: 'Korrekturfassung angelegt', invalidate_for_correction: 'Vorgänger für Korrektur entwertet'};
 
 export function GkvMonthlyProofs(props: Props) {
@@ -190,9 +190,15 @@ function MonthlyWorkspacePanel({tenantId, roleKey, canCreate, onWorkState}: Prop
           <button type="button" className="gx-primary" disabled={!editable || !!mode || !selectedIds.length || selectedIds.length > 500 || (!!proof && reason.trim().length < 3)} onClick={saveSources}>{proof ? 'Quellen abgleichen und speichern' : 'Monatsnachweis anlegen'}</button></>}
       </section>}
       {proof && <>
+        {writable && proof.status === 'open' && ['01','07','10'].includes(proof.payload.serviceType) && <section className="gx-card gx-stack" aria-label="Fachangaben übernehmen">
+          <h3>Fachangaben für den Leistungsnachweis</h3>
+          <p>Die Übernahme ergänzt IK, Versichertennummer, Leistungsschlüssel, Mengen und Beschäftigtennummern aus der hinterlegten Zuordnung. Prüfen Sie anschließend die vollständige Fassung vor der Unterschrift.</p>
+          <div className="gx-actions"><button type="button" disabled={locked || sourceChanged || !!mode || !!reason.trim()}
+            onClick={() => void write({action:'freeze_facts',input:{id:proof.id,revision:proof.revision}})}>{proof.payload.xmlFacts ? 'Fachangaben erneut übernehmen' : 'Fachangaben übernehmen'}</button></div>
+        </section>}
+        <MonthlyProofContent proof={proof} />
         <GkvMonthlySignature proof={proof} roleKey={roleKey} canSign={writable && !sourceChanged && !mode && !reason.trim()}
           disabled={!!busy || !!writer.pending} onWorkState={setCaptureWork} onConfirm={confirmSignature}/>
-        <MonthlyProofContent proof={proof} />
         {writable && proof.status !== 'invalidated' && <section className="gx-card gx-stack" aria-label="Fassung bearbeiten">
           {!mode ? <div className="gx-actions">{proof.status === 'final' ? <button type="button" disabled={locked} onClick={() => { setMode('correct'); setReason(''); setReviewed(false); }}>Korrektur beginnen</button>
             : <button type="button" disabled={locked || sourceChanged} onClick={() => { setMode('missing'); setReason(''); setReviewed(false); }}>Ausnahme ohne Unterschrift dokumentieren</button>}</div> : <>
@@ -224,6 +230,17 @@ export function MonthlyProofContent({proof}: {proof: MonthlyProof}) {
     {proof.confirmation?.kind === 'missing_signature' && <div className="gx-subtle"><strong>Endgültig ohne Unterschrift</strong><p>{proof.confirmation.reason}</p></div>}
     {proof.confirmation?.kind === 'signature' && <div className="gx-subtle"><strong>Bestätigt durch {proof.confirmation.signerName}</strong><p>{proof.confirmation.signerRole === 'representative' ? 'Vertretung' : 'Pflegebedürftige Person'} · {time(proof.confirmation.paper?.signedAt ?? proof.confirmation.capturedAt)}</p>{proof.confirmation.paper && <p>Papierunterschrift · {proof.confirmation.paper.pageSha256.length} Scanseiten geprüft am {time(proof.confirmation.paper.reviewedAt)}</p>}</div>}
     {proof.status === 'invalidated' && <p className="gx-notice" data-tone="error">Diese Fassung wurde durch eine Korrektur ungültig. Sie bleibt zur Nachvollziehbarkeit erhalten.</p>}
+    {proof.payload.xmlFacts && <section className="gx-stack" aria-label="Übernommene Fachangaben">
+      <h4>Übernommene Fachangaben</h4>
+      <p>Leistungserbringer-IK: {proof.payload.xmlFacts.content.providerIk} · Versichertennummer: {proof.payload.xmlFacts.content.insuranceNumber}</p>
+      <p>Vorname: {proof.payload.xmlFacts.content.firstName} · Nachname: {proof.payload.xmlFacts.content.lastName}</p>
+      <p>Leistungsart: {proof.payload.xmlFacts.content.serviceType} · Verantwortliche Pflegefachperson: {proof.payload.xmlFacts.content.responsibleEmployeeNumber}</p>
+      {proof.payload.xmlFacts.content.days.map(d => <section key={d.date} className="gx-stack"><h4>{day(d.date)}</h4>
+        {d.visits.map(v => <article key={v.sequence} className="gx-subtle"><strong>Einsatz {v.sequence} · Beginn {v.startTime.slice(0,2)}:{v.startTime.slice(2)} Uhr</strong>
+          {v.lines.map((l,i) => <div key={i}><p>{l.code} · {l.description}</p><p>{l.quantity !== undefined ? `Anzahl: ${l.quantity}` : `Minuten: ${l.minutes}`} · Beschäftigtennummer: {l.employeeNumbers.join(', ')}</p></div>)}
+        </article>)}
+      </section>)}
+    </section>}
     <ol className="gx-monthly-records">{[...proof.payload.records].sort((a, b) => a.serviceDate.localeCompare(b.serviceDate) || a.recordId.localeCompare(b.recordId)).map(record => <li key={record.recordId}>
       <div className="gx-card-title"><strong>{day(record.serviceDate)} · {record.employeeName}</strong><span>{record.actualMinutes} Minuten</span></div>
       <p>{record.description}</p>{record.tasks.length > 0 && <ul>{record.tasks.map((task, i) => <li key={`${task.id}:${i}`}><strong>{task.title}</strong> · {({done: 'Erbracht', open: 'Offen', not_done: 'Nicht erbracht', not_requested: 'Nicht gewünscht', cancelled: 'Abgesagt'} as Record<string, string>)[task.status] || task.status}{task.completionNote && <p>{task.completionNote}</p>}</li>)}</ul>}

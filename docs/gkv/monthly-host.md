@@ -105,7 +105,12 @@ angeben; Zertifikatsname und Pin bleiben verbindlich. Der URL-Pfad ist ausschlie
 Nach gesonderter Prüfung der Zielrechte ist die Reihenfolge der SQL-Entwürfe:
 `monthly-proofs-draft.sql`, `monthly-workspace-draft.sql`,
 `monthly-original-verifier-draft.sql`, `monthly-worker-bridge-draft.sql`,
-`monthly-authorities-draft.sql`. Alle fünf sind gemeinsam zu prüfen.
+`monthly-authorities-draft.sql` und für die Fachangaben
+`monthly-facts-draft.sql`. Alle sechs sind gemeinsam zu prüfen.
+Die [Fachangaben-Integration](monthly-facts.md) benötigt im privaten Host
+zusätzlich das vorhandene Python 3/lxml und die fixierten LNW-XSD-Dateien.
+Eine fehlende Laufzeit gibt keine erfolgreiche Bestätigungsquittung für solche
+Fassungen aus. Es wurde kein Host provisioniert.
 Die Brücke setzt das vorhandene `pgcrypto` im Schema `extensions` sowie das
 Supabase-Auth-Schema voraus. Hostfreigaben werden separat in der privaten
 Schlüsseltabelle provisioniert. Kein Skript aktiviert oder befüllt sie automatisch.

@@ -218,7 +218,7 @@ export async function listMonthlyEvents(tenantId: string, role: RoleKey, proofId
   if (error) failure(error);
   const rows = (data || []) as unknown as (MonthlyEvent & {tenant_id: string; proof_id: string})[];
   if (rows.some(row => !UUID.test(row.id) || row.tenant_id !== tenantId || row.proof_id !== proofId
-    || !['create','replace_sources','confirm','finalize_missing','correct','invalidate_for_correction'].includes(row.action)
+    || !['create','replace_sources','freeze_facts','confirm','finalize_missing','correct','invalidate_for_correction'].includes(row.action)
     || !(row.reason === null || typeof row.reason === 'string') || !Number.isFinite(Date.parse(row.created_at)))) throw new Error('Das Bearbeitungsprotokoll passt nicht zur ausgewählten Fassung.');
   return rows;
 }

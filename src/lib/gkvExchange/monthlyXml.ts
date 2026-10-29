@@ -1,6 +1,6 @@
 /** PFL_LNW 2.2.0 / logical version 1.2.0. This is a document contract, not an
  * authorization or a conversion of an already confirmed monthly source record.
- * A future capture adapter must freeze these exact fields before confirmation.
+ * The capture adapter freezes these exact fields before confirmation.
  */
 import { isDate, isIk } from './model';
 
@@ -21,6 +21,7 @@ export type MonthlyXmlDocument = {
   signature: { type: '1'; signedLocalTime: string; fileType: '3'; base64: string }
     | { type: '3'; signedLocalTime?: string; fileType: '2'; base64: string };
 };
+export type MonthlyXmlContent = Omit<MonthlyXmlDocument, 'proofId' | 'signature'>;
 export class MonthlyXmlError extends Error {
   readonly code: string; readonly path: string;
   constructor(code: string, path = '') { super(code); this.name = 'MonthlyXmlError'; this.code = code; this.path = path; }
@@ -66,11 +67,10 @@ function possibleInstants(local: string): number[] {
     .filter(value => Number.isFinite(value) && monthlyXmlLocalTime(new Date(value).toISOString()) === local);
 }
 
-export function readMonthlyXmlDocument(value: unknown, checkedAt: string): MonthlyXmlDocument {
+function content(value: unknown, checkedAt: string): {value: MonthlyXmlContent; earliestLastStart: number} {
   const now = monthlyXmlLocalTime(checkedAt), day = localDate(now);
   if (day < MONTHLY_XML_PROFILE.validFrom || day > MONTHLY_XML_PROFILE.validUntil) monthlyXmlFail('VERSION');
-  const v = shape(value, ['proofId','providerIk','month','insuranceNumber','lastName','firstName','serviceType','responsibleEmployeeNumber','days','signature']);
-  digits(v.proofId, /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i, 'proofId');
+  const v = shape(value, ['providerIk','month','insuranceNumber','lastName','firstName','serviceType','responsibleEmployeeNumber','days']);
   if (!isIk(v.providerIk)) monthlyXmlFail('FIELD', 'providerIk');
   digits(v.month, /^(?:19|2\d)\d{2}-(?:0[1-9]|1[0-2])$/, 'month');
   if (v.month > day.slice(0,7)) monthlyXmlFail('FUTURE', 'month');
@@ -110,7 +110,15 @@ export function readMonthlyXmlDocument(value: unknown, checkedAt: string): Month
       }
     }
   }
-  const s = shape(v.signature, ['type','fileType','base64'], ['signedLocalTime'], 'signature');
+  return {value: structuredClone(v) as unknown as MonthlyXmlContent, earliestLastStart};
+}
+export function readMonthlyXmlContent(value: unknown, checkedAt: string): MonthlyXmlContent { return content(value, checkedAt).value; }
+export function readMonthlyXmlDocument(value: unknown, checkedAt: string): MonthlyXmlDocument {
+  const v = shape(value, ['proofId','providerIk','month','insuranceNumber','lastName','firstName','serviceType','responsibleEmployeeNumber','days','signature']);
+  digits(v.proofId, /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i, 'proofId');
+  const {proofId: _id, signature, ...body} = v;
+  const {earliestLastStart} = content(body, checkedAt);
+  const s = shape(signature, ['type','fileType','base64'], ['signedLocalTime'], 'signature');
   if (s.type !== '1' && s.type !== '3') monthlyXmlFail('UNSUPPORTED_SIGNATURE', 'signature.type');
   if (s.type === '1' && (s.fileType !== '3' || s.signedLocalTime === undefined) || s.type === '3' && s.fileType !== '2') monthlyXmlFail('SIGNATURE', 'signature');
   if (s.signedLocalTime !== undefined) {

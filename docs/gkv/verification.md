@@ -2,6 +2,55 @@
 
 Stand: 29.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
+## Fachangaben und Originalbindung am 29.10.2026
+
+Der Arbeitsstand nach `7ee33fe` ergänzt die
+[Fachangaben vor Bestätigung](monthly-facts.md). Der sechste SQL-Reviewentwurf
+bindet vollständige unterstützte Fachfelder an Originalquelle, Revision und
+Hash. Der private Host reproduziert die angezeigte PDF-Fassung, liest die
+verschlüsselt gespeicherte Unterschrift bzw. den vollständigen Vertreter-Scan
+zurück und prüft daraus erzeugte XML-Bytes vor der Bestätigungsquittung.
+
+- 13 Prüfmeldungen der neuen integrierten Suite bestanden: tatsächliche SQL-,
+  PDF-/PNG-, SQLite- und XSD-Verarbeitung einschließlich Vertreter-Scan,
+  Antwortverlust, Korrektur, unveränderlicher Beschäftigtennummer, veralteter
+  Quellen trotz gleichem Zeitstempel, geändertem Versicherungseintrag,
+  unzulässigen Browserfeldern, privaten Zugriffsrechten und Dateimanipulation.
+  Zwei synthetische, getrennte Einsätze behalten in PDF und XML dieselbe Reihenfolge;
+  doppelte ursprüngliche Einsatz-IDs werden gesperrt.
+- Die abschließend vollständig wiederholte GKV-/KIM-Dienstsuite bestand
+  mit 1.379 Prüfmeldungen auf dem letzten Code-/SQL-Stand, einschließlich
+  der 50 XML-Prüfungen und der neuen Originalbindung.
+- 23 React-Bedienabläufe bestanden. Die neue Aktion sendet ausschließlich ID
+  und Revision, zeigt die Fachfelder vor der Bestätigung, sperrt Änderungen
+  während einer Erfassung und klärt verlorene Antworten lesend. Nicht
+  unterstützte Patienten-Papierbestätigung mit Fachangaben wird vorab gesperrt.
+- Der generierte ESM-Gateway-Einstieg besteht alle vier vorhandenen Fälle;
+  Katalogkonsistenz und neun Katalogfälle bestanden.
+- Der abschließende eigenständige App-TypeScript-Lauf mit 6.144 MiB Heap
+  bestand. Ein früherer paralleler Lauf war vom System mit `Killed` beendet
+  worden und wird nicht als bestandene Prüfung gewertet.
+- Der vollständige lokale Webbuild bestand: 14 weitere Release-Gates mit
+  3.795 Vitest-Fällen, 725 statischen Routen und allen Abschlussaudits. Das
+  abschließend wiederholte Monats-Gate enthält 142 erfolgreiche Prüfmeldungen
+  einschließlich des letzten Schutzes gegen doppelte ursprüngliche Einsätze.
+- Die synthetische einseitige Fach-PDF wurde mit Poppler gerendert und visuell
+  geprüft. Texte, volle Fachangaben und Fußzeile sind lesbar und überlagern
+  sich nicht. Mehrseitige Inhalte werden zusätzlich über tatsächliche PDF-
+  Textextraktion geprüft. Diese Prüfung ist kein echter Druck-/Scannachweis.
+- Eine breite/schmale visuelle Webabnahme ist offen: die vorhandene Playwright-
+  Installation hat hier keine ausführbare Chromium-Datei. DOM-Prüfungen werden
+  nicht als Layoutnachweis gewertet; es wurde keine Software nachinstalliert.
+
+Die privaten Zuordnungen sind vorläufige Schnittstellen, keine nachgewiesene
+persönliche GKV-Nummernerfassung. `captureProvenance` bleibt `not-attested`;
+Herkunfts-, CMS- und Versandfreigaben bleiben false. Der XML-Kandidat wird
+geprüft, aber noch nicht archiviert, elektronisch signiert oder ausgegeben.
+Alle sechs SQL-Dateien bleiben Reviewentwürfe ohne Anwendung in einer
+verbundenen Datenbank. Reale Rechte, Mehrpersonenleistungen, Provisionierung,
+unmittelbare Komponentensignatur, XML/CMS-Abschluss, Hardware/TI und externe
+Prüfungen bleiben offen. Die ITSG-Fälle wurden nicht auf bestanden gesetzt.
+
 ## XML-Generator und amtliche Schemaprüfung am 29.10.2026
 
 Der Arbeitsstand nach `2c9052b` ergänzt den separaten

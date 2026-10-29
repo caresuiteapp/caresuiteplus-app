@@ -8,7 +8,7 @@ import {runInThisContext} from 'node:vm';
 import {resolve} from 'node:path';
 import {existsSync} from 'node:fs';
 import {randomUUID,createHash} from 'node:crypto';
-import {tenant,client,user,month,fixture,finalProof,signedProof,workspace,sources,deferred} from './monthly-fixtures.mjs';
+import {tenant,client,user,month,fixture,finalProof,signedProof,workspace,sources,deferred,withFacts} from './monthly-fixtures.mjs';
 
 const apiNames=['checkMonthlyRequest','commandMonthlyProof','listMonthlyClients','listMonthlySources','listMonthlyEvents','loadMonthlyProof',
  'loadMonthlyWorkspace','readMonthlyProofHistory','command','downloadBytes','readBatch','readDirectory','readEvents','readInvoiceCase',
@@ -128,7 +128,26 @@ async function selectClient(){
  const select=container.querySelector('.gx-monthly-client select');await input(select,client);
 }
 async function check(name,fn){await React.act(async()=>root.render(null));reset();await fn();passed++;process.stdout.write(`ok ${passed} - ${name}\n`);}
+ const choice=text=>[...container.querySelectorAll('label')].find(l=>l.textContent.includes(text))?.querySelector('input');
 try{
+ await check('freeze facts submits only the version, displays full fields before capture and blocks unsupported patient paper',async()=>{
+  ws=workspace(p);history=[p];
+  globalThis.monthlyApi.commandMonthlyProof=async(_t,_r,c,id)=>{calls.push(['write',structuredClone(c),id]);p=withFacts(p);ws=workspace(p);history=[p];return structuredClone(p);};
+  await mount();await selectClient();await click('Fachangaben übernehmen');
+  const cmd=calls.find(c=>c[0]==='write')[1];assert.equal(cmd.action,'freeze_facts');assert.deepEqual(Object.keys(cmd.input).sort(),['id','revision']);
+  for(const value of ['123456789','A123456789','999888777','0101101','10:00','1.00','123123123'])assert.ok(container.textContent.includes(value),value);
+  const facts=container.querySelector('[aria-label="Übernommene Fachangaben"]'),sign=container.querySelector('[aria-label="Persönliche Monatsbestätigung"]');
+  assert.ok(facts.compareDocumentPosition(sign)&4);assert.equal(choice('Ausdrucken und unterschrieben einscannen').disabled,true);
+  await click('Original zur Bestätigung öffnen');assert.equal(button('Fachangaben erneut übernehmen').disabled,true);
+ });
+ await check('lost fact write recovers stored fields with one request and no second signature or write',async()=>{
+  ws=workspace(p);history=[p];
+  globalThis.monthlyApi.commandMonthlyProof=async(_t,_r,c,id)=>{calls.push(['write',structuredClone(c),id]);p=withFacts(p);ws=workspace(p);history=[p];throw new MonthlyProofWriteError('Antwort fehlt',true);};
+  await mount();await selectClient();await click('Fachangaben übernehmen');assert.equal(field('Leistungsmonat').disabled,true);
+  assert.equal(button('Fachangaben übernehmen').disabled,true);await click('Speicherung klären');
+  assert.equal(calls.filter(c=>c[0]==='write').length,1);assert.equal(calls.filter(c=>c[0]==='capture').length,0);
+  assert.ok(container.textContent.includes('A123456789'));assert.equal(button('Fachangaben erneut übernehmen').disabled,false);
+ });
  await check('StrictMode initialization, source selection, duplicate click and server-owned create',async()=>{
   await mount({strict:true});assert.ok(container.querySelector('.gx-monthly-client select option[value="'+client+'"]'));
   await selectClient();const source=container.querySelector('.gx-monthly-source input');await React.act(async()=>source.click());assert.equal(work.at(-1).dirty,true);
@@ -258,7 +277,6 @@ try{
   await mount({canCreate:false});await React.act(async()=>wait.resolve(response));
   assert.equal(field('Geprüfte Vertretung'),undefined);assert.equal(button('Original zur Bestätigung öffnen'),undefined);
  });
- const choice=text=>[...container.querySelectorAll('label')].find(l=>l.textContent.includes(text))?.querySelector('input');
  const beginPaper=async()=>{ws=workspace(p);history=[p];await mount();await selectClient();
    await React.act(async()=>choice('Ausdrucken und unterschrieben einscannen').click());await click('Neue Druckfassung öffnen');
    await React.act(async()=>container.querySelector('iframe').dispatchEvent(new window.Event('load')));

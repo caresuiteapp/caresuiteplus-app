@@ -280,7 +280,7 @@ function callMonthlyHost(env, input, authorization) {
             if (!incoming.complete) throw Error();
             const value = JSON.parse(Buffer.concat(chunks).toString("utf8"));
             if (incoming.statusCode !== 200) {
-              const allowed = ["MONTHLY_AUTH", "MONTHLY_FORBIDDEN", "MONTHLY_STALE", "MONTHLY_BUSY", "MONTHLY_FILE_SIZE", "MONTHLY_INPUT", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"];
+              const allowed = ["MONTHLY_AUTH", "MONTHLY_FORBIDDEN", "MONTHLY_STALE", "MONTHLY_BUSY", "MONTHLY_FILE_SIZE", "MONTHLY_PAPER_PROFILE", "MONTHLY_INPUT", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"];
               return finish(allowed.includes(value?.error) ? value.error : "MONTHLY_UNAVAILABLE");
             }
             finish(null, value);
@@ -301,7 +301,7 @@ function callMonthlyHost(env, input, authorization) {
 }
 
 // api/_lib/monthly-host-handler.mjs
-var status = (code) => code === "MONTHLY_AUTH" ? 401 : code === "MONTHLY_FORBIDDEN" ? 403 : code === "MONTHLY_INPUT" ? 400 : code === "MONTHLY_FILE_SIZE" ? 413 : ["MONTHLY_STALE", "MONTHLY_BUSY", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"].includes(code) ? 409 : 503;
+var status = (code) => code === "MONTHLY_AUTH" ? 401 : code === "MONTHLY_FORBIDDEN" ? 403 : ["MONTHLY_INPUT", "MONTHLY_PAPER_PROFILE"].includes(code) ? 400 : code === "MONTHLY_FILE_SIZE" ? 413 : ["MONTHLY_STALE", "MONTHLY_BUSY", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"].includes(code) ? 409 : 503;
 function createMonthlyHostHandler({ env, fetch: http = fetch }) {
   return async (req, res) => {
     res.setHeader("Cache-Control", "private, no-store");
@@ -325,7 +325,7 @@ function createMonthlyHostHandler({ env, fetch: http = fetch }) {
       const result = await callMonthlyHost(env, input, req.headers.authorization);
       return res.status(200).json(readMonthlyOriginalResponse(result, input, principal.actorId));
     } catch (error) {
-      const code = ["MONTHLY_AUTH", "MONTHLY_FORBIDDEN", "MONTHLY_STALE", "MONTHLY_UNCONFIGURED", "MONTHLY_BUSY", "MONTHLY_INPUT", "MONTHLY_FILE_SIZE", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"].includes(error?.message) ? error.message : "MONTHLY_UNAVAILABLE";
+      const code = ["MONTHLY_AUTH", "MONTHLY_FORBIDDEN", "MONTHLY_STALE", "MONTHLY_UNCONFIGURED", "MONTHLY_BUSY", "MONTHLY_PAPER_PROFILE", "MONTHLY_INPUT", "MONTHLY_FILE_SIZE", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"].includes(error?.message) ? error.message : "MONTHLY_UNAVAILABLE";
       return res.status(status(code)).json({ error: code });
     }
   };

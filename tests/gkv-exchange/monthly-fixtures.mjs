@@ -24,3 +24,14 @@ export const workspace=p=>({tenantId:tenant,clientId:client,clientName:'Test Pat
 export const sources=p=>p.payload.records.map(r=>({id:r.recordId,updatedAt:r.updatedAt,serviceDate:r.serviceDate,employeeId:r.employeeId,
  employeeName:r.employeeName,actualMinutes:r.actualMinutes,description:r.description,assignedSeriesId:null})).sort((a,b)=>a.id.localeCompare(b.id));
 export const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject};};
+/** Contract/UI data only; no assertion of real source provenance or PDF bytes. */
+export function withFacts(value=fixture()) {
+ const p=structuredClone(value),r=p.payload.records[0];p.updated_at='2026-10-29T10:00:00.000Z';p.revision++;
+ r.sourceReceipt={...r.sourceReceipt,visit_id:randomUUID(),service_started_at:'2026-10-03T08:00:00Z',service_ended_at:'2026-10-03T08:30:00Z'};
+ p.payload.xmlFacts={schema:'gkv-monthly-facts-v1',boundAt:p.updated_at,responsibleActorId:user,
+  providerReference:'SYNTHETISCHE IK',responsibleReference:'SYNTHETISCHE Zuordnung',captureProvenance:'not-attested',
+  content:{providerIk:'123456789',month,insuranceNumber:'A123456789',lastName:'Patient',firstName:'Test',serviceType:'01',responsibleEmployeeNumber:'999888777',
+   days:[{date:r.serviceDate,visits:[{sequence:1,startTime:'1000',lines:[{code:'0101101',description:'Unterstützung bei der Körperpflege',quantity:'1.00',employeeNumbers:['123123123']}]}]}]},
+  sources:[{recordId:r.recordId,recordUpdatedAt:r.updatedAt,employeeId:r.employeeId,employeeNumber:'123123123',sourceReceiptSha256:'a'.repeat(64),mappingReference:'SYNTHETISCHE Zuordnung',date:r.serviceDate,sequence:1}]};
+ p.content_sha256='d'.repeat(64);return p;
+}

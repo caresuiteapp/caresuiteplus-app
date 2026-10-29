@@ -6,6 +6,7 @@ import { renderMonthlyOriginalDocument } from './monthly-original-pdf.mjs';
 import { inspectMonthlySignature } from './monthly-signature-png.mjs';
 import {inspectMonthlyScan,cropMonthlyScan} from './monthly-scan.mjs';
 import {readPaperReview} from '../../src/lib/gkvExchange/monthlyPaper.ts';
+import {generateCapturedMonthlyXml} from './monthly-captured-xml.mjs';
 
 const canonical = value => JSON.stringify(value, function(_key, v) {
   return v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v;
@@ -60,6 +61,7 @@ export class MonthlyOriginalVerifier {
     const context = await this.#db.context(input);
     if (!context || !isUuid(context.actorId) || !instant(context.checkedAt)) fail('MONTHLY_VERIFIER_CONTEXT');
     const proof = readMonthlyProof(context.proof, input.tenantId);
+    if (proof.payload.xmlFacts && input.method === 'paper' && !input.authorityId) fail('MONTHLY_PAPER_PROFILE');
     if (proof.id !== input.proofId || proof.revision !== input.revision || proof.status !== 'open'
       || Date.parse(proof.updated_at) > Date.parse(context.checkedAt)) fail('MONTHLY_VERIFIER_CONTEXT');
     if (context.sessionId !== undefined && !isUuid(context.sessionId)) fail('MONTHLY_VERIFIER_CONTEXT');
@@ -228,6 +230,12 @@ export class MonthlyOriginalVerifier {
     const verified = await this.#context(input);
     this.#bound(input, verified);
     stored = this.#store.sealVerification(input.tenantId, input.captureId, verified.checkedAt);
+    if (context.proof.payload.xmlFacts) {
+      await generateCapturedMonthlyXml(stored, paper ? this.#store.getScan(input.tenantId,input.captureId) : undefined);
+      // The independent schema worker yields: repeat identity/source/authority
+      // checks before issuing a receipt. The unsigned candidate is not released.
+      this.#bound(input, await this.#context(input));
+    }
     const result = await this.#db.issue(structuredClone(stored.receipt));
     const expected = this.#receipt(input, context, stored);
     if (canonical(result) !== canonical(expected)) fail('MONTHLY_VERIFIER_RECEIPT');

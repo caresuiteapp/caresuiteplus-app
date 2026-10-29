@@ -2,9 +2,11 @@
 
 Stand: 29.10.2026. `services/gkv/monthly-xml.mjs` erzeugt einen **unsignierten**
 Leistungsnachweis und prüft dessen tatsächliche Bytes gegen das amtliche
-`PFL_LNW_2.2.0.xsd`. Der Baustein ist noch nicht an die Monatsbestätigung,
-Speicherung oder den Versand angeschlossen. Ein bisher bestätigter
-`gkv-monthly-source-v1`-Datensatz wird nicht nachträglich zum Fach-XML erklärt.
+`PFL_LNW_2.2.0.xsd`. Der private Monatsablauf bindet inzwischen vorab
+[gespeicherte Fachangaben und das angezeigte Original](monthly-facts.md) an diese
+Prüfung. XML/CMS-Archivierung, Komponentensignatur und Versand bleiben offen.
+Bisherige Bestätigungen ohne diese Fachangaben werden nicht nachträglich zum
+Fach-XML erklärt.
 
 ## Quellen und Geltungsbereich
 
@@ -88,25 +90,20 @@ Das ist keine vollständige Betriebssystem-Sandbox.
 
 ## Noch erforderlicher Anschluss
 
-1. Leistungsziffern, tatsächliche Zeiten, Beschäftigtennummern aus der
-   personalisierten Erfassung, verantwortliche Person und Patientenstammdaten
-   serverseitig vollständig auflösen und vor der Bestätigung unveränderlich
-   speichern. Gemeinsame Leistungen und gemischte Leistungsarten müssen fachlich
-   eindeutig abgebildet sein. Der aktuelle Quellsnapshot enthält diese Angaben
-   noch nicht vollständig.
-2. Genau diesen Fachinhalt im Bildschirm-/Druckoriginal darstellen und die
-   Bestätigung daran binden. Bestehende Bestätigungen dürfen nicht nachträglich
-   um ungezeigte Fachangaben ergänzt werden. Zeitpunkt und Einmaligkeit der
-   monatlichen Bestätigung müssen gegen den vollständigen Fachablauf geprüft
-   werden; die hier implementierten Datumsregeln ersetzen diese Abnahme nicht.
-3. Im privaten Dienst Original, aktuelle Fassung, Bestätigungsart, Berechtigung
-   und Datei wieder auslesen, vergleichen, XML erzeugen und sofort die
-   Komponentensignatur über diese Bytes erzeugen und unabhängig prüfen.
-   Die KIM-Nachrichtensignatur ersetzt diese Signatur nicht.
-4. XML/CMS unveränderlich archivieren, Bestätigung und endgültigen Abschluss
-   verbinden, Antwortverlust und parallele Korrektur behandeln. Abrechnung,
-   IMG-/Nachweis-ID, Empfänger, zeitgültige PROD-/MOD-ID und vollständige
-   PFL_DAT-/PFL_ABR-Hülle prüfen.
+Die [Fachangaben-Integration](monthly-facts.md) speichert und zeigt die
+vollständigen unterstützten Felder vor der Bestätigung. Der private Dienst
+vergleicht das Original und die gespeicherte Datei und prüft daraus erzeugte
+XML-Bytes vor Ausgabe der Bestätigungsquittung. Weiter erforderlich:
+
+1. Geprüfte produktive Quellen für die persönliche GKV-Beschäftigtennummer,
+   Verantwortlichen-/Leistungserbringerzuordnung und Leistungspositionen.
+   Gemeinsame Leistungen und Vertrags-/Tarifregeln vollständig abbilden.
+2. Unmittelbare elektronische Komponentensignatur über genau diese XML-Bytes
+   erzeugen und unabhängig prüfen. Die KIM-Nachrichtensignatur ersetzt sie nicht.
+3. XML/CMS unveränderlich archivieren, Bestätigung und endgültigen Abschluss
+   atomar verbinden; Antwortverlust und parallele Korrektur behandeln.
+4. Abrechnung, IMG-/Nachweis-ID, Empfänger, zeitgültige PROD-/MOD-ID und
+   vollständige PFL_DAT-/PFL_ABR-Hülle prüfen.
 5. Zielhardware/TI, reale Oberfläche, Annahmestellen und unabhängige
    Softwareprüfung durchlaufen. Die ITSG-Fälle bleiben `not_executed`.
 

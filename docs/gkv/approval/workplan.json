@@ -94,16 +94,19 @@
         "docs/gkv/sql/monthly-workspace-draft.sql",
         "src/lib/gkvExchange/monthlyWorkspace.ts",
         "src/lib/gkvExchange/monthlyWriter.ts",
-        "src/components/office/gkv/GkvMonthlyProofs.web.tsx"
+        "src/components/office/gkv/GkvMonthlyProofs.web.tsx",
+        "docs/gkv/sql/monthly-facts-draft.sql",
+        "src/lib/gkvExchange/monthlyFacts.ts"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
         "tests/gkv-exchange/monthly-proof-contract.test.mjs",
         "tests/gkv-exchange/monthly-proofs.database.mjs",
         "tests/gkv-exchange/monthly-workspace.test.mjs",
-        "tests/gkv-exchange/monthly-ui-check.mjs"
+        "tests/gkv-exchange/monthly-ui-check.mjs",
+        "tests/gkv-exchange/monthly-facts.test.mjs"
       ],
-      "nextStep": "Serverseitige Monatsquellen und eindeutige Quellenzuordnung sind lokal geprüft. Als Nächstes gemischte Leistungsarten je Einsatz aufteilen, Mehrpersonenleistung und Beschäftigtennummer bis ins XML verfolgen.",
+      "nextStep": "Private Fachzuordnungen, Originalzeiten und ursprüngliche Personenbindung werden vor Bestätigung eingefroren. Herkunft bleibt not-attested: produktiver, persönlich authentifizierter GKV-Nummernerfassungs-/Prüfablauf, Mehrpersonenleistungen und Vertrags-/Tarifprüfung fehlen. Interne Personalnummern werden nicht umgedeutet.",
       "acceptance": "ITSG-Fälle 3.1 bis 3.5 und 4.1 mit mobilen Testkonten und gespeicherten Originalen vorführen.",
       "dependsOn": [
         "scope"
@@ -156,7 +159,9 @@
         "services/gkv/monthly-scan.mjs",
         "services/gkv/monthly-scan-worker.mjs",
         "src/lib/gkvExchange/monthlyPaper.ts",
-        "src/components/office/gkv/GkvMonthlyPaper.web.tsx"
+        "src/components/office/gkv/GkvMonthlyPaper.web.tsx",
+        "docs/gkv/sql/monthly-facts-draft.sql",
+        "src/lib/gkvExchange/monthlyFacts.ts"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -167,9 +172,10 @@
         "tests/gkv-exchange/monthly-originals.test.mjs",
         "tests/gkv-exchange/monthly-host.test.mjs",
         "tests/gkv-exchange/monthly-gateway-check.mjs",
-        "tests/gkv-exchange/monthly-paper.test.mjs"
+        "tests/gkv-exchange/monthly-paper.test.mjs",
+        "tests/gkv-exchange/monthly-facts.test.mjs"
       ],
-      "nextStep": "Original-PDF, frische Web-Unterschrift, persönlicher mTLS-Host, sitzungsgebundene SQL-Brücke, Vertreterprüfung mit Widerruf und begrenzter Druck-/Scan-Ablauf mit persönlicher Seitenprüfung sind implementiert und lokal integriert geprüft. Zielrechte/Migration, Schlüssel/Zertifikate, echte Anmeldung und Unterlagenprüfung, reale Drucker/Scanner, visuelle Webabnahme und signiertes Fach-XML bleiben offen.",
+      "nextStep": "Bildschirm-/Druckoriginal zeigt die vorab gespeicherten Fachangaben. Der private Host reproduziert das PDF, bindet gespeichertes PNG bzw. vollständigen Vertreter-Scan und prüft erzeugte XML-Bytes vor der Quittung. Persönliche Erfassungsnachweise, Provisionierung, Zieloberflächen, unmittelbare Komponentensignatur und XML/CMS-Archivierung bleiben offen.",
       "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",
       "dependsOn": [
         "proof-capture"
@@ -198,16 +204,19 @@
         "docs/gkv/sql/monthly-workspace-draft.sql",
         "src/lib/gkvExchange/monthlyWorkspace.ts",
         "src/lib/gkvExchange/monthlyWriter.ts",
-        "src/components/office/gkv/GkvMonthlyProofs.web.tsx"
+        "src/components/office/gkv/GkvMonthlyProofs.web.tsx",
+        "docs/gkv/sql/monthly-facts-draft.sql",
+        "src/lib/gkvExchange/monthlyFacts.ts"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
         "tests/gkv-exchange/monthly-proof-contract.test.mjs",
         "tests/gkv-exchange/monthly-proofs.database.mjs",
         "tests/gkv-exchange/monthly-workspace.test.mjs",
-        "tests/gkv-exchange/monthly-ui-check.mjs"
+        "tests/gkv-exchange/monthly-ui-check.mjs",
+        "tests/gkv-exchange/monthly-facts.test.mjs"
       ],
-      "nextStep": "Webansicht für Quellen, Fassungsvergleich und begründete Korrektur ist implementiert. Am 29.10.2026 bestehen 27 Vertragsfälle, 23 SQL-Unterfälle, zehn React-Bedienabläufe, der vollständige lokale Webbuild und der Vercel-Preview im Projekt repository für 46536b6. Zielrechte, breite/schmale Darstellung und gebundene XML-/Abrechnungsübergabe bleiben offen.",
+      "nextStep": "Fachangaben sind an Revision und Inhaltshash gebunden; Änderungen sperren alte Erfassungen. Quellenabgleich entfernt Fachangaben, Korrektur erhält die ursprüngliche Beschäftigtennummer ohne alte Bestätigung. Reale Parallelverbindungen, produktive Berichtigung fehlerhafter Erstzuordnung und gebundene XML/CMS-/Abrechnungsübergabe bleiben offen.",
       "acceptance": "ITSG-Fälle 3.11 und 4.2 gegen parallele Änderung, alte Unterschrift und alte Exportfassung vorführen.",
       "dependsOn": [
         "proof-confirmation"
@@ -238,13 +247,17 @@
         "src/lib/gkvExchange/monthlyXml.ts",
         "services/gkv/monthly-xml.mjs",
         "services/gkv/monthly-xml-worker.py",
-        "services/gkv/pfl-schema/1.2.0/manifest.json"
+        "services/gkv/pfl-schema/1.2.0/manifest.json",
+        "docs/gkv/sql/monthly-facts-draft.sql",
+        "src/lib/gkvExchange/monthlyFacts.ts",
+        "services/gkv/monthly-captured-xml.mjs"
       ],
       "tests": [
         "tests/gkv-exchange/transport.test.mjs",
-        "tests/gkv-exchange/monthly-xml.test.mjs"
+        "tests/gkv-exchange/monthly-xml.test.mjs",
+        "tests/gkv-exchange/monthly-facts.test.mjs"
       ],
-      "nextStep": "LNW-Generator und echte XSD-/Feldprüfung für 1.2.0 sind implementiert. Vollständige Fachangaben vor der Bestätigung speichern und anzeigen, Original/Bestätigung anbinden, Komponentensignatur und vollständige Abrechnungs-/IMG-/PRODMOD-Prüfung ergänzen. XML-Baustein und alte Bestätigungen erlauben keinen Versand.",
+      "nextStep": "LNW-Generator und amtliche XSD-/Feldprüfung sind an vorab eingefrorene Fachangaben, reproduziertes Original und gespeicherte Bestätigung angeschlossen. Der Kandidat wird geprüft, aber noch nicht archiviert oder freigegeben. Persönliche Herkunft, Komponentensignatur, atomare XML/CMS-Speicherung, vollständige Abrechnungs-/IMG-/PRODMOD-Prüfung und Zielnachweise ergänzen.",
       "acceptance": "Unabhängige Prüfung der erzeugten Bytes, Negativfälle für Schema, Signatur, IMG-Zuordnung und zeitgültige PROD-/MOD-ID.",
       "dependsOn": [
         "proof-confirmation"
