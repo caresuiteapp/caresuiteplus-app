@@ -245,9 +245,9 @@ async function verifyDesktopCenter(page,viewport,fontScale=1){
   const last=await lastLabel.boundingBox(),visible=await scroll.boundingBox();
   // A preview card can be taller than a short landscape viewport. Its final
   // selection label must be reachable, visible and receive the real click.
-  const hit=await lastLabel.evaluate(element=>{const r=element.getBoundingClientRect();return element.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));});
+  const hit=await lastLabel.evaluate(element=>{const r=element.getBoundingClientRect(),card=element.closest('button,[role="button"]');return !!card?.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));});
   if(!last||last.y<visible.y-1||last.y+last.height>visible.y+visible.height+1||!hit)throw Error(JSON.stringify({message:'The last background selection cannot be reached inside the native modal scroll viewport.',viewport,fontScale,last,visible,hit}));
-  await lastLabel.click();await page.getByText('Aktiver Hintergrund',{exact:true}).first().waitFor();
+  await page.mouse.click(last.x+last.width/2,last.y+last.height/2);await lastCard.getByText('Aktiver Hintergrund',{exact:true}).waitFor();
   await page.screenshot({path:join(output,`desktop-center-backgrounds-bottom-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  }
  await background.scrollIntoViewIfNeeded();
@@ -411,7 +411,7 @@ try{
   throw Error(JSON.stringify({message:'Desktop widgets are not reachable with enlarged text in landscape.',bounds}));
  }
  report.push({screen:'desktop',viewport:{width:844,height:390},fontScale:1.6,widgetViewport:bounds});
- await page.screenshot({path:join(output,'desktop-844x390-large-text.png')});await verifyDesktopCenter(page,{width:844,height:390},1.6);await page.close();
+ await page.screenshot({path:join(output,'desktop-844x390-large-text.png')});await verifyDesktopCenter(page,{width:844,height:390},1.6);await verifyNativeDesktopNavigation(page,{width:844,height:390},1.6);await page.close();
 }
 for(const viewport of [{width:844,height:390},{width:1280,height:800}]){
  const page=await browser.newPage({viewport});const errors=[];page.on('pageerror',error=>errors.push(error.message));
@@ -462,7 +462,7 @@ for(const screen of ['desktop','clients','employees','company','notes','catalog'
  await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
  if(screen==='access-hub')await page.waitForTimeout(1100);
  await page.screenshot({path:join(output,`${screen}-360-large-text.png`)});
- if(screen==='desktop')await verifyDesktopCenter(page,{width:360,height:800},1.6);
+ if(screen==='desktop'){await verifyDesktopCenter(page,{width:360,height:800},1.6);await verifyNativeDesktopNavigation(page,{width:360,height:800},1.6);}
  if(screen==='weather-dialog')await verifyWeatherDialog(page,{width:360,height:800},1.6);
  if(screen.startsWith('owner-'))await verifyOwnerConsole(page,screen,{width:360,height:800},1.6);
  if(errors.length)throw Error(JSON.stringify({screen,fontScale:1.6,errors}));

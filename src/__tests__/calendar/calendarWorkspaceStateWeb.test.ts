@@ -49,9 +49,14 @@ describe('Calendar workspace restoration', () => {
     });
   });
 
-  it('still opens when browser storage is blocked', () => {
-    vi.spyOn(window.sessionStorage, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
-    vi.spyOn(window.sessionStorage, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
+  it.each(['access', 'operations'])('still opens when browser storage blocks %s', mode => {
+    // Storage is a binding proxy in happy-dom. Replacing a bound instance
+    // method can silently leave the actual API untouched. Model the browser
+    // boundary directly, including a SecurityError from the storage getter.
+    const blocked = () => { throw new DOMException('blocked', 'SecurityError'); };
+    const storage = vi.spyOn(window, 'sessionStorage', 'get');
+    if (mode === 'access') storage.mockImplementation(blocked);
+    else storage.mockReturnValue({ getItem: blocked, setItem: blocked } as unknown as Storage);
     expect(readCalendarWorkspace('state', 'month', now).restored).toBe(false);
     expect(saveCalendarWorkspace('state', saved)).toBe(false);
   });
