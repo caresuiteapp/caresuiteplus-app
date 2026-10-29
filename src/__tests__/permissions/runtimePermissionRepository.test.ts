@@ -9,33 +9,33 @@ beforeEach(() => { clearRuntimePermissionCache(); f.replies = []; f.client = tru
 describe('runtime permission repository error and cache boundaries', () => {
   it('recognizes legacy assignment view and management flags for the active tenant role', async () => {
     f.replies = [ok({ id: 'role' }), ok([{ permission_key: 'assignments', can_view: true, can_update: true, can_delete: false }]), ok([])];
-    const permissions = await fetchRuntimePermissions('owner', 'tenant', 'actor');
+    const permissions = await fetchRuntimePermissions('business_admin', 'tenant', 'actor');
     expect(permissions).toContain('assist.assignments.view');
     expect(permissions).toContain('assist.assignments.manage');
   });
   it.each([false, null, undefined])('does not turn legacy delete or read access into management when update is %s', async canUpdate => {
     f.replies = [ok({ id: 'role' }), ok([{ permission_key: 'assignments', can_view: true, can_update: canUpdate, can_delete: true }]), ok([])];
-    const permissions = await fetchRuntimePermissions('owner', 'tenant', 'actor');
+    const permissions = await fetchRuntimePermissions('business_admin', 'tenant', 'actor');
     expect(permissions).toContain('assist.assignments.view');
     expect(permissions).not.toContain('assist.assignments.manage');
   });
   it('keeps an explicit tenant permission list authoritative over legacy assignment grants', async () => {
     f.replies = [ok({ id: 'role' }), ok([{ permission_key: 'assignments', can_view: true, can_update: true }]), ok([{ permission_key: 'assist.assignments.view' }])];
-    expect(await fetchRuntimePermissions('owner', 'tenant', 'actor')).toEqual(['assist.assignments.view']);
+    expect(await fetchRuntimePermissions('business_admin', 'tenant', 'actor')).toEqual(['assist.assignments.view']);
   });
   it('does not infer assignment read access from a legacy management flag', async () => {
     f.replies = [ok({ id: 'role' }), ok([{ permission_key: 'assignments', can_view: false, can_update: true }]), ok([])];
-    const permissions = await fetchRuntimePermissions('owner', 'tenant', 'actor');
+    const permissions = await fetchRuntimePermissions('business_admin', 'tenant', 'actor');
     expect(permissions).toContain('assist.assignments.manage');
     expect(permissions).not.toContain('assist.assignments.view');
   });
   it('retains exact assignment grants independently of the old module flags', async () => {
     f.replies = [ok({ id: 'role' }), ok([{ permission_key: 'assist.assignments.manage', can_view: false, can_update: false }]), ok([])];
-    expect(await fetchRuntimePermissions('owner', 'tenant', 'actor')).toEqual(['assist.assignments.manage']);
+    expect(await fetchRuntimePermissions('business_admin', 'tenant', 'actor')).toEqual(['assist.assignments.manage']);
   });
   it('does not expand a foreign tenant legacy grant on a shared role', async () => {
     f.replies = [ok({ id: 'role' }), ok([{ permission_key: 'office.clients.view', tenant_id: null }, { permission_key: 'assignments', tenant_id: 'foreign', can_view: true, can_update: true }]), ok([])];
-    expect(await fetchRuntimePermissions('owner', 'tenant', 'actor')).toEqual(['office.clients.view']);
+    expect(await fetchRuntimePermissions('business_admin', 'tenant', 'actor')).toEqual(['office.clients.view']);
   });
   it.each([0, 1, 2])('does not grant static rights when read %s fails or cache the denial as a successful response', async position => { f.replies = [...success('office.clients.edit').slice(0, position), { data: null, error: { message: 'unavailable' } }]; expect(await fetchRuntimePermissions('business_admin', 'tenant', 'actor')).toEqual([]); f.replies = success('office.clients.view'); expect(await fetchRuntimePermissions('business_admin', 'tenant', 'actor')).toEqual(['office.clients.view']); });
   it('does not grant live rights without a configured client', async () => { f.client = false; expect(await fetchRuntimePermissions('business_admin', 'tenant', 'actor')).toEqual([]); expect(getCachedRuntimePermissions('business_admin', 'tenant')).toEqual([]); });
