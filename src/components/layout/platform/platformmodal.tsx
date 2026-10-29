@@ -175,7 +175,10 @@ export function PlatformModal({
             : undefined,
         },
         bodyScroll: {
-          flex: 1,
+          // The sheet has a maximum height, not a fixed height. A zero flex
+          // basis collapses short popup bodies in that intrinsically sized box.
+          flexGrow: 0,
+          flexShrink: 1,
           minHeight: 0,
         },
         body: {

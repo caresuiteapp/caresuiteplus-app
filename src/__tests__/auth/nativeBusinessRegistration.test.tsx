@@ -12,6 +12,8 @@ const h = vi.hoisted(() => ({
   businessWelcome: vi.fn(), portalWelcome: vi.fn(), back: vi.fn(),
   portalSession: null as any,
 }));
+vi.mock('@/lib/supabase/tenantService', () => ({ fetchTenantProfile: vi.fn() }));
+vi.mock('@/lib/auth/accountSecurityService', () => ({ readPendingMfaBootstrap: vi.fn() }));
 vi.mock('react', async original => ({
   ...await original<object>(),
   useState: (initial: any) => {

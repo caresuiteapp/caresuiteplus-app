@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { PremiumButton } from '@/components/ui';
+import { LiquidButton } from '@/liquid-command/components/LiquidPrimitives';
 import { portalPremium } from '@/design/tokens/portalPremium';
+import { getPortalFaceAvailability } from '@/lib/auth/portalBiometricService';
 import {
   getRememberedPortalMetadata,
   unlockRememberedPortalLogin,
@@ -17,20 +18,35 @@ export function RememberedPortalLoginControls({
   remember,
   onRememberChange,
   onLogin,
+  onUnlock,
+  active = true,
   busy,
 }: {
   kind: RememberedPortalKind;
   remember: boolean;
   onRememberChange: (value: boolean) => void;
-  onLogin: (login: RememberedPortalLogin) => Promise<void>;
+  onLogin?: (login: RememberedPortalLogin) => Promise<void>;
+  /** Active login forms own the entire request, including the device prompt. */
+  onUnlock?: () => Promise<void>;
+  active?: boolean;
   busy: boolean;
 }) {
   const [saved, setSaved] = useState<RememberedPortalMetadata | null>(null);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const lock = useRef(false);
+  const [methodLabel, setMethodLabel] = useState('Gerätebestätigung');
+  const generation = useRef({ active, kind, value: 0, mounted: true });
+  if (generation.current.active !== active || generation.current.kind !== kind) {
+    generation.current = { active, kind, value: generation.current.value + 1, mounted: true };
+  }
+  useEffect(() => {
+    generation.current.mounted = true;
+    return () => { generation.current.mounted = false; generation.current.value++; };
+  }, []);
   useEffect(() => {
     let active = true;
+    void getPortalFaceAvailability().then(value => { if (active) setMethodLabel(value.methodLabel); }).catch(() => {});
     void getRememberedPortalMetadata(kind)
       .then((value) => {
         if (active) setSaved(value);
@@ -47,40 +63,46 @@ export function RememberedPortalLoginControls({
   }, [kind]);
   if (!supportsRememberedPortalLogin()) return null;
   const unlock = async () => {
-    if (busy || lock.current) return;
+    if (busy || !active || lock.current) return;
+    const attempt = generation.current.value;
+    const isCurrent = () => generation.current.mounted && generation.current.active && generation.current.value === attempt;
     lock.current = true;
     setWorking(true);
     setError(null);
     try {
-      await onLogin(await unlockRememberedPortalLogin(kind));
+      if (onUnlock) await onUnlock();
+      else {
+        const login = await unlockRememberedPortalLogin(kind);
+        if (isCurrent()) await onLogin?.(login);
+      }
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : 'Bitte normal anmelden.');
+      if (isCurrent()) setError(cause instanceof Error ? cause.message : 'Bitte normal anmelden.');
     } finally {
       lock.current = false;
-      setWorking(false);
+      if (generation.current.mounted) setWorking(false);
     }
   };
   return (
     <View style={{ gap: 8 }}>
       {saved ? (
         <>
-          <PremiumButton
-            title={`Gespeicherte Anmeldung: ${saved.username}`}
+          <LiquidButton
+            label={`Mit ${methodLabel} anmelden`}
             variant="secondary"
             onPress={() => void unlock()}
             loading={working}
-            disabled={busy}
+            disabled={busy || !active}
             fullWidth
           />
           <Text style={{ color: portalPremium.text.secondary }}>
-            Mit Gesicht, Fingerabdruck oder Gerätecode bestätigen.
+            Gespeicherte Anmeldung: {saved.username}. Mit Gesicht, Fingerabdruck oder Gerätecode bestätigen.
           </Text>
-          <PremiumButton
-            title="Gespeicherte Anmeldung entfernen"
+          <LiquidButton
+            label="Gespeicherte Anmeldung entfernen"
             variant="secondary"
             disabled={busy || working}
             onPress={() => {
-              void forgetRememberedPortalLogin(kind)
+              void forgetRememberedPortalLogin(kind, saved.accountId)
                 .then(() => setSaved(null))
                 .catch(() => setError('Entfernen fehlgeschlagen. Bitte erneut versuchen.'));
             }}

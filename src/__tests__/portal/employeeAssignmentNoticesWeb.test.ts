@@ -36,6 +36,18 @@ beforeEach(() => {
   h.resolve.mockResolvedValue({ status: 'verified', employeeId: scope.employeeId, authUserId: scope.authUserId });
 });
 describe('employee assignment notice recipient scope', () => {
+  it.each(['created', 'changed', 'cancelled', 'removed'])('keeps a %s notice informative when its preview is missing', async changeKind => {
+    h.result = { data: [{ ...row(), title: ' ', body_preview: '', metadata: {
+      ...row().metadata, changeKind, plannedStartAt: '2026-10-29T12:00:00Z', plannedEndAt: '2026-10-29T14:00:00Z',
+    } }], error: null, count: 1 };
+    const result = await fetchEmployeeAssignmentNotices(scope);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.notices[0].title.trim()).not.toBe('');
+    expect(result.data.notices[0].body).toContain('29.10.2026');
+    expect(result.data.notices[0].body).toContain('13:00');
+    expect(result.data.notices[0].changeKind).toBe(changeKind);
+  });
   it.each([
     { status: 'denied' }, { status: 'unavailable' },
     { status: 'verified', employeeId: 'employee-b', authUserId: scope.authUserId },

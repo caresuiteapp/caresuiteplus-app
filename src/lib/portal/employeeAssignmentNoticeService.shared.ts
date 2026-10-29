@@ -19,6 +19,26 @@ const TABLE = 'office_notifications';
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SCOPE_ERROR = 'Ihre Mitarbeitenden-Zuordnung konnte nicht bestätigt werden. Bitte erneut anmelden.';
 
+export function assignmentNoticeChangeLabel(kind: string): string {
+  return ({ created: 'Neuer Einsatz', changed: 'Einsatz geändert', cancelled: 'Einsatz abgesagt',
+    removed: 'Einsatz nicht mehr zugeordnet', current_plan: 'Aktuelle Einsatzplanung' } as Record<string, string>)[kind]
+    ?? 'Einsatz aktualisiert';
+}
+
+function noticeBody(metadata: Record<string, unknown>, preview: unknown): string {
+  if (typeof preview === 'string' && preview.trim()) return preview.trim();
+  const start = typeof metadata.plannedStartAt === 'string' ? new Date(metadata.plannedStartAt) : null;
+  const end = typeof metadata.plannedEndAt === 'string' ? new Date(metadata.plannedEndAt) : null;
+  if (start && Number.isFinite(start.getTime())) {
+    const date = start.toLocaleString('de-DE', { timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit',
+      year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    const until = end && Number.isFinite(end.getTime()) ? ` bis ${end.toLocaleString('de-DE', {
+      timeZone: 'Europe/Berlin', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}` : '';
+    return `Einsatz am ${date}${until} Uhr (Berliner Zeit).`;
+  }
+  return 'Bitte prüfen Sie Ihre aktuelle Einsatzplanung im Kalender.';
+}
+
 async function verifyScope(scope: EmployeeAssignmentNoticeScope): Promise<ServiceResult<void>> {
   const blocked = guardServiceTenant(scope.tenantId);
   if (blocked) return blocked;
@@ -54,10 +74,12 @@ export async function fetchEmployeeAssignmentNotices(
     if (!isOwnRow(row, scope) || row.notification_type !== 'appointment' || row.is_read !== false
       || metadata?.kind !== 'assignment_change') continue;
     if (typeof row.id !== 'string' || !UUID.test(row.id)) continue;
-    notices.push({ id: row.id, title: String(row.title ?? 'Einsatz aktualisiert'),
-      body: String(row.body_preview ?? ''), createdAt: String(row.created_at ?? ''),
+    const changeKind = typeof metadata.changeKind === 'string' ? metadata.changeKind : 'changed';
+    notices.push({ id: row.id, title: typeof row.title === 'string' && row.title.trim()
+      ? row.title.trim() : assignmentNoticeChangeLabel(changeKind),
+      body: noticeBody(metadata, row.body_preview), createdAt: String(row.created_at ?? ''),
       visitId: typeof metadata.visitId === 'string' && UUID.test(metadata.visitId) ? metadata.visitId : null,
-      changeKind: typeof metadata.changeKind === 'string' ? metadata.changeKind : 'changed' });
+      changeKind });
   }
   return { ok: true, data: { notices, total: Math.max(notices.length, count ?? 0) } };
 }

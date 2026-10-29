@@ -22,6 +22,8 @@ vi.mock('@/design/tokens/carelightadaptive', () => ({ useCareLightPalette: () =>
 vi.mock('@/hooks/core/useAsyncQuery', () => ({ useAsyncQuery: () => ({ data: h.inbox, setData: h.setData, refresh: h.refresh }) }));
 vi.mock('@/lib/realtime/subscribeToTenantTables', () => ({ subscribeToTenantTables: () => () => {} }));
 vi.mock('@/lib/portal/employeeAssignmentNoticeService', () => ({
+  assignmentNoticeChangeLabel: (kind: string) => ({ created: 'Neuer Einsatz', changed: 'Einsatz geändert',
+    cancelled: 'Einsatz abgesagt', removed: 'Einsatz nicht mehr zugeordnet' }[kind] ?? 'Einsatz aktualisiert'),
   fetchEmployeeAssignmentNotices: vi.fn(), acknowledgeEmployeeAssignmentNotices: h.acknowledge,
   resolveEmployeeAssignmentNoticeRoute: h.route,
 }));

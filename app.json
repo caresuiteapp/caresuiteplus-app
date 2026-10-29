@@ -2,7 +2,7 @@
   "expo": {
     "name": "CareSuite+",
     "slug": "caresuite-plus",
-    "version": "0.8.0",
+    "version": "0.8.1",
     "orientation": "default",
     "icon": "./assets/icon.png",
     "scheme": "caresuiteplus",
@@ -20,7 +20,7 @@
         "backgroundColor": "#F8FAFC"
       },
       "package": "app.caresuitehealthos",
-      "versionCode": 56,
+      "versionCode": 57,
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "INTERNET",
@@ -125,7 +125,7 @@
       [
         "expo-local-authentication",
         {
-          "faceIDPermission": "CareSuite verwendet Face ID ausschließlich zum lokalen Entsperren Ihrer Portal-Sitzung. Biometrische Daten bleiben auf dem Gerät."
+          "faceIDPermission": "CareSuite verwendet Face ID ausschließlich zum geschützten Anmelden und lokalen Entsperren Ihrer Sitzung. Biometrische Daten bleiben auf dem Gerät."
         }
       ],
       [

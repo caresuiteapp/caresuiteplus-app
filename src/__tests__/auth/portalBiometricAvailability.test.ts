@@ -1,0 +1,11 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+const h=vi.hoisted(()=>({platform:{OS:'android'},hardware:vi.fn(),enrolled:vi.fn(),types:vi.fn(),level:vi.fn(),authenticate:vi.fn()}));
+vi.mock('react-native',()=>({Platform:h.platform}));
+vi.mock('@/lib/security/sensitiveAuthStorage',()=>({sensitiveAuthStorage:{getItem:vi.fn(),setItem:vi.fn(),removeItem:vi.fn()}}));
+vi.mock('expo-local-authentication',()=>({hasHardwareAsync:h.hardware,isEnrolledAsync:h.enrolled,supportedAuthenticationTypesAsync:h.types,getEnrolledLevelAsync:h.level,authenticateAsync:h.authenticate,AuthenticationType:{FINGERPRINT:1,FACIAL_RECOGNITION:2},SecurityLevel:{NONE:0,SECRET:1,BIOMETRIC_WEAK:2,BIOMETRIC_STRONG:3}}));
+import {getPortalFaceAvailability,authenticatePortalFace} from '@/lib/auth/portalBiometricService';
+beforeEach(()=>{vi.clearAllMocks();h.platform.OS='android';h.hardware.mockResolvedValue(true);h.enrolled.mockResolvedValue(true);h.types.mockResolvedValue([2]);h.level.mockResolvedValue(3);h.authenticate.mockResolvedValue({success:true});});
+it('offers Face ID on an enrolled iPhone and asks the operating system to verify it',async()=>{h.platform.OS='ios';expect(await getPortalFaceAvailability()).toMatchObject({available:true,methodLabel:'Face ID'});expect(await authenticatePortalFace()).toEqual({ok:true});expect(h.authenticate).toHaveBeenCalledWith(expect.objectContaining({disableDeviceFallback:false,biometricsSecurityLevel:'strong'}));});
+it('allows the device-code fallback even without biometric hardware or enrollment',async()=>{h.hardware.mockResolvedValue(false);h.enrolled.mockResolvedValue(false);h.types.mockResolvedValue([]);h.level.mockResolvedValue(1);expect(await getPortalFaceAvailability()).toMatchObject({available:true,methodLabel:'Gerätecode',reason:null});expect(await authenticatePortalFace()).toEqual({ok:true});});
+it('refuses an unprotected device before opening the prompt',async()=>{h.hardware.mockResolvedValue(false);h.enrolled.mockResolvedValue(false);h.types.mockResolvedValue([]);h.level.mockResolvedValue(0);expect((await authenticatePortalFace()).ok).toBe(false);expect(h.authenticate).not.toHaveBeenCalled();});
+it('does not accept a cancelled OS prompt',async()=>{h.authenticate.mockResolvedValue({success:false,error:'user_cancel'});expect(await authenticatePortalFace()).toMatchObject({ok:false,cancelled:true});});

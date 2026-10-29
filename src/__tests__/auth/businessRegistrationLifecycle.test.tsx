@@ -7,7 +7,7 @@ import { CompanySetupScreen } from '@/screens/onboarding/CompanySetupScreen';
 import { BusinessAccessScreen, RegisterOrganizationScreen, EmployeeAccessScreen, PortalAccessScreen } from '@/liquid-command/screens/AccessScreens';
 
 const h = vi.hoisted(() => ({
-  focused: true, portalLogin: vi.fn(), clientLogin: vi.fn(), completePortal: vi.fn(), portalSignIn: vi.fn(), user: null as any, session: null as any, complete: vi.fn(), update: vi.fn(), replace: vi.fn(), welcome: vi.fn(), register: vi.fn(), get: vi.fn(), set: vi.fn(), remove: vi.fn(), login: vi.fn(), signIn: vi.fn(), scroll: vi.fn(),
+  unlock: vi.fn(), saveLogin: vi.fn(), fetchProfile: vi.fn(), alert: vi.fn(), focused: true, portalLogin: vi.fn(), clientLogin: vi.fn(), completePortal: vi.fn(), portalSignIn: vi.fn(), user: null as any, session: null as any, complete: vi.fn(), update: vi.fn(), replace: vi.fn(), welcome: vi.fn(), register: vi.fn(), get: vi.fn(), set: vi.fn(), remove: vi.fn(), login: vi.fn(), signIn: vi.fn(), scroll: vi.fn(),
 }));
 vi.mock('@/lib/auth', () => ({ useAuth: () => ({ user: h.user, portalSession: h.session, updatePortalSession: h.update, signInPortalSession: h.portalSignIn, signInWithSupabaseSession: h.signIn }),
   completeFirstLogin: h.complete, loginBusinessUser: h.login, loginEmployeePortal: h.portalLogin, registerBusinessTenant: h.register,
@@ -19,9 +19,16 @@ vi.mock('react-native', async () => {
     react.useImperativeHandle(ref, () => ({ scrollTo: h.scroll }));
     return react.createElement('div', null, children);
   });
-  return { View: Container, Text: Container, KeyboardAvoidingView: Container, ScrollView: Scroll,
+  return { Alert: { alert: h.alert }, View: Container, Text: Container, KeyboardAvoidingView: Container, ScrollView: Scroll,
     Pressable: ({ children, onPress, accessibilityRole, disabled }: any) => react.createElement('button', { onClick: onPress, role: accessibilityRole, disabled }, children), Platform: { OS: 'android' }, StyleSheet: { create: (s: any) => s }, BackHandler: { addEventListener: () => ({ remove: vi.fn() }) } };
 });
+vi.mock('@/lib/auth/rememberedPortalLogin', () => ({ saveRememberedPortalLogin: h.saveLogin, unlockRememberedPortalLogin: h.unlock }));
+vi.mock('@/lib/supabase/tenantService', () => ({ fetchTenantProfile: h.fetchProfile }));
+vi.mock('@/lib/auth/accountSecurityService', () => ({ readPendingMfaBootstrap: vi.fn(async () => null) }));
+vi.mock('@/components/auth/RememberedPortalLoginControls', () => ({ RememberedPortalLoginControls: ({kind, remember, onRememberChange, onUnlock, busy}: any) => <div>
+  <button disabled={busy} onClick={() => onRememberChange(!remember)}>Speichern {kind}</button>
+  <button disabled={busy} onClick={onUnlock}>Gespeichert {kind}</button>
+</div> }));
 vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }));
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: { getItem: h.get, setItem: h.set, removeItem: h.remove } }));
 vi.mock('expo-router', async () => { const {useEffect} = await import('react'); return { Link: () => null, useIsFocused: () => h.focused, useRouter: () => ({ replace: h.replace }), Redirect: ({href}: any) => {useEffect(() => {h.replace(href);}, [href]); return null;} }; });
@@ -62,6 +69,7 @@ async function review() {
 }
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; vi.clearAllMocks(); h.user = null; h.session = null; h.focused = true; h.portalSignIn.mockResolvedValue(undefined);
+  h.saveLogin.mockResolvedValue(undefined); h.fetchProfile.mockResolvedValue({tenantId:'fixture-tenant'});
   h.get.mockResolvedValue(JSON.stringify(saved)); h.set.mockResolvedValue(undefined); h.remove.mockResolvedValue(undefined); h.register.mockResolvedValue(confirmed); h.signIn.mockResolvedValue(undefined);
   host = document.createElement('div'); document.body.append(host); root = createRoot(host); unmounted = false;
 });
@@ -162,5 +170,37 @@ describe('retained business login foreground ownership',()=>{
  it('does not redirect after pending business session installation loses focus',async()=>{
   const pending=deferred();h.login.mockResolvedValue({ok:true,data:{supabaseSession:session}});h.signIn.mockReturnValue(pending.promise);await loginForm();await click('Anmelden');expect(h.signIn).toHaveBeenCalledOnce();
   h.focused=false;await act(async()=>root.render(<BusinessAccessScreen/>));await act(async()=>pending.resolve(undefined));expect(h.replace).not.toHaveBeenCalled();
+ });
+});
+
+describe.each(['client','employee'] as const)('remembered login on the actual %s access route',kind=>{
+ const login=()=>kind==='client'?h.clientLogin:h.portalLogin;
+ const button=kind==='client'?'Portal sicher öffnen':'Mitarbeitenden-App öffnen';
+ const credential=()=>({version:1,kind,accountId:'fixture-account',tenantId:'fixture-tenant',username:'saved-user',secret:'saved-secret'});
+ it('authenticates the saved credentials again and checks the server account before establishing a session',async()=>{
+  h.unlock.mockResolvedValue(credential());login().mockResolvedValue(portalResult);h.completePortal.mockResolvedValue(portalResult);
+  await portalForm(kind);await click('Gespeichert '+kind);
+  expect(login()).toHaveBeenCalledWith('saved-user','saved-secret');expect(h.portalSignIn).toHaveBeenCalledOnce();expect(h.saveLogin).not.toHaveBeenCalled();
+ });
+ it('rejects a server result for another account before token completion',async()=>{
+  h.unlock.mockResolvedValue({...credential(),accountId:'previous-account'});login().mockResolvedValue(portalResult);
+  await portalForm(kind);await click('Gespeichert '+kind);expect(h.completePortal).not.toHaveBeenCalled();expect(h.portalSignIn).not.toHaveBeenCalled();expect(host.textContent).toContain('anderen Konto');
+ });
+ it('does not send credentials after focus is lost during the OS confirmation',async()=>{
+  const pending=deferred();h.unlock.mockReturnValue(pending.promise);await portalForm(kind);await click('Gespeichert '+kind);
+  h.focused=false;await act(async()=>root.render(kind==='client'?<PortalAccessScreen portal="client"/>:<EmployeeAccessScreen/>));
+  await act(async()=>pending.resolve(credential()));expect(login()).not.toHaveBeenCalled();
+ });
+ it('saves only confirmed permanent credentials with the server account and tenant',async()=>{
+  login().mockResolvedValue(portalResult);h.completePortal.mockResolvedValue(portalResult);await portalForm(kind);await click('Speichern '+kind);await click(button);
+  expect(h.saveLogin).toHaveBeenCalledWith(expect.objectContaining({kind,accountId:'fixture-account',tenantId:'fixture-tenant',username:'fixture-user'}),expect.any(Function));expect(h.portalSignIn).toHaveBeenCalledOnce();
+ });
+ it('does not save an employee temporary password',async()=>{
+  login().mockResolvedValue(portalResult);h.completePortal.mockResolvedValue({ok:true,data:{portalSession:{...portalResult.data.portalSession,mustChangePassword:true}}});
+  await portalForm(kind);await click('Speichern '+kind);await click(button);expect(h.saveLogin).not.toHaveBeenCalled();
+ });
+ it('still signs in when optional credential storage fails',async()=>{
+  login().mockResolvedValue(portalResult);h.completePortal.mockResolvedValue(portalResult);h.saveLogin.mockRejectedValue(new Error('storage unavailable'));
+  await portalForm(kind);await click('Speichern '+kind);await click(button);expect(h.alert).toHaveBeenCalled();expect(h.portalSignIn).toHaveBeenCalledOnce();
  });
 });

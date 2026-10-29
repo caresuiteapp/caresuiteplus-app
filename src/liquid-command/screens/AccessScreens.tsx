@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
+  Alert,
   BackHandler,
   KeyboardAvoidingView,
   Platform,
@@ -33,6 +34,28 @@ import {
 import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGenerator';
 import { completePortalLogin } from '@/lib/auth/portalLoginFlow';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
+import { RememberedPortalLoginControls } from '@/components/auth/RememberedPortalLoginControls';
+import { saveRememberedPortalLogin, unlockRememberedPortalLogin, type RememberedPortalLogin } from '@/lib/auth/rememberedPortalLogin';
+import { fetchTenantProfile } from '@/lib/supabase/tenantService';
+import { readPendingMfaBootstrap } from '@/lib/auth/accountSecurityService';
+
+async function rememberConfirmedLogin(item: RememberedPortalLogin, isCurrent: () => boolean) {
+  try { await saveRememberedPortalLogin(item, isCurrent); }
+  catch {
+    if (isCurrent()) Alert.alert('Anmeldung nicht gespeichert',
+      'Die Gerätebestätigung oder der geschützte Speicher war nicht verfügbar. Ihre Anmeldung wird fortgesetzt. Sie können das Speichern bei der nächsten Anmeldung erneut auswählen.');
+  }
+}
+function matchesRememberedAccount(saved: RememberedPortalLogin | null, accountId: string, tenantId: string) {
+  if (saved && (saved.accountId !== accountId || saved.tenantId !== tenantId)) {
+    throw new Error('Dieser Zugang gehört inzwischen zu einem anderen Konto. Bitte die gespeicherte Anmeldung entfernen und normal anmelden.');
+  }
+}
+async function readRememberedBusinessProfile(accountId: string) {
+  try { return await fetchTenantProfile(accountId) ?? await readPendingMfaBootstrap(accountId); }
+  catch { return null; }
+}
+
 
 import {
   LiquidBackdrop,
@@ -185,6 +208,7 @@ export function BusinessAccessScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(false);
 
   useEffect(() => {
     if (user?.id === loginLifecycle.current.expectedUserId) return;
@@ -198,10 +222,10 @@ export function BusinessAccessScreen() {
     if (!requestLifecycle.focused) { loginLock.current = false; setLoading(false); setPassword(''); setError(null); }
   }, [requestLifecycle.focused]);
 
-  const submit = async () => {
+  const submit = async (useSaved = false) => {
     if (loginLock.current || !loginLifecycle.current.mounted || !requestLifecycle.focused) return;
     setError(null);
-    if (!email.trim() || !password) {
+    if (!useSaved && (!email.trim() || !password)) {
       setError('E-Mail und Passwort sind erforderlich.');
       return;
     }
@@ -212,7 +236,11 @@ export function BusinessAccessScreen() {
     const generation = loginLifecycle.current.generation;
     const isCurrent = () => loginLifecycle.current.mounted && loginLifecycle.current.generation === generation && requestLifecycle.isCurrent(attempt);
     try {
-      const result = await loginBusinessUser(email, password);
+      const saved = useSaved ? await unlockRememberedPortalLogin('business') : null;
+      if (!isCurrent()) return;
+      const loginEmail = saved?.username ?? email;
+      const loginPassword = saved?.secret ?? password;
+      const result = await loginBusinessUser(loginEmail, loginPassword);
       if (!isCurrent()) return;
       if (!result.ok) {
         setError(result.error);
@@ -223,6 +251,20 @@ export function BusinessAccessScreen() {
         return;
       }
       loginLifecycle.current.expectedUserId = result.data.supabaseSession.user?.id;
+      if (saved || remember) {
+        const accountId = result.data.supabaseSession.user.id;
+        const profile = await readRememberedBusinessProfile(accountId);
+        if (!isCurrent()) return;
+        if (!profile?.tenantId) {
+          if (saved) throw new Error('Die gespeicherte Kontozuordnung konnte nicht bestätigt werden. Bitte normal anmelden.');
+          Alert.alert('Anmeldung nicht gespeichert', 'Die Kontozuordnung konnte noch nicht bestätigt werden. Bitte das Speichern bei der nächsten Anmeldung erneut auswählen.');
+        } else {
+          matchesRememberedAccount(saved, accountId, profile.tenantId);
+          if (remember && !saved && !result.data.mustChangePassword) await rememberConfirmedLogin({ version: 1,
+            kind: 'business', accountId, tenantId: profile.tenantId, username: loginEmail.trim().toLowerCase(), secret: loginPassword }, isCurrent);
+          if (!isCurrent()) return;
+        }
+      }
       await signInWithSupabaseSession(result.data.supabaseSession);
       if (!isCurrent()) return;
       markBusinessWelcomePending();
@@ -272,6 +314,8 @@ export function BusinessAccessScreen() {
           secureTextEntry
           required
         />
+        <RememberedPortalLoginControls kind="business" remember={remember} onRememberChange={setRemember}
+          busy={loading} active={requestLifecycle.focused} onUnlock={() => submit(true)} />
         <LiquidButton fullWidth label="Anmelden" loading={loading} onPress={() => void submit()} />
         <View style={styles.formSecondaryActions}>
           <LiquidButton
@@ -323,26 +367,32 @@ export function EmployeeAccessScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(false);
   const lifecycle = usePortalLoginRequest();
   useEffect(() => { if (!lifecycle.focused) { setLoading(false); setPassword(''); setError(null); } }, [lifecycle.focused]);
 
-  const submit = async () => {
+  const submit = async (useSaved = false) => {
     const attempt = lifecycle.begin();
     if (attempt === null) return;
     setError(null);
-    if (!username.trim() || !password) {
+    if (!useSaved && (!username.trim() || !password)) {
       setError('Benutzername und Passwort sind erforderlich.');
       lifecycle.finish(attempt);
       return;
     }
     setLoading(true);
     try {
-      const result = await loginEmployeePortal(username, password);
+      const saved = useSaved ? await unlockRememberedPortalLogin('employee') : null;
+      if (!lifecycle.isCurrent(attempt)) return;
+      const loginUsername = saved?.username ?? username;
+      const loginSecret = saved?.secret ?? password;
+      const result = await loginEmployeePortal(loginUsername, loginSecret);
       if (!lifecycle.isCurrent(attempt)) return;
       if (!result.ok || !result.data.portalSession) {
         setError(result.ok ? 'Die sichere Portal-Sitzung fehlt.' : result.error);
         return;
       }
+      matchesRememberedAccount(saved, result.data.portalSession.accountId, result.data.portalSession.tenantId);
       const completed = await completePortalLogin(result.data.portalSession, {
         supabaseAccessToken: result.data.supabaseAccessToken,
         supabaseRefreshToken: result.data.supabaseRefreshToken,
@@ -351,6 +401,12 @@ export function EmployeeAccessScreen() {
       if (!completed.ok) {
         setError(completed.error);
         return;
+      }
+      if (remember && !saved && !completed.data.portalSession.mustChangePassword) {
+        await rememberConfirmedLogin({ version: 1, kind: 'employee', accountId: completed.data.portalSession.accountId,
+          tenantId: completed.data.portalSession.tenantId, username: loginUsername.trim(), secret: loginSecret },
+          () => lifecycle.isCurrent(attempt));
+        if (!lifecycle.isCurrent(attempt)) return;
       }
       await signInPortalSession(completed.data.portalSession);
       if (!lifecycle.isCurrent(attempt)) return;
@@ -379,6 +435,8 @@ export function EmployeeAccessScreen() {
         {error ? <LiquidState kind="error" title="Anmeldung fehlgeschlagen" message={error} /> : null}
         <LiquidField
           label="Benutzername"
+          autoComplete="username"
+          textContentType="username"
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
@@ -398,6 +456,8 @@ export function EmployeeAccessScreen() {
           secureTextEntry
           required
         />
+        <RememberedPortalLoginControls kind="employee" remember={remember} onRememberChange={setRemember}
+          busy={loading} active={lifecycle.focused} onUnlock={() => submit(true)} />
         <LiquidButton fullWidth label="Mitarbeitenden-App öffnen" loading={loading} onPress={() => void submit()} />
         <LiquidStatus label="Kein öffentliches Mitarbeitendenkonto" detail="Zugang durch Verwaltung" />
       </LiquidSurface>
@@ -412,30 +472,36 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [remember, setRemember] = useState(false);
   const lifecycle = usePortalLoginRequest();
   useEffect(() => { if (!lifecycle.focused) { setLoading(false); setCode(''); setError(null); } }, [lifecycle.focused]);
-  const submit = async () => {
+  const submit = async (useSaved = false) => {
     const attempt = lifecycle.begin();
     if (attempt === null) return;
     setError(null);
-    if (!username.trim()) {
+    if (!useSaved && !username.trim()) {
       setError('Benutzername ist erforderlich.');
       lifecycle.finish(attempt);
       return;
     }
-    if (!code.trim()) {
+    if (!useSaved && !code.trim()) {
       setError('Der sechsstellige Portal-Code ist erforderlich.');
       lifecycle.finish(attempt);
       return;
     }
     setLoading(true);
     try {
-      const result = await loginClientPortal(username, code);
+      const saved = useSaved ? await unlockRememberedPortalLogin('client') : null;
+      if (!lifecycle.isCurrent(attempt)) return;
+      const loginUsername = saved?.username ?? username;
+      const loginSecret = saved?.secret ?? code;
+      const result = await loginClientPortal(loginUsername, loginSecret);
       if (!lifecycle.isCurrent(attempt)) return;
       if (!result.ok || !result.data.portalSession) {
         setError(result.ok ? 'Die sichere Portal-Sitzung fehlt.' : result.error);
         return;
       }
+      matchesRememberedAccount(saved, result.data.portalSession.accountId, result.data.portalSession.tenantId);
       const completed = await completePortalLogin(result.data.portalSession, {
         supabaseAccessToken: result.data.supabaseAccessToken,
         supabaseRefreshToken: result.data.supabaseRefreshToken,
@@ -444,6 +510,12 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
       if (!completed.ok) {
         setError(completed.error);
         return;
+      }
+      if (remember && !saved && !completed.data.portalSession.mustChangePassword) {
+        await rememberConfirmedLogin({ version: 1, kind: 'client', accountId: completed.data.portalSession.accountId,
+          tenantId: completed.data.portalSession.tenantId, username: loginUsername.trim(), secret: loginSecret },
+          () => lifecycle.isCurrent(attempt));
+        if (!lifecycle.isCurrent(attempt)) return;
       }
       await signInPortalSession(completed.data.portalSession);
       if (!lifecycle.isCurrent(attempt)) return;
@@ -468,6 +540,8 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
         {error ? <LiquidState kind="error" title="Zugang nicht möglich" message={error} /> : null}
         <LiquidField
           label="Benutzername"
+          autoComplete="username"
+          textContentType="username"
           value={username}
           onChangeText={(value) => setUsername(sanitizePortalUsernameInput(value))}
           autoCapitalize="none"
@@ -476,6 +550,9 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
         />
         <LiquidField
           label="Portal-Code"
+          autoComplete="current-password"
+          textContentType="password"
+          secureTextEntry
           value={code}
           onChangeText={(value) => setCode(normalizePortalCodeInput(value))}
           autoCapitalize="characters"
@@ -483,6 +560,8 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
           required
           hint="Sechs Zeichen ohne I, O, 0 oder 1."
         />
+        <RememberedPortalLoginControls kind="client" remember={remember} onRememberChange={setRemember}
+          busy={loading} active={lifecycle.focused} onUnlock={() => submit(true)} />
         <LiquidButton fullWidth label="Portal sicher öffnen" loading={loading} onPress={() => void submit()} />
         <LiquidButton
           fullWidth

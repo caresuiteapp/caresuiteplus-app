@@ -137,9 +137,10 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
     } as unknown as ViewStyle : null]}><LiquidBackdrop>
       <View style={styles.shell}>
         {desktopChrome ? (
-          <View style={[styles.rail, kind === 'client' && styles.clientRail]}>
+          <View style={[styles.rail, kind === 'client' && styles.clientRail,
+            { paddingTop: Math.max(insets.top, 20), paddingBottom: Math.max(insets.bottom, 20) }]}>
             {kind === 'client' ? <LiquidLogo mini /> : <LiquidLogo compact />}
-            <ScrollView contentContainerStyle={styles.railItems} showsVerticalScrollIndicator>
+            <ScrollView style={styles.railScroll} contentContainerStyle={styles.railItems} showsVerticalScrollIndicator>
               {navigation.map((item) => (
                 <Pressable
                   key={item.id}
@@ -438,6 +439,8 @@ const styles = StyleSheet.create(withCareSuiteTypography({
     flexDirection: 'row',
   },
   rail: {
+    minHeight: 0,
+    flexShrink: 0,
     // The compact CareSuite logo is 224 px wide. Reserve its real width plus
     // the rail padding so it cannot overlap the portal heading.
     width: 252,
@@ -460,6 +463,7 @@ const styles = StyleSheet.create(withCareSuiteTypography({
     paddingBottom: 20,
     paddingTop: 12,
   },
+  railScroll: { flex: 1, minHeight: 0 },
   railItem: {
     width: '100%',
     minHeight: 48,
@@ -485,6 +489,7 @@ const styles = StyleSheet.create(withCareSuiteTypography({
     backgroundColor: '#E8F2FF',
   },
   railLogout: {
+    flexShrink: 0,
     width: '100%',
     minHeight: 50,
     paddingHorizontal: 13,

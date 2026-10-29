@@ -205,7 +205,9 @@ export function PlatformModal({
             : undefined,
         },
         bodyScroll: {
-          flex: 1,
+          // Preserve the content's natural height inside the bounded sheet.
+          flexGrow: 0,
+          flexShrink: 1,
           minHeight: 0,
         },
         body: {

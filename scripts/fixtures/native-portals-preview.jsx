@@ -1,4 +1,6 @@
 import React from 'react';
+import { EmployeeAssignmentNoticeGate } from '../../src/components/portal/EmployeeAssignmentNoticeGate.shared';
+import { LiquidPortalRouteLayout } from '../../src/liquid-command/shell/LiquidPortalRouteLayout';
 import { View, ScrollView, Text } from 'react-native';
 import { HealthOSEmployeePortalTodayView } from '../../src/components/healthos/employee/HealthOSEmployeePortalTodayView';
 import { ClientPortalHomeDashboard } from '../../src/components/portal/assist/ClientPortalHomeDashboard';
@@ -16,6 +18,8 @@ import { EmployeePortalPreview } from './native-employee-portals-preview';
 import { appointment,dashboard,context,clientData } from './native-portals-data';
 const noop=()=>{};
 export function PortalPreview({screen}){
+ if(screen==='employee-notices')return <PortalPremiumProvider kind="employee"><EmployeeAssignmentNoticeGate/></PortalPremiumProvider>;
+ if(screen==='employee-shell')return <LiquidPortalRouteLayout kind="employee"/>;
  if(screen==='access-hub')return <AccessHubScreen/>;
  if(screen==='business-access')return <BusinessAccessScreen/>;
  if(screen==='employee-access')return <EmployeeAccessScreen/>;

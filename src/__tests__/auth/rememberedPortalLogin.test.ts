@@ -44,6 +44,19 @@ beforeEach(() => {
   mocks.authenticate.mockReset().mockResolvedValue({ ok: true });
 });
 describe('Device-protected remembered portal login', () => {
+  it('supports a separate encrypted business login without replacing the employee credential', async () => {
+    await saveRememberedPortalLogin(credential);
+    const business = { ...credential, kind: 'business' as const, accountId: 'business-account' };
+    await saveRememberedPortalLogin(business);
+    expect(await unlockRememberedPortalLogin('business')).toEqual(business);
+    expect(await unlockRememberedPortalLogin('employee')).toEqual(credential);
+  });
+  it('does not store credentials after the login loses ownership during the device confirmation', async () => {
+    let current = true;
+    mocks.authenticate.mockImplementation(async () => { current = false; return { ok: true }; });
+    await expect(saveRememberedPortalLogin(credential, () => current)).rejects.toThrow('unterbrochen');
+    expect(mocks.storage.size).toBe(0);
+  });
   it('stores credentials only after successful device confirmation and never exposes the secret in metadata', async () => {
     await saveRememberedPortalLogin(credential);
     expect(mocks.authenticate).toHaveBeenCalledOnce();
