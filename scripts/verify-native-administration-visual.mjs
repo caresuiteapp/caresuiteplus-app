@@ -240,9 +240,14 @@ async function verifyDesktopCenter(page,viewport,fontScale=1){
  if(scrollSize.content>scrollSize.height+2){
   const box=await scroll.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.wheel(0,100000);
   await page.waitForFunction(()=>document.querySelector('[data-testid="platform-modal-body-scroll"]')?.scrollTop>0);
-  await backgroundCards.last().scrollIntoViewIfNeeded();
-  const last=await backgroundCards.last().boundingBox(),visible=await scroll.boundingBox();
-  if(!last||last.y<visible.y-1||last.y+last.height>visible.y+visible.height+1)throw Error(JSON.stringify({message:'The last background cannot be reached inside the native modal scroll viewport.',viewport,fontScale,last,visible}));
+  const lastCard=backgroundCards.last(),lastName=(await lastCard.getAttribute('aria-label')).replace(' als Desktop-Hintergrund verwenden','');
+  const lastLabel=lastCard.getByText(lastName,{exact:true});await lastLabel.scrollIntoViewIfNeeded();
+  const last=await lastLabel.boundingBox(),visible=await scroll.boundingBox();
+  // A preview card can be taller than a short landscape viewport. Its final
+  // selection label must be reachable, visible and receive the real click.
+  const hit=await lastLabel.evaluate(element=>{const r=element.getBoundingClientRect();return element.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));});
+  if(!last||last.y<visible.y-1||last.y+last.height>visible.y+visible.height+1||!hit)throw Error(JSON.stringify({message:'The last background selection cannot be reached inside the native modal scroll viewport.',viewport,fontScale,last,visible,hit}));
+  await lastLabel.click();await page.getByText('Aktiver Hintergrund',{exact:true}).first().waitFor();
   await page.screenshot({path:join(output,`desktop-center-backgrounds-bottom-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  }
  await background.scrollIntoViewIfNeeded();

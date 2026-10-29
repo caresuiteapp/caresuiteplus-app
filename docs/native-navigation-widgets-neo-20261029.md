@@ -12,9 +12,10 @@
 
 1. Neue Regressionstests reproduzierten vor der Korrektur den Verlust des inneren Navigators und die falsche Berechnung verschachtelter Kartenmindestbreiten.
 2. 1.838 gezielte Tests bestanden: tatsächlicher Expo-Dateiselektor und Linking-Parser für die vorhandenen App-Seiten, imperative Menüziele aus Desktop/Office/QM, Navigator-Lebenszyklen, Desktop-Aktionen, Raster, Modal-Verträge und Neo-Abläufe.
-3. Der Native-Quellenabgleich meldet 1.111 Module, 269 übertragene Routen und null veraltete Dateien. Die Web- und Native-Browserfixtures lassen sich mit den vorhandenen Abhängigkeiten bündeln.
-4. Die bestehende CI-Darstellungsprüfung misst zusätzlich die Katalogspalten nach 2,1 Sekunden, Scrollen bis zum letzten Hintergrund, die vollständige Navigationsbezeichnung „Vorlageneinstellungen“ und Neos Position sowie sichtbare Gerätefehler. Die Sprachhardware ist in dieser Browserfixture ausdrücklich nicht verfügbar.
-5. Der breite lokale Gesamtlauf enthält bereits auf dem unveränderten Ausgangscommit `0d7610d0` sechs fehlgeschlagene Prüfungen: drei alte Serverbeleg-Mocks, zwei Medikamentendatenbank-Prüfungen und eine Erwartung zum bisherigen Desktop-Routennamen. Diese Ausgangsfehler sind keine bestandene Gesamtprüfung. Die gezielten Prüfungen dieses Auftrags sind davon getrennt.
+3. Die vollständige TypeScript-Prüfung ist im bestehenden CI-System bestanden. Der lokale Versuch wurde an der Speichergrenze beendet. Ein zusätzlicher statischer Abgleich erfasste 464 Linkziele; Landingpage, Impressum und Karten-CSS liegen außerhalb des Expo-Routers und sind als vorhandene öffentliche Dateien beziehungsweise Rewrite-Ziele bestätigt.
+4. Der Native-Quellenabgleich meldet 1.111 Module, 269 übertragene Routen und null veraltete Dateien. Die Web- und Native-Browserfixtures lassen sich mit den vorhandenen Abhängigkeiten bündeln.
+5. Die bestehende CI-Darstellungsprüfung misst zusätzlich die Katalogspalten nach 2,1 Sekunden, Scrollen bis zum letzten Hintergrund, die vollständige Navigationsbezeichnung „Vorlageneinstellungen“ und Neos Position sowie sichtbare Gerätefehler. Die Sprachhardware ist in dieser Browserfixture ausdrücklich nicht verfügbar.
+6. Der breite lokale Gesamtlauf enthält bereits auf dem unveränderten Ausgangscommit `0d7610d0` 14 fehlgeschlagene Prüfungen in neun Dateien: drei alte Serverbeleg-Mocks, zwei Medikamentendatenbank-Prüfungen und neun Erwartungen zu bisherigen Gestaltungs- und Routenvorgaben. Der Gesamtlauf ergab 15.131 bestandene, 14 fehlgeschlagene und drei übersprungene Tests. Alle 14 Fehler wurden separat auf dem unveränderten Ausgangsstand reproduziert. Diese Ausgangsfehler sind keine bestandene Gesamtprüfung. Die gezielten Prüfungen dieses Auftrags sind davon getrennt.
 
 ## Grenze des Nachweises
 

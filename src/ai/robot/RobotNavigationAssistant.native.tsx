@@ -22,6 +22,8 @@ import { matchVoiceClients, type VoiceClient } from './voiceCommands';
 import { NATIVE_NEO_AUDIO } from './neoAudio.native';
 import { nativeNeoPosition, type NativeNeoPosition } from './neoPosition.native';
 
+class NeoDeviceError extends Error {}
+
 export function RobotNavigationAssistant() {
   const ready = useAppStartIntroReady(); const auth = useAuth(); const pathname = usePathname(); const permissions = usePermissions(); const tenantId = useServiceTenantId();
   // The current desktop owns Neo. Leaving it unmounts speech and pending work.
@@ -102,7 +104,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
       let settled = false;
       const complete = (error?: Error) => { if (settled) return; settled = true; clearTimeout(timer); signal.removeEventListener('abort', finish); if (speechFinish.current === finish) speechFinish.current = null; if (alive.current) setSpeaking(false); if (error) reject(error); else resolve(); };
       const finish = () => complete();
-      const fail = () => complete(new Error('Die Sprachausgabe ist auf diesem Gerät gerade nicht verfügbar. Tippe Neo erneut an.'));
+      const fail = () => complete(new NeoDeviceError('Die Sprachausgabe ist auf diesem Gerät gerade nicht verfügbar. Tippe Neo erneut an.'));
       const timer = setTimeout(fail, 120000); speechFinish.current = finish; signal.addEventListener('abort', finish, { once: true });
       try {
         if (NATIVE_NEO_AUDIO[text]) {
@@ -136,7 +138,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
   const listen = async (greet = false) => {
     const intent = ++recognitionIntent.current; setSpeechError('');
     try {
-      if (!ExpoSpeechRecognitionModule.isRecognitionAvailable() || !ExpoSpeechRecognitionModule.supportsOnDeviceRecognition()) throw new Error('Auf diesem Gerät ist keine lokale Spracherkennung verfügbar. Prüfe den Sprachdienst in den Geräteeinstellungen.');
+      if (!ExpoSpeechRecognitionModule.isRecognitionAvailable() || !ExpoSpeechRecognitionModule.supportsOnDeviceRecognition()) throw new NeoDeviceError('Auf diesem Gerät ist keine lokale Spracherkennung verfügbar. Prüfe den Sprachdienst in den Geräteeinstellungen.');
       permissionPending.current = true;
       let permission;
       try { permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync(); }
@@ -151,7 +153,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
         if (!alive.current || intent !== recognitionIntent.current || !openRef.current) return;
         const installed = languages.installedLocales.find(locale => locale.replace('_', '-').toLowerCase() === 'de-de')
           ?? languages.installedLocales.find(locale => /^de(?:[-_]|$)/i.test(locale));
-        if (!installed) { setNeedsLanguageModel(true); throw new Error('Das deutsche Sprachpaket fehlt auf diesem Gerät. Lade es einmal, damit Neo zuhören kann.'); }
+        if (!installed) { setNeedsLanguageModel(true); throw new NeoDeviceError('Das deutsche Sprachpaket fehlt auf diesem Gerät. Lade es einmal, damit Neo zuhören kann.'); }
         language = installed; setNeedsLanguageModel(false);
       }
       if (greet) {
@@ -161,7 +163,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
       }
       recognitionActive.current = true; setListening(true);
       ExpoSpeechRecognitionModule.start({ lang: language, interimResults: false, continuous: false, requiresOnDeviceRecognition: true, addsPunctuation: false });
-    } catch (cause) { if (alive.current && intent === recognitionIntent.current) { recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); setSpeechError(cause instanceof Error ? cause.message : 'Die lokale Spracherkennung konnte nicht gestartet werden. Tippe Neo erneut an.'); } }
+    } catch (cause) { if (alive.current && intent === recognitionIntent.current) { recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); setSpeechError(cause instanceof NeoDeviceError ? cause.message : 'Die lokale Spracherkennung konnte nicht gestartet werden. Prüfe den Sprachdienst in den Geräteeinstellungen und tippe Neo erneut an.'); } }
   };
   resume.current = () => { if (alive.current && openRef.current && !lock.current) void listen(); };
   useSpeechRecognitionEvent('start', () => { if (alive.current && recognitionActive.current && openRef.current) setListening(true); });

@@ -126,9 +126,9 @@ describe('Native Neo navigation', () => {
     expect(api.speechStart).toHaveBeenCalledWith(expect.objectContaining({ lang: 'de-DE', requiresOnDeviceRecognition: true }));
   });
   it('shows a service failure instead of rejecting activation silently', async () => {
-    api.available.mockImplementationOnce(() => { throw new Error('Sprachdienst nicht verfügbar'); });
+    api.available.mockImplementationOnce(() => { throw new Error('recognizer service unavailable'); });
     await act(async () => root.render(<Neo />)); await click('Neo-Assistent öffnen');
-    expect(host.textContent).toContain('Sprachdienst nicht verfügbar'); expect(api.speechStart).not.toHaveBeenCalled();
+    expect(host.textContent).toContain('Prüfe den Sprachdienst'); expect(host.textContent).not.toContain('recognizer service unavailable'); expect(api.speechStart).not.toHaveBeenCalled();
   });
   it('cancels a spoken destination when Neo is dragged and keeps the robot inside the rotated viewport', async () => {
     await act(async () => root.render(<Neo />)); await click('Neo-Assistent öffnen');
