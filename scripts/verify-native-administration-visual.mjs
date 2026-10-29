@@ -268,6 +268,7 @@ async function verifyNativeDesktopNavigation(page,viewport,fontScale=1){
  const status=await page.getByTestId('native-neo-status').boundingBox();
  if(!status||status.x<0||status.x+status.width>viewport.width+1)throw Error(JSON.stringify({message:'Neo speech failure is not visible inside the viewport.',viewport,fontScale,status}));
  await page.screenshot({path:join(output,`desktop-neo-top-centre-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ await page.getByRole('button',{name:'Neo-Hinweis schließen',exact:true}).click();await page.getByTestId('native-neo-status').waitFor({state:'hidden'});
  const settings=page.getByRole('tab',{name:'Einstellungen',exact:true});await settings.scrollIntoViewIfNeeded();await settings.click();
  await page.getByText('Mein Desktop · Einstellungen',{exact:true}).waitFor();
  const navigation=page.getByTestId('native-navigation-document-settings');

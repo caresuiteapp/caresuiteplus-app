@@ -173,6 +173,9 @@ describe('Native Neo navigation', () => {
   it('shows actionable microphone failures without restoring a text-command field', async () => {
     api.speechPermission = false; await act(async () => root.render(<Neo />)); await click('Neo-Assistent öffnen');
     expect(host.textContent).toContain('Mikrofon ist nicht freigegeben'); expect(api.speechStart).not.toHaveBeenCalled(); expect(host.querySelector('input')).toBeNull();
+    await click('Neo-Hinweis schließen');
+    expect(host.querySelector('[data-testid="native-neo-status"]')).toBeNull();
+    expect(find('Neo-Assistent öffnen')).toBeTruthy(); expect(api.speechStart).not.toHaveBeenCalled();
   });
   it('does not navigate if spoken confirmation fails', async () => {
     await act(async () => root.render(<Neo />)); await click('Neo-Assistent öffnen');

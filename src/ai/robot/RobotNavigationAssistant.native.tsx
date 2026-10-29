@@ -184,7 +184,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
     } catch { if (alive.current && serial === generation.current) setSpeechError('Das Sprachpaket konnte nicht geladen werden. Prüfe den Sprachdienst in den Geräteeinstellungen und versuche es erneut.'); }
     finally { if (alive.current) setDownloading(false); }
   };
-  const activate = () => { if (Date.now() < suppressPressUntil.current || downloading) return; if (openRef.current) stopSession(); else { openRef.current = true; setOpen(true); setSpeechError(''); void listen(true); } };
+  const activate = () => { if (Date.now() < suppressPressUntil.current) return; if (downloading) { setSpeechError('Das Sprachpaket wird noch geladen. Tippe Neo nach dem Download erneut an.'); return; } if (openRef.current) stopSession(); else { openRef.current = true; setOpen(true); setSpeechError(''); void listen(true); } };
   const statusWidth = Math.min(280, width - insets.left - insets.right - 24);
   const statusLeft = Math.max(insets.left + 12, Math.min(width - insets.right - statusWidth - 12, position.x + 34 - statusWidth / 2)) - position.x;
   const statusTop = Math.max(insets.top + 8, Math.min(position.y + 82, height - insets.bottom - statusHeight - 8)) - position.y;
@@ -194,7 +194,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
       <View style={{ flex: 1, minWidth: 0 }}><Text style={styles.statusText}>{speechError || (speaking ? 'Neo spricht …' : busy ? 'Neo denkt nach …' : listening ? 'Ich höre zu …' : 'Mikrofon wird vorbereitet …')}</Text>
         {needsLanguageModel ? <Pressable accessibilityRole="button" accessibilityLabel="Deutsches Sprachpaket laden" disabled={downloading} onPress={() => { void downloadModel(); }} style={styles.modelAction}><Text style={styles.modelActionText}>{downloading ? 'Sprachpaket wird angefordert …' : 'Deutsches Sprachpaket laden'}</Text></Pressable> : null}
       </View>
-      {open ? <Pressable accessibilityRole="button" accessibilityLabel="Gespräch beenden" onPress={stopSession} style={styles.stop}><Text style={styles.stopText}>×</Text></Pressable> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel={open ? 'Gespräch beenden' : 'Neo-Hinweis schließen'} onPress={() => { stopSession(); setSpeechError(''); }} style={styles.stop}><Text style={styles.stopText}>×</Text></Pressable>
     </View> : null}
     <Pressable {...drag.panHandlers} accessibilityRole="button" accessibilityLabel={open ? 'Neo-Gespräch beenden' : 'Neo-Assistent öffnen'} accessibilityHint={open ? 'Beendet Mikrofon und Sprachausgabe.' : 'Antippen und mit Neo sprechen. Durch Ziehen verschieben.'} accessibilityActions={[{ name: 'reset', label: 'Neo zurücksetzen' }]} onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'reset') { stopSession(); setMoved(null); } }} onPress={activate} style={[styles.robot, listening || speaking || busy ? styles.activeRobot : null]}>
       <Image source={CARESUITE_ROBOT_LOGO} style={styles.image} resizeMode="contain" />
