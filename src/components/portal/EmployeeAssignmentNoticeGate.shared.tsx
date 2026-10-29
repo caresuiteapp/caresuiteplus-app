@@ -117,7 +117,6 @@ export function EmployeeAssignmentNoticeGate() {
           onPress: () => void acknowledge(), disabled: busy, loading: busy && operation?.kind === 'read', variant: 'primary' },
       ]}>
       <View style={styles.body}>
-        <Text style={[styles.explanation, { color: c.muted }]}>Hier bestätigen Sie nur, dass Sie die Information gelesen haben. Einen Einsatz nehmen Sie weiterhin im Einsatz selbst an.</Text>
         {error ? <Text accessibilityRole="alert" style={[styles.error, { color: c.danger }]}>{error}</Text> : null}
         {shown.map(item => <View key={item.id} style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
           {item.title !== assignmentNoticeChangeLabel(item.changeKind) ? <Text style={[styles.changeLabel, { color: c.violet }]}>{assignmentNoticeChangeLabel(item.changeKind)}</Text> : null}
@@ -130,6 +129,7 @@ export function EmployeeAssignmentNoticeGate() {
               : item.changeKind === 'current_plan' ? 'Aktuellen Kalender öffnen' : 'Aktuellen Einsatz öffnen'}</Text>
           </Pressable> : null}
         </View>)}
+        <Text style={[styles.explanation, { color: c.muted }]}>Hier bestätigen Sie nur, dass Sie die Information gelesen haben. Einen Einsatz nehmen Sie weiterhin im Einsatz selbst an.</Text>
         {(query.data?.total ?? 0) > notices.length ? <Text style={[styles.explanation, { color: c.muted }]}>Weitere Einsatzinfos folgen, sobald Sie diese gelesen haben.</Text> : null}
       </View>
     </CarePopupShell>

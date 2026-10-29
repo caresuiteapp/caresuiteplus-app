@@ -20,9 +20,14 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const SCOPE_ERROR = 'Ihre Mitarbeitenden-Zuordnung konnte nicht bestätigt werden. Bitte erneut anmelden.';
 
 export function assignmentNoticeChangeLabel(kind: string): string {
-  return ({ created: 'Neuer Einsatz', changed: 'Einsatz geändert', cancelled: 'Einsatz abgesagt',
-    removed: 'Einsatz nicht mehr zugeordnet', current_plan: 'Aktuelle Einsatzplanung' } as Record<string, string>)[kind]
-    ?? 'Einsatz aktualisiert';
+  switch (kind) {
+    case 'created': return 'Neuer Einsatz';
+    case 'changed': return 'Einsatz geändert';
+    case 'cancelled': return 'Einsatz abgesagt';
+    case 'removed': return 'Einsatz nicht mehr zugeordnet';
+    case 'current_plan': return 'Aktuelle Einsatzplanung';
+    default: return 'Einsatz aktualisiert';
+  }
 }
 
 function noticeBody(metadata: Record<string, unknown>, preview: unknown): string {

@@ -378,6 +378,11 @@ for(const viewport of [{width:844,height:390},{width:1280,height:800}])for(const
  const page=await browser.newPage({viewport}),errors=[];page.on('pageerror',error=>errors.push(error.message));
  try{
   await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
+  if(screen==='employee-notices'){
+   const title=page.getByText('Neuer Einsatz',{exact:true}).last();await title.waitFor();
+   const visible=await title.evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));});
+   if(!visible)throw Error('The first assignment is hidden behind explanatory copy at enlarged landscape text.');
+  }
   await page.screenshot({path:join(output,`${screen}-${viewport.width}x${viewport.height}-scale-1.6.png`)});await verifyActualPortal(page,screen,viewport,1.6);
   if(errors.length)throw Error(JSON.stringify({screen,viewport,fontScale:1.6,errors}));
  }catch(error){await recordCaseFailure(page,{screen,viewport,fontScale:1.6},error);}finally{await page.close();}

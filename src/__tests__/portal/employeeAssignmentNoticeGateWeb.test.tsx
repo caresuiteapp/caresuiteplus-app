@@ -61,6 +61,7 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 it('defers without sending a receipt and keeps unread notices accessible in this session', async () => {
   await render();
   expect(host.querySelector('[role="dialog"]')).not.toBeNull();
+  expect(host.textContent!.indexOf('Termin am Dienstag geändert')).toBeLessThan(host.textContent!.indexOf('Hier bestätigen Sie'));
   await click('Später');
   expect(host.querySelector('[role="dialog"]')).toBeNull();
   expect(h.acknowledge).not.toHaveBeenCalled();
