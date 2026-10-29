@@ -269,21 +269,28 @@ export function useAsyncQuery<T>(
     if (value !== null) setLoading(false);
   }, []);
 
+  // A scope change can render its consumer before React applies the queued
+  // state resets above. Publish the new scope's empty/loading snapshot now;
+  // the previous scope's data or completed loading state must never escape.
+  const currentData = scopeChanged ? null : data;
+  const currentLoading = scopeChanged ? options?.enabled !== false : loading;
+  const currentError = scopeChanged ? null : error;
+  const currentCacheMeta: AssignmentCacheMeta = scopeChanged ? { fromCache: false, cachedAt: null } : cacheMeta;
   return {
-    data,
+    data: currentData,
     setData,
-    loading,
-    error,
-    refreshError,
-    previewData,
-    tableMissing,
+    loading: currentLoading,
+    error: currentError,
+    refreshError: scopeChanged ? null : refreshError,
+    previewData: scopeChanged ? false : previewData,
+    tableMissing: scopeChanged ? false : tableMissing,
     refreshing,
     refresh,
     refreshWithResult,
     silentRefresh,
     reload,
     isLiveConnected,
-    cacheMeta,
-    isEmpty: !loading && !error && data === null,
+    cacheMeta: currentCacheMeta,
+    isEmpty: !currentLoading && !currentError && currentData === null,
   };
 }
