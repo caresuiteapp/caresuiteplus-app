@@ -149,7 +149,10 @@
         "services/gkv/monthly-host-entry.mjs",
         "services/gkv/monthly-auth.mjs",
         "services/gkv/monthly-rest-database.mjs",
-        "docs/gkv/sql/monthly-worker-bridge-draft.sql"
+        "docs/gkv/sql/monthly-worker-bridge-draft.sql",
+        "docs/gkv/sql/monthly-authorities-draft.sql",
+        "src/lib/gkvExchange/monthlyAuthority.ts",
+        "src/components/office/gkv/GkvMonthlyRepresentative.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -161,7 +164,7 @@
         "tests/gkv-exchange/monthly-host.test.mjs",
         "tests/gkv-exchange/monthly-gateway-check.mjs"
       ],
-      "nextStep": "Original-PDF, frische Web-Unterschrift, persönlicher mTLS-Host und sitzungsgebundene SQL-Brücke sind implementiert und lokal integriert geprüft. Zielrechte/Migration, Schlüssel/Zertifikate, echte Anmeldung, visuelle Abnahme, Vertreterprüfung und Druck/Scan bleiben offen.",
+      "nextStep": "Original-PDF, frische Web-Unterschrift, persönlicher mTLS-Host, sitzungsgebundene SQL-Brücke und Vertreterprüfung einschließlich Widerruf sind implementiert und lokal integriert geprüft. Zielrechte/Migration, Schlüssel/Zertifikate, echte Anmeldung und Unterlagenprüfung, visuelle Abnahme, Druck/Scan und Fach-XML bleiben offen.",
       "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",
       "dependsOn": [
         "proof-capture"

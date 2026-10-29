@@ -1,3 +1,4 @@
+import { readMonthlyAuthority, authorityAvailable } from '../../src/lib/gkvExchange/monthlyAuthority.ts';
 import { randomUUID } from 'node:crypto';
 import { readMonthlyProof } from '../../src/lib/gkvExchange/monthlyProof.ts';
 import { isUuid } from './storage.mjs';
@@ -10,8 +11,9 @@ const canonical = value => JSON.stringify(value, function(_key, v) {
 const instant = value => typeof value === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(value) && Number.isFinite(Date.parse(value));
 const fail = code => { throw new Error(code); };
 function request(input) {
-  if (!input || Object.keys(input).some(k => !['tenantId','proofId','revision','captureId'].includes(k))
+  if (!input || Object.keys(input).some(k => !['tenantId','proofId','revision','captureId','authorityId'].includes(k))
     || ![input.tenantId, input.proofId, input.captureId].every(isUuid)
+    || (input.authorityId !== undefined && !isUuid(input.authorityId))
     || !Number.isSafeInteger(input.revision) || input.revision < 1) fail('MONTHLY_VERIFIER_REQUEST');
   return structuredClone(input);
 }
@@ -21,8 +23,8 @@ function request(input) {
  * are not Data API entry points. Never expose this connection to a browser. */
 export function monthlyOriginalDatabase(query) {
   return {
-    async context({ tenantId, proofId, revision }) {
-      const result = await query('SELECT care_security.gkv_monthly_verifier_context($1::uuid,$2::uuid,$3::integer) value', [tenantId, proofId, revision]);
+    async context({ tenantId, proofId, revision, authorityId }) {
+      const result = await query('SELECT care_security.gkv_monthly_verifier_context($1::uuid,$2::uuid,$3::integer,$4::uuid) value', [tenantId, proofId, revision, authorityId ?? null]);
       if (result.rows?.length !== 1) fail('MONTHLY_VERIFIER_CONTEXT');
       return result.rows[0].value;
     },
@@ -44,8 +46,8 @@ export function monthlyOriginalDatabase(query) {
   };
 }
 
-/** Personal patient confirmation only. Representative, print/scan, UI delivery,
- * production worker authorization and XML/CMS remain separate work packages.
+/** Personal patient or reviewed representative confirmation. Print/scan,
+ * production provisioning and normative XML/CMS remain separate work packages.
  * No actual monthly record is finalized here: the existing actor-bound confirm
  * command consumes the private receipt and repeats current-source checks. */
 export class MonthlyOriginalVerifier {
@@ -58,13 +60,19 @@ export class MonthlyOriginalVerifier {
     if (proof.id !== input.proofId || proof.revision !== input.revision || proof.status !== 'open'
       || Date.parse(proof.updated_at) > Date.parse(context.checkedAt)) fail('MONTHLY_VERIFIER_CONTEXT');
     if (context.sessionId !== undefined && !isUuid(context.sessionId)) fail('MONTHLY_VERIFIER_CONTEXT');
+    const authority = context.authority === undefined ? undefined : readMonthlyAuthority(context.authority);
+    if (authority?.id !== input.authorityId || authority && (authority.tenant_id !== input.tenantId
+      || authority.client_id !== proof.payload.clientId || authority.service_type !== proof.payload.serviceType
+      || !authorityAvailable(authority, context.checkedAt))) fail('MONTHLY_CAPTURE_CONTEXT_CHANGED');
     return structuredClone({ actorId: context.actorId, checkedAt: context.checkedAt, proof,
+      ...(authority ? {authority} : {}),
       ...(context.sessionId !== undefined ? {sessionId: context.sessionId} : {}) });
   }
   #bound(input, context) {
     const stored = this.#store.get(input.tenantId, input.captureId);
     if (!stored || stored.snapshot.actorId !== context.actorId
       || stored.snapshot.sessionId !== context.sessionId
+      || canonical(stored.snapshot.authority) !== canonical(context.authority)
       || canonical(stored.snapshot.proof) !== canonical(context.proof)) fail('MONTHLY_CAPTURE_CONTEXT_CHANGED');
     const age = Date.parse(context.checkedAt) - Date.parse(stored.snapshot.preparedAt);
     if (!Number.isFinite(age) || age < 0 || age > 30 * 60 * 1000) fail('MONTHLY_CAPTURE_EXPIRED');
@@ -76,6 +84,7 @@ export class MonthlyOriginalVerifier {
     return { captureId: stored.snapshot.captureId, proofId: stored.snapshot.proof.id,
       revision: stored.snapshot.proof.revision, contentSha256: stored.snapshot.proof.content_sha256,
       originalSha256: stored.originalSha256, originalVersion: stored.originalVersion,
+      ...(stored.snapshot.authority ? {representative: stored.snapshot.authority} : {}),
       bytes: Buffer.from(stored.original), acknowledged: !!stored.acknowledgedAt };
   }
   async prepare(value) {
@@ -83,6 +92,7 @@ export class MonthlyOriginalVerifier {
     let stored = this.#store.get(input.tenantId, input.captureId);
     if (stored) return this.#original(this.#bound(input, context));
     const snapshot = { actorId: context.actorId, proof: context.proof, captureId: input.captureId, preparedAt: context.checkedAt,
+      ...(context.authority ? {authority: context.authority} : {}),
       ...(context.sessionId !== undefined ? {sessionId: context.sessionId} : {}) };
     const bytes = renderMonthlyOriginal(snapshot);
     this.#store.create(snapshot, bytes);
@@ -126,6 +136,8 @@ export class MonthlyOriginalVerifier {
       || receipt.signature_sha256 !== confirmation.signatureSha256 || receipt.signature_version !== confirmation.signatureVersion
       || receipt.signer_role !== confirmation.signerRole || receipt.signer_name !== confirmation.signerName
       || receipt.authority_reference !== confirmation.authorityReference
+      || (receipt.signer_role === 'representative' ? stored.snapshot.authority?.id !== receipt.authority_reference
+        || stored.snapshot.authority?.signer_name !== receipt.signer_name : stored.snapshot.authority !== undefined)
       || Date.parse(receipt.captured_at) !== Date.parse(confirmation.capturedAt)
       || Date.parse(receipt.verified_at) !== Date.parse(confirmation.verifiedAt)) fail('MONTHLY_ARCHIVE_BINDING');
     // Return the displayed original and its current archive status, never a
@@ -150,7 +162,8 @@ export class MonthlyOriginalVerifier {
     let stored = this.#store.reserveSignature(input.tenantId, input.captureId, inspected, (original, signatureVersion) => ({
       id: randomUUID(), tenant_id: input.tenantId, proof_id: input.proofId, proof_revision: input.revision,
       content_sha256: context.proof.content_sha256, capture_id: input.captureId, actor_id: context.actorId,
-      signer_role: 'patient', signer_name: context.proof.payload.clientName, authority_reference: null,
+      signer_role: context.authority ? 'representative' : 'patient', signer_name: context.authority?.signer_name ?? context.proof.payload.clientName,
+      authority_reference: context.authority?.id ?? null,
       original_path: `${prefix}/original.pdf`, original_version: original.originalVersion, original_sha256: original.originalSha256,
       signature_path: `${prefix}/signature.png`, signature_version: signatureVersion, signature_sha256: inspected.sha256,
       signature_ink_sha256: inspected.inkSha256, captured_at: context.checkedAt, verified_at: null,

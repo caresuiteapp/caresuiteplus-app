@@ -124,7 +124,7 @@ test('private original-byte verifier, persistent archive and PostgreSQL receipt 
         BEGIN IF s.verified_fixture IS DISTINCT FROM true OR b IS DISTINCT FROM true THEN RAISE EXCEPTION 'Source verifier rejected'; END IF; END $$;`);
     await db.query('INSERT INTO tenants VALUES($1),($2)', [tenant, foreign]);
     await db.query("INSERT INTO employees VALUES($1,$2,'Test','Pflegekraft')", [employee, tenant]);
-    for (const file of ['monthly-proofs-draft.sql', 'monthly-original-verifier-draft.sql']) await db.exec(await readFile(new URL('../../docs/gkv/sql/' + file, import.meta.url), 'utf8'));
+    for (const file of ['monthly-proofs-draft.sql', 'monthly-original-verifier-draft.sql','monthly-authorities-draft.sql']) await db.exec(await readFile(new URL('../../docs/gkv/sql/' + file, import.meta.url), 'utf8'));
     await db.query("INSERT INTO care_security.gkv_monthly_responsibilities VALUES($1,$2,now()+interval '1 day',NULL,$2,'Fiktive PDL-Beauftragung'),($1,$3,now()+interval '1 day',NULL,$2,'Fiktive Vertretung')", [tenant, actorId, otherActor]);
     await actor();
     await t.test('original bytes survive restart unchanged; archive contains no plaintext PDF or patient name', async () => {

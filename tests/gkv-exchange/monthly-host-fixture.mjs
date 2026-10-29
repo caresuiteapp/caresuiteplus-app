@@ -21,9 +21,9 @@ export async function monthlyHostFixture(){
     CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$ SELECT coalesce(nullif(current_setting('request.jwt.claims',true),''),'{}')::jsonb $$;
     CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT (auth.jwt()->>'sub')::uuid $$;
     CREATE TABLE auth.sessions(id uuid PRIMARY KEY,user_id uuid,not_after timestamptz);
-    CREATE TABLE fixture_access(actor_id uuid,tenant_id uuid,can_read boolean,can_write boolean);
+    CREATE TABLE fixture_access(actor_id uuid,tenant_id uuid,can_read boolean,can_write boolean,can_review boolean DEFAULT true);
     CREATE FUNCTION care_security.gkv_exchange_actor(t uuid,p text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $$
-      SELECT coalesce((SELECT CASE WHEN p='office.invoices.view' THEN can_read WHEN p='office.invoices.create' THEN can_write ELSE false END
+      SELECT coalesce((SELECT CASE WHEN p='office.invoices.view' THEN can_read WHEN p='office.invoices.create' THEN can_write WHEN p='office.clients.edit' THEN can_review ELSE false END
        FROM public.fixture_access WHERE actor_id=auth.uid() AND tenant_id=t),false) $$;
     CREATE TABLE tenants(id uuid PRIMARY KEY); CREATE TABLE clients(id uuid PRIMARY KEY,tenant_id uuid,first_name text,last_name text);
     CREATE TABLE employees(id uuid PRIMARY KEY,tenant_id uuid,first_name text,last_name text);
@@ -35,7 +35,7 @@ export async function monthlyHostFixture(){
   await db.query("INSERT INTO employees VALUES($1,$2,'Fiktive','Pflegekraft')",[employee,tenant]);
   await db.query('INSERT INTO auth.sessions VALUES($1,$2,NULL),($3,$4,NULL)',[sessionId,actorId,otherSession,otherActor]);
   await db.query('INSERT INTO fixture_access VALUES($1,$2,true,true),($3,$2,true,false)',[actorId,tenant,otherActor]);
-  for(const file of ['monthly-proofs-draft.sql','monthly-workspace-draft.sql','monthly-original-verifier-draft.sql','monthly-worker-bridge-draft.sql'])
+  for(const file of ['monthly-proofs-draft.sql','monthly-workspace-draft.sql','monthly-original-verifier-draft.sql','monthly-worker-bridge-draft.sql','monthly-authorities-draft.sql'])
     await db.exec(await readFile(new URL('../../docs/gkv/sql/'+file,import.meta.url),'utf8'));
   await db.query("INSERT INTO care_security.gkv_monthly_responsibilities VALUES($1,$2,now()+interval '1 day',NULL,$2,'Fiktive Beauftragung')",[tenant,actorId]);
   await db.query("INSERT INTO care_security.gkv_monthly_worker_keys VALUES($1,$2,$3,now()+interval '1 day',NULL)",[tenant,workerKeyId,workerKey]);
@@ -64,14 +64,15 @@ export async function monthlyHostFixture(){
     catch(error){return json({code:error.code},error.code==='42501'?403:400);}
   };
   const command=async(action,input,requestId=randomUUID(),identity=claims())=>(await as(identity,'SELECT public.gkv_monthly_proof_command($1,$2,$3,$4::jsonb) value',[tenant,requestId,action,JSON.stringify(input)])).rows[0].value;
-  async function proof(){
-    const client=randomUUID(),record=randomUUID(),visit=randomUUID();
-    await db.query("INSERT INTO clients VALUES($1,$2,'Fiktive','Person')",[client,tenant]);
+  async function proof({clientId=randomUUID(),serviceType='01'}={}){
+    const client=clientId,record=randomUUID(),visit=randomUUID();
+    await db.query("INSERT INTO clients VALUES($1,$2,'Fiktive','Person') ON CONFLICT DO NOTHING",[client,tenant]);
     const receipt={tenant_id:tenant,client_id:client,employee_id:employee,proof_id:visit,proof_payload_hash:'sha256:'+'a'.repeat(64),visit_id:visit};
     await db.query("INSERT INTO service_records VALUES($1,$2,$3,$4,'2026-10-03T12:00Z','2026-10-03','approved',45,$5,true)",[record,tenant,client,employee,JSON.stringify(receipt)]);
     await db.query('INSERT INTO assist_visit_proofs VALUES($1,$2,$1,$3,$4)',[visit,tenant,receipt.proof_payload_hash,JSON.stringify({documentationNote:'Vollständige Unterstützung bei der Körperpflege.',tasks:[]})]);
-    const p=await command('create',{new_id:randomUUID(),client_id:client,month:'2026-10',service_type:'01',source_ids:[record]});
+    const p=await command('create',{new_id:randomUUID(),client_id:client,month:'2026-10',service_type:serviceType,source_ids:[record]});
     return {p,input:{tenantId:tenant,proofId:p.id,revision:p.revision,captureId:randomUUID()}};
   }
-  return {db,tenant,actorId,sessionId,otherActor,otherSession,workerKey,workerKeyId,config,calls,http,claims,token,as,command,proof,close:()=>db.close()};
+  const authority=async(proofId,action,input={},identity=claims())=>(await as(identity,'SELECT public.gkv_monthly_authority_command($1,$2,$3::jsonb) value',[tenant,action,JSON.stringify({proofId,...input})])).rows[0].value;
+  return {authority,db,tenant,actorId,sessionId,otherActor,otherSession,workerKey,workerKeyId,config,calls,http,claims,token,as,command,proof,close:()=>db.close()};
 }

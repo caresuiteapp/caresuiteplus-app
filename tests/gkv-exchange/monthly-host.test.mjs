@@ -1,4 +1,6 @@
 import test from 'node:test';
+import {getDocument} from 'pdfjs-dist/legacy/build/pdf.mjs';
+import {readMonthlyAuthorities} from '../../src/lib/gkvExchange/monthlyAuthority.ts';
 import assert from 'node:assert/strict';
 import {randomUUID,randomBytes,createHmac} from 'node:crypto';
 import {once} from 'node:events';
@@ -46,6 +48,103 @@ test('monthly browser contract, gateway, real mTLS host and SQL worker/session b
       const archive=await postMonthlyOriginalCommand({...v.input,revision:old.revision,action:'archive'},f.token({sub:f.otherActor,session_id:f.otherSession}),f.otherActor,undefined,gateway);
       assert.equal(archive.archive.status,'invalidated');assert.equal(archive.pdfBase64,v.capture.original.pdfBase64);assert.equal(successor.confirmation,null);
       assert.equal(JSON.stringify(archive).includes('pngBase64'),false);
+    });
+    const register=async(v,overrides={})=>{
+      const command={id:randomUUID(),signerName:'Fiktive Angehörige',basis:'vollmacht',evidenceReference:'Prüfakte SYNTHETISCH 42',
+        reviewNote:'Identität, Befugnis und Leistungsart synthetisch geprüft.',validFrom:new Date(Date.now()-60000).toISOString(),validUntil:new Date(Date.now()+3600000).toISOString(),reviewed:true,...overrides};
+      const result=readMonthlyAuthorities(await f.authority(v.p.id,'register',command),v.p);
+      return {command,authority:result.authorities.find(a=>a.id===command.id),result};
+    };
+    const representative=async(v,authority)=>{
+      v.input={...v.input,authorityId:authority.id};v.capture=new MonthlyCaptureSession(v.input,v.p.content_sha256,send);
+      await v.capture.prepare();await v.capture.acknowledge();return v;
+    };
+    await t.test('reviewed representative is visible in actual PDF and bound through receipt, final record and revoked archive',async()=>{
+      const v=await f.proof(),{authority,command}=await register(v);await representative(v,authority);
+      assert.deepEqual(v.capture.original.original.representative,authority);
+      const pdf=getDocument({data:new Uint8Array(Buffer.from(v.capture.original.pdfBase64,'base64')),isEvalSupported:false,verbosity:0});
+      try{const page=await (await pdf.promise).getPage(1),text=(await page.getTextContent()).items.map(i=>i.str).join(' ');
+        for(const value of [authority.signer_name,authority.evidence_reference,authority.id])assert.ok(text.includes(value),value);
+      }finally{await pdf.destroy();}
+      await assert.rejects(send({...v.input,authorityId:randomUUID(),action:'read'}));
+      const {authorityId,...patient}=v.input;await assert.rejects(send({...patient,action:'read'}));
+      await v.capture.verify(signingPng(++count));const final=await confirm(v);
+      assert.equal(final.confirmation.signerRole,'representative');assert.equal(final.confirmation.signerName,authority.signer_name);
+      assert.equal(final.confirmation.authorityReference,authority.id);
+      await f.authority(v.p.id,'revoke',{id:authority.id,reason:'Berechtigung später widerrufen'});
+      const archived=await send({...patient,revision:final.revision,action:'archive'});
+      assert.equal(archived.pdfBase64,v.capture.original.pdfBase64);assert.equal(archived.original.representative.revoked_at,null);
+      const replay=await f.authority(v.p.id,'register',command);assert.ok(replay.authorities[0].revoked_at);
+      const correction=await f.command('correct',{id:final.id,revision:final.revision,new_id:randomUUID(),reason:'Neue fachliche Fassung'});
+      assert.equal(correction.confirmation,null);
+      await assert.rejects(send({...v.input,proofId:correction.id,revision:correction.revision,captureId:randomUUID(),action:'prepare'}));
+    });
+    await t.test('revocation at each capture boundary prevents issuance or atomic final consumption',async()=>{
+      for(const stage of ['prepared','acknowledged','verified']){
+        const v=await f.proof(),{authority}=await register(v);v.input.authorityId=authority.id;
+        v.capture=new MonthlyCaptureSession(v.input,v.p.content_sha256,send);await v.capture.prepare();
+        if(stage!=='prepared')await v.capture.acknowledge();
+        if(stage==='verified')await v.capture.verify(signingPng(++count));
+        await f.authority(v.p.id,'revoke',{id:authority.id,reason:'Widerruf während der Erfassung'});
+        await assert.rejects(send({...v.input,action:'status'}));
+        if(stage==='prepared')await assert.rejects(v.capture.acknowledge());
+        else if(stage==='acknowledged')await assert.rejects(v.capture.verify(signingPng(++count)));
+        else await assert.rejects(confirm(v),e=>e.code==='40001');
+        assert.equal((await f.db.query('SELECT status FROM gkv_monthly_proofs WHERE id=$1',[v.p.id])).rows[0].status,'open');
+        assert.equal((await f.db.query('SELECT count(*)::int n FROM care_security.gkv_monthly_confirmation_receipts WHERE proof_id=$1 AND consumed_at IS NOT NULL',[v.p.id])).rows[0].n,0);
+      }
+    });
+    await t.test('authority creation/revocation is scoped, idempotent, immutable and requires current personal review rights',async()=>{
+      const v=await f.proof(),{authority,command,result}=await register(v);
+      assert.equal(result.canManage,true);assert.equal(authority.reviewed_by,f.actorId);
+      const again=await f.authority(v.p.id,'register',command);assert.equal(again.authorities.length,1);assert.equal(again.authorities[0].reviewed_at,authority.reviewed_at);
+      await assert.rejects(f.authority(v.p.id,'register',{...command,signerName:'Andere Person'}),e=>e.code==='40001');
+      await assert.rejects(f.authority(v.p.id,'register',{...command,id:randomUUID(),reviewed:false}));
+      await assert.rejects(f.authority(v.p.id,'register',{...command,id:randomUUID(),reviewedBy:f.actorId}));
+      for(const patch of [{reviewNote:'Mehrzeilig\nunerlaubt'},{signerName:'Name\u202e'},{evidenceReference:'Akten\u200breferenz'}])
+        await assert.rejects(f.authority(v.p.id,'register',{...command,id:randomUUID(),...patch}));
+      const other=await f.proof();await assert.rejects(f.authority(other.p.id,'revoke',{id:authority.id,reason:'Fremder Klient'}),e=>e.code==='42501');
+      await assert.rejects(f.authority(v.p.id,'list',{},f.claims({sub:f.otherActor,session_id:f.otherSession})),e=>e.code==='42501');
+      await assert.rejects(f.db.query('UPDATE care_security.gkv_monthly_authorities SET signer_name=$1 WHERE id=$2',['Manipuliert',authority.id]));
+      await assert.rejects(f.db.query('DELETE FROM care_security.gkv_monthly_authorities WHERE id=$1',[authority.id]));
+      for(const sql of ['SELECT * FROM care_security.gkv_monthly_authorities',`SELECT care_security.gkv_monthly_resolve_authority('${f.tenant}','${v.p.id}','${authority.id}')`])
+        await assert.rejects(f.as(f.claims(),sql),e=>e.code==='42501');
+      await f.db.query('UPDATE fixture_access SET can_review=false WHERE actor_id=$1',[f.actorId]);
+      assert.equal((await f.authority(v.p.id,'list')).canManage,false);
+      await assert.rejects(f.authority(v.p.id,'register',{...command,id:randomUUID()}),e=>e.code==='42501');
+      await assert.rejects(f.authority(v.p.id,'revoke',{id:authority.id,reason:'Keine Freigabe'}),e=>e.code==='42501');
+      await f.db.query('UPDATE fixture_access SET can_review=true WHERE actor_id=$1',[f.actorId]);
+      const reason='Begründeter Widerruf';await f.authority(v.p.id,'revoke',{id:authority.id,reason});
+      const revoked=await f.authority(v.p.id,'revoke',{id:authority.id,reason});assert.equal(revoked.authorities.length,1);
+      await assert.rejects(f.authority(v.p.id,'revoke',{id:authority.id,reason:'Anderer Widerruf'}),e=>e.code==='40001');
+    });
+    await t.test('future, expired, wrong-client and wrong-service authorities never prepare an original',async()=>{
+      const v=await f.proof(),{authority}=await register(v),other=await f.proof();
+      const wrongType=await f.proof({clientId:v.p.payload.clientId,serviceType:'02'});
+      for(const target of [other,wrongType])await assert.rejects(send({...target.input,authorityId:authority.id,action:'prepare'}));
+      for(const offsets of [[-120000,-60000],[60000,120000]]){
+        const entry=await register(v,{validFrom:new Date(Date.now()+offsets[0]).toISOString(),validUntil:new Date(Date.now()+offsets[1]).toISOString()});
+        await assert.rejects(send({...v.input,captureId:randomUUID(),authorityId:entry.authority.id,action:'prepare'}));
+      }
+    });
+    await t.test('authority expiring after verified signature is rejected at final consumption',async()=>{
+      const v=await f.proof(),{authority}=await register(v,{validUntil:new Date(Date.now()+3000).toISOString()});await representative(v,authority);
+      await v.capture.verify(signingPng(++count));
+      await new Promise(resolve=>setTimeout(resolve,Math.max(0,Date.parse(authority.valid_until)-Date.now()+30)));
+      await assert.rejects(confirm(v),e=>e.code==='40001');
+    });
+    await t.test('three service types require three separate captures and reject reused representative ink',async()=>{
+      const clientId=randomUUID(),finals=[],originalInk=signingPng(++count);
+      for(const serviceType of ['01','02','03']){
+        const v=await f.proof({clientId,serviceType}),{authority}=await register(v);await representative(v,authority);
+        if(serviceType!=='01'){
+          await assert.rejects(v.capture.verify(originalInk),/Unterschrift/);
+          v.input.captureId=randomUUID();await representative(v,authority);
+        }
+        await v.capture.verify(serviceType==='01'?originalInk:signingPng(++count));finals.push(await confirm(v));
+      }
+      assert.equal(new Set(finals.map(p=>p.confirmation.captureId)).size,3);assert.equal(new Set(finals.map(p=>p.confirmation.signatureSha256)).size,3);
+      assert.ok(finals.every(p=>p.status==='final' && p.confirmation.signerRole==='representative'));
     });
     await t.test('unknown verification response is checked without another issuance; exact receipt is recovered',async()=>{
       const v=await f.proof();let lose=true,writes=0;

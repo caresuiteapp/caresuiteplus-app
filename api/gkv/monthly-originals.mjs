@@ -70,66 +70,85 @@ var PRICING_RULES = {
 // src/lib/gkvExchange/sources.ts
 var UUID = /^[a-f0-9]{8}-[a-f0-9]{4}-[1-5][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i;
 
+// src/lib/gkvExchange/monthlyAuthority.ts
+var AUTHORITY_BASES = { vollmacht: "Vollmacht", gesetzliche_vertretung: "Gesetzliche Vertretung", angehoerige: "Berechtigte Angehörige" };
+var uuid = (v) => typeof v === "string" && UUID.test(v) && v === v.toLowerCase();
+var instant = (v) => typeof v === "string" && /^\d{4}-\d{2}-\d{2}T/.test(v) && Number.isFinite(Date.parse(v));
+var text = (v, min, max) => typeof v === "string" && [...v.replace(/^ +| +$/g, "")].length >= min && [...v].length <= max && !/[\p{Cc}\p{Cf}]/u.test(v);
+var object = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+function fail() {
+  throw Error("Die gespeicherte Vertretungsprüfung ist unvollständig oder gehört nicht zu diesem Nachweis.");
+}
+function readMonthlyAuthority(value) {
+  if (!object(value) || Object.keys(value).sort().join() !== ["id", "tenant_id", "client_id", "service_type", "signer_name", "basis", "evidence_reference", "review_note", "valid_from", "valid_until", "reviewed_by", "reviewed_at", "revoked_by", "revoked_at", "revocation_reason"].sort().join() || ![value.id, value.tenant_id, value.client_id, value.reviewed_by].every(uuid) || typeof value.service_type !== "string" || !/^(0[1-9]|1[0-5])$/.test(value.service_type) || !text(value.signer_name, 2, 300) || !Object.hasOwn(AUTHORITY_BASES, String(value.basis)) || !text(value.evidence_reference, 3, 500) || !text(value.review_note, 10, 1e3) || ![value.valid_from, value.valid_until, value.reviewed_at].every(instant) || Date.parse(value.valid_from) >= Date.parse(value.valid_until) || (value.revoked_at === null ? value.revoked_by !== null || value.revocation_reason !== null : !instant(value.revoked_at) || !uuid(value.revoked_by) || !text(value.revocation_reason, 3, 1e3))) fail();
+  return structuredClone(value);
+}
+
 // src/lib/gkvExchange/monthlyOriginalContract.ts
 var MONTHLY_FILE_LIMIT = 2 * 1024 * 1024;
 var MONTHLY_WIRE_LIMIT = 285e4;
 var hash = (v) => typeof v === "string" && /^[a-f0-9]{64}$/.test(v);
-var uuid = (v) => typeof v === "string" && UUID.test(v) && v === v.toLowerCase();
-var object = (v) => !!v && typeof v === "object" && !Array.isArray(v);
+var uuid2 = (v) => typeof v === "string" && UUID.test(v) && v === v.toLowerCase();
+var object2 = (v) => !!v && typeof v === "object" && !Array.isArray(v);
 var keys = (v, allowed) => Object.keys(v).length === allowed.length && Object.keys(v).every((k) => allowed.includes(k));
-function fail() {
+function fail2() {
   throw new Error("MONTHLY_ORIGINAL_CONTRACT");
 }
 function monthlyBase64(value, max = MONTHLY_FILE_LIMIT) {
-  if (typeof value !== "string" || !value.length || value.length > Math.ceil(max / 3) * 4 || value.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) fail();
+  if (typeof value !== "string" || !value.length || value.length > Math.ceil(max / 3) * 4 || value.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(value)) fail2();
   const raw = atob(value);
-  if (raw.length > max || btoa(raw) !== value) fail();
+  if (raw.length > max || btoa(raw) !== value) fail2();
   return Uint8Array.from(raw, (c) => c.charCodeAt(0));
 }
 function readMonthlyOriginalCommand(value) {
-  if (!object(value) || !["prepare", "read", "status", "archive", "acknowledge", "verify"].includes(value.action) || ![value.tenantId, value.proofId, value.captureId].every(uuid) || !Number.isSafeInteger(value.revision) || Number(value.revision) < 1 || !keys(value, ["action", "tenantId", "proofId", "revision", "captureId", ...value.action === "acknowledge" ? ["originalSha256"] : value.action === "verify" ? ["pngBase64"] : []])) fail();
-  if (value.action === "acknowledge" && !hash(value.originalSha256)) fail();
+  if (!object2(value) || !["prepare", "read", "status", "archive", "acknowledge", "verify"].includes(value.action) || ![value.tenantId, value.proofId, value.captureId].every(uuid2) || !Number.isSafeInteger(value.revision) || Number(value.revision) < 1 || value.authorityId !== void 0 && (!uuid2(value.authorityId) || value.action === "archive") || !keys(value, [...value.authorityId !== void 0 ? ["authorityId"] : [], "action", "tenantId", "proofId", "revision", "captureId", ...value.action === "acknowledge" ? ["originalSha256"] : value.action === "verify" ? ["pngBase64"] : []])) fail2();
+  if (value.action === "acknowledge" && !hash(value.originalSha256)) fail2();
   if (value.action === "verify") monthlyBase64(value.pngBase64);
   return structuredClone(value);
 }
 function meta(value, input) {
-  if (!object(value) || !keys(value, ["captureId", "proofId", "revision", "contentSha256", "originalSha256", "originalVersion", "acknowledged"]) || value.captureId !== input.captureId || value.proofId !== input.proofId || value.revision !== input.revision || !hash(value.contentSha256) || !hash(value.originalSha256) || !uuid(value.originalVersion) || typeof value.acknowledged !== "boolean") fail();
+  if (!object2(value) || !keys(value, ["captureId", "proofId", "revision", "contentSha256", "originalSha256", "originalVersion", "acknowledged", ...value.representative !== void 0 ? ["representative"] : []]) || value.captureId !== input.captureId || value.proofId !== input.proofId || value.revision !== input.revision || !hash(value.contentSha256) || !hash(value.originalSha256) || !uuid2(value.originalVersion) || typeof value.acknowledged !== "boolean") fail2();
+  if (value.representative !== void 0) {
+    const a = readMonthlyAuthority(value.representative);
+    if (a.tenant_id !== input.tenantId || a.revoked_at !== null) fail2();
+    if (input.action !== "archive" && a.id !== input.authorityId) fail2();
+  } else if (input.authorityId !== void 0) fail2();
   return value;
 }
 function readMonthlyOriginalReceipt(value, input, actorId) {
-  if (!object(value) || !keys(value, ["receiptId", "captureId", "proofId", "revision", "tenantId", "actorId", "contentSha256", "originalSha256", "signatureSha256"]) || !uuid(value.receiptId) || value.captureId !== input.captureId || value.proofId !== input.proofId || value.revision !== input.revision || value.tenantId !== input.tenantId || value.actorId !== actorId || ![value.contentSha256, value.originalSha256, value.signatureSha256].every(hash)) fail();
+  if (!object2(value) || !keys(value, ["receiptId", "captureId", "proofId", "revision", "tenantId", "actorId", "contentSha256", "originalSha256", "signatureSha256"]) || !uuid2(value.receiptId) || value.captureId !== input.captureId || value.proofId !== input.proofId || value.revision !== input.revision || value.tenantId !== input.tenantId || value.actorId !== actorId || ![value.contentSha256, value.originalSha256, value.signatureSha256].every(hash)) fail2();
   return structuredClone(value);
 }
 function readMonthlyOriginalResponse(value, input, actorId) {
-  if (!object(value) || value.version !== 1 || !uuid(actorId) || value.actorId !== actorId || ["tenantId", "proofId", "revision", "captureId"].some((k) => value[k] !== input[k])) fail();
-  const base = ["version", "actorId", "tenantId", "proofId", "revision", "captureId", "kind"];
+  if (!object2(value) || value.version !== 1 || !uuid2(actorId) || value.actorId !== actorId || ["tenantId", "proofId", "revision", "captureId", "authorityId"].some((k) => value[k] !== input[k])) fail2();
+  const base = [...input.authorityId !== void 0 ? ["authorityId"] : [], "version", "actorId", "tenantId", "proofId", "revision", "captureId", "kind"];
   if (value.kind === "original" && ["prepare", "read", "archive"].includes(input.action)) {
-    if (!keys(value, [...base, "original", "pdfBase64", "archive"])) fail();
+    if (!keys(value, [...base, "original", "pdfBase64", "archive"])) fail2();
     meta(value.original, input);
     const bytes = monthlyBase64(value.pdfBase64);
-    if (new TextDecoder().decode(bytes.subarray(0, 5)) !== "%PDF-") fail();
+    if (new TextDecoder().decode(bytes.subarray(0, 5)) !== "%PDF-") fail2();
     if (input.action === "archive") {
       const a = value.archive;
-      if (!object(a) || !keys(a, ["status", "version", "finalizedAt", "invalidatedAt"]) || !["final", "invalidated"].includes(a.status) || !Number.isSafeInteger(a.version) || Number(a.version) < 1 || typeof a.finalizedAt !== "string" || !Number.isFinite(Date.parse(a.finalizedAt)) || (a.status === "final" ? a.invalidatedAt !== null : typeof a.invalidatedAt !== "string" || !Number.isFinite(Date.parse(a.invalidatedAt)))) fail();
-    } else if (value.archive !== null) fail();
+      if (!object2(a) || !keys(a, ["status", "version", "finalizedAt", "invalidatedAt"]) || !["final", "invalidated"].includes(a.status) || !Number.isSafeInteger(a.version) || Number(a.version) < 1 || typeof a.finalizedAt !== "string" || !Number.isFinite(Date.parse(a.finalizedAt)) || (a.status === "final" ? a.invalidatedAt !== null : typeof a.invalidatedAt !== "string" || !Number.isFinite(Date.parse(a.invalidatedAt)))) fail2();
+    } else if (value.archive !== null) fail2();
   } else if (value.kind === "acknowledged" && input.action === "acknowledge") {
-    if (!keys(value, [...base, "originalSha256"]) || value.originalSha256 !== input.originalSha256) fail();
+    if (!keys(value, [...base, "originalSha256"]) || value.originalSha256 !== input.originalSha256) fail2();
   } else if (value.kind === "receipt" && input.action === "verify") {
-    if (!keys(value, [...base, "receipt"])) fail();
+    if (!keys(value, [...base, "receipt"])) fail2();
     readMonthlyOriginalReceipt(value.receipt, input, actorId);
   } else if (value.kind === "state" && input.action === "status") {
-    if (!keys(value, [...base, "state", "original", "receipt"]) || !["absent", "prepared", "acknowledged", "verified"].includes(value.state)) fail();
+    if (!keys(value, [...base, "state", "original", "receipt"]) || !["absent", "prepared", "acknowledged", "verified"].includes(value.state)) fail2();
     if (value.state === "absent") {
-      if (value.original !== null || value.receipt !== null) fail();
+      if (value.original !== null || value.receipt !== null) fail2();
     } else {
       const original = meta(value.original, input);
-      if (original.acknowledged !== (value.state !== "prepared")) fail();
+      if (original.acknowledged !== (value.state !== "prepared")) fail2();
       if (value.state === "verified") {
         const receipt = readMonthlyOriginalReceipt(value.receipt, input, actorId);
-        if (receipt.originalSha256 !== original.originalSha256 || receipt.contentSha256 !== original.contentSha256) fail();
-      } else if (value.receipt !== null) fail();
+        if (receipt.originalSha256 !== original.originalSha256 || receipt.contentSha256 !== original.contentSha256) fail2();
+      } else if (value.receipt !== null) fail2();
     }
-  } else fail();
+  } else fail2();
   return structuredClone(value);
 }
 

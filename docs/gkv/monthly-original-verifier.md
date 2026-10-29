@@ -8,8 +8,8 @@ Prüflauf vom bestehenden SQL-Befehl `confirm` tatsächlich verbraucht.
 **Die [Host-/App-Anbindung](monthly-host.md) ist implementiert und lokal geprüft,
 aber noch nicht aktiviert.** Die SQL-Entwürfe sind nicht eingespielt. Die privaten
 Belegfunktionen bleiben gesperrt; der zusätzliche Worker-Wrapper verlangt eine
-aktive persönliche Sitzung und einen Host-MAC. Vertreter, Druck/Scan und Fach-XML
-sind nicht implementiert.
+aktive persönliche Sitzung und einen Host-MAC. Die [Vertreterprüfung](monthly-representatives.md)
+ist ergänzt. Druck/Scan und Fach-XML sind weiterhin nicht implementiert.
 Das ist keine abgeschlossene ITSG-Prüfung und keine Freigabe zum Echtversand.
 
 ## Ablauf
@@ -48,7 +48,8 @@ darstellbare Zeichen führen zu einem Fehler statt zu fehlenden Textteilen.
 HTML, PDFs, bestehende Einsatzunterschriften und externe URLs werden nicht als
 Original angenommen. Die Fassung stammt ausschließlich aus der privaten
 SQL-Kontextabfrage. Die Dienstschnittstelle nimmt keine frei gewählten
-Unterzeichnernamen, Vertreterangaben oder Hashbehauptungen entgegen.
+frei gewählten Unterzeichnernamen, Vertreternachweise oder Hashbehauptungen entgegen.
+Die optionale `authorityId` wird ausschließlich serverseitig aufgelöst.
 
 Für die persönliche Bestätigung wird der Name aus dem gebundenen
 Klientendatensatz verwendet. Das beweist weder die Identität der tatsächlich
@@ -163,5 +164,5 @@ vor. Die Fälle 3.6–3.11 und 5.1/5.2 sind damit noch nicht bestanden. Die aktu
 Pflegeseite und der Prüfkatalog wurden am 29.10.2026 erneut gelesen.
 
 Offen sind die Aktivierung und Zielprüfung der implementierten Host-/App-Anbindung
-mit echten persönlichen Anmeldungen, die visuelle Abnahme, Vertreterprüfung,
+mit echten persönlichen Anmeldungen, die visuelle Abnahme, tatsächliche Vertreterprüfung im Zielbetrieb,
 Druck/Scan, signiertes Fach-XML mit XSD-/CMS-Prüfung und die unabhängige Abnahme.

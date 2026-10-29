@@ -35,6 +35,9 @@ und enthält den vor der Unterschrift angezeigten Inhalt; es ist kein nachträgl
 mit dem Unterschriftsbild zusammengefügtes Dokument. Die Bestätigung wird getrennt
 am Nachweis ausgewiesen. Der Archivabruf liefert keine wiederverwendbare PNG.
 
+Die [Vertreteroption](monthly-representatives.md) ergänzt eine dokumentierte
+Berechtigungsprüfung mit Auswahl, Originalbindung, Gültigkeit und Widerruf.
+
 ## Authentisierung und Vertrauensgrenzen
 
 | Grenze | Implementierte Prüfung |
@@ -99,7 +102,8 @@ angeben; Zertifikatsname und Pin bleiben verbindlich. Der URL-Pfad ist ausschlie
 
 Nach gesonderter Prüfung der Zielrechte ist die Reihenfolge der SQL-Entwürfe:
 `monthly-proofs-draft.sql`, `monthly-workspace-draft.sql`,
-`monthly-original-verifier-draft.sql`, `monthly-worker-bridge-draft.sql`.
+`monthly-original-verifier-draft.sql`, `monthly-worker-bridge-draft.sql`,
+`monthly-authorities-draft.sql`. Alle fünf sind gemeinsam zu prüfen.
 Die Brücke setzt das vorhandene `pgcrypto` im Schema `extensions` sowie das
 Supabase-Auth-Schema voraus. Hostfreigaben werden separat in der privaten
 Schlüsseltabelle provisioniert. Kein Skript aktiviert oder befüllt sie automatisch.
@@ -114,22 +118,22 @@ einen tatsächlich geprüften Betriebsablauf.
 
 ## Nachweise und offene Punkte
 
-Die Host-Suite enthält 14 Unterfälle plus Hauptfall. Sie verbindet den echten
+Die Host-Suite enthält 20 Unterfälle plus Hauptfall. Sie verbindet den echten
 Browservertrag, Gatewayhandler, lokale HTTPS-/mTLS-Verbindung, Host, verschlüsseltes
-Archiv und die vier tatsächlichen SQL-Entwürfe mit `pgcrypto` in PGlite.
+Archiv und die fünf tatsächlichen SQL-Entwürfe mit `pgcrypto` in PGlite.
 Auth-/REST-Server und Office-Quellrechte sind ausdrücklich Vertragsdoubles.
 Alle Unterschriften und Zertifikate sind synthetisch. Das belegt keinen echten
 Supabase-Login, keine konkurrierenden PostgreSQL-Verbindungen und keine TI.
 
-Die React-Suite umfasst 15 Abläufe mit tatsächlicher Monatsansicht und Office-Seite.
+Die React-Suite umfasst 19 Abläufe mit tatsächlicher Monatsansicht und Office-Seite.
 API, PDF-Viewer und Zeichenfläche haben synthetische Grenzen. Die Bedienfolge,
 getrennte Finalisierung, verlorene Antworten, Rechtewechsel und späte Antworten
 sind geprüft. Das DOM-Modell berechnet kein Layout. Eine breite/schmale Prüfung
 mit Schriftvergrößerung, Tastaturfokus, tatsächlichem PDF-Viewer und realen
 Zeichenereignissen ist offen: lokal fehlt die Browserlaufzeit, das verbundene
-Gerät war bei der erneuten Prüfung offline. Es wurde nichts nachinstalliert.
+Gerät war bei der erneuten Prüfung offline. Zusätzliche Browser- oder Testinfrastruktur wurde nicht installiert.
 
-Weiter offen bleiben Vertreterberechtigung, Druck/Scan, signiertes Fach-XML,
+Weiter offen bleiben die tatsächliche Vertreterprüfung im Zielbetrieb, Druck/Scan, signiertes Fach-XML,
 XSD-/CMS-Prüfung, Hardware-/TI-Nachweise und unabhängige ITSG-/gematik-Abnahme.
 Der bestehende CMS-/KIM-Code wird durch diese lokale Monatsbestätigung weder
 zugelassen noch zum Echtversand freigegeben.

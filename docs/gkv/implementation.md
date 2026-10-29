@@ -17,7 +17,8 @@ Fassungsvergleich, protokollierte Korrektur und Auftragsklärung. Der bisherige
 Speicherentwurf ist lokal geprüft; neue SQL-/React-Tests sind im vorhandenen
 Preview-Build verpflichtend. Originaldatei-/Unterschriftsprüfer und persönlich
 authentisierte Host-/Web-Anbindung sind inzwischen implementiert und lokal geprüft
-(siehe [Monatsbestätigung](monthly-host.md)). Datenbankaktivierung, Zielbetrieb
+(siehe [Monatsbestätigung](monthly-host.md)). Die [Vertreteroption](monthly-representatives.md)
+ergänzt persönliche Berechtigungsprüfung, Originalbindung und Widerruf. Datenbankaktivierung, Zielbetrieb
 und visuelle Abnahme fehlen noch. Eine private Bestätigungsquittung kann nicht
 durch Browserangaben ersetzt werden. Die ITSG-Fälle bleiben bis zur Vorführung
 des gesamten Ablaufs offen.

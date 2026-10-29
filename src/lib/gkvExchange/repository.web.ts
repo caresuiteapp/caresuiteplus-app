@@ -13,6 +13,7 @@ import {postMonthlyOriginalCommand} from './monthlyOriginalClient';
 import type {MonthlyOriginalCommand} from './monthlyOriginalContract';
 import type { KimHostCommand } from './kimReceiveContract';
 import { readMonthlyClients, readMonthlyWorkspace, readMonthlySources, readMonthlyRequestStatus } from './monthlyWorkspace';
+import {readMonthlyAuthorities,type AuthorityCommand} from './monthlyAuthority';
 export type { RevisionSummary, SavedRevision } from './history';
 import { executeMonthlyProofCommand, readMonthlyProof, type MonthlyProof, type MonthlyProofCommand, type MonthlyProofRpc } from './monthlyProof';
 
@@ -21,6 +22,20 @@ export type Event = {id:string;event_type:string;created_at:string;details:Recor
 export type DirectoryRow = {id:string;filename:string;source_text:string;imported_at:string};
 type Row=Record<string,unknown>;
 export type SourceInvoice={id:string;invoice_number:string;status:string;total_amount:number;updated_at:string;client_id:string|null};
+export async function commandMonthlyAuthority(proof:MonthlyProof,role:RoleKey,command:AuthorityCommand){
+  if(command.proofId!==proof.id)throw Error('Die Vertretungsprüfung gehört nicht zu diesem Monatsnachweis.');
+  const client=connection(proof.tenant_id,role,true);
+  const {action,...input}=command;
+  const rpc=client.rpc.bind(client) as unknown as (name:string,args:Row)=>Promise<{data:unknown;error:unknown}>;
+  const {data,error}=await rpc('gkv_monthly_authority_command',{p_tenant:proof.tenant_id,p_action:action,p_input:input});
+  if(error){
+    const code=(error as {code?:string}).code;
+    if(code==='40001')throw Error('Die Vertretungsprüfung wurde geändert oder ist nicht mehr gültig. Bitte den gespeicherten Stand prüfen.');
+    if(code==='42501')throw Error('Eine aktive persönliche Beauftragung und die erforderlichen Klientenrechte fehlen.');
+    failure(error);
+  }
+  return readMonthlyAuthorities(data,proof);
+}
 export async function requestMonthlyOriginal(tenantId:string,role:RoleKey,input:MonthlyOriginalCommand,signal?:AbortSignal){
   if(input.tenantId!==tenantId)throw Error('Die Erfassung gehört nicht zum aktuellen Mandanten.');
   const client=connection(tenantId,role,input.action!=='archive');

@@ -1,3 +1,4 @@
+import {readMonthlyAuthority,type MonthlyAuthority} from './monthlyAuthority';
 import { UUID } from './sources';
 
 export const MONTHLY_FILE_LIMIT = 2 * 1024 * 1024;
@@ -7,14 +8,14 @@ const uuid = (v: unknown): v is string => typeof v === 'string' && UUID.test(v) 
 const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
 const keys = (v: Record<string, unknown>, allowed: string[]) => Object.keys(v).length === allowed.length && Object.keys(v).every(k => allowed.includes(k));
 function fail(): never { throw new Error('MONTHLY_ORIGINAL_CONTRACT'); }
-export type MonthlyCapture = {tenantId: string; proofId: string; revision: number; captureId: string};
+export type MonthlyCapture = {tenantId: string; proofId: string; revision: number; captureId: string; authorityId?: string};
 export type MonthlyOriginalCommand = MonthlyCapture & (
   {action: 'prepare' | 'read' | 'status' | 'archive'} |
   {action: 'acknowledge'; originalSha256: string} |
   {action: 'verify'; pngBase64: string}
 );
 export type MonthlyOriginalMeta = {captureId: string; proofId: string; revision: number; contentSha256: string;
-  originalSha256: string; originalVersion: string; acknowledged: boolean};
+  originalSha256: string; originalVersion: string; acknowledged: boolean; representative?: MonthlyAuthority};
 export type MonthlyOriginalReceipt = {receiptId: string; captureId: string; proofId: string; revision: number; tenantId: string;
   actorId: string; contentSha256: string; originalSha256: string; signatureSha256: string};
 type Envelope = MonthlyCapture & {version: 1; actorId: string};
@@ -33,15 +34,21 @@ export function monthlyBase64(value: unknown, max = MONTHLY_FILE_LIMIT): Uint8Ar
 export function readMonthlyOriginalCommand(value: unknown): MonthlyOriginalCommand {
   if (!object(value) || !['prepare','read','status','archive','acknowledge','verify'].includes(value.action as string)
     || ![value.tenantId,value.proofId,value.captureId].every(uuid) || !Number.isSafeInteger(value.revision) || Number(value.revision) < 1
-    || !keys(value, ['action','tenantId','proofId','revision','captureId', ...(value.action === 'acknowledge' ? ['originalSha256'] : value.action === 'verify' ? ['pngBase64'] : [])])) fail();
+    || (value.authorityId !== undefined && (!uuid(value.authorityId) || value.action === 'archive'))
+    || !keys(value, [...(value.authorityId !== undefined ? ['authorityId'] : []),'action','tenantId','proofId','revision','captureId', ...(value.action === 'acknowledge' ? ['originalSha256'] : value.action === 'verify' ? ['pngBase64'] : [])])) fail();
   if (value.action === 'acknowledge' && !hash(value.originalSha256)) fail();
   if (value.action === 'verify') monthlyBase64(value.pngBase64);
   return structuredClone(value) as MonthlyOriginalCommand;
 }
 function meta(value: unknown, input: MonthlyCapture): MonthlyOriginalMeta {
-  if (!object(value) || !keys(value, ['captureId','proofId','revision','contentSha256','originalSha256','originalVersion','acknowledged'])
+  if (!object(value) || !keys(value, ['captureId','proofId','revision','contentSha256','originalSha256','originalVersion','acknowledged', ...(value.representative !== undefined ? ['representative'] : [])])
     || value.captureId !== input.captureId || value.proofId !== input.proofId || value.revision !== input.revision
     || !hash(value.contentSha256) || !hash(value.originalSha256) || !uuid(value.originalVersion) || typeof value.acknowledged !== 'boolean') fail();
+  if (value.representative !== undefined) {
+    const a=readMonthlyAuthority(value.representative);
+    if(a.tenant_id!==input.tenantId || a.revoked_at!==null)fail();
+    if((input as MonthlyOriginalCommand).action!=='archive' && a.id!==input.authorityId)fail();
+  } else if(input.authorityId!==undefined)fail();
   return value as MonthlyOriginalMeta;
 }
 export function readMonthlyOriginalReceipt(value: unknown, input: MonthlyCapture, actorId: string): MonthlyOriginalReceipt {
@@ -52,8 +59,8 @@ export function readMonthlyOriginalReceipt(value: unknown, input: MonthlyCapture
 }
 export function readMonthlyOriginalResponse(value: unknown, input: MonthlyOriginalCommand, actorId: string): MonthlyOriginalResponse {
   if (!object(value) || value.version !== 1 || !uuid(actorId) || value.actorId !== actorId
-    || ['tenantId','proofId','revision','captureId'].some(k => value[k] !== input[k as keyof MonthlyCapture])) fail();
-  const base = ['version','actorId','tenantId','proofId','revision','captureId','kind'];
+    || ['tenantId','proofId','revision','captureId','authorityId'].some(k => value[k] !== input[k as keyof MonthlyCapture])) fail();
+  const base = [...(input.authorityId !== undefined ? ['authorityId'] : []),'version','actorId','tenantId','proofId','revision','captureId','kind'];
   if (value.kind === 'original' && ['prepare','read','archive'].includes(input.action)) {
     if (!keys(value, [...base,'original','pdfBase64','archive'])) fail();
     meta(value.original, input); const bytes = monthlyBase64(value.pdfBase64);

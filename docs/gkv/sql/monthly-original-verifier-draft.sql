@@ -1,15 +1,15 @@
 -- REVIEW ONLY. Requires monthly-proofs-draft.sql and its canonical Office source
 -- verifier. No migration, worker credential, Data API entry, role grant or rollout.
 -- The future worker connection must retain a verified personal actor context.
--- Patient confirmation only; representatives require a separate verified authority.
+-- Representative support additionally requires monthly-authorities-draft.sql.
 BEGIN;
 ALTER TABLE care_security.gkv_monthly_confirmation_receipts
  ADD COLUMN signature_ink_sha256 text NOT NULL CHECK(signature_ink_sha256 ~ '^[a-f0-9]{64}$'),
  ADD CONSTRAINT gkv_monthly_signature_ink_once UNIQUE(tenant_id,signature_ink_sha256);
 
-CREATE FUNCTION care_security.gkv_monthly_verifier_context(p_tenant uuid,p_proof uuid,p_revision integer)
+CREATE FUNCTION care_security.gkv_monthly_verifier_context(p_tenant uuid,p_proof uuid,p_revision integer,p_authority uuid DEFAULT NULL)
  RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
-DECLARE p public.gkv_monthly_proofs; s public.gkv_monthly_proof_series; v_series uuid;
+DECLARE p public.gkv_monthly_proofs; s public.gkv_monthly_proof_series; v_series uuid; authority jsonb;
 BEGIN
  IF auth.uid() IS NULL OR care_security.gkv_monthly_writer(p_tenant) IS NOT TRUE THEN
   RAISE EXCEPTION 'Aktive persönliche Beauftragung erforderlich' USING ERRCODE='42501'; END IF;
@@ -22,7 +22,9 @@ BEGIN
  IF p.content_sha256 IS DISTINCT FROM care_security.gkv_monthly_hash(p.id,p.series_id,p.version,p.payload) THEN
   RAISE EXCEPTION 'Inhaltsbindung der Originalfassung ist ungültig' USING ERRCODE='40001'; END IF;
  PERFORM care_security.gkv_monthly_assert_current_sources(p,s);
- RETURN jsonb_build_object('actorId',auth.uid(),'checkedAt',clock_timestamp(),'proof',to_jsonb(p));
+ authority:=care_security.gkv_monthly_resolve_authority(p_tenant,p_proof,p_authority);
+ RETURN jsonb_build_object('actorId',auth.uid(),'checkedAt',clock_timestamp(),'proof',to_jsonb(p))
+  || CASE WHEN authority IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('authority',authority) END;
 END $$;
 CREATE FUNCTION care_security.gkv_monthly_verified_receipt_status(p_receipt jsonb)
  RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
@@ -30,7 +32,7 @@ DECLARE r care_security.gkv_monthly_confirmation_receipts;
 BEGIN
  IF jsonb_typeof(p_receipt) IS DISTINCT FROM 'object' OR octet_length(p_receipt::text)>8000 THEN
   RAISE EXCEPTION 'Ungültige Belegabfrage'; END IF;
- PERFORM care_security.gkv_monthly_verifier_context((p_receipt->>'tenant_id')::uuid,(p_receipt->>'proof_id')::uuid,(p_receipt->>'proof_revision')::integer);
+ PERFORM care_security.gkv_monthly_verifier_context((p_receipt->>'tenant_id')::uuid,(p_receipt->>'proof_id')::uuid,(p_receipt->>'proof_revision')::integer,CASE WHEN p_receipt->>'signer_role'='representative' THEN (p_receipt->>'authority_reference')::uuid END);
  SELECT * INTO r FROM care_security.gkv_monthly_confirmation_receipts WHERE id=(p_receipt->>'id')::uuid;
  IF NOT FOUND THEN RETURN NULL; END IF;
  IF r.actor_id IS DISTINCT FROM auth.uid() OR r.consumed_at IS NOT NULL
@@ -69,11 +71,13 @@ BEGIN
   OR jsonb_typeof(p_receipt->'proof_revision') IS DISTINCT FROM 'number' THEN
   RAISE EXCEPTION 'Originalprüfbeleg ist unvollständig'; END IF;
  SELECT * INTO r FROM jsonb_populate_record(NULL::care_security.gkv_monthly_confirmation_receipts,p_receipt);
- context:=care_security.gkv_monthly_verifier_context(r.tenant_id,r.proof_id,r.proof_revision);
+ context:=care_security.gkv_monthly_verifier_context(r.tenant_id,r.proof_id,r.proof_revision,CASE WHEN r.signer_role='representative' THEN r.authority_reference::uuid END);
  prefix:='tenant/'||r.tenant_id||'/gkv/monthly/'||r.proof_id||'/captures/'||r.capture_id;
  IF r.actor_id IS DISTINCT FROM auth.uid() OR r.content_sha256 IS DISTINCT FROM context->'proof'->>'content_sha256'
-  OR r.signer_role IS DISTINCT FROM 'patient' OR r.authority_reference IS NOT NULL
-  OR r.signer_name IS DISTINCT FROM context->'proof'->'payload'->>'clientName'
+  OR NOT ((r.signer_role='patient' AND r.authority_reference IS NULL AND r.signer_name=context->'proof'->'payload'->>'clientName')
+   OR (r.signer_role='representative' AND context->'authority' IS NOT NULL
+    AND r.authority_reference=context->'authority'->>'id' AND r.signer_name=context->'authority'->>'signer_name'
+    AND r.captured_at>=(context->'authority'->>'reviewed_at')::timestamptz AND r.captured_at>=(context->'authority'->>'valid_from')::timestamptz AND r.captured_at<(context->'authority'->>'valid_until')::timestamptz))
   OR r.original_path IS DISTINCT FROM prefix||'/original.pdf' OR r.signature_path IS DISTINCT FROM prefix||'/signature.png'
   OR r.original_version !~ '^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'
   OR r.signature_version !~ '^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'
@@ -96,7 +100,7 @@ END $$;
 -- Narrow private capabilities avoid granting a future verifier raw access to
 -- proof/receipt tables. Definer functions check the personal actor and current
 -- write delegation or read permission; no runtime role is authorized here.
-REVOKE ALL ON FUNCTION care_security.gkv_monthly_verifier_context(uuid,uuid,integer),
+REVOKE ALL ON FUNCTION care_security.gkv_monthly_verifier_context(uuid,uuid,integer,uuid),
  care_security.gkv_monthly_original_read_context(uuid,uuid),
  care_security.gkv_monthly_verified_receipt_status(jsonb),
  care_security.gkv_monthly_accept_verified_receipt(jsonb) FROM PUBLIC,anon,authenticated,service_role;

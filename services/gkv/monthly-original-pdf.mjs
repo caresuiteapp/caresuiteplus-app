@@ -1,3 +1,4 @@
+import { readMonthlyAuthority, AUTHORITY_BASES } from '../../src/lib/gkvExchange/monthlyAuthority.ts';
 import { createHash } from 'node:crypto';
 import { jsPDF } from 'jspdf';
 import { CENTURY_GOTHIC_REGULAR_BASE64 } from '../../src/design/fonts/centuryGothicData.ts';
@@ -7,8 +8,11 @@ import { isUuid } from './storage.mjs';
 
 /** Server-owned visual original; no submitted HTML/PDF, existing signature or
  * external asset. It is not the normative XML or a CMS/PDF/A attestation. */
-export function renderMonthlyOriginal({ proof: input, captureId, preparedAt }) {
+export function renderMonthlyOriginal({ proof: input, captureId, preparedAt, authority: authorityInput }) {
   const proof = readMonthlyProof(input, input?.tenant_id);
+  const authority = authorityInput === undefined ? undefined : readMonthlyAuthority(authorityInput);
+  if (authority && (authority.tenant_id !== proof.tenant_id || authority.client_id !== proof.payload.clientId
+    || authority.service_type !== proof.payload.serviceType)) throw Error('MONTHLY_ORIGINAL_INPUT');
   if (proof.status !== 'open' || !isUuid(captureId) || !Number.isFinite(Date.parse(preparedAt))
     || proof.payload.clientName.length > 300 || Buffer.byteLength(JSON.stringify(proof)) > 2_000_000) throw new Error('MONTHLY_ORIGINAL_INPUT');
   const pdf = new jsPDF({ unit: 'mm', format: 'a4', compress: true, putOnlyUsedFonts: true, precision: 3 });
@@ -45,6 +49,11 @@ export function renderMonthlyOriginal({ proof: input, captureId, preparedAt }) {
   text(proof.payload.clientName, 15, '#173c52', 4);
   text(`${proof.payload.month.slice(5)}.${proof.payload.month.slice(0, 4)} · ${SERVICE_TYPES[proof.payload.serviceType]}`, 11, '#173c52', 5);
   text(`Fassung ${proof.version} · Bearbeitungsstand ${proof.revision} · Noch nicht bestätigt`, 10, '#406174', 4);
+  if (authority) {
+    text(`Bestätigung durch: ${authority.signer_name} · ${AUTHORITY_BASES[authority.basis]}`, 11, '#173c52', 3);
+    text(`Geprüfte Berechtigung: ${authority.evidence_reference}`, 9, '#406174', 3);
+    text(`Prüfkennung: ${authority.id}`, 8, '#527083', 4);
+  }
   text('Bitte prüfen Sie alle Seiten, bevor Sie diesen Monatsnachweis persönlich bestätigen.', 10, '#406174', 7);
   const taskStatus = new Map([['done', 'Erledigt'], ['not_done', 'Nicht durchgeführt'], ['open', 'Offen'], ['skipped', 'Ausgelassen']]);
   let number = 0;

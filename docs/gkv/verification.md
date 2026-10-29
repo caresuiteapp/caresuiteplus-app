@@ -2,6 +2,50 @@
 
 Stand: 29.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
+## Vertreterbestätigung am 29.10.2026
+
+Der Arbeitsstand nach `31a291f` ergänzt die [dokumentierte Vertreterprüfung](monthly-representatives.md)
+mit Webauswahl, persönlicher Registrierung, Gültigkeit und Widerruf. Der Host
+übernimmt ausschließlich eine Prüfungs-ID und löst Name und Berechtigung selbst
+auf. PDF, verschlüsselter Snapshot, privater Prüfbeleg und endgültige Bestätigung
+bleiben verbunden. Ein Widerruf oder Zeitablauf verhindert auch den endgültigen
+Belegverbrauch nach bereits erteilter Signaturquittung. Frühere Originale bleiben
+bytegleich und lesbar; Korrekturen übernehmen keine Unterschrift.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Generierter ESM-Gateway-Einstieg ohne Testloader | 4 Fälle bestanden |
+| Monatsvertrag und Arbeitsplatzvertrag | 27 Fälle bestanden |
+| Bisheriger SQL-Speichervertrag | 24 Prüfmeldungen bestanden |
+| Originaldateien, PNG, verschlüsseltes Archiv | 20 Prüfmeldungen bestanden |
+| Gateway, tatsächliches lokales mTLS, Host und fünf SQL-Entwürfe | 21 Prüfmeldungen bestanden |
+| Tatsächliche React-Monats-/Office-Komponenten | 19 Abläufe bestanden |
+| App-TypeScript | `tsc --noEmit --pretty false` bestanden |
+| Zulassungskatalog | Konsistenzprüfung und 9 Tests bestanden |
+
+Die sechs neuen Host-Unterfälle prüfen den vollständigen Vertreterablauf,
+Widerruf vor Anerkennung / vor Dateiverifikation / nach Quittung, unveränderliche
+und idempotente Berechtigungsprüfungen, Klienten-/Leistungsartgrenzen, fehlende
+Verwaltungsrechte, Gültigkeitsablauf und drei getrennte Unterschriften für drei
+Leistungsarten. Die vier neuen React-Fälle decken Registrierung bis Abschluss,
+fehlende Freigabe, verlorene Schreibantwort und verspätete Antwort nach
+Kontextwechsel ab. Ungültiger Prüftext kann nicht gespeichert werden.
+
+Alle Daten und Unterschriften sind synthetisch. Auth-/REST-Grenzen und
+Office-Quellrechte bleiben Doubles; PGlite belegt keine unabhängigen parallelen
+PostgreSQL-Verbindungen. Ein dreiseitiges PDF mit langem Vertretername und
+mehrzeiliger Belegreferenz wurde gerendert und auf allen Seiten visuell geprüft.
+Die Browserdarstellung, echter Canvas, Tastatur und Schriftvergrößerung sind
+weiterhin nicht visuell abgenommen: keine lokale Browserlaufzeit und verbundener
+Desktop erneut offline. Bestehende Lockfile-Abhängigkeiten wurden nach der
+Workspace-Bereinigung wiederhergestellt; keine Paketversion geändert und keine
+zusätzliche Browser-/Testinfrastruktur eingerichtet.
+
+Die fünf Monats-SQL-Entwürfe wurden nicht produktiv eingespielt. Eine tatsächliche
+Unterlagen-/Identitätsprüfung, Zielbetrieb, Fach-XML, Druck/Scan, Hardware/TI und
+unabhängige Abnahme bleiben offen. `productionReady` und
+`submissionDossierComplete` bleiben `false`.
+
 ## Laufzeitprüfung der neuen Vercel-API am 29.10.2026
 
 `c10d45ed3860ad60e607978fd638f45eb0a7b759` besteht den Vercel-Build in den

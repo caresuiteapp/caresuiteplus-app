@@ -12,7 +12,7 @@ import {tenant,client,user,month,fixture,finalProof,signedProof,workspace,source
 
 const apiNames=['checkMonthlyRequest','commandMonthlyProof','listMonthlyClients','listMonthlySources','listMonthlyEvents','loadMonthlyProof',
  'loadMonthlyWorkspace','readMonthlyProofHistory','command','downloadBytes','readBatch','readDirectory','readEvents','readInvoiceCase',
- 'readInvoiceSources','readRevision','readRevisions','readWorkspace','requestTestExport','requestMonthlyOriginal'];
+ 'readInvoiceSources','readRevision','readRevisions','readWorkspace','requestTestExport','requestMonthlyOriginal','commandMonthlyAuthority'];
 const stubs={
  '@/components/inputs/CareSignatureCanvas.web':"import {createElement} from 'react'; export const CareSignatureCanvas=({onConfirm,disabled})=>createElement('button',{disabled,onClick:()=>onConfirm('data:image/png;base64,'+globalThis.monthlySignaturePng)},'Unterschrift im Test zeichnen');",
  '@/components/layout/ScreenShell.web':"import {createElement} from 'react'; export const ScreenShell=({children})=>createElement('main',null,children);",
@@ -38,16 +38,16 @@ const bundle=await build({stdin:{contents:entry,resolveDir:process.cwd(),loader:
   b.onLoad({filter:/.*/,namespace:'fixture'},args=>({contents:stubs[args.path],loader:'js',resolveDir:process.cwd()}));
  }}]});
 const window=new Window({settings:{disableIframePageLoading:true}});
-for(const key of ['window','document','HTMLElement','HTMLInputElement','HTMLTextAreaElement','HTMLSelectElement','Event','MouseEvent','Node'])globalThis[key]=key==='window'?window:window[key];
+for(const key of ['window','document','HTMLElement','HTMLInputElement','HTMLTextAreaElement','HTMLSelectElement','Event','MouseEvent','Node','FormData'])globalThis[key]=key==='window'?window:window[key];
 globalThis.IS_REACT_ACT_ENVIRONMENT=true;
 const OriginalChannel=globalThis.MessageChannel,channels=[];
 globalThis.MessageChannel=class extends OriginalChannel{constructor(){super();channels.push(this);}};
 runInThisContext(bundle.outputFiles[0].text);
 const {React,createRoot,GkvMonthlyProofs,GkvKassenabrechnungScreen,MonthlyProofWriteError}=globalThis.monthlyPanel;
 const container=document.createElement('div');document.body.append(container);const root=createRoot(container);
-const calls=[],work=[];let p,ws,list,history,pageAfter=null,key=0,passed=0,captureState;
+const calls=[],work=[];let p,ws,list,history,pageAfter=null,key=0,passed=0,captureState,authorities;
 function reset(){p=fixture();ws=workspace(null);list=sources(p);history=[];pageAfter=null;calls.length=0;work.length=0;
- captureState={original:null,receipt:null};globalThis.monthlySignaturePng=Buffer.from('synthetic canvas boundary').toString('base64');
+ authorities=[];captureState={original:null,receipt:null};globalThis.monthlySignaturePng=Buffer.from('synthetic canvas boundary').toString('base64');
  globalThis.monthlyTenant=tenant;globalThis.monthlyAuth={authReady:true,isAuthenticated:true,user:{id:user},portalSession:null};
  globalThis.monthlyPermissions=['office.invoices.view','office.invoices.create'];globalThis.monthlyNavigation=[];
  globalThis.monthlyApi={
@@ -59,11 +59,18 @@ function reset(){p=fixture();ws=workspace(null);list=sources(p);history=[];pageA
   readMonthlyProofHistory:async()=>({rows:structuredClone(history),hasMore:false}),listMonthlyEvents:async()=>[],
   commandMonthlyProof:async(_tenant,_role,command,id)=>{calls.push(['write',structuredClone(command),id]);p.id=command.input.new_id||p.id;ws=workspace(p);history=[p];return structuredClone(p);},
   checkMonthlyRequest:async(_tenant,_role,id)=>{calls.push(['status',id]);return {state:'applied',proof:structuredClone(p)};},
+  commandMonthlyAuthority:async(proof,_role,command)=>{
+    calls.push(['authority',structuredClone(command)]);
+    if(command.action==='register')authorities.push({id:command.id,tenant_id:tenant,client_id:client,service_type:proof.payload.serviceType,signer_name:command.signerName,basis:command.basis,
+      evidence_reference:command.evidenceReference,review_note:command.reviewNote,valid_from:command.validFrom,valid_until:command.validUntil,reviewed_by:user,reviewed_at:new Date().toISOString(),revoked_by:null,revoked_at:null,revocation_reason:null});
+    if(command.action==='revoke'){const a=authorities.find(a=>a.id===command.id);Object.assign(a,{revoked_by:user,revoked_at:new Date().toISOString(),revocation_reason:command.reason});}
+    return {tenantId:tenant,clientId:client,proofId:p.id,serviceType:proof.payload.serviceType,canManage:true,checkedAt:new Date().toISOString(),authorities:structuredClone(authorities)};
+  },
   requestMonthlyOriginal:async(_tenant,_role,command)=>{
     calls.push(['capture',structuredClone(command)]);const {action,pngBase64,originalSha256,...scope}=command;
     const common={version:1,...scope,actorId:user};
     if(action==='prepare' || action==='read' || action==='archive'){
-      captureState.original??={captureId:command.captureId,proofId:p.id,revision:p.revision,contentSha256:p.content_sha256,originalSha256:'b'.repeat(64),originalVersion:randomUUID(),acknowledged:false};
+      captureState.original??={captureId:command.captureId,proofId:p.id,revision:p.revision,contentSha256:p.content_sha256,originalSha256:'b'.repeat(64),originalVersion:randomUUID(),acknowledged:false,...(command.authorityId?{representative:structuredClone(authorities.find(a=>a.id===command.authorityId))}:{})};
       return {...common,kind:'original',original:structuredClone(captureState.original),pdfBase64:Buffer.from('%PDF- synthetic viewer boundary').toString('base64'),
         archive:action==='archive'?{status:p.status,version:p.version,finalizedAt:p.finalized_at,invalidatedAt:p.invalidated_at}:null};
     }
@@ -86,6 +93,7 @@ function applySignedCapture(){
  value.confirmation.originalPath=prefix+'/original.pdf';value.confirmation.signaturePath=prefix+'/signature.png';
  value.confirmation.originalVersion=captureState.original.originalVersion;
  value.confirmation.originalSha256=captureState.receipt.originalSha256;value.confirmation.signatureSha256=captureState.receipt.signatureSha256;
+ if(captureState.original.representative){value.confirmation.signerRole='representative';value.confirmation.signerName=captureState.original.representative.signer_name;value.confirmation.authorityReference=captureState.original.representative.id;}
  p=value;ws=workspace(p);history=[p];return structuredClone(p);
 }
 const field=name=>[...container.querySelectorAll('label')].find(l=>l.querySelector('span')?.textContent===name)?.querySelector('input,select,textarea');
@@ -194,6 +202,45 @@ try{
     return applySignedCapture();};
   await click('Monatsbestätigung speichern');assert.equal(command.action,'confirm');assert.equal(command.input.receipt_id,captureState.receipt.receiptId);
   assert.equal(button('Unterschrift im Test zeichnen'),undefined);assert.ok(button('Archivoriginal öffnen'));assert.equal(work.at(-1).dirty,false);
+ });
+ await check('representative review, original selection, new signature and final receipt stay bound in the actual UI',async()=>{
+  ws=workspace(p);history=[p];await mount();await selectClient();await input(field('Wer bestätigt den Monatsnachweis?'),'representative');
+  assert.equal(button('Original zur Bestätigung öffnen').disabled,true);await click('Vertretungsprüfung dokumentieren');
+  assert.equal(work.at(-1).dirty,true);assert.equal(field('Leistungsmonat').disabled,true);
+  for(const [name,value] of [['name','Fiktive Vertreterin'],['reference','Prüfakte TEST 42'],['note','Identität und Vollmacht für diese Leistungsart geprüft.'],['from','2026-01-01T00:00'],['until','2027-12-31T23:59']])await input(container.querySelector(`.gx-representative input[name="${name}"]`),value);
+  await React.act(async()=>container.querySelector('input[name="reviewed"]').click());await click('Geprüfte Berechtigung speichern');
+  assert.equal(authorities.length,1);assert.equal(field('Geprüfte Vertretung').value,authorities[0].id);assert.equal(work.at(-1).dirty,false);
+  await click('Original zur Bestätigung öffnen');assert.equal(field('Wer bestätigt den Monatsnachweis?').disabled,true);
+  assert.equal(calls.find(c=>c[0]==='capture')[1].authorityId,authorities[0].id);
+  await React.act(async()=>container.querySelector('iframe').dispatchEvent(new window.Event('load')));
+  assert.match(container.querySelector('.gx-signature-choice').textContent,/Fiktive Vertreterin/);
+  await React.act(async()=>container.querySelector('.gx-signature-choice input').click());await click('Geprüft, Unterschrift erfassen');await click('Unterschrift im Test zeichnen');
+  globalThis.monthlyApi.commandMonthlyProof=async()=>applySignedCapture();await click('Monatsbestätigung speichern');
+  assert.equal(p.confirmation.signerRole,'representative');assert.equal(p.confirmation.authorityReference,authorities[0].id);assert.equal(work.at(-1).dirty,false);
+ });
+ await check('unavailable representative permissions cannot create or silently fall back to patient',async()=>{
+  ws=workspace(p);history=[p];const api=globalThis.monthlyApi.commandMonthlyAuthority;
+  globalThis.monthlyApi.commandMonthlyAuthority=async(...args)=>({...await api(...args),canManage:false});
+  await mount();await selectClient();await input(field('Wer bestätigt den Monatsnachweis?'),'representative');
+  assert.match(container.textContent,/noch keine gültige Vertretungsprüfung/);assert.equal(button('Vertretungsprüfung dokumentieren'),undefined);
+  assert.equal(button('Original zur Bestätigung öffnen').disabled,true);assert.equal(calls.filter(c=>c[0]==='capture').length,0);
+ });
+ await check('lost representative review reply is recovered by reading, without duplicate review or signature',async()=>{
+  ws=workspace(p);history=[p];const api=globalThis.monthlyApi.commandMonthlyAuthority;
+  globalThis.monthlyApi.commandMonthlyAuthority=async(...args)=>{const result=await api(...args);if(args[2].action==='register')throw Error('Antwort fehlt');return result;};
+  await mount();await selectClient();await input(field('Wer bestätigt den Monatsnachweis?'),'representative');await click('Vertretungsprüfung dokumentieren');
+  for(const [name,value] of [['name','Fiktive Vertreterin'],['reference','Prüfakte TEST 43'],['note','Persönliche Prüfung der Befugnis dokumentiert.'],['from','2026-01-01T00:00'],['until','2027-12-31T23:59']])await input(container.querySelector(`input[name="${name}"]`),value);
+  await React.act(async()=>container.querySelector('input[name="reviewed"]').click());await click('Geprüfte Berechtigung speichern');
+  assert.equal(work.at(-1).dirty,true);assert.equal(button('Original zur Bestätigung öffnen').disabled,true);assert.equal(container.querySelector('input[name="name"]').closest('fieldset').disabled,true);
+  await click('Gespeicherten Stand prüfen');assert.equal(authorities.length,1);assert.equal(work.at(-1).dirty,false);
+  assert.equal(calls.filter(c=>c[0]==='authority' && c[1].action==='register').length,1);assert.equal(calls.filter(c=>c[0]==='capture').length,0);
+ });
+ await check('late representative response is discarded when the tenant or permission context is replaced',async()=>{
+  ws=workspace(p);history=[p];const wait=deferred(),api=globalThis.monthlyApi.commandMonthlyAuthority;let response;
+  globalThis.monthlyApi.commandMonthlyAuthority=async(...args)=>{response=await api(...args);return wait.promise;};
+  await mount();await selectClient();await input(field('Wer bestätigt den Monatsnachweis?'),'representative');
+  await mount({canCreate:false});await React.act(async()=>wait.resolve(response));
+  assert.equal(field('Geprüfte Vertretung'),undefined);assert.equal(button('Original zur Bestätigung öffnen'),undefined);
  });
  await check('lost final confirmation stays locked and reads the applied receipt without confirming or signing twice',async()=>{
   ws=workspace(p);history=[p];await mount();await selectClient();await click('Original zur Bestätigung öffnen');
