@@ -23,9 +23,22 @@ React: Host-/Empfangsstatus, Startsperren, verlorene Antworten, Rechtewechsel,
 Fachparameter und Fassungsverlauf. API-/Auth-Grenzen bleiben synthetisch.
 Es wurden keine Pakete installiert oder Versionen geändert.
 
-Der vollständige Webbuild wird separat geprüft. Die früheren offenen lokalen
-SQL-/React-Läufe sind damit erledigt; eine breite/schmale visuelle Abnahme ist
-weiter offen, da lokal keine Browserlaufzeit vorhanden ist. DOM-Prüfungen belegen
+Auch `npm run build:web:production` besteht für **`46536b6`** vollständig
+(Exitcode 0): App-Typcheck, alle 14 weiteren Release-Gates mit 3.795 Vitest-Fällen
+und zusätzlichen SQL-/Validatorprüfungen, Expo-Webexport mit
+725 statischen Routen, Sprach-/Kalenderdateien, Navigation und öffentliche Seiten.
+Die neun Katalogtests und der Konsistenzcheck bestehen ebenfalls.
+Auch der [Vercel-Preview-Build im Projekt `repository`](https://vercel.com/caresuiteapps-projects/repository/96jwhuWXTvJiXPo391i6KchAt6Dy)
+ist für denselben vollständigen Commit `46536b6a43b5a45a7dec0225bd1b644c10c9ed12`
+mit **`READY`** bestätigt. Deploymentmetadaten und Abschlussprotokoll wurden
+gelesen; es handelt sich um eine Vorschau, keine Produktionsfreigabe.
+Andere Projektpreviews werden getrennt bewertet. Dieser Nachweis gilt für den
+Code-/Teststand `46536b6`; die anschließende Änderung dokumentiert nur das Ergebnis.
+
+Die früheren offenen lokalen SQL-/React-/Buildläufe sind damit erledigt; eine
+breite/schmale visuelle Abnahme ist weiter offen, da lokal keine Browserlaufzeit
+vorhanden ist. Das verbundene Gerät wurde erneut geprüft und war offline.
+DOM-Prüfungen belegen
 kein Layout, keine echte Supabase-Anmeldung, keine Hardware/TI und keine Zulassung.
 Die SQL-Entwürfe bleiben unangewendet; Produktions- und Versandfreigaben bleiben
 unverändert gesperrt. Die folgenden Abschnitte dokumentieren frühere Zwischenstände.

@@ -182,9 +182,14 @@ derselbe UUID-Parameter wird vor der Umwandlung in einen JSON-Textwert ausdrück
 als UUID typisiert. Dadurch entfällt PostgreSQL `42P08`; die Seitennavigationsprüfung
 bleibt vollständig erhalten. Verwendet wurden vorhandene Projektabhängigkeiten
 in den Lockfile-Versionen (PGlite 0.3.15, React/React DOM 19.2.3, happy-dom 20.14.0
-und esbuild 0.28.2). Keine Downloads, Versionsänderungen oder neuen Testdienste.
-Die Prüfung bleibt Teil des bestehenden Webbuilds. Der vollständige App-Build
-und der Preview-Build für den korrigierten Commit sind getrennt nachzuweisen.
+und esbuild 0.28.2). Keine Paketdownloads, Versionsänderungen oder neuen Testdienste.
+Die Prüfung bleibt Teil des bestehenden Webbuilds. Für `46536b6` besteht auch
+`npm run build:web:production` vollständig: App-Typcheck, alle 14 weiteren
+Release-Gates (3.795 Vitest-Fälle sowie zusätzliche SQL-/Validatorprüfungen),
+Expo-Webexport und abschließende Dateiaudits. Der Vercel-Preview-Build im Projekt
+`repository` ist für denselben Commit mit `READY` bestätigt; Metadaten und
+Abschlussprotokoll stehen im [Prüfprotokoll](verification.md). Das ist keine
+Produktionsfreigabe und kein pauschaler Nachweis anderer Projektumgebungen.
 DOM-Prüfungen ersetzen weder die echte Supabase-Anmeldung noch eine visuelle
 Abnahme. Breite/schmale Darstellung, vergrößerte Schrift und Tastaturfokus im
 gerenderten Browser sind für diese Ansicht noch nicht belegt.
@@ -210,8 +215,8 @@ bearbeitete offene Fassungen können weiterhin korrekt wiedergefunden werden.
 
 ## Nächste Umsetzung
 
-1. Vollständigen Webbuild und Preview-Build nachweisen, dann die Ansicht in
-   breiter/schmaler Darstellung prüfen. SQL- und React-Prüfungen bestehen.
+1. Die Ansicht in breiter/schmaler Darstellung prüfen. Vollständiger lokaler
+   Webbuild, SQL-/React-Prüfungen und ein Vercel-Preview bestehen für `46536b6`.
 2. Originalansicht, frische Unterschrift pro Leistungsart, Vertreterberechtigung
    und Druck-/Scan-Pfad bauen. Originaldateien unveränderlich speichern,
    tatsächlich zurücklesen und ihre Bytes prüfen, bevor ein Beleg entsteht.
