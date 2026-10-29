@@ -2,6 +2,25 @@
 
 Stand: 29.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
+## Laufzeitprüfung der neuen Vercel-API am 29.10.2026
+
+`c10d45ed3860ad60e607978fd638f45eb0a7b759` besteht den Vercel-Build in den
+Projekten `repository` und `caresuiteplusapp`. Der anschließende echte GET-Aufruf
+an `/api/gkv/monthly-originals` im Preview `dpl_AszBvR7YNBVSwZXhVFgBNLs2qzuo`
+ergab jedoch HTTP 500. Das zugehörige Runtime-Protokoll zeigt `ERR_REQUIRE_ESM`:
+Vercels CommonJS-Ausgabe des TypeScript-Einstiegs verwendete `require()` für den
+ESM-Handler. Ein grüner Build war hier ausdrücklich kein Laufzeitnachweis.
+
+Der Einstieg wird deshalb als einzelnes explizites `.mjs`-Bundle aus dem
+unveränderten gemeinsamen Handler erzeugt. Er benötigt keine TypeScript- oder
+Host-Archivmodule zur Laufzeit. Ein verpflichtender Generierungsvergleich und
+vier tatsächliche Einstiegstests ohne Testloader, mit
+`--no-experimental-require-module`, bestehen: GET 405, POST ohne Anmeldung 401,
+fremde Eingabefelder 400 und komprimierte Requests 415. Das vollständige Monats-
+Gate mit den bisherigen 101 Prüfmeldungen besteht erneut. Die folgenden lokalen
+Webbuild- und Previewangaben gelten für den ausdrücklich genannten Codeumfang;
+ein erfolgreicher Aufruf des korrigierten Previews wird getrennt dokumentiert.
+
 ## Persönliche Host-/Web-Anbindung am 29.10.2026
 
 Der Arbeitsstand nach `1a6f6ed` ergänzt die [vollständige lokale Verbindung](monthly-host.md)

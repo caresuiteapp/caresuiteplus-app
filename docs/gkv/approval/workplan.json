@@ -142,7 +142,7 @@
         "src/lib/gkvExchange/monthlyCapture.ts",
         "src/lib/gkvExchange/monthlyOriginalContract.ts",
         "src/lib/gkvExchange/monthlyOriginalClient.ts",
-        "api/gkv/monthly-originals.ts",
+        "api/gkv/monthly-originals.mjs",
         "api/_lib/monthly-host-handler.mjs",
         "api/_lib/monthly-host-transport.mjs",
         "services/gkv/monthly-host.mjs",
@@ -158,7 +158,8 @@
         "tests/gkv-exchange/monthly-workspace.test.mjs",
         "tests/gkv-exchange/monthly-ui-check.mjs",
         "tests/gkv-exchange/monthly-originals.test.mjs",
-        "tests/gkv-exchange/monthly-host.test.mjs"
+        "tests/gkv-exchange/monthly-host.test.mjs",
+        "tests/gkv-exchange/monthly-gateway-check.mjs"
       ],
       "nextStep": "Original-PDF, frische Web-Unterschrift, persönlicher mTLS-Host und sitzungsgebundene SQL-Brücke sind implementiert und lokal integriert geprüft. Zielrechte/Migration, Schlüssel/Zertifikate, echte Anmeldung, visuelle Abnahme, Vertreterprüfung und Druck/Scan bleiben offen.",
       "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",

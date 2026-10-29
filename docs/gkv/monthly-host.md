@@ -63,6 +63,15 @@ zusätzlich einen gültigen Host-MAC. Tabellenrechte werden nicht erteilt.
 
 ## Betriebskonfiguration vor einer Aktivierung
 
+Der Vercel-Einstieg ist die erzeugte Datei `api/gkv/monthly-originals.mjs`.
+Sie bündelt den gemeinsamen Handler und die TypeScript-Verträge als ein explizites
+ES-Modul mit ausschließlich eingebauten Node-Abhängigkeiten. Der Webbuild prüft
+mit `scripts/build-gkv-monthly-gateway.mjs --check`, dass sie unverändert zu den
+Quellen passt. Nach einer Änderung wird sie mit demselben Skript ohne `--check`
+erneuert. Vier Einstiegstests laufen ohne TypeScript-Testloader und mit gesperrtem
+CommonJS-`require()` für ES-Module. Der vorherige TS-Einstieg hatte in Vercel
+trotz grünem Build einen tatsächlichen `ERR_REQUIRE_ESM` beim Aufruf verursacht.
+
 Der Einstieg verwendet einen vorhandenen Node-24-Host und eine lokale, vertrauenswürdige
 Konfigurationsdatei, keine flüchtige Vercel-Dateiablage:
 

@@ -127,7 +127,7 @@
     "verify:office-payroll:release": "node scripts/verify-office-payroll-workspace.mjs",
     "verify:office-invoices:release": "node scripts/verify-office-invoices-workspace.mjs",
     "verify:gkv:monthly-proofs": "node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/monthly-proof-contract.test.mjs tests/gkv-exchange/monthly-workspace.test.mjs && node --import ./tests/gkv-exchange/register.mjs tests/gkv-exchange/monthly-proofs.database.mjs && node --import ./tests/gkv-exchange/register.mjs --test tests/gkv-exchange/monthly-originals.test.mjs tests/gkv-exchange/monthly-host.test.mjs",
-    "verify:gkv:monthly-web": "npm run verify:gkv:monthly-proofs && node tests/gkv-exchange/monthly-ui-check.mjs"
+    "verify:gkv:monthly-web": "node scripts/build-gkv-monthly-gateway.mjs --check && node --no-experimental-require-module tests/gkv-exchange/monthly-gateway-check.mjs && npm run verify:gkv:monthly-proofs && node tests/gkv-exchange/monthly-ui-check.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~57.0.15",
