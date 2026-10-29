@@ -162,7 +162,7 @@ export async function fetchLiveClientPortalProfile(
       fetchClientPortalSettingsResolved(tenantId, clientId),
       fetchClientPortalLiveMetrics(tenantId, clientId),
       fromUnknownTable(supabase, 'assignments')
-        .select('service_type, planned_start_at')
+        .select('title, planned_start_at')
         .eq('tenant_id', tenantId)
         .eq('client_id', clientId)
         .gte('planned_start_at', new Date().toISOString())
@@ -172,7 +172,7 @@ export async function fetchLiveClientPortalProfile(
         .maybeSingle(),
       fromUnknownTable(supabase, 'client_contacts')
         .select(
-          'id, first_name, last_name, full_name, name, relationship, relationship_label, phone, email, is_emergency, is_emergency_contact, is_portal_user, contact_type',
+          'id, first_name, last_name, full_name, relationship, phone, email, is_emergency_contact, is_portal_user, contact_type',
         )
         .eq('tenant_id', tenantId)
         .eq('client_id', clientId),

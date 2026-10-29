@@ -2,7 +2,7 @@ import { Platform } from 'react-native';
 import { sensitiveAuthStorage } from '@/lib/security/sensitiveAuthStorage';
 import { authenticatePortalFace } from './portalBiometricService';
 
-export type RememberedPortalKind = 'employee' | 'client';
+export type RememberedPortalKind = 'business' | 'employee' | 'client';
 export type RememberedPortalLogin = {
   version: 1;
   kind: RememberedPortalKind;
@@ -40,15 +40,19 @@ export async function getRememberedPortalMetadata(
     username: item.username,
   };
 }
-export async function saveRememberedPortalLogin(item: RememberedPortalLogin): Promise<void> {
+export async function saveRememberedPortalLogin(
+  item: RememberedPortalLogin, isCurrent: () => boolean = () => true,
+): Promise<void> {
   if (!supportsRememberedPortalLogin())
     throw new Error('Speichern ist nur in der installierten App möglich.');
   if (!item.accountId || !item.tenantId || !item.username.trim() || !item.secret)
     throw new Error('Anmeldung ist unvollständig.');
   const authentication = await authenticatePortalFace();
   if (!authentication.ok) throw new Error(authentication.error);
+  if (!isCurrent()) throw new Error('Die Anmeldung wurde unterbrochen. Bitte erneut anmelden.');
   // Publish metadata only after the complete encrypted credential was written.
   await sensitiveAuthStorage.setItem(key(item.kind, 'credential'), JSON.stringify(item));
+  if (!isCurrent()) throw new Error('Die Anmeldung wurde unterbrochen. Bitte erneut anmelden.');
   const { secret: _secret, ...metadata } = item;
   await sensitiveAuthStorage.setItem(key(item.kind, 'metadata'), JSON.stringify(metadata));
 }
@@ -69,6 +73,8 @@ export async function unlockRememberedPortalLogin(
     !after ||
     after.accountId !== before.accountId ||
     after.tenantId !== before.tenantId ||
+    after.username !== before.username ||
+    item.version !== 1 ||
     item.accountId !== after.accountId ||
     item.tenantId !== after.tenantId ||
     item.kind !== kind ||

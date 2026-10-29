@@ -14,7 +14,7 @@ const portalFixture=resolve('scripts/fixtures/native-portals-data.jsx');
 const employeePortalFixture=resolve('scripts/fixtures/native-employee-portals-preview.jsx');
 const mockFixture=resolve('scripts/fixtures/administration-preview-mocks.jsx');
 const platformFixture=resolve('scripts/fixtures/platform-console-preview-data.jsx');
-const mocks=new Set(['expo-router','react-native-safe-area-context','expo-linear-gradient','@/components/images/CareSuiteImage','@/lib/auth','@/hooks/usePermissions','@/hooks/useModuleAccess','@/hooks/useDesktopWeather.native','@/hooks/useDesktopWeather.web','@/design/web/WebFontScaleProvider','./DesktopWeatherLocationDialog.native','./DesktopWeatherLocationDialog.web','@/components/googleWorkspace/GoogleWorkspaceWidget.native','@/components/googleWorkspace/GoogleWorkspaceWidget.web','@/hooks/useClientList','@/hooks/useEmployeeList','@/lib/inventory/companyInventoryService','@/hooks/core/useAsyncQuery','expo-crypto','@/lib/office/notes/service.shared','@/components/layout/ScreenShell','@/lib/auth/context']);
+const mocks=new Set(['expo-router','react-native-safe-area-context','expo-linear-gradient','@/components/images/CareSuiteImage','@/lib/auth','@/hooks/usePermissions','@/hooks/useModuleAccess','@/hooks/useDesktopWeather.native','@/hooks/useDesktopWeather.web','@/design/web/WebFontScaleProvider','./DesktopWeatherLocationDialog.native','./DesktopWeatherLocationDialog.web','@/components/googleWorkspace/GoogleWorkspaceWidget.native','@/components/googleWorkspace/GoogleWorkspaceWidget.web','@/hooks/useClientList','@/hooks/useEmployeeList','@/lib/inventory/companyInventoryService','@/hooks/core/useAsyncQuery','expo-crypto','@/lib/office/notes/service.shared','@/components/layout/ScreenShell','@/lib/auth/context','@/hooks/useClientPortalSettings']);
 for(const renderer of ['native','web']){
 await build({entryPoints:[renderer==='native'?fixture:resolve('scripts/fixtures/web-desktop-preview.jsx')],outfile:join(output,renderer+'-preview.js'),bundle:true,assetNames:'assets/[name]-[hash]',platform:'browser',format:'iife',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"','process.env.EXPO_OS':'"web"','process.env':'{}','__DEV__':'false'},loader:{'.png':'file','.jpg':'file','.jpeg':'file','.ttf':'dataurl','.gif':'file','.mp4':'dataurl','.svg':'dataurl','.js':'jsx'},plugins:[{name:'isolated-native-preview',setup(b){
  b.onResolve({filter:/^@\/lib\/(auth\/accountSecurityService|platform\/devicePermissions|security\/protectedDataStorage)$/},args=>({path:args.path,namespace:'account-security-fixture'}));
@@ -374,10 +374,15 @@ for(const viewport of [{width:844,height:390},{width:1280,height:800}]){
  if(errors.length)throw Error(JSON.stringify({screen:'weather-dialog',viewport,fontScale:1.6,errors}));
  }catch(error){await recordCaseFailure(page,{screen:'weather-dialog',viewport,fontScale:1.6},error);}finally{await page.close();}
 }
-for(const viewport of [{width:844,height:390},{width:1280,height:800}])for(const screen of ['employee-home','employee-clients','employee-calendar','client-home']){
+for(const viewport of [{width:844,height:390},{width:1280,height:800}])for(const screen of ['employee-notices','employee-shell','employee-home','employee-clients','employee-calendar','client-home']){
  const page=await browser.newPage({viewport}),errors=[];page.on('pageerror',error=>errors.push(error.message));
  try{
   await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
+  if(screen==='employee-notices'){
+   const title=page.getByText('Neuer Einsatz',{exact:true}).last();await title.waitFor();
+   const visible=await title.evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));});
+   if(!visible)throw Error('The first assignment is hidden behind explanatory copy at enlarged landscape text.');
+  }
   await page.screenshot({path:join(output,`${screen}-${viewport.width}x${viewport.height}-scale-1.6.png`)});await verifyActualPortal(page,screen,viewport,1.6);
   if(errors.length)throw Error(JSON.stringify({screen,viewport,fontScale:1.6,errors}));
  }catch(error){await recordCaseFailure(page,{screen,viewport,fontScale:1.6},error);}finally{await page.close();}
@@ -405,7 +410,7 @@ for(const [screen,viewport] of [['help-article',{width:1280,height:800}],['googl
   report.push({screen,viewport,fontScale:1.6,enlargedInteraction:true,errors});
  }catch(error){await recordCaseFailure(page,{screen,viewport,fontScale:1.6},error);}finally{await page.close();}
 }
-for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-home','employee-clients','employee-calendar','client-home','business-access','employee-access','client-access','registration','access-hub','family-home','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
+for(const screen of ['desktop','clients','employees','company','notes','catalog','academy','consultation','employee-notices','employee-shell','employee-home','employee-clients','employee-calendar','client-home','business-access','employee-access','client-access','registration','access-hub','family-home','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
  const page=await browser.newPage({viewport:{width:360,height:800}}),errors=[];page.on('pageerror',error=>errors.push(error.message));
  try{
  await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&scale=1.6`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
@@ -433,12 +438,26 @@ for(const screen of ['desktop','clients','employees','company','notes','catalog'
  }catch(error){await recordCaseFailure(page,{screen,viewport:{width:360,height:800},fontScale:1.6},error);}finally{await page.close();}
 }
 for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360,height:800},{width:390,height:844},{width:412,height:915},{width:600,height:960},{width:844,height:390},{width:1280,height:800}]){
- for(const screen of ['desktop','web-desktop','clients','web-clients','employees','web-employees','company','web-company','company-editor','inventory','web-inventory','notes','web-notes','catalog','web-catalog','academy','web-academy','consultation','web-consultation','employee-home','employee-clients','employee-calendar','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
+ for(const screen of ['desktop','web-desktop','clients','web-clients','employees','web-employees','company','web-company','company-editor','inventory','web-inventory','notes','web-notes','catalog','web-catalog','academy','web-academy','consultation','web-consultation','web-employee-notices','employee-notices','employee-shell','employee-home','employee-clients','employee-calendar','client-home','family-home','client-appointment','employee-execution-card','access-hub','business-access','employee-access','client-access','registration','first-password','password-recovery','password-reset','help','help-article','google-workspace','google-service','owner-console','owner-tenant','owner-console-error','owner-tenant-error','weather-dialog']){
   const page=await browser.newPage({viewport,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
   try{
   await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}`);await page.evaluate(()=>document.fonts.ready);await page.waitForTimeout(350);
   if(errors.length){await page.screenshot({path:join(output,`failure-${screen}-${viewport.width}x${viewport.height}.png`)});writeFileSync(join(output,'verification.json'),JSON.stringify({screen,viewport,errors},null,2));throw new Error(JSON.stringify({screen,viewport,errors}));}
   if(screen==='access-hub'){await page.waitForTimeout(1100);const title=await page.getByText('Mitarbeiter',{exact:true}).boundingBox();const character=await page.getByLabel('CareSuite-Assistent mit Stethoskop',{exact:true}).boundingBox();if(viewport.width<900&&title&&character&&title.x<character.x+character.width&&title.x+title.width>character.x&&title.y<character.y+character.height&&title.y+title.height>character.y)throw Error('Access character overlaps its role label.');}
+  if(screen.endsWith('employee-notices')){
+   for(const title of ['Neuer Einsatz','Einsatz geändert','Einsatz abgesagt','Einsatz nicht mehr zugeordnet']){
+    const item=page.getByText(title,{exact:true}).last();await item.scrollIntoViewIfNeeded();
+    const box=await item.boundingBox();if(!box||box.height<14||box.y<0||box.y+box.height>viewport.height+1)throw Error('Assignment notice body is collapsed or clipped: '+title);
+   }
+   await page.getByText(/Hauswirtschaftliche Unterstützung · Helene Musterfrau/).first().scrollIntoViewIfNeeded();
+   const hit=await page.getByText(/Hauswirtschaftliche Unterstützung · Helene Musterfrau/).first().evaluate(el=>{const r=el.getBoundingClientRect();return el.contains(document.elementFromPoint(r.x+r.width/2,r.y+r.height/2));});
+   if(!hit)throw Error('Assignment notice content is hidden behind the popup header or footer.');
+   await page.screenshot({path:join(output,`employee-notices-content-${viewport.width}x${viewport.height}.png`)});
+  }
+  if(screen==='employee-shell' && viewport.width>=980){
+   const logout=page.getByRole('button',{name:'Sicher abmelden',exact:true});
+   const box=await logout.boundingBox();if(!box||box.y<24||box.y+box.height>viewport.height-34+.5)throw Error(JSON.stringify({message:'Sidebar logout extends below the safe visible viewport',viewport,box}));
+  }
   if(screen==='family-home'){const area=await page.getByLabel('Portalbereich today',{exact:true}).boundingBox();const logout=await page.getByRole('button',{name:'Abmelden',exact:true}).boundingBox();if(!area||area.height<160||!logout||logout.x+logout.width>viewport.width+1)throw Error('Family portal content or logout is clipped.');}
   if(screen==='desktop'||screen==='web-desktop')await page.getByRole('button',{name:'Desktop bearbeiten',exact:true}).waitFor();
   if(screen==='inventory'||screen==='web-inventory')await page.getByText('Diensttelefon · Verwaltung Nord',{exact:true}).waitFor();

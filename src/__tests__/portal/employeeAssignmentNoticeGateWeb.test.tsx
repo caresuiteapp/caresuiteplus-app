@@ -22,6 +22,8 @@ vi.mock('@/design/tokens/carelightadaptive', () => ({ useCareLightPalette: () =>
 vi.mock('@/hooks/core/useAsyncQuery', () => ({ useAsyncQuery: () => ({ data: h.inbox, setData: h.setData, refresh: h.refresh }) }));
 vi.mock('@/lib/realtime/subscribeToTenantTables', () => ({ subscribeToTenantTables: () => () => {} }));
 vi.mock('@/lib/portal/employeeAssignmentNoticeService', () => ({
+  assignmentNoticeChangeLabel: (kind: string) => ({ created: 'Neuer Einsatz', changed: 'Einsatz geändert',
+    cancelled: 'Einsatz abgesagt', removed: 'Einsatz nicht mehr zugeordnet' }[kind] ?? 'Einsatz aktualisiert'),
   fetchEmployeeAssignmentNotices: vi.fn(), acknowledgeEmployeeAssignmentNotices: h.acknowledge,
   resolveEmployeeAssignmentNoticeRoute: h.route,
 }));
@@ -59,6 +61,7 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 it('defers without sending a receipt and keeps unread notices accessible in this session', async () => {
   await render();
   expect(host.querySelector('[role="dialog"]')).not.toBeNull();
+  expect(host.textContent!.indexOf('Termin am Dienstag geändert')).toBeLessThan(host.textContent!.indexOf('Hier bestätigen Sie'));
   await click('Später');
   expect(host.querySelector('[role="dialog"]')).toBeNull();
   expect(h.acknowledge).not.toHaveBeenCalled();

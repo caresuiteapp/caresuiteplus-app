@@ -66,27 +66,28 @@ export async function getPortalFaceAvailability(): Promise<PortalFaceAvailabilit
     const biometricSupported = faceSupported || fingerprintSupported;
     const strongBiometricEnrolled =
       enrolledLevel === localAuthentication.SecurityLevel.BIOMETRIC_STRONG;
+    const deviceCredentialAvailable = enrolledLevel >= localAuthentication.SecurityLevel.SECRET;
 
     let reason: string | null = null;
-    if (!hardwareAvailable) {
+    if (!deviceCredentialAvailable && !hardwareAvailable) {
       reason = 'Dieses Gerät besitzt keine unterstützte biometrische Hardware.';
-    } else if (!biometricSupported) {
+    } else if (!deviceCredentialAvailable && !biometricSupported) {
       reason = 'Dieses Gerät bietet CareSuite keine unterstützte biometrische Entsperrung an.';
-    } else if (!enrolled) {
-      reason = 'Richten Sie zuerst Gesicht oder Fingerabdruck in den Geräteeinstellungen ein.';
+    } else if (!deviceCredentialAvailable && !enrolled) {
+      reason = 'Richten Sie zuerst Gesicht, Fingerabdruck oder einen Gerätecode in den Geräteeinstellungen ein.';
     }
 
-    const methodLabel = faceSupported && fingerprintSupported
+    const methodLabel = !enrolled || !biometricSupported ? 'Gerätecode' : faceSupported && fingerprintSupported
       ? 'Gesicht oder Fingerabdruck'
       : faceSupported
-        ? 'Gesichtserkennung'
+        ? Platform.OS === 'ios' ? 'Face ID' : 'Gesichtserkennung'
         : fingerprintSupported
-          ? 'Fingerabdruck'
+          ? Platform.OS === 'ios' ? 'Touch ID' : 'Fingerabdruck'
           : 'Gerätebiometrie';
 
     return {
       available:
-        hardwareAvailable && enrolled && biometricSupported,
+        deviceCredentialAvailable || (hardwareAvailable && enrolled && biometricSupported),
       hardwareAvailable,
       enrolled,
       faceSupported,

@@ -37,7 +37,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   ...config,
   name: isFullEdition || isHealthOSCoreEdition || isPortalOnlyEdition ? 'CareSuite HealthOS' : 'CareSuite+',
   slug: 'caresuite-plus',
-  version: '0.8.0',
+  version: '0.8.1',
   orientation: 'default',
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',
@@ -76,7 +76,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     package: 'app.caresuitehealthos',
     googleServicesFile: './google-services.json',
-    versionCode: 56,
+    versionCode: 57,
     intentFilters: [{"action": "VIEW", "autoVerify": true, "category": ["BROWSABLE", "DEFAULT"], "data": [{"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/auth/reset-password"}, {"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/liquid-command/access/reset-password"}, {"scheme": "https", "host": "www.caresuiteplus.app", "pathPrefix": "/business/connect/google-workspace"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/auth/reset-password"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/liquid-command/access/reset-password"}, {"scheme": "https", "host": "caresuiteplus.app", "pathPrefix": "/business/connect/google-workspace"}]}],
     predictiveBackGestureEnabled: false,
     blockedPermissions: ['android.permission.READ_MEDIA_IMAGES', 'android.permission.READ_MEDIA_VIDEO', 'android.permission.READ_MEDIA_VISUAL_USER_SELECTED', 'android.permission.READ_EXTERNAL_STORAGE', 'android.permission.WRITE_EXTERNAL_STORAGE'],
@@ -132,7 +132,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       'expo-local-authentication',
       {
         faceIDPermission:
-          'CareSuite verwendet Face ID ausschließlich zum lokalen Entsperren Ihrer Portal-Sitzung. Biometrische Daten bleiben auf dem Gerät.',
+          'CareSuite verwendet Face ID ausschließlich zum geschützten Anmelden und lokalen Entsperren Ihrer Sitzung. Biometrische Daten bleiben auf dem Gerät.',
       },
     ],
     [

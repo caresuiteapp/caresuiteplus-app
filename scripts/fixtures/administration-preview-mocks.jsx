@@ -1,5 +1,5 @@
 import React, { createContext, useState } from 'react';
-import { View } from 'react-native';
+import { View, Text } from 'react-native';
 import { createNoteDraft } from '../../src/lib/office/notes/model.shared';
 import { EMPTY_TENANT_COMPANY, EMPTY_TENANT_TAX, EMPTY_TENANT_LEGAL, EMPTY_TENANT_REGISTER, EMPTY_TENANT_PAYMENT, EMPTY_TENANT_BRANDING, DEFAULT_TENANT_MODULES } from '../../src/types/tenant/tenantCenter';
 export { loginBusinessUser,loginEmployeePortal,registerBusinessTenant,completeFirstLogin } from './native-portals-data';
@@ -31,7 +31,7 @@ export const useNavigation=()=>({dispatch:noop,addListener:()=>noop});
 export const Link=({children})=><View>{children}</View>;
 export const ScreenShell=({children})=><View style={{flex:1,minHeight:0}}>{children}</View>;
 export const SafeAreaView=View;
-export const useSafeAreaInsets=()=>({top:0,left:0,right:0,bottom:0});
+export const useSafeAreaInsets=()=>({top:new URLSearchParams(location.search).get('screen')==='employee-shell'?24:0,left:0,right:0,bottom:new URLSearchParams(location.search).get('screen')==='employee-shell'?34:0});
 export const CareSuiteImage=({source,...props})=>React.createElement(require('react-native-web').Image,{source,...props});
 export const CareSuiteImageBackground=({source,...props})=>React.createElement(require('react-native-web').ImageBackground,{source,...props});
 export const LinearGradient=({colors,style,...props})=><View {...props} style={[style,{backgroundImage:`linear-gradient(130deg,${colors.join(',')})`}]}/>;
@@ -45,7 +45,16 @@ export const loadCompanyInventory=async()=>({ok:true,data:inventory});
 export const checkCompanyInventoryOffboarding=async()=>({ok:true,data:{openAssignments:inventory.assignments}});
 const deny=async()=>({ok:false,error:'Diese Ansicht verwendet ausschließlich lokale Prüfdaten.'});
 export const acknowledgeCompanyInventoryAssignment=deny,requestCompanyInventoryReturn=deny,saveCompanyInventoryItem=deny,saveCompanyInventoryCategory=deny,saveCompanyInventoryLocation=deny,issueCompanyInventoryItem=deny,returnCompanyInventoryItem=deny,reportCompanyInventoryDamage=deny,resolveCompanyInventoryDamage=deny;
-export const useAsyncQuery=()=>({data:null,loading:false,error:null,refresh:noop});
+export const useAsyncQuery=(_fetch,_deps,options)=>{
+ const notices=new URLSearchParams(location.search).get('screen')?.endsWith('employee-notices') && String(options?.queryKey).includes('employee-assignment-notices')
+  ? ['created','changed','cancelled','removed'].map((changeKind,index)=>({id:`visual-notice-${index}`,visitId:`visual-visit-${index}`,changeKind,
+    title:['Neuer Einsatz','Einsatz geändert','Einsatz abgesagt','Einsatz nicht mehr zugeordnet'][index],
+    body:`Hauswirtschaftliche Unterstützung · Helene Musterfrau · 29.10.2026, ${13+index}:00–${14+index}:00 Uhr`,createdAt:'2026-10-29T08:00:00Z'})):null;
+ return {data:notices?{notices,total:notices.length}:null,loading:false,error:null,refresh:noop,setData:noop};
+};
+export const RequireAuth=({children})=>children,RequireRole=RequireAuth,RequireEmployeePasswordSetup=RequireAuth;
+export const Stack=()=> <View style={{flex:1,minHeight:0}}><Text>Geprüfte Portalnavigation</Text></View>;
+export const useClientPortalSettings=()=>({settings:undefined});
 
 export const loadNote=async()=>({ok:true,data:note});
 export const useIsFocused=()=>true,useGlobalSearchParams=()=>({}),usePreventRemove=()=>{};

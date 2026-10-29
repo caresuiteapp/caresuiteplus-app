@@ -444,7 +444,7 @@ export async function fetchEmployeePortalClientRecordDetail(
 
     let accessHint: string | null = null;
     const { data: addressRows, error: addressError } = await fromUnknownTable(supabase, 'client_addresses')
-      .select('access_notes, street, house_number, postal_code, city, floor, apartment_number, doorbell_name')
+      .select('access_notes, street, zip, city, floor, apartment_number')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
       .order('is_primary', { ascending: false })

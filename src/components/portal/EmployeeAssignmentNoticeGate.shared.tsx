@@ -12,6 +12,7 @@ import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
 import {
   acknowledgeEmployeeAssignmentNotices, fetchEmployeeAssignmentNotices,
   resolveEmployeeAssignmentNoticeRoute, type EmployeeAssignmentNotice,
+  assignmentNoticeChangeLabel,
 } from '@/lib/portal/employeeAssignmentNoticeService';
 
 const NOTICE_ACTION_TIMEOUT_MS = 15_000;
@@ -116,9 +117,9 @@ export function EmployeeAssignmentNoticeGate() {
           onPress: () => void acknowledge(), disabled: busy, loading: busy && operation?.kind === 'read', variant: 'primary' },
       ]}>
       <View style={styles.body}>
-        <Text style={[styles.explanation, { color: c.muted }]}>Hier bestätigen Sie nur, dass Sie die Information gelesen haben. Einen Einsatz nehmen Sie weiterhin im Einsatz selbst an.</Text>
         {error ? <Text accessibilityRole="alert" style={[styles.error, { color: c.danger }]}>{error}</Text> : null}
         {shown.map(item => <View key={item.id} style={[styles.card, { borderColor: c.border, backgroundColor: c.surface }]}>
+          {item.title !== assignmentNoticeChangeLabel(item.changeKind) ? <Text style={[styles.changeLabel, { color: c.violet }]}>{assignmentNoticeChangeLabel(item.changeKind)}</Text> : null}
           <Text style={[styles.title, { color: c.text }]}>{item.title}</Text>
           {item.body ? <Text style={[styles.description, { color: c.text }]}>{item.body}</Text> : null}
           {(item.visitId && ['created', 'changed'].includes(item.changeKind)) || item.changeKind === 'current_plan' ? <Pressable
@@ -128,6 +129,7 @@ export function EmployeeAssignmentNoticeGate() {
               : item.changeKind === 'current_plan' ? 'Aktuellen Kalender öffnen' : 'Aktuellen Einsatz öffnen'}</Text>
           </Pressable> : null}
         </View>)}
+        <Text style={[styles.explanation, { color: c.muted }]}>Hier bestätigen Sie nur, dass Sie die Information gelesen haben. Einen Einsatz nehmen Sie weiterhin im Einsatz selbst an.</Text>
         {(query.data?.total ?? 0) > notices.length ? <Text style={[styles.explanation, { color: c.muted }]}>Weitere Einsatzinfos folgen, sobald Sie diese gelesen haben.</Text> : null}
       </View>
     </CarePopupShell>
@@ -140,6 +142,7 @@ const styles = StyleSheet.create({
   error: { fontSize: 14, lineHeight: 21, fontWeight: '600' },
   card: { padding: 16, borderWidth: 1, borderRadius: 16, gap: 8, minWidth: 0 },
   title: { fontSize: 17, lineHeight: 24, fontWeight: '700' },
+  changeLabel: { fontSize: 14, lineHeight: 21, fontWeight: '700' },
   description: { fontSize: 15, lineHeight: 23 },
   openButton: { minHeight: 44, borderWidth: 1, borderRadius: 12, paddingHorizontal: 14,
     paddingVertical: 10, alignSelf: 'flex-start', justifyContent: 'center', marginTop: 4 },

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 cd "$(dirname "$0")/.."
-node --test supabase/tests/account_security_platform_sync.test.mjs
+node --test supabase/tests/account_security_platform_sync.test.mjs supabase/tests/native_login_database_reliability.test.mjs
 npx --no-install vitest run src/__tests__/auth/accountSecurityReceipt.test.ts src/__tests__/auth/accountSessionGate.test.tsx src/__tests__/auth/accountSecurityService.test.ts src/__tests__/auth/mfaSettingsCard.test.tsx src/__tests__/platform/encryptedWorkflowStorage.test.ts src/__tests__/offline/deviceSyncOverview.test.ts --maxWorkers=2
 node scripts/verify-healthos-full-production.mjs
 node scripts/verify-android-app-icons.mjs
