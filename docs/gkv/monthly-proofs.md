@@ -2,9 +2,12 @@
 
 Stand: 29.10.2026. Dieser Baustein verbindet den serverseitigen Speichervertrag
 mit der Web-/Desktop-Ansicht „Monatsnachweise“. **Die Datenbankentwürfe sind noch
-nicht aktiviert; echte Betriebsnachweise und die XML-Ausgabe fehlen.**
+nicht aktiviert; echte Betriebsnachweise und die angebundene XML-Ausgabe fehlen.**
 Speichervertrag, Leseabfragen und React-Bedienabläufe sind lokal geprüft.
 Visuelle Abnahme, echte Auth-/Storage-Prüfung und ITSG-Fälle bleiben offen.
+Ein separater [XML-Generator mit amtlicher XSD-Prüfung](monthly-xml.md) ist
+implementiert. Vor seiner Anbindung müssen die vollständigen Fachangaben
+bereits im zu bestätigenden Original enthalten sein.
 
 Grundlage sind die Abschnitte 2, 3.2–3.11 und 4.2 des
 [ITSG-Prüfkatalogs, Version 1.0, gültig ab 01.05.2026](https://www.gkv-datenaustausch.de/media/dokumente/leistungserbringer_1/pflege/technische_anlagen_aktuell_2/TA1_ANH4_ANL1_20250707_oA.pdf).

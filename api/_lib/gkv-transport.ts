@@ -48,6 +48,7 @@ export function kimFileName(d:ExchangeDraft):string {
 export type KimPackageVerifier={
   /** Validate actual bytes against the pinned official XSD and all content/signature/IMG relations.
    * Verify EACH CMS component before parsing its signed content. A plain PDF/hash is insufficient.
+   * services/gkv/monthly-xml.mjs validates one unsigned LNW only; it cannot implement this package contract.
    */
   verify(bytes:Uint8Array,expected:{providerIk:string;insuranceIk:string;serviceType:string;month:string;logicalVersion:'1.2.0'}):Promise<{valid:boolean;sha256:string;allComponentSignaturesValid:boolean;schemaValid:boolean;relationsValid:boolean}>;
 };

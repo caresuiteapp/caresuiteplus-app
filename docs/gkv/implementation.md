@@ -195,7 +195,7 @@ Die neue Revisionshistorie innerhalb eines ausgewählten Pakets hat diese
 | Weitere Zuschlagsberechnungen und stationäre Sonderfälle | Noch zu implementieren und fachlich abzunehmen; neue Sonderprofile decken nur die ausdrücklich beschriebenen Vertragsmodelle ab |
 | Sammelabrechnung über Abrechnungszentrum | Noch nicht exportierbar |
 | Verknüpfte Leistungsdaten / ausgewählte Originalnachweise | Serverabgleich mit den vorhandenen Office-Verifizierern, Revisionen und tatsächlichen PDF-Bytes; kein KIM-Nachweisexport |
-| KIM, XML-Leistungsnachweise, SMC-B-Signaturen | Serverseitige Paket-/MIME-Vorbereitung und Prüfverträge vorhanden; XML-Erzeuger, echte XSD-/CMS-Prüfer und TI-Dienst fehlen |
+| KIM, XML-Leistungsnachweise, SMC-B-Signaturen | Paket-/MIME-Verträge und separater LNW-XML-Generator mit echter amtlicher XSD-/Feldprüfung vorhanden; Bindung an Bestätigung, Komponentensignatur, vollständiger Paketprüfer und echter TI-Betrieb fehlen; siehe [XML-Umfang](monthly-xml.md) |
 | Verschlüsselter klassischer Echtversand | Eigener SECON-/TLS-SMTP-Kern, verschlüsselte Outbox und Worker mit dauerhafter Versandbindung lokal integriert; kanonischer Freigabe-/Reservierungsablauf und Betriebsanschluss fehlen |
 | Technischer Rückmeldeeingang | Eigener TLS-POP3-Abruf, verschlüsselte Inbox und begrenzte DSN-/Anlage-7-Korrelation; Herkunft bleibt ungeprüft, keine automatische Fachstatusübernahme |
 

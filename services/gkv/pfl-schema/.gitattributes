@@ -1,0 +1,3 @@
+# Keep the official downloaded XSD bytes, including original CRLF, hash-stable.
+*.xsd -text whitespace=cr-at-eol
+manifest.json text eol=lf

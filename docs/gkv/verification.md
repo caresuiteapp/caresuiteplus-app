@@ -2,6 +2,37 @@
 
 Stand: 29.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
+## XML-Generator und amtliche Schemaprüfung am 29.10.2026
+
+Der Arbeitsstand nach `2c9052b` ergänzt den separaten
+[LNW-XML-Baustein](monthly-xml.md). Die abgerufenen Originalschemata für
+die logische Version 1.2.0 stimmen mit dem bisherigen Quellenregister überein.
+Erzeugte XML-Bytes werden im begrenzten Python/lxml-Prozess tatsächlich gegen
+`PFL_LNW_2.2.0.xsd` und `PFL_basis_2.2.0.xsd` geprüft. Zusätzlich werden
+Feldkombinationen und alle erwarteten Inhalte verglichen.
+
+- 50 XML-Prüffälle bestanden, darunter Patienten-/ID-/Dateitausch, fehlerhafte
+  Schlüssel trotz XSD-Zulässigkeit, Mengen-/Zeitwidersprüche, mehrseitige
+  PDF-Einbettung, Parserangriffe, veränderte Schemata, Zeitumstellung und
+  Eingabeänderungen während der laufenden Prüfung.
+- Zusammen mit den elf bestehenden Transportfällen: 61 Prüfungen bestanden.
+- Die vollständige vorhandene `verify:gkv:services`-Suite besteht mit 1.366
+  Prüfmeldungen einschließlich der neuen XML-Fälle. Die 50 XML-Fälle wurden
+  nach der abschließenden Fixierung des Versionsfensters nochmals geprüft.
+- App-TypeScript und Katalogkonsistenz mit neun Katalogfällen bestanden.
+- Das erzeugte Monats-Gateway stimmt weiterhin mit seinen Quellen überein.
+  Ein neuer vollständiger Webexport wurde für diesen separaten Dienstbaustein
+  nicht ausgeführt; der frühere Exportnachweis gehört zu `2c9052b`.
+- Keine App-Oberfläche oder produktive Route wurde um diesen Baustein
+  erweitert; die Integration vor Bestätigung und die Komponentensignatur
+  bleiben erforderlich. Alle ITSG-Vorführfälle bleiben offen.
+
+Der Generator gibt keinen CMS- oder Versandnachweis aus. Er akzeptiert keine
+alten Monatsbestätigungen als Fachdatensatz. PDF-Inhaltsprüfung und
+Vertretungsnachweise müssen aus dem bestehenden privaten Papierablauf kommen;
+der XML-Baustein bestätigt diese Herkunft noch nicht. Synthetische PNGs und
+Test-PDFs sind keine Patientenunterschriften oder Hardwarebelege.
+
 ## Papierbestätigung am 29.10.2026
 
 Der Arbeitsstand nach `74d8d36` ergänzt den [Druck-/Scan-Ablauf](monthly-paper.md).

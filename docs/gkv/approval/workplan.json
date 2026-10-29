@@ -234,12 +234,17 @@
       "verification": "open",
       "code": [
         "api/_lib/gkv-transport.ts",
-        "src/lib/gkvExchange/lifecycle.ts"
+        "src/lib/gkvExchange/lifecycle.ts",
+        "src/lib/gkvExchange/monthlyXml.ts",
+        "services/gkv/monthly-xml.mjs",
+        "services/gkv/monthly-xml-worker.py",
+        "services/gkv/pfl-schema/1.2.0/manifest.json"
       ],
       "tests": [
-        "tests/gkv-exchange/transport.test.mjs"
+        "tests/gkv-exchange/transport.test.mjs",
+        "tests/gkv-exchange/monthly-xml.test.mjs"
       ],
-      "nextStep": "Echten XML-Generator sowie XSD-, Signatur- und Beziehungsprüfer implementieren; bisherige Adapterverträge ersetzen keinen Prüfer.",
+      "nextStep": "LNW-Generator und echte XSD-/Feldprüfung für 1.2.0 sind implementiert. Vollständige Fachangaben vor der Bestätigung speichern und anzeigen, Original/Bestätigung anbinden, Komponentensignatur und vollständige Abrechnungs-/IMG-/PRODMOD-Prüfung ergänzen. XML-Baustein und alte Bestätigungen erlauben keinen Versand.",
       "acceptance": "Unabhängige Prüfung der erzeugten Bytes, Negativfälle für Schema, Signatur, IMG-Zuordnung und zeitgültige PROD-/MOD-ID.",
       "dependsOn": [
         "proof-confirmation"

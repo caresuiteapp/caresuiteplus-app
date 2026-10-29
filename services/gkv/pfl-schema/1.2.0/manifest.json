@@ -1,0 +1,13 @@
+{
+  "source": "https://www.gkv-datenaustausch.de/media/dokumente/leistungserbringer_1/pflege/technische_anlagen_aktuell_2/TA1_6.4.0_20250707_XSD_PFL_log.Version_1.2.0.zip",
+  "archiveSha256": "d47f0fdfa1cfe4af3aa9592db60b0861936999e7b1f863276af2bc0837a7939a",
+  "retrievedAt": "2026-10-29",
+  "logicalVersion": "1.2.0",
+  "technicalAnnex": "6.4.0",
+  "validFrom": "2026-05-01",
+  "validUntil": "2027-01-31",
+  "files": {
+    "PFL_LNW_2.2.0.xsd": "96f90a7a8dd8fee0da8fceea028bcef1b7dae2c264eccb1468eb22e2a41e8e27",
+    "PFL_basis_2.2.0.xsd": "bcd24c9802e7f488636f72a7056b05cecd1a1f8892f03d1345e2f28c73ea91a7"
+  }
+}
