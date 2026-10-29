@@ -21,8 +21,8 @@ async function legacyFixture(flags = {}) {
   await f.db.exec(`
     ALTER TABLE role_permissions ADD COLUMN product_key product_key;
     ALTER TABLE role_permissions ADD COLUMN can_create boolean NOT NULL DEFAULT false;
-    ALTER TABLE role_permissions ADD COLUMN can_update boolean NOT NULL DEFAULT false;
-    ALTER TABLE role_permissions ADD COLUMN can_delete boolean NOT NULL DEFAULT false;
+    ALTER TABLE role_permissions ALTER COLUMN can_update SET NOT NULL;
+    ALTER TABLE role_permissions ALTER COLUMN can_delete SET NOT NULL;
     ALTER TABLE role_permissions ADD COLUMN can_export boolean NOT NULL DEFAULT false;
     ALTER TABLE role_permissions ADD COLUMN can_approve boolean NOT NULL DEFAULT false;
     ALTER TABLE role_permissions ADD COLUMN restrictions jsonb NOT NULL DEFAULT '{}'::jsonb;

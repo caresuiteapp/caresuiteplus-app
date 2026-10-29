@@ -10,6 +10,7 @@ Die Löschroutine selbst und ihre Transaktion für Einsatz, explizit verknüpfte
 
 - Der Fehler wurde vor dem Fix durch den neuen Funktionstest und den echten Rollenlesetest reproduziert.
 - 78 Funktionsprüfungen und 30 isolierte PostgreSQL-Prüfungen bestanden, einschließlich atomarer Löschung/Budgetfreigabe, Leserechten, fremdem Mandanten, expliziter Sperre, eingeschränkter Zuständigkeit und Portalzugang.
+- Die vollständige Firmen-Releaseprüfung besteht mit 691 Funktionstests und 50 PostgreSQL-Prüfungen. Alle 136 PostgreSQL-Prüfungen der gemeinsamen Firmen-Fixtures bestehen ebenfalls. Spezialisierte Testaufbauten verwenden die gemeinsam vorhandenen Berechtigungsspalten, ohne sie doppelt anzulegen; ihre inhaltlichen Prüfungen bleiben vollständig erhalten.
 - Native-Abgleich: 1.111 Module, 269 Routen, keine veraltete generierte Datei.
 - Produktive Migration `20261029172100_assignment_legacy_manage_permission` über die bestehende Supabase-Verbindung angewendet. Die private Funktion bleibt für `anon` und `authenticated` direkt gesperrt; vorhandene geschützte Aufrufer verwenden sie weiterhin.
 - Produktionsprüfung mit lokal begrenztem Anfragekontext: korrekter Mandant, aktives Verwaltungsprofil, unbeschränkte Zuständigkeit und `assist.assignments.manage` jeweils bestätigt. Dabei wurden keine realen Einsätze gelöscht.
