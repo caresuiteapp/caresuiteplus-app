@@ -196,7 +196,7 @@ describe('native company registration UI flow', () => {
 
 describe('native login destination and welcome markers', () => {
   it('opens the native business dashboard only after the secure session is accepted', async () => {
-    h.businessLogin.mockResolvedValue({ ok: true, data: { supabaseSession: { access_token: 'test-token' } } });
+    h.businessLogin.mockResolvedValue({ ok: true, data: { supabaseSession: { access_token: 'test-token', user: { id: 'native-business-auth' } } } });
     field('E-Mail', 'anna@example.test', BusinessAccessScreen); field('Passwort', '  keep-spaces  ', BusinessAccessScreen);
     await press('Anmelden', BusinessAccessScreen); await settle();
     expect(h.businessLogin).toHaveBeenCalledWith('anna@example.test', '  keep-spaces  ');

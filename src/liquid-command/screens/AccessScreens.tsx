@@ -1,3 +1,4 @@
+import type { Session } from '@supabase/supabase-js';
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import {
   Alert,
@@ -36,8 +37,7 @@ import { completePortalLogin } from '@/lib/auth/portalLoginFlow';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
 import { RememberedPortalLoginControls } from '@/components/auth/RememberedPortalLoginControls';
 import { saveRememberedPortalLogin, unlockRememberedPortalLogin, type RememberedPortalLogin } from '@/lib/auth/rememberedPortalLogin';
-import { fetchTenantProfile } from '@/lib/supabase/tenantService';
-import { readPendingMfaBootstrap } from '@/lib/auth/accountSecurityService';
+import type { PreparedBusinessLogin } from '@/lib/auth/preparedBusinessLogin';
 
 async function rememberConfirmedLogin(item: RememberedPortalLogin, isCurrent: () => boolean) {
   try { await saveRememberedPortalLogin(item, isCurrent); }
@@ -50,10 +50,6 @@ function matchesRememberedAccount(saved: RememberedPortalLogin | null, accountId
   if (saved && (saved.accountId !== accountId || saved.tenantId !== tenantId)) {
     throw new Error('Dieser Zugang gehört inzwischen zu einem anderen Konto. Bitte die gespeicherte Anmeldung entfernen und normal anmelden.');
   }
-}
-async function readRememberedBusinessProfile(accountId: string) {
-  try { return await fetchTenantProfile(accountId) ?? await readPendingMfaBootstrap(accountId); }
-  catch { return null; }
 }
 
 
@@ -235,43 +231,52 @@ export function BusinessAccessScreen() {
     loginLock.current = true;
     const generation = loginLifecycle.current.generation;
     const isCurrent = () => loginLifecycle.current.mounted && loginLifecycle.current.generation === generation && requestLifecycle.isCurrent(attempt);
+    let prepared: PreparedBusinessLogin | null = null;
     try {
       const saved = useSaved ? await unlockRememberedPortalLogin('business') : null;
       if (!isCurrent()) return;
       const loginEmail = saved?.username ?? email;
       const loginPassword = saved?.secret ?? password;
-      const result = await loginBusinessUser(loginEmail, loginPassword);
-      if (!isCurrent()) return;
-      if (!result.ok) {
-        setError(result.error);
-        return;
-      }
-      if (!result.data.supabaseSession) {
-        setError('Die Anmeldung lieferte keine sichere Sitzung. Bitte den Zugang prüfen.');
-        return;
-      }
-      loginLifecycle.current.expectedUserId = result.data.supabaseSession.user?.id;
+      let acceptedSession: Session;
       if (saved || remember) {
-        const accountId = result.data.supabaseSession.user.id;
-        const profile = await readRememberedBusinessProfile(accountId);
+        const { prepareBusinessLogin } = await import('@/lib/auth/preparedBusinessLogin');
         if (!isCurrent()) return;
-        if (!profile?.tenantId) {
+        const result = await prepareBusinessLogin(loginEmail, loginPassword);
+        if (result.ok) prepared = result.data;
+        if (!isCurrent()) return;
+        if (!result.ok) { setError(result.error); return; }
+        acceptedSession = result.data.session;
+        if (!result.data.tenantId) {
           if (saved) throw new Error('Die gespeicherte Kontozuordnung konnte nicht bestätigt werden. Bitte normal anmelden.');
           Alert.alert('Anmeldung nicht gespeichert', 'Die Kontozuordnung konnte noch nicht bestätigt werden. Bitte das Speichern bei der nächsten Anmeldung erneut auswählen.');
         } else {
-          matchesRememberedAccount(saved, accountId, profile.tenantId);
-          if (remember && !saved && !result.data.mustChangePassword) await rememberConfirmedLogin({ version: 1,
-            kind: 'business', accountId, tenantId: profile.tenantId, username: loginEmail.trim().toLowerCase(), secret: loginPassword }, isCurrent);
+          matchesRememberedAccount(saved, acceptedSession.user.id, result.data.tenantId);
+          if (remember && !saved) await rememberConfirmedLogin({ version: 1, kind: 'business',
+            accountId: acceptedSession.user.id, tenantId: result.data.tenantId,
+            username: loginEmail.trim().toLowerCase(), secret: loginPassword }, isCurrent);
           if (!isCurrent()) return;
         }
+        loginLifecycle.current.expectedUserId = acceptedSession.user.id;
+        acceptedSession = await result.data.commit();
+        if (!isCurrent()) return;
+      } else {
+        const result = await loginBusinessUser(loginEmail, loginPassword);
+        if (!isCurrent()) return;
+        if (!result.ok) { setError(result.error); return; }
+        if (!result.data.supabaseSession) {
+          setError('Die Anmeldung lieferte keine sichere Sitzung. Bitte den Zugang prüfen.'); return;
+        }
+        acceptedSession = result.data.supabaseSession;
+        loginLifecycle.current.expectedUserId = acceptedSession.user.id;
       }
-      await signInWithSupabaseSession(result.data.supabaseSession);
+      await signInWithSupabaseSession(acceptedSession);
       if (!isCurrent()) return;
       markBusinessWelcomePending();
       router.replace(resolveBusinessDashboardRoute());
     } catch (cause) {
       if (isCurrent()) setError(cause instanceof Error ? cause.message : 'Anmeldung fehlgeschlagen.');
     } finally {
+      await prepared?.cancel();
       if (isCurrent()) { requestLifecycle.finish(attempt); loginLock.current = false; setLoading(false); }
     }
   };
@@ -393,6 +398,12 @@ export function EmployeeAccessScreen() {
         return;
       }
       matchesRememberedAccount(saved, result.data.portalSession.accountId, result.data.portalSession.tenantId);
+      if (remember && !saved && !result.data.portalSession.mustChangePassword) {
+        await rememberConfirmedLogin({ version: 1, kind: 'employee', accountId: result.data.portalSession.accountId,
+          tenantId: result.data.portalSession.tenantId, username: loginUsername.trim(), secret: loginSecret },
+          () => lifecycle.isCurrent(attempt));
+        if (!lifecycle.isCurrent(attempt)) return;
+      }
       const completed = await completePortalLogin(result.data.portalSession, {
         supabaseAccessToken: result.data.supabaseAccessToken,
         supabaseRefreshToken: result.data.supabaseRefreshToken,
@@ -401,12 +412,6 @@ export function EmployeeAccessScreen() {
       if (!completed.ok) {
         setError(completed.error);
         return;
-      }
-      if (remember && !saved && !completed.data.portalSession.mustChangePassword) {
-        await rememberConfirmedLogin({ version: 1, kind: 'employee', accountId: completed.data.portalSession.accountId,
-          tenantId: completed.data.portalSession.tenantId, username: loginUsername.trim(), secret: loginSecret },
-          () => lifecycle.isCurrent(attempt));
-        if (!lifecycle.isCurrent(attempt)) return;
       }
       await signInPortalSession(completed.data.portalSession);
       if (!lifecycle.isCurrent(attempt)) return;
@@ -502,6 +507,12 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
         return;
       }
       matchesRememberedAccount(saved, result.data.portalSession.accountId, result.data.portalSession.tenantId);
+      if (remember && !saved && !result.data.portalSession.mustChangePassword) {
+        await rememberConfirmedLogin({ version: 1, kind: 'client', accountId: result.data.portalSession.accountId,
+          tenantId: result.data.portalSession.tenantId, username: loginUsername.trim(), secret: loginSecret },
+          () => lifecycle.isCurrent(attempt));
+        if (!lifecycle.isCurrent(attempt)) return;
+      }
       const completed = await completePortalLogin(result.data.portalSession, {
         supabaseAccessToken: result.data.supabaseAccessToken,
         supabaseRefreshToken: result.data.supabaseRefreshToken,
@@ -510,12 +521,6 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
       if (!completed.ok) {
         setError(completed.error);
         return;
-      }
-      if (remember && !saved && !completed.data.portalSession.mustChangePassword) {
-        await rememberConfirmedLogin({ version: 1, kind: 'client', accountId: completed.data.portalSession.accountId,
-          tenantId: completed.data.portalSession.tenantId, username: loginUsername.trim(), secret: loginSecret },
-          () => lifecycle.isCurrent(attempt));
-        if (!lifecycle.isCurrent(attempt)) return;
       }
       await signInPortalSession(completed.data.portalSession);
       if (!lifecycle.isCurrent(attempt)) return;

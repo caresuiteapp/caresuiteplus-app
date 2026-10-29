@@ -5,6 +5,7 @@ Gemeinsame Quelle für Web und native App, ausgehend von `d7cbc8cb4e45906a4af254
 ## Änderungen
 
 - Aktive native Anmeldemasken für Verwaltung, Mitarbeitende und Klient:innen verwenden den vorhandenen verschlüsselten Gerätespeicher. Die Nutzung gespeicherter Zugangsdaten verlangt eine Betriebssystembestätigung und anschließend eine reguläre Serveranmeldung mit Prüfung der gespeicherten Konto-/Mandantenzuordnung. Einmalpasswörter werden nicht gespeichert.
+- Die Gerätebestätigung und Speicherung erfolgen vor der Veröffentlichung der Sitzung. Für den Verwaltungszugang prüft ein isolierter, nicht persistierender Auth-Client Kennwort, Unternehmensfreigabe und eigene Mandantenzuordnung; erst danach wird die gemeinsame App-Sitzung aktiviert. Ein Seitenwechsel während der Gerätebestätigung verwirft die vorbereitete Sitzung.
 - Face ID beziehungsweise Touch ID werden auf iOS passend bezeichnet; Android verwendet verfügbare Biometrie oder den Gerätecode. Eine fehlgeschlagene optionale Speicherung verhindert die normale Anmeldung nicht.
 - Rollen erzwingen keine erstmalige Authenticator-Einrichtung mehr. Freiwillig verifizierte Faktoren behalten die zusätzliche Kontoprüfung. Anmeldung, Sitzungssperren, Widerruf und Mandantentrennung bleiben geprüft.
 - Popup-Inhalte behalten ihre natürliche Höhe innerhalb der begrenzten Dialoghöhe. Einsatzmeldungen zeigen Änderungsart sowie Beschreibung beziehungsweise vorhandene Terminangaben, auch ohne Vorschautext. Lesebestätigung und aktuelle Einsatzberechtigung bleiben getrennt.
