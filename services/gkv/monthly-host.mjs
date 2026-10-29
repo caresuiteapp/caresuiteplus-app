@@ -10,7 +10,7 @@ import {readMonthlyOriginalCommand,readMonthlyOriginalResponse,monthlyBase64,MON
 export const monthlyError = error => {
   const code = error?.message;
   if (['MONTHLY_AUTH','MONTHLY_FORBIDDEN','MONTHLY_STALE','MONTHLY_UNCONFIGURED','MONTHLY_BUSY','MONTHLY_FILE_SIZE'].includes(code)) return code;
-  if (code === 'MONTHLY_SIGNATURE_PNG' || code === 'MONTHLY_ORIGINAL_CONTRACT') return 'MONTHLY_INPUT';
+  if (code === 'MONTHLY_SIGNATURE_PNG' || code === 'MONTHLY_ORIGINAL_CONTRACT' || code === 'MONTHLY_PAPER_INPUT') return 'MONTHLY_INPUT';
   if (code === 'MONTHLY_SIGNATURE_REUSED') return code;
   if (code === 'MONTHLY_STORE_QUOTA') return 'MONTHLY_QUOTA';
   if (/^MONTHLY_(CAPTURE_|ORIGINAL_ACKNOWLEDGMENT|ARCHIVE_BINDING)/.test(code || '')) return 'MONTHLY_STALE';
@@ -40,7 +40,7 @@ export class MonthlyOriginalHost {
       database = monthlyRestDatabase({config: this.#config,tenantId: this.#tenant,principal,authorization,
         workerKeyId: this.#keyId,workerKey: this.#key,http: this.#http});
       const verifier = new MonthlyOriginalVerifier({database,store: this.#store});
-      const {action,originalSha256,pngBase64,...capture} = input;
+      const {action,originalSha256,pngBase64,pdfBase64,page,scanSha256,review,...capture} = input;
       const envelope = {version: 1,...capture,actorId: principal.actorId};
       let result;
       if (action === 'prepare' || action === 'read' || action === 'archive') {
@@ -52,7 +52,15 @@ export class MonthlyOriginalHost {
           archive: action === 'archive' ? {status,version,finalizedAt,invalidatedAt} : null};
       } else if (action === 'acknowledge') {
         await verifier.acknowledge(capture,originalSha256); result = {...envelope,kind: 'acknowledged',originalSha256};
-      } else if (action === 'verify') result = {...envelope,kind: 'receipt',receipt: await verifier.verify(capture,monthlyBase64(pngBase64))};
+      } else if(action==='upload-scan')result={...envelope,kind:'scan',scan:await verifier.uploadScan(capture,monthlyBase64(pdfBase64))};
+      else if(action==='scan-page'){const {bytes,...meta}=await verifier.readScanPage(capture,page,scanSha256);result={...envelope,kind:'scan-page',page,scanSha256,...meta,pngBase64:bytes.toString('base64')};}
+      else if(action==='review-scan')result={...envelope,kind:'receipt',receipt:await verifier.verifyPaper(capture,review)};
+      else if(action==='archive-scan'){
+        const {bytes,revision,...meta}=await verifier.readArchivedScan({tenantId:capture.tenantId,proofId:capture.proofId,captureId:capture.captureId});
+        if(revision!==capture.revision)throw Error('MONTHLY_STALE');
+        result={...envelope,kind:'archived-scan',...meta,pdfBase64:bytes.toString('base64')};
+      }
+      else if (action === 'verify') result = {...envelope,kind: 'receipt',receipt: await verifier.verify(capture,monthlyBase64(pngBase64))};
       else result = {...envelope,kind: 'state',...await verifier.status(capture)};
       return readMonthlyOriginalResponse(result,input,principal.actorId);
     } finally { database?.close(); this.#busy = false; }

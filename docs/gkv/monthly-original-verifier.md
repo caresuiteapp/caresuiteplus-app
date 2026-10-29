@@ -9,7 +9,8 @@ Prüflauf vom bestehenden SQL-Befehl `confirm` tatsächlich verbraucht.
 aber noch nicht aktiviert.** Die SQL-Entwürfe sind nicht eingespielt. Die privaten
 Belegfunktionen bleiben gesperrt; der zusätzliche Worker-Wrapper verlangt eine
 aktive persönliche Sitzung und einen Host-MAC. Die [Vertreterprüfung](monthly-representatives.md)
-ist ergänzt. Druck/Scan und Fach-XML sind weiterhin nicht implementiert.
+ist ergänzt. Der begrenzte [Druck-/Scan-Ablauf](monthly-paper.md) ist ergänzt. Das normative
+signierte Fach-XML bleibt offen.
 Das ist keine abgeschlossene ITSG-Prüfung und keine Freigabe zum Echtversand.
 
 ## Ablauf
@@ -20,6 +21,9 @@ Das ist keine abgeschlossene ITSG-Prüfung und keine Freigabe zum Echtversand.
 | `readOriginal` | Liest genau diese gespeicherten Bytes, solange Akteur, Fassung und Erfassung unverändert und nicht abgelaufen sind. |
 | `acknowledge` | Bindet die ausdrückliche Bestätigung der angezeigten Originalfassung an deren SHA-256. Das Backend kann damit keine tatsächliche Betrachtung beweisen; die App verlangt dafür eine ausdrückliche Bestätigung nach dem Öffnen. |
 | `verify` | Prüft und archiviert die PNG-Bytes einmalig. Liest Original und PNG zurück, prüft Berechtigung und Quellen erneut und lässt den privaten SQL-Erzeuger den Prüfbeleg anlegen. |
+| `uploadScan` / `readScanPage` | Prüft die vollständige passive Scan-PDF, archiviert sie und alle gerenderten Seiten einmalig und liefert persönlich zugängliche gebundene Seitenansichten. |
+| `verifyPaper` | Prüft die erklärte Freigabe sämtlicher Seiten und den Papierzeitpunkt; gewinnt den Unterschriftsausschnitt aus dem gespeicherten Scan und erstellt die private Papier-/Originalquittung. |
+| `readArchivedScan` | Liefert den vollständigen unveränderten Scan eines bestätigten oder entwerteten Nachweises nach Prüfung der Papierbindung und aktueller Leserechte. |
 | vorhandenes `confirm` | Verbraucht diesen Beleg unter derselben persönlichen Identität und wiederholt Quellen-/Fassungsprüfung. Erst dieser getrennte Auftrag finalisiert den Monatsdatensatz. |
 | `readArchivedOriginal` | Liest die ursprünglich angezeigte PDF zu einem tatsächlich bestätigten oder später entwerteten Nachweis. Benötigt aktuelle Leserechte, keine Schreibbeauftragung. Liefert den aktuellen Archivstatus und keine wiederverwendbare Unterschriftsdatei. |
 
@@ -31,9 +35,11 @@ Verbrauch müssen unter derselben aktiven Anmeldung erfolgen. Der private
 Dienstkern unterstützt weiterhin die isolierten Tests ohne Auth-Server; der
 Produktionsadapter verlangt immer eine gültige Sitzung.
 
-Die interne Erfassungsfrist beträgt 30 Minuten. Das ist eine eigene technische
-Begrenzung, keine behauptete gesetzliche Frist. Browserzeitstempel werden nicht
-übernommen. Erfassungs- und Prüfzeit stammen aus den Datenbankabfragen; die
+Die interne Erfassungsfrist beträgt beim Canvas-Pfad 30 Minuten und bei
+Papierausgabe sieben Tage. Ein Abschlussbeleg bleibt nur 30 Minuten frisch. Das ist eine eigene technische
+Begrenzung, keine behauptete gesetzliche Frist. Serverseitige Erfassungs-/Prüfzeitstempel werden nicht vom Browser
+übernommen. Der persönlich erklärte Papier-Unterschriftszeitpunkt wird separat
+als `signedAt` mit Zeit-, Quellen- und Berechtigungsgrenzen geprüft. Erfassungs- und Prüfzeit stammen aus den Datenbankabfragen; die
 Prüfzeit wird erst nach dem Zurücklesen der Dateien festgeschrieben.
 
 ## Original und Unterschrift
@@ -42,13 +48,13 @@ Die PDF verwendet die vorhandene Century-Gothic-Schrift. Sie enthält Klient,
 Monat, Leistungsart, Fassungsstand, alle übernommenen Leistungsbeschreibungen,
 Pflegekräfte, Zeiten, Aufgaben und Notizen. Normale Leistungsblöcke bleiben
 zusammen; längere Texte werden ohne Kürzung auf weitere Seiten umgebrochen.
-Folgeblätter wiederholen Klient, Monat und Fassung. Unbekannte oder nicht
+Folgeblätter wiederholen Klient, Monat, Leistungsart und Fassung. Unbekannte oder nicht
 darstellbare Zeichen führen zu einem Fehler statt zu fehlenden Textteilen.
 
 HTML, PDFs, bestehende Einsatzunterschriften und externe URLs werden nicht als
 Original angenommen. Die Fassung stammt ausschließlich aus der privaten
 SQL-Kontextabfrage. Die Dienstschnittstelle nimmt keine frei gewählten
-frei gewählten Unterzeichnernamen, Vertreternachweise oder Hashbehauptungen entgegen.
+Unterzeichnernamen, Vertreternachweise oder Hashbehauptungen entgegen.
 Die optionale `authorityId` wird ausschließlich serverseitig aufgelöst.
 
 Für die persönliche Bestätigung wird der Name aus dem gebundenen
@@ -165,4 +171,4 @@ Pflegeseite und der Prüfkatalog wurden am 29.10.2026 erneut gelesen.
 
 Offen sind die Aktivierung und Zielprüfung der implementierten Host-/App-Anbindung
 mit echten persönlichen Anmeldungen, die visuelle Abnahme, tatsächliche Vertreterprüfung im Zielbetrieb,
-Druck/Scan, signiertes Fach-XML mit XSD-/CMS-Prüfung und die unabhängige Abnahme.
+Echte Druck-/Scan-Abnahme, signiertes Fach-XML mit XSD-/CMS-Prüfung und die unabhängige Abnahme.

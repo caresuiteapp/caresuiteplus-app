@@ -122,7 +122,8 @@ SQL-Vertragssuite verwendet weiterhin ausdrücklich direkt angelegte Fixtures.
 Der zusätzliche Worker-Wrapper verlangt einen Host-MAC und eine aktive persönliche
 Anmeldung. Der private Erzeuger bleibt unzugänglich; `service_role` erhält keine Freigabe.
 Die private Schnittstelle unterstützt Patientenbestätigungen und die
-[geprüfte Vertreteroption](monthly-representatives.md). Scan-Fälle bleiben gesperrt. Bestehende Einsatzunterschriften
+[geprüfte Vertreteroption](monthly-representatives.md). Der begrenzte [Papierweg](monthly-paper.md) ergänzt vollständige Scans und
+persönliche Seitenprüfung. Bestehende Einsatzunterschriften
 werden nicht als Monatsbestätigung hochgestuft. Die neue Original-PDF ist die
 unveränderte Ansicht vor der Unterschrift, keine zusammengesetzte signierte PDF.
 
@@ -239,7 +240,7 @@ Die SQL-Entwürfe, Schlüssel und Hostkonfiguration sind noch nicht aktiviert.
    Parallelität gegen die Zielumgebung nachweisen.
 2. Den implementierten PDF-/Unterschriftsablauf breit/schmal mit echten
    Zeichenereignissen, Schriftvergrößerung und Tastaturfokus abnehmen.
-   Vertreterprüfung mit tatsächlichen Unterlagen vorführen; Druck-/Scan-Pfad ergänzen.
+   Vertreterprüfung mit tatsächlichen Unterlagen vorführen; Druck-/Scan-Pfad mit echten Geräten und Personen abnehmen.
 3. Verantwortliche Pflegefachpersonen/Vertretungen administrativ verwalten und
    deren Entzug gegen laufende Bestätigungen prüfen.
 4. Gemischte Leistungsarten innerhalb eines Einsatzes fachlich aufteilen,

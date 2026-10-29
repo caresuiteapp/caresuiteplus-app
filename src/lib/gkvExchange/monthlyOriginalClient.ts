@@ -5,7 +5,7 @@ const messages: Record<string,string> = {
   MONTHLY_UNCONFIGURED:'Die Verbindung für Monatsunterschriften ist noch nicht eingerichtet.',
   MONTHLY_STALE:'Fassung oder Anmeldung haben sich geändert. Bitte den Vorgang prüfen und den Monatsnachweis neu laden.',
   MONTHLY_SIGNATURE_REUSED:'Dieses Unterschriftsbild wurde bereits verwendet. Für diese Fassung ist eine neue persönliche Unterschrift erforderlich.',
-  MONTHLY_INPUT:'Die Unterschrift oder der Erfassungsauftrag konnte nicht geprüft werden.',
+  MONTHLY_INPUT:'Die Datei oder der Erfassungsauftrag konnte nicht geprüft werden. Scans müssen vollständig, lesbar und ohne Formulare, Anmerkungen oder Kennwort vorliegen.',
   MONTHLY_FILE_SIZE:'Diese Datei überschreitet die unterstützte Größe von 2 MiB.',
   MONTHLY_QUOTA:'Das Archiv hat seine Speichergrenze erreicht. Bitte die Administration informieren.',
   MONTHLY_BUSY:'Der Host bearbeitet gerade einen Vorgang. Bitte den Status später erneut prüfen.',
@@ -28,5 +28,7 @@ export async function postMonthlyOriginalCommand(command: MonthlyOriginalCommand
   if(!response.ok)throw Error(messages[value?.error] || 'Die Verbindung wurde nicht bestätigt. Bitte zuerst den Erfassungsstatus prüfen.');
   const result=readMonthlyOriginalResponse(value,input,actorId);
   if(result.kind==='original' && await monthlySha256(monthlyBase64(result.pdfBase64))!==result.original.originalSha256)throw Error('Die Originaldatei stimmt nicht mit dem Prüfbeleg überein.');
+  if(result.kind==='scan-page' && await monthlySha256(monthlyBase64(result.pngBase64))!==result.sha256)throw Error('Die gescannte Seite stimmt nicht mit dem Archiv überein.');
+  if(result.kind==='archived-scan' && await monthlySha256(monthlyBase64(result.pdfBase64))!==result.paper.scanSha256)throw Error('Die Scandatei stimmt nicht mit dem Archiv überein.');
   return result;
 }

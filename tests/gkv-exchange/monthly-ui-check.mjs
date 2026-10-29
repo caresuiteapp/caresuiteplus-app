@@ -67,21 +67,36 @@ function reset(){p=fixture();ws=workspace(null);list=sources(p);history=[];pageA
     return {tenantId:tenant,clientId:client,proofId:p.id,serviceType:proof.payload.serviceType,canManage:true,checkedAt:new Date().toISOString(),authorities:structuredClone(authorities)};
   },
   requestMonthlyOriginal:async(_tenant,_role,command)=>{
-    calls.push(['capture',structuredClone(command)]);const {action,pngBase64,originalSha256,...scope}=command;
+    calls.push(['capture',structuredClone(command)]);const {action,pngBase64,originalSha256,pdfBase64,page,scanSha256,review,...scope}=command;
     const common={version:1,...scope,actorId:user};
     if(action==='prepare' || action==='read' || action==='archive'){
-      captureState.original??={captureId:command.captureId,proofId:p.id,revision:p.revision,contentSha256:p.content_sha256,originalSha256:'b'.repeat(64),originalVersion:randomUUID(),acknowledged:false,...(command.authorityId?{representative:structuredClone(authorities.find(a=>a.id===command.authorityId))}:{})};
+      captureState.original??={captureId:command.captureId,proofId:p.id,revision:p.revision,contentSha256:p.content_sha256,originalSha256:'b'.repeat(64),originalVersion:randomUUID(),acknowledged:false,...(command.method==='paper'?{paper:{pageCount:2,signatureBox:{page:2,x:95,y:500,width:800,height:90},preparedAt:new Date(Date.now()-60000).toISOString()}}:{}),...(command.authorityId?{representative:structuredClone(authorities.find(a=>a.id===command.authorityId))}:{})};
       return {...common,kind:'original',original:structuredClone(captureState.original),pdfBase64:Buffer.from('%PDF- synthetic viewer boundary').toString('base64'),
         archive:action==='archive'?{status:p.status,version:p.version,finalizedAt:p.finalized_at,invalidatedAt:p.invalidated_at}:null};
     }
     if(action==='acknowledge'){captureState.original.acknowledged=true;return {...common,kind:'acknowledged',originalSha256};}
+    if(action==='upload-scan'){
+      const png=Buffer.from([137,80,78,71,13,10,26,10]);
+      captureState.scan={scanSha256:createHash('sha256').update(Buffer.from(pdfBase64,'base64')).digest('hex'),scanVersion:randomUUID(),renderSha256:'c'.repeat(64),
+        pages:[1,2].map(()=>({sha256:createHash('sha256').update(png).digest('hex'),width:1132,height:1600}))};
+      return {...common,kind:'scan',scan:structuredClone(captureState.scan)};
+    }
+    if(action==='scan-page')return {...common,kind:'scan-page',page,scanSha256,...captureState.scan.pages[page-1],pngBase64:Buffer.from([137,80,78,71,13,10,26,10]).toString('base64')};
+    if(action==='review-scan'){
+      const scan=captureState.scan;
+      captureState.receipt={receiptId:randomUUID(),captureId:command.captureId,proofId:p.id,revision:p.revision,tenantId:tenant,actorId:user,
+        contentSha256:p.content_sha256,originalSha256:captureState.original.originalSha256,signatureSha256:'f'.repeat(64),
+        paper:{schema:'gkv-paper-review-v1',scanPath:`tenant/${tenant}/gkv/monthly/${p.id}/captures/${command.captureId}/scan.pdf`,scanVersion:scan.scanVersion,scanSha256:scan.scanSha256,renderSha256:scan.renderSha256,
+          pageSha256:review.reviewedPages,signatureBox:review.signatureBox,issuedAt:captureState.original.paper.preparedAt,signedAt:review.signedAt,reviewedAt:new Date().toISOString(),reviewedBy:user}};
+      return {...common,kind:'receipt',receipt:structuredClone(captureState.receipt)};
+    }
     if(action==='verify'){
       captureState.receipt={receiptId:randomUUID(),captureId:command.captureId,proofId:p.id,revision:p.revision,tenantId:tenant,actorId:user,
         contentSha256:p.content_sha256,originalSha256:captureState.original.originalSha256,signatureSha256:createHash('sha256').update(Buffer.from(pngBase64,'base64')).digest('hex')};
       return {...common,kind:'receipt',receipt:structuredClone(captureState.receipt)};
     }
     return {...common,kind:'state',state:captureState.receipt?'verified':captureState.original?.acknowledged?'acknowledged':captureState.original?'prepared':'absent',
-      original:structuredClone(captureState.original),receipt:structuredClone(captureState.receipt)};
+      original:structuredClone(captureState.original),receipt:structuredClone(captureState.receipt),...(captureState.original?.paper?{scan:structuredClone(captureState.scan ?? null)}:{})};
   },
  };
  window.confirm=()=>true;
@@ -93,6 +108,7 @@ function applySignedCapture(){
  value.confirmation.originalPath=prefix+'/original.pdf';value.confirmation.signaturePath=prefix+'/signature.png';
  value.confirmation.originalVersion=captureState.original.originalVersion;
  value.confirmation.originalSha256=captureState.receipt.originalSha256;value.confirmation.signatureSha256=captureState.receipt.signatureSha256;
+ if(captureState.receipt.paper){value.confirmation.paper=captureState.receipt.paper;value.confirmation.verifiedAt=captureState.receipt.paper.reviewedAt;value.confirmation.capturedAt=captureState.receipt.paper.signedAt;}
  if(captureState.original.representative){value.confirmation.signerRole='representative';value.confirmation.signerName=captureState.original.representative.signer_name;value.confirmation.authorityReference=captureState.original.representative.id;}
  p=value;ws=workspace(p);history=[p];return structuredClone(p);
 }
@@ -241,6 +257,36 @@ try{
   await mount();await selectClient();await input(field('Wer bestätigt den Monatsnachweis?'),'representative');
   await mount({canCreate:false});await React.act(async()=>wait.resolve(response));
   assert.equal(field('Geprüfte Vertretung'),undefined);assert.equal(button('Original zur Bestätigung öffnen'),undefined);
+ });
+ const choice=text=>[...container.querySelectorAll('label')].find(l=>l.textContent.includes(text))?.querySelector('input');
+ const beginPaper=async()=>{ws=workspace(p);history=[p];await mount();await selectClient();
+   await React.act(async()=>choice('Ausdrucken und unterschrieben einscannen').click());await click('Neue Druckfassung öffnen');
+   await React.act(async()=>container.querySelector('iframe').dispatchEvent(new window.Event('load')));
+   await React.act(async()=>choice('Ich habe alle Seiten dieser Druckfassung geprüft').click());await click('Druckfassung geprüft, Scan erfassen');};
+ const uploadPaper=async()=>{const file=container.querySelector('input[type=file]'),bytes=Buffer.from('%PDF- synthetic scanned boundary');
+   Object.defineProperty(file,'files',{configurable:true,value:[{name:'scan.pdf',size:bytes.length,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.length)}]});
+   await React.act(async()=>file.dispatchEvent(new window.Event('change',{bubbles:true})));};
+ await check('paper review requires both loaded pages, bounded crop and signature time before separate final confirmation',async()=>{
+   globalThis.monthlyApi.commandMonthlyProof=async(_t,_r,c,id)=>{calls.push(['write',structuredClone(c),id]);return applySignedCapture();};
+   await beginPaper();assert.equal(button('Unterschrift im Test zeichnen'),undefined);await uploadPaper();
+   assert.equal(button('Scanprüfung und Unterschrift übernehmen').disabled,true);
+   for(const page of [1,2]){await click(`Seite ${page}`);assert.equal(choice(`Seite ${page}: Person`).disabled,true);
+     await React.act(async()=>container.querySelector('.gx-paper-page img').dispatchEvent(new window.Event('load')));
+     await React.act(async()=>choice(`Seite ${page}: Person`).click());}
+   assert.equal(button('Scanprüfung und Unterschrift übernehmen').disabled,true);
+   const local=new Date();local.setSeconds(local.getSeconds()-1);const value=new Date(local.getTime()-local.getTimezoneOffset()*60000).toISOString().slice(0,19);
+   await input(field('Datum und Uhrzeit der Unterschrift laut Papiernachweis (Ortszeit dieses Geräts)'),value);
+   await input(field('Breite in %'),'99');assert.equal(choice('Ich habe alle Seiten verglichen.').disabled,true);
+   await input(field('Breite in %'),'80');await React.act(async()=>choice('Ich habe alle Seiten verglichen.').click());
+   await click('Scanprüfung und Unterschrift übernehmen');assert.equal(calls.filter(c=>c[0]==='write').length,0);
+   await click('Monatsbestätigung speichern');assert.equal(calls.filter(c=>c[0]==='write').length,1);assert.ok(button('Unterschriebenen Archivscan öffnen'));
+ });
+ await check('lost paper upload locks navigation, recovers immutable scan by reading and still requires every page review',async()=>{
+   await beginPaper();const send=globalThis.monthlyApi.requestMonthlyOriginal;
+   globalThis.monthlyApi.requestMonthlyOriginal=async(...args)=>{const result=await send(...args);if(args[2].action==='upload-scan')throw Error('Scanantwort verloren');return result;};
+   await uploadPaper();assert.equal(field('Leistungsmonat').disabled,true);assert.equal(button('Erfassung unverändert wiederholen'),undefined);
+   await click('Erfassung prüfen');assert.equal(calls.filter(c=>c[0]==='capture'&&c[1].action==='upload-scan').length,1);
+   assert.match(container.textContent,/0 von 2 Seiten geprüft/);assert.equal(button('Scanprüfung und Unterschrift übernehmen').disabled,true);
  });
  await check('lost final confirmation stays locked and reads the applied receipt without confirming or signing twice',async()=>{
   ws=workspace(p);history=[p];await mount();await selectClient();await click('Original zur Bestätigung öffnen');

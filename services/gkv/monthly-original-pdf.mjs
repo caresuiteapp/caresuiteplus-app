@@ -8,7 +8,8 @@ import { isUuid } from './storage.mjs';
 
 /** Server-owned visual original; no submitted HTML/PDF, existing signature or
  * external asset. It is not the normative XML or a CMS/PDF/A attestation. */
-export function renderMonthlyOriginal({ proof: input, captureId, preparedAt, authority: authorityInput }) {
+export function renderMonthlyOriginal(input) { return renderMonthlyOriginalDocument(input).bytes; }
+export function renderMonthlyOriginalDocument({ proof: input, captureId, preparedAt, authority: authorityInput, method }) {
   const proof = readMonthlyProof(input, input?.tenant_id);
   const authority = authorityInput === undefined ? undefined : readMonthlyAuthority(authorityInput);
   if (authority && (authority.tenant_id !== proof.tenant_id || authority.client_id !== proof.payload.clientId
@@ -28,7 +29,8 @@ export function renderMonthlyOriginal({ proof: input, captureId, preparedAt, aut
   const newPage = () => {
     if (pdf.getNumberOfPages() >= 200) throw new Error('MONTHLY_ORIGINAL_PAGE_LIMIT');
     pdf.addPage(); y = 24;
-    text(`${proof.payload.clientName} · ${proof.payload.month.slice(5)}.${proof.payload.month.slice(0, 4)} · Fassung ${proof.version}`, 9, '#527083', 6);
+    text(`${proof.payload.clientName} · ${proof.payload.month.slice(5)}.${proof.payload.month.slice(0, 4)} · Fassung ${proof.version}`, 9, '#527083', 3);
+    text(SERVICE_TYPES[proof.payload.serviceType],9,'#527083',6);
   };
   const text = (value, size = 10, color = '#1d3344', gap = 3) => {
     const content = normalize(value);
@@ -49,6 +51,7 @@ export function renderMonthlyOriginal({ proof: input, captureId, preparedAt, aut
   text(proof.payload.clientName, 15, '#173c52', 4);
   text(`${proof.payload.month.slice(5)}.${proof.payload.month.slice(0, 4)} · ${SERVICE_TYPES[proof.payload.serviceType]}`, 11, '#173c52', 5);
   text(`Fassung ${proof.version} · Bearbeitungsstand ${proof.revision} · Noch nicht bestätigt`, 10, '#406174', 4);
+  if(method==='paper')text(`Druckfassung ausgegeben: ${new Date(preparedAt).toISOString().slice(0,19).replace('T',' ')} UTC`,8,'#527083',4);
   if (authority) {
     text(`Bestätigung durch: ${authority.signer_name} · ${AUTHORITY_BASES[authority.basis]}`, 11, '#173c52', 3);
     text(`Geprüfte Berechtigung: ${authority.evidence_reference}`, 9, '#406174', 3);
@@ -79,8 +82,22 @@ export function renderMonthlyOriginal({ proof: input, captureId, preparedAt, aut
   }
   text(`Gesamte dokumentierte Dauer: ${proof.payload.records.reduce((sum, r) => sum + r.actualMinutes, 0)} Minuten`, 11, '#173c52', 5);
   text('Die Bestätigung gilt ausschließlich für die hier dargestellte Leistungsart und Fassung.', 10, '#406174', 3);
+  let signatureBox;
+  if(method==='paper'){
+    const label=`Persönliche Unterschrift: ${authority?.signer_name ?? proof.payload.clientName}`;
+    const instruction='Bitte innerhalb des Feldes unterschreiben. Alle Seiten zusammen zurückgeben.';
+    const date='Datum und Uhrzeit der Unterschrift: __________________________________';
+    const measured=(value,size)=>{pdf.setFontSize(size);return pdf.splitTextToSize(normalize(value),width).length*size*0.48;};
+    if(y+measured(label,10)+3+measured(instruction,9)+4+39+measured(date,9)+3>bottom)newPage();
+    text(label,10,'#173c52',3);
+    text(instruction,9,'#406174',4);
+    pdf.setDrawColor('#527083');pdf.setLineWidth(0.3);pdf.rect(margin,y,width,30);
+    signatureBox={page:pdf.getNumberOfPages(),x:Math.ceil((margin+2)/210*1000),y:Math.ceil((y+2)/297*1000),
+      width:Math.floor((width-4)/210*1000),height:Math.floor(26/297*1000)};
+    y+=39;text(date,9,'#406174',3);
+  }
   const pages = pdf.getNumberOfPages();
-  if (pages > 200) throw new Error('MONTHLY_ORIGINAL_PAGE_LIMIT');
+  if (pages > (method==='paper'?20:200)) throw new Error('MONTHLY_ORIGINAL_PAGE_LIMIT');
   for (let page = 1; page <= pages; page++) {
     pdf.setPage(page); pdf.setDrawColor('#d7e2e8'); pdf.line(margin, 272, 192, 272);
     pdf.setFontSize(7.5); pdf.setTextColor('#527083');
@@ -90,5 +107,5 @@ export function renderMonthlyOriginal({ proof: input, captureId, preparedAt, aut
   }
   const bytes = Buffer.from(pdf.output('arraybuffer'));
   if (bytes.length > 10 * 1024 * 1024) throw new Error('MONTHLY_ORIGINAL_SIZE');
-  return bytes;
+  return {bytes,...(method==='paper'?{paper:{pageCount:pages,signatureBox,preparedAt}}:{})};
 }

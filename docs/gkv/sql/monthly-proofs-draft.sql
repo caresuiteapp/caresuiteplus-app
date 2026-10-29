@@ -255,6 +255,9 @@ BEGIN
       'contentSha256',receipt.content_sha256,'originalPath',receipt.original_path,'originalVersion',receipt.original_version,
       'originalSha256',receipt.original_sha256,'signaturePath',receipt.signature_path,'signatureVersion',receipt.signature_version,
       'signatureSha256',receipt.signature_sha256,'capturedAt',receipt.captured_at,'verifiedAt',receipt.verified_at);
+     IF to_regprocedure('care_security.gkv_monthly_receipt_paper(uuid)') IS NOT NULL THEN
+      p.confirmation:=p.confirmation||care_security.gkv_monthly_receipt_paper(receipt.id);
+     END IF;
     ELSE
      -- This is an explicit missing-signature exception, never a deferred portal signature.
      p.confirmation:=jsonb_build_object('kind','missing_signature','reason',v_reason,'recordedBy',auth.uid(),'contentSha256',p.content_sha256);

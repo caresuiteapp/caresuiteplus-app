@@ -7,6 +7,64 @@ ALTER TABLE care_security.gkv_monthly_confirmation_receipts
  ADD COLUMN signature_ink_sha256 text NOT NULL CHECK(signature_ink_sha256 ~ '^[a-f0-9]{64}$'),
  ADD CONSTRAINT gkv_monthly_signature_ink_once UNIQUE(tenant_id,signature_ink_sha256);
 
+-- Full paper scan stays in the encrypted host archive. Only its immutable
+-- binding and the personal page-review attestation are stored in the database.
+CREATE TABLE care_security.gkv_monthly_paper_receipts (
+ receipt_id uuid PRIMARY KEY REFERENCES care_security.gkv_monthly_confirmation_receipts(id),
+ tenant_id uuid NOT NULL,scan_sha256 text NOT NULL,render_sha256 text NOT NULL,metadata jsonb NOT NULL,
+ UNIQUE(tenant_id,scan_sha256),UNIQUE(tenant_id,render_sha256)
+);
+ALTER TABLE care_security.gkv_monthly_paper_receipts ENABLE ROW LEVEL SECURITY;
+REVOKE ALL ON care_security.gkv_monthly_paper_receipts FROM PUBLIC,anon,authenticated,service_role;
+CREATE FUNCTION care_security.gkv_monthly_receipt_paper(p_id uuid) RETURNS jsonb
+ LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $$
+ SELECT coalesce((SELECT jsonb_build_object('paper',metadata) FROM care_security.gkv_monthly_paper_receipts WHERE receipt_id=p_id),'{}'::jsonb)
+$$;
+CREATE FUNCTION care_security.gkv_monthly_bind_paper(p_receipt jsonb,context jsonb) RETURNS void
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE p jsonb:=p_receipt->'paper'; b jsonb:=p->'signatureBox'; prefix text;
+ keys text[]:=ARRAY['schema','scanPath','scanVersion','scanSha256','renderSha256','pageSha256','signatureBox','issuedAt','signedAt','reviewedAt','reviewedBy'];
+ previous jsonb; printed timestamptz; signed timestamptz; reviewed timestamptz; captured timestamptz; n integer;
+BEGIN
+ SELECT metadata INTO previous FROM care_security.gkv_monthly_paper_receipts WHERE receipt_id=(p_receipt->>'id')::uuid;
+ IF p IS NULL THEN
+  IF previous IS NOT NULL THEN RAISE EXCEPTION 'Papierbeleg darf nicht entfernt werden'; END IF;
+  RETURN;
+ END IF;
+ IF previous IS NOT NULL THEN
+  IF previous IS DISTINCT FROM p THEN RAISE EXCEPTION 'Papierbeleg wurde verändert'; END IF;
+  RETURN;
+ END IF;
+ IF jsonb_typeof(p) IS DISTINCT FROM 'object' OR EXISTS(SELECT 1 FROM jsonb_object_keys(p) k WHERE NOT k=ANY(keys))
+  OR EXISTS(SELECT 1 FROM unnest(keys) k WHERE NOT p?k OR p->k='null'::jsonb)
+  OR EXISTS(SELECT 1 FROM jsonb_each(p) v WHERE v.key NOT IN ('signatureBox','pageSha256') AND jsonb_typeof(v.value)<>'string')
+  OR p->>'schema' IS DISTINCT FROM 'gkv-paper-review-v1'
+  OR jsonb_typeof(p->'pageSha256') IS DISTINCT FROM 'array'
+  OR jsonb_typeof(b) IS DISTINCT FROM 'object' THEN RAISE EXCEPTION 'Papierprüfung unvollständig'; END IF;
+ n:=jsonb_array_length(p->'pageSha256');
+ prefix:='tenant/'||(p_receipt->>'tenant_id')||'/gkv/monthly/'||(p_receipt->>'proof_id')||'/captures/'||(p_receipt->>'capture_id');
+ IF n NOT BETWEEN 1 AND 20 OR p->>'scanPath' IS DISTINCT FROM prefix||'/scan.pdf'
+  OR p->>'scanVersion' !~ '^[a-f0-9]{8}-[a-f0-9]{4}-[1-8][a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$'
+  OR p->>'scanSha256' !~ '^[a-f0-9]{64}$' OR p->>'renderSha256' !~ '^[a-f0-9]{64}$'
+  OR EXISTS(SELECT 1 FROM jsonb_array_elements(p->'pageSha256') v WHERE jsonb_typeof(v)<>'string' OR v#>>'{}' !~ '^[a-f0-9]{64}$')
+  OR p->>'reviewedBy' IS DISTINCT FROM auth.uid()::text
+  OR (SELECT count(*) FROM jsonb_object_keys(b))<>5
+  OR EXISTS(SELECT 1 FROM jsonb_each(b) v WHERE v.key NOT IN ('page','x','y','width','height') OR jsonb_typeof(v.value)<>'number' OR v.value::text !~ '^[0-9]+$')
+  OR (b->>'page')::integer NOT BETWEEN 1 AND n OR (b->>'x')::integer<0 OR (b->>'y')::integer<0
+  OR (b->>'width')::integer<20 OR (b->>'height')::integer<10
+  OR (b->>'x')::integer+(b->>'width')::integer>1000 OR (b->>'y')::integer+(b->>'height')::integer>1000 THEN
+  RAISE EXCEPTION 'Papierprüfung gehört nicht zur Erfassung'; END IF;
+ printed:=(p->>'issuedAt')::timestamptz; signed:=(p->>'signedAt')::timestamptz; reviewed:=(p->>'reviewedAt')::timestamptz; captured:=(p_receipt->>'captured_at')::timestamptz;
+ IF NOT isfinite(printed) OR NOT isfinite(signed) OR NOT isfinite(reviewed)
+  OR printed<(context->'proof'->>'updated_at')::timestamptz OR signed<printed OR signed>captured
+  OR reviewed IS DISTINCT FROM (p_receipt->>'verified_at')::timestamptz OR reviewed>printed+interval '7 days'
+  OR (context->'authority' IS NOT NULL AND (signed<(context->'authority'->>'reviewed_at')::timestamptz
+   OR signed<(context->'authority'->>'valid_from')::timestamptz OR signed>=(context->'authority'->>'valid_until')::timestamptz)) THEN
+  RAISE EXCEPTION 'Zeitpunkt der Papierunterschrift ist ungültig'; END IF;
+ INSERT INTO care_security.gkv_monthly_paper_receipts VALUES((p_receipt->>'id')::uuid,(p_receipt->>'tenant_id')::uuid,p->>'scanSha256',p->>'renderSha256',p);
+END $$;
+REVOKE ALL ON FUNCTION care_security.gkv_monthly_receipt_paper(uuid),care_security.gkv_monthly_bind_paper(jsonb,jsonb) FROM PUBLIC,anon,authenticated,service_role;
+
 CREATE FUNCTION care_security.gkv_monthly_verifier_context(p_tenant uuid,p_proof uuid,p_revision integer,p_authority uuid DEFAULT NULL)
  RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE p public.gkv_monthly_proofs; s public.gkv_monthly_proof_series; v_series uuid; authority jsonb;
@@ -36,11 +94,11 @@ BEGIN
  SELECT * INTO r FROM care_security.gkv_monthly_confirmation_receipts WHERE id=(p_receipt->>'id')::uuid;
  IF NOT FOUND THEN RETURN NULL; END IF;
  IF r.actor_id IS DISTINCT FROM auth.uid() OR r.consumed_at IS NOT NULL
-  OR (to_jsonb(r)-'consumed_at') IS DISTINCT FROM p_receipt THEN
+  OR ((to_jsonb(r)-'consumed_at')||care_security.gkv_monthly_receipt_paper(r.id)) IS DISTINCT FROM p_receipt THEN
   RAISE EXCEPTION 'Beleg gehört nicht zur offenen Erfassung' USING ERRCODE='40001'; END IF;
  RETURN jsonb_build_object('receiptId',r.id,'captureId',r.capture_id,'proofId',r.proof_id,
   'revision',r.proof_revision,'tenantId',r.tenant_id,'actorId',r.actor_id,'contentSha256',r.content_sha256,
-  'originalSha256',r.original_sha256,'signatureSha256',r.signature_sha256);
+  'originalSha256',r.original_sha256,'signatureSha256',r.signature_sha256)||care_security.gkv_monthly_receipt_paper(r.id);
 END $$;
 
 CREATE FUNCTION care_security.gkv_monthly_original_read_context(p_tenant uuid,p_proof uuid)
@@ -66,7 +124,7 @@ DECLARE r care_security.gkv_monthly_confirmation_receipts; previous care_securit
   'signature_path','signature_version','signature_sha256','signature_ink_sha256','captured_at','verified_at'];
 BEGIN
  IF jsonb_typeof(p_receipt) IS DISTINCT FROM 'object' OR octet_length(p_receipt::text)>8000
-  OR EXISTS(SELECT 1 FROM jsonb_object_keys(p_receipt) k WHERE NOT k=ANY(keys))
+  OR EXISTS(SELECT 1 FROM jsonb_object_keys(p_receipt) k WHERE k<>'paper' AND NOT k=ANY(keys))
   OR EXISTS(SELECT 1 FROM unnest(keys) k WHERE NOT p_receipt?k OR (k<>'authority_reference' AND p_receipt->k='null'::jsonb))
   OR jsonb_typeof(p_receipt->'proof_revision') IS DISTINCT FROM 'number' THEN
   RAISE EXCEPTION 'Originalprüfbeleg ist unvollständig'; END IF;
@@ -93,9 +151,10 @@ BEGIN
   -- Exact bytes and decoded appearance are independently unique per tenant.
   INSERT INTO care_security.gkv_monthly_confirmation_receipts SELECT r.*;
  END IF;
+ PERFORM care_security.gkv_monthly_bind_paper(p_receipt,context);
  RETURN jsonb_build_object('receiptId',r.id,'captureId',r.capture_id,'proofId',r.proof_id,
   'revision',r.proof_revision,'tenantId',r.tenant_id,'actorId',r.actor_id,'contentSha256',r.content_sha256,
-  'originalSha256',r.original_sha256,'signatureSha256',r.signature_sha256);
+  'originalSha256',r.original_sha256,'signatureSha256',r.signature_sha256)||care_security.gkv_monthly_receipt_paper(r.id);
 END $$;
 -- Narrow private capabilities avoid granting a future verifier raw access to
 -- proof/receipt tables. Definer functions check the personal actor and current

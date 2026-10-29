@@ -8,12 +8,12 @@ Sie erzeugt keinen Ersatzbeleg und simuliert keinen Erfolg.
 ## Bedienung
 
 Die aktuelle offene Fassung einer Leistungsart bietet „Original zur Bestätigung
-öffnen“. Der Server erstellt und archiviert die PDF aus seinen kanonischen
+öffnen“ oder den [Papierweg](monthly-paper.md) mit „Neue Druckfassung öffnen“. Der Server erstellt und archiviert die PDF aus seinen kanonischen
 Quellen. Der Browser prüft den SHA-256 der tatsächlich erhaltenen Bytes und zeigt
 die PDF mit einem zusätzlichen Link zum Öffnen in einem eigenen Tab.
 
-Erst nach dem Öffnen und einer ausdrücklichen Bestätigung, dass die Person alle
-Seiten geprüft hat, wird das vorhandene Web-Unterschriftsfeld freigegeben.
+Beim direkten Bildschirmweg wird erst nach dem Öffnen und einer ausdrücklichen Bestätigung, dass die Person alle
+Seiten geprüft hat, das vorhandene Web-Unterschriftsfeld freigegeben.
 Die neue PNG-Datei wird zum privaten Verifizierer übertragen. Ein gesonderter
 Klick auf „Monatsbestätigung speichern“ verbraucht dessen Beleg im vorhandenen
 atomaren SQL-Abschluss. Die Anzeige oder Checkbox allein beweist weder das
@@ -24,13 +24,15 @@ Antworten behalten den genauen Auftrag im Arbeitsspeicher. „Erfassung prüfen�
 liest ausschließlich den Zustand. Nur nach dieser Abfrage kann ein noch nicht
 ausgeführter Auftrag ausdrücklich und unverändert wiederholt werden. Die
 gesonderte Auftragsklärung für den endgültigen Abschluss bleibt erhalten.
-Es gibt keine automatische Wiederholung und keine Ablage von PNGs oder Tokens
+Es gibt keine automatische Wiederholung und keine Ablage von PDFs, PNGs oder Tokens
 in Browser-Speichern. Schließen oder Neuladen verliert den lokalen Erfassungsstand;
-eine automatische Wiederaufnahme nach einem Browserneustart ist nicht umgesetzt.
+Papiererfassungen können ausdrücklich mit der gedruckten Erfassungskennung
+innerhalb von sieben Tagen und derselben persönlichen Sitzung fortgesetzt werden.
+Die Seitenprüfung wird vor einer noch ausstehenden Scanprüfung neu vorgenommen.
 
 Benutzer-, Rollen- und Mandantenwechsel verwerfen die Ansicht und ignorieren
 verspätete Antworten. Bestätigte und später entwertete Fassungen bieten einen
-reinen PDF-Archivabruf mit aktuellem Status. Das ursprüngliche PDF bleibt bytegleich
+PDF-Archivabruf und gegebenenfalls den vollständigen unterschriebenen Scan mit aktuellem Status. Das ursprüngliche PDF bleibt bytegleich
 und enthält den vor der Unterschrift angezeigten Inhalt; es ist kein nachträglich
 mit dem Unterschriftsbild zusammengefügtes Dokument. Die Bestätigung wird getrennt
 am Nachweis ausgewiesen. Der Archivabruf liefert keine wiederverwendbare PNG.
@@ -118,14 +120,14 @@ einen tatsächlich geprüften Betriebsablauf.
 
 ## Nachweise und offene Punkte
 
-Die Host-Suite enthält 20 Unterfälle plus Hauptfall. Sie verbindet den echten
+Die Host-Suite enthält 21 Unterfälle plus Hauptfall. Sie verbindet den echten
 Browservertrag, Gatewayhandler, lokale HTTPS-/mTLS-Verbindung, Host, verschlüsseltes
 Archiv und die fünf tatsächlichen SQL-Entwürfe mit `pgcrypto` in PGlite.
 Auth-/REST-Server und Office-Quellrechte sind ausdrücklich Vertragsdoubles.
 Alle Unterschriften und Zertifikate sind synthetisch. Das belegt keinen echten
 Supabase-Login, keine konkurrierenden PostgreSQL-Verbindungen und keine TI.
 
-Die React-Suite umfasst 19 Abläufe mit tatsächlicher Monatsansicht und Office-Seite.
+Die React-Suite umfasst 21 Abläufe mit tatsächlicher Monatsansicht und Office-Seite.
 API, PDF-Viewer und Zeichenfläche haben synthetische Grenzen. Die Bedienfolge,
 getrennte Finalisierung, verlorene Antworten, Rechtewechsel und späte Antworten
 sind geprüft. Das DOM-Modell berechnet kein Layout. Eine breite/schmale Prüfung
@@ -133,7 +135,7 @@ mit Schriftvergrößerung, Tastaturfokus, tatsächlichem PDF-Viewer und realen
 Zeichenereignissen ist offen: lokal fehlt die Browserlaufzeit, das verbundene
 Gerät war bei der erneuten Prüfung offline. Zusätzliche Browser- oder Testinfrastruktur wurde nicht installiert.
 
-Weiter offen bleiben die tatsächliche Vertreterprüfung im Zielbetrieb, Druck/Scan, signiertes Fach-XML,
+Weiter offen bleiben die tatsächliche Vertreterprüfung im Zielbetrieb, reale Druck-/Scan-Abnahme, signiertes Fach-XML,
 XSD-/CMS-Prüfung, Hardware-/TI-Nachweise und unabhängige ITSG-/gematik-Abnahme.
 Der bestehende CMS-/KIM-Code wird durch diese lokale Monatsbestätigung weder
 zugelassen noch zum Echtversand freigegeben.
@@ -141,3 +143,5 @@ zugelassen noch zum Echtversand freigegeben.
 Die Prüfung der Anmeldung folgt der offiziellen Dokumentation zu
 [Get User](https://supabase.com/docs/reference/javascript/auth-getuser) und
 [Auth-Sitzungen](https://supabase.com/docs/guides/auth/sessions), gelesen am 29.10.2026.
+
+Der begrenzte Papierablauf ist in [Monatsbestätigung über Druck und Scan](monthly-paper.md) beschrieben.

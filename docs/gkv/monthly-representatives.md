@@ -82,7 +82,9 @@ analog zu 3.7. Dazu gehört auch die Betrachtung des finalen XML-Nachweises.
 Die hier implementierte Prüfregistrierung ist eine zusätzliche CareSuite-Kontrolle;
 sie wird nicht als wörtliche Vorgabe dieses Prüfkatalogs ausgegeben.
 
-Fach-XML und XSD-/CMS-Bindung, Druck/Scan, tatsächliche Anmeldung und konkurrierende
+Fach-XML und XSD-/CMS-Bindung, reale Druck-/Scan-Abnahme, tatsächliche Anmeldung und konkurrierende
 Zugriffe in der Zielumgebung, Host-/Schlüsselprovisionierung, visuelle Web-Abnahme
 und unabhängige Prüfung bleiben offen. ITSG 3.8 und das übergeordnete Arbeitspaket
 bleiben deshalb **teilweise implementiert / externe Verifikation offen**.
+
+Der begrenzte Papierablauf ist in [Monatsbestätigung über Druck und Scan](monthly-paper.md) beschrieben.

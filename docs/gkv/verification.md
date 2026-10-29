@@ -2,6 +2,60 @@
 
 Stand: 29.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
+## Papierbestätigung am 29.10.2026
+
+Der Arbeitsstand nach `74d8d36` ergänzt den [Druck-/Scan-Ablauf](monthly-paper.md).
+Die Originalfassung enthält ein eigenes Unterschriftsfeld und eine auf jeder
+Seite lesbare Zuordnung. Vollständige Scans werden begrenzt geprüft, gerendert,
+verschlüsselt gespeichert und nach persönlicher Seitenprüfung an einen frischen
+Abschlussbeleg gebunden. Fortsetzung, Korrektur und Archivzugriff bleiben an
+Fassung, Rechte und persönliche Sitzung gebunden.
+
+| Prüfung | Ergebnis |
+| --- | --- |
+| Tatsächlicher ESM-Gateway-Einstieg ohne Testloader | 4 Fälle bestanden |
+| Monats-/Arbeitsplatzvertrag | 27 Fälle bestanden |
+| Bisheriger SQL-Speichervertrag | 24 Prüfmeldungen bestanden |
+| Originaldateien, PNG, verschlüsseltes Archiv | 20 Prüfmeldungen bestanden |
+| Gateway, tatsächliches lokales mTLS, Host und fünf SQL-Entwürfe | 22 Prüfmeldungen bestanden |
+| Neue vollständige PDF-/Papier-/SQL-Verarbeitung | 9 Prüfmeldungen bestanden |
+| Tatsächliche React-Monats-/Office-Komponenten | 21 Abläufe bestanden |
+| App-TypeScript | `tsc --noEmit --pretty false` bestanden |
+| Zulassungskatalog | Konsistenzprüfung und 9 Tests bestanden |
+
+Der vollständige lokale `npm run build:web:production` ist erfolgreich:
+14 weitere Release-Gates mit 3.795 Vitest-Fällen, 725 statische Routen und
+sämtliche Abschlussaudits. Der erzeugte Webexport enthält den neuen Papierablauf.
+
+Das Monats-Gate umfasst damit 127 erfolgreiche Prüfmeldungen. Die neue
+PDF-Suite verwendet echte erzeugte PDF-Bytes und dekodierte Bildpunkte mit
+synthetischer Testtinte. Sie prüft mehrseitige Zuordnung, signierten Ausschnitt,
+endgültigen SQL-Abschluss und korrigiertes Archiv, unvollständige/aktive/
+verschlüsselte PDFs, leere Ausschnitte, falsche Zeiten und Seitenhashes,
+Wiederverwendung über unabhängige Archive, private Metadatenfälschung mit
+atomarem Rollback, Rechte-/Quellenwechsel und Vertretungswiderruf. Der neue
+mTLS-Fall führt Scan-Upload, Seitenabruf, Prüfung und Archivabruf durch die
+bestehende Gatewaykette. Die beiden neuen React-Fälle prüfen jede Seitenfreigabe,
+Ausschnitt und Zeitpunkt sowie die lesende Klärung eines verlorenen Uploads.
+
+Alle vier Seiten eines synthetischen Druckoriginals wurden mit Poppler gerendert
+und visuell geprüft, außerdem die letzte Scanseite mit hinzugefügter Testtinte.
+Person/Monat/Leistungsart, Seitenzählung und Erfassungsbindung sind sichtbar;
+Unterschriftsfeld und Datum bleiben zusammen. Das ist kein Nachweis eines
+physischen Druckers/Scanners oder einer tatsächlichen persönlichen Unterschrift.
+Die Weboberfläche ist nur funktional mit React/happy-dom geprüft: breites und
+schmales Layout, echte Bild-/PDF-Betrachter, Tastatur und Schriftvergrößerung
+sind weiterhin nicht visuell abgenommen. Der verbundene Desktop wurde erneut
+abgefragt und ist offline; eine lokale Browserlaufzeit ist nicht vorhanden.
+
+Keine Paketversion, Datenbank im Zielbetrieb oder Android-Datei wurde geändert.
+Die fünf SQL-Entwürfe bleiben Review-Unterlagen. Auth-/REST- und Office-Quellgrenzen
+sind Doubles; PGlite ist kein Nachweis unabhängiger paralleler PostgreSQL-Verbindungen.
+Echte Anmeldung, Druck/Scan, Unterlagenprüfung und Hostressourcen, signiertes
+normatives Fach-XML, Hardware/TI und unabhängige Softwareprüfung bleiben offen.
+ITSG 3.9 bleibt deshalb `not_executed`; `productionReady` und
+`submissionDossierComplete` bleiben `false`.
+
 ## Vertreterbestätigung am 29.10.2026
 
 Der Arbeitsstand nach `31a291f` ergänzt die [dokumentierte Vertreterprüfung](monthly-representatives.md)

@@ -73,7 +73,7 @@ BEGIN
  args:=e->'args';
  IF e->>'operation' IN ('context','archive') THEN
   IF args->>'tenantId' IS DISTINCT FROM e->>'tenantId'
-   OR EXISTS(SELECT 1 FROM jsonb_object_keys(args) k WHERE NOT k=ANY(ARRAY['tenantId','proofId','revision','captureId','authorityId'])) THEN
+   OR EXISTS(SELECT 1 FROM jsonb_object_keys(args) k WHERE NOT k=ANY(ARRAY['tenantId','proofId','revision','captureId','authorityId','method'])) THEN
    RAISE EXCEPTION 'Fremder Nachweisauftrag' USING ERRCODE='42501'; END IF;
   IF e->>'operation'='context' THEN
    result:=care_security.gkv_monthly_verifier_context(worker.tenant_id,(args->>'proofId')::uuid,(args->>'revision')::integer,(args->>'authorityId')::uuid);

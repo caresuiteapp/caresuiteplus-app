@@ -152,7 +152,11 @@
         "docs/gkv/sql/monthly-worker-bridge-draft.sql",
         "docs/gkv/sql/monthly-authorities-draft.sql",
         "src/lib/gkvExchange/monthlyAuthority.ts",
-        "src/components/office/gkv/GkvMonthlyRepresentative.web.tsx"
+        "src/components/office/gkv/GkvMonthlyRepresentative.web.tsx",
+        "services/gkv/monthly-scan.mjs",
+        "services/gkv/monthly-scan-worker.mjs",
+        "src/lib/gkvExchange/monthlyPaper.ts",
+        "src/components/office/gkv/GkvMonthlyPaper.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -162,9 +166,10 @@
         "tests/gkv-exchange/monthly-ui-check.mjs",
         "tests/gkv-exchange/monthly-originals.test.mjs",
         "tests/gkv-exchange/monthly-host.test.mjs",
-        "tests/gkv-exchange/monthly-gateway-check.mjs"
+        "tests/gkv-exchange/monthly-gateway-check.mjs",
+        "tests/gkv-exchange/monthly-paper.test.mjs"
       ],
-      "nextStep": "Original-PDF, frische Web-Unterschrift, persönlicher mTLS-Host, sitzungsgebundene SQL-Brücke und Vertreterprüfung einschließlich Widerruf sind implementiert und lokal integriert geprüft. Zielrechte/Migration, Schlüssel/Zertifikate, echte Anmeldung und Unterlagenprüfung, visuelle Abnahme, Druck/Scan und Fach-XML bleiben offen.",
+      "nextStep": "Original-PDF, frische Web-Unterschrift, persönlicher mTLS-Host, sitzungsgebundene SQL-Brücke, Vertreterprüfung mit Widerruf und begrenzter Druck-/Scan-Ablauf mit persönlicher Seitenprüfung sind implementiert und lokal integriert geprüft. Zielrechte/Migration, Schlüssel/Zertifikate, echte Anmeldung und Unterlagenprüfung, reale Drucker/Scanner, visuelle Webabnahme und signiertes Fach-XML bleiben offen.",
       "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",
       "dependsOn": [
         "proof-capture"

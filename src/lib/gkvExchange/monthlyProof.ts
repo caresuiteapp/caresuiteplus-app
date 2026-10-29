@@ -1,3 +1,4 @@
+import {readPaperReceipt,type PaperReceipt} from './monthlyPaper';
 /** Contract for the server-owned monthly source/version workflow.
  * A final monthly record is NOT an XSD-validated or CMS-signed XML document.
  * Hashes are computed by PostgreSQL over its bound original, never by the UI.
@@ -19,7 +20,7 @@ export type MonthlyProofPayload = {
 export type MonthlyProofConfirmation = {
   kind: 'missing_signature'; contentSha256: string; reason: string; recordedBy: string;
 } | {
-  kind: 'signature'; contentSha256: string; receiptId: string; captureId: string;
+  kind: 'signature'; paper?: PaperReceipt; contentSha256: string; receiptId: string; captureId: string;
   signerRole: 'patient' | 'representative'; signerName: string; authorityReference: string | null;
   originalPath: string; originalVersion: string; originalSha256: string;
   signaturePath: string; signatureVersion: string; signatureSha256: string;
@@ -93,6 +94,7 @@ export function readMonthlyProof(value: unknown, tenantId: string): MonthlyProof
         || Date.parse(confirmation.verifiedAt) < Date.parse(confirmation.capturedAt)) invalid();
       const path = `tenant/${tenantId}/gkv/monthly/${value.id}/captures/${confirmation.captureId}`;
       if (confirmation.originalPath !== `${path}/original.pdf` || confirmation.signaturePath !== `${path}/signature.png`) invalid();
+      if(confirmation.paper!==undefined){const paper=readPaperReceipt(confirmation.paper,path);if(Date.parse(paper.reviewedAt)!==Date.parse(String(confirmation.verifiedAt))||Date.parse(paper.signedAt)>Date.parse(String(confirmation.capturedAt)))invalid();}
     } else invalid();
   }
   return value as unknown as MonthlyProof;

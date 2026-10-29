@@ -1,3 +1,4 @@
+import {paperScanFixture} from './monthly-paper-fixture.mjs';
 import test from 'node:test';
 import {getDocument} from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {readMonthlyAuthorities} from '../../src/lib/gkvExchange/monthlyAuthority.ts';
@@ -48,6 +49,17 @@ test('monthly browser contract, gateway, real mTLS host and SQL worker/session b
       const archive=await postMonthlyOriginalCommand({...v.input,revision:old.revision,action:'archive'},f.token({sub:f.otherActor,session_id:f.otherSession}),f.otherActor,undefined,gateway);
       assert.equal(archive.archive.status,'invalidated');assert.equal(archive.pdfBase64,v.capture.original.pdfBase64);assert.equal(successor.confirmation,null);
       assert.equal(JSON.stringify(archive).includes('pngBase64'),false);
+    });
+    await t.test('paper upload, every rendered page, reviewed receipt and archived scan cross the actual mTLS gateway',async()=>{
+      const v=await f.proof();v.input={...v.input,method:'paper'};
+      v.capture=new MonthlyCaptureSession(v.input,v.p.content_sha256,send);await v.capture.prepare();await v.capture.acknowledge();
+      const bytes=await paperScanFixture(v.capture.original,777);await v.capture.uploadScan(bytes.toString('base64'));
+      const image=await v.capture.readScanPage(1);assert.equal(image.sha256,v.capture.scan.pages[0].sha256);
+      await v.capture.reviewScan({scanSha256:v.capture.scan.scanSha256,reviewedPages:v.capture.scan.pages.map(p=>p.sha256),signatureBox:v.capture.original.original.paper.signatureBox,signedAt:new Date().toISOString(),reviewConfirmed:true});
+      const final=await confirm(v),{method,...scope}=v.input;
+      const archive=await postMonthlyOriginalCommand({...scope,revision:final.revision,action:'archive-scan'},f.token({sub:f.otherActor,session_id:f.otherSession}),f.otherActor,undefined,gateway);
+      assert.equal(archive.paper.reviewedBy,f.actorId);assert.deepEqual(Buffer.from(archive.pdfBase64,'base64'),bytes);
+      await assert.rejects(send({...scope,revision:final.revision-1,action:'archive-scan'}));
     });
     const register=async(v,overrides={})=>{
       const command={id:randomUUID(),signerName:'Fiktive Angehörige',basis:'vollmacht',evidenceReference:'Prüfakte SYNTHETISCH 42',

@@ -38,7 +38,7 @@ export async function commandMonthlyAuthority(proof:MonthlyProof,role:RoleKey,co
 }
 export async function requestMonthlyOriginal(tenantId:string,role:RoleKey,input:MonthlyOriginalCommand,signal?:AbortSignal){
   if(input.tenantId!==tenantId)throw Error('Die Erfassung gehört nicht zum aktuellen Mandanten.');
-  const client=connection(tenantId,role,input.action!=='archive');
+  const client=connection(tenantId,role,!['archive','archive-scan'].includes(input.action));
   const {data,error}=await client.auth.getSession();
   if(error || !data.session)throw Error('Bitte erneut anmelden.');
   return postMonthlyOriginalCommand(input,data.session.access_token,data.session.user.id,signal);
