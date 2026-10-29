@@ -256,7 +256,7 @@ try{await test('monthly proof persistence, isolation and immutable version chain
   await assert.rejects(db.query('SELECT public.gkv_monthly_clients($1,$2)',[tenant,'2026-13']));
   await assert.rejects(db.query('SELECT public.gkv_monthly_clients($1,$2,$3)',[tenant,'2026-10','x'.repeat(101)]));
   // Give a single client 52 separate canonical rows to exercise the second source page.
-  await admin("UPDATE service_records SET client_id=$1,source_receipt=jsonb_set(source_receipt,'{client_id}',to_jsonb($1::text)) WHERE id>=$2 AND id<=$3",[orderedId(1),orderedId(101),orderedId(152)]);
+  await admin("UPDATE service_records SET client_id=$1::uuid,source_receipt=jsonb_set(source_receipt,'{client_id}',to_jsonb(($1::uuid)::text)) WHERE id>=$2::uuid AND id<=$3::uuid",[orderedId(1),orderedId(101),orderedId(152)]);
   const read=async(after=null)=>(await db.query('SELECT public.gkv_monthly_sources($1,$2,$3,$4) v',[tenant,orderedId(1),'2026-10',after])).rows[0].v;
   const a=readMonthlySources(await read(),tenant,orderedId(1),'2026-10',null);
   const b=readMonthlySources(await read(a.nextCursor),tenant,orderedId(1),'2026-10',a.nextCursor);

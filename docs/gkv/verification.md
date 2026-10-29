@@ -1,6 +1,34 @@
 # Prüfprotokoll: GKV-Datenaustausch
 
-Stand: 23.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+Stand: 29.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+
+## Monatsnachweis-SQL und React-Prüfungen am 29.10.2026
+
+Die Vercel-Protokolle sind über die verbundene Teamfreigabe jetzt lesbar. Der
+fehlgeschlagene Preview-Build `dpl_Ebc1Lpp8Cu9LTcyGT8Vamvv8V9Ds` für `4058f96`
+brach im letzten SQL-Unterfall mit PostgreSQL `42P08` ab. Die Testvorbereitung
+verwendete denselben Parameter als UUID-Spalte und Textwert im JSON-Beleg.
+Ein ausdrücklicher UUID-Cast vor der Textkonvertierung behebt die widersprüchliche
+Typableitung; Seitennavigation und Prüfanforderungen bleiben unverändert.
+
+`npm run verify:gkv:monthly-web` besteht jetzt mit den bereits vorhandenen,
+zum Lockfile passenden Projektabhängigkeiten: **27 Vertrags-/Wiederherstellungsfälle,
+23 SQL-Unterfälle plus Hauptfall (24 Testmeldungen) und zehn React-Bedienabläufe**.
+Der SQL-Lauf umfasst Mandantentrennung, Rechte, Quellenbindung, Korrektur-Rollback,
+Auftragsklärung und beide Seiten mit insgesamt 52 Klienten beziehungsweise Quellen.
+Die React-Prüfung verwendet die tatsächliche Monatskomponente und Office-Seite.
+
+Auch `kim-host-ui-check.mjs` und `editor-check.mjs` bestehen mit tatsächlichem
+React: Host-/Empfangsstatus, Startsperren, verlorene Antworten, Rechtewechsel,
+Fachparameter und Fassungsverlauf. API-/Auth-Grenzen bleiben synthetisch.
+Es wurden keine Pakete installiert oder Versionen geändert.
+
+Der vollständige Webbuild wird separat geprüft. Die früheren offenen lokalen
+SQL-/React-Läufe sind damit erledigt; eine breite/schmale visuelle Abnahme ist
+weiter offen, da lokal keine Browserlaufzeit vorhanden ist. DOM-Prüfungen belegen
+kein Layout, keine echte Supabase-Anmeldung, keine Hardware/TI und keine Zulassung.
+Die SQL-Entwürfe bleiben unangewendet; Produktions- und Versandfreigaben bleiben
+unverändert gesperrt. Die folgenden Abschnitte dokumentieren frühere Zwischenstände.
 
 ## Bindung von Monatsnachweis-Antworten am 23.10.2026
 

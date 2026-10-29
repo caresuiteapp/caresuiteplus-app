@@ -179,7 +179,7 @@
         "tests/gkv-exchange/monthly-workspace.test.mjs",
         "tests/gkv-exchange/monthly-ui-check.mjs"
       ],
-      "nextStep": "Webansicht für Quellen, Fassungsvergleich und begründete Korrektur ist implementiert. Neue SQL-/React-Prüfungen im bestehenden Preview-Build ausführen; Zielrechte, breite/schmale Darstellung und die gebundene XML-/Abrechnungsübergabe bleiben offen.",
+      "nextStep": "Webansicht für Quellen, Fassungsvergleich und begründete Korrektur ist implementiert. Am 29.10.2026 bestehen 27 Vertragsfälle, 23 SQL-Unterfälle und zehn React-Bedienabläufe. Vollständiger Web-/Preview-Build, Zielrechte, breite/schmale Darstellung und gebundene XML-/Abrechnungsübergabe bleiben offen.",
       "acceptance": "ITSG-Fälle 3.11 und 4.2 gegen parallele Änderung, alte Unterschrift und alte Exportfassung vorführen.",
       "dependsOn": [
         "proof-confirmation"

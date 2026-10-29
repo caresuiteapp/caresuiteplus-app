@@ -1,11 +1,10 @@
 # Monatsnachweise: Webansicht, gespeicherte Quellen und Korrekturkette
 
-Stand: 23.10.2026. Dieser Baustein verbindet den serverseitigen Speichervertrag
+Stand: 29.10.2026. Dieser Baustein verbindet den serverseitigen Speichervertrag
 mit der Web-/Desktop-Ansicht „Monatsnachweise“. **Die Datenbankentwürfe sind noch
 nicht aktiviert; eine echte Monatsunterschrift und die XML-Ausgabe fehlen.**
-Der bisherige Speichervertrag ist lokal geprüft. Die neue Oberfläche und ihre
-Leseabfragen benötigen zusätzlich die unten ausgewiesenen Prüfungen. Die
-ITSG-Fälle bleiben offen.
+Speichervertrag, Leseabfragen und React-Bedienabläufe sind lokal geprüft.
+Visuelle Abnahme, echte Auth-/Storage-Prüfung und ITSG-Fälle bleiben offen.
 
 Grundlage sind die Abschnitte 2, 3.2–3.11 und 4.2 des
 [ITSG-Prüfkatalogs, Version 1.0, gültig ab 01.05.2026](https://www.gkv-datenaustausch.de/media/dokumente/leistungserbringer_1/pflege/technische_anlagen_aktuell_2/TA1_ANH4_ANL1_20250707_oA.pdf).
@@ -176,18 +175,16 @@ Zehn React-Prüfabläufe testen die tatsächliche Komponente und Office-Navigati
 mit synthetischen API-/Auth-Grenzen, einschließlich StrictMode, Doppelaktionen,
 Verbindungsabbruch, Korrektur, Leserechten und Mandantenwechsel.
 
-Diese zusätzlichen SQL-/React-Prüfungen konnten lokal wegen der inzwischen
-fehlenden Projektabhängigkeiten noch nicht ausgeführt werden. Sie sind über
-`npm run verify:gkv:monthly-web` in den bestehenden Web-Produktionsbuild
-aufgenommen. Ein erfolgreicher Preview-Build muss für den neuen Commit separat
-belegt werden; der erfolgreiche Vorgängerbuild gilt nicht für die neue UI.
-Für den Monatsnachweis-Fachkern besteht zusätzlich ein strenger TypeScript-6.0.3-
-Check. Die tatsächliche Monatskomponente samt Office-Seite lässt sich mit
-esbuild 0.28.2 bündeln; React ist dabei extern, API/Auth sind die vorhandenen
-Testgrenzen. Beide Compiler wurden ausschließlich aus bereits lokal vorhandenen
-Paketarchiven mit identischen Projektversionen und geprüftem Lockfile-SHA-512
-verwendet. Keine Downloads, Versionsänderungen oder neuen Testdienste. Dieser
-begrenzte Check ersetzt weder den vollständigen App-Typcheck noch React-Ausführung.
+Am 29.10.2026 besteht `npm run verify:gkv:monthly-web` vollständig: 27 Vertragsfälle,
+23 SQL-Unterfälle plus zusammenfassender Hauptfall und zehn React-Bedienabläufe.
+Der letzte SQL-Unterfall benötigte eine Korrektur seiner Testdatenvorbereitung:
+derselbe UUID-Parameter wird vor der Umwandlung in einen JSON-Textwert ausdrücklich
+als UUID typisiert. Dadurch entfällt PostgreSQL `42P08`; die Seitennavigationsprüfung
+bleibt vollständig erhalten. Verwendet wurden vorhandene Projektabhängigkeiten
+in den Lockfile-Versionen (PGlite 0.3.15, React/React DOM 19.2.3, happy-dom 20.14.0
+und esbuild 0.28.2). Keine Downloads, Versionsänderungen oder neuen Testdienste.
+Die Prüfung bleibt Teil des bestehenden Webbuilds. Der vollständige App-Build
+und der Preview-Build für den korrigierten Commit sind getrennt nachzuweisen.
 DOM-Prüfungen ersetzen weder die echte Supabase-Anmeldung noch eine visuelle
 Abnahme. Breite/schmale Darstellung, vergrößerte Schrift und Tastaturfokus im
 gerenderten Browser sind für diese Ansicht noch nicht belegt.
@@ -213,8 +210,8 @@ bearbeitete offene Fassungen können weiterhin korrekt wiedergefunden werden.
 
 ## Nächste Umsetzung
 
-1. Neue SQL-/React-Prüfungen und vollständigen Typcheck im vorhandenen Build
-   ausführen, dann die Ansicht in breiter/schmaler Darstellung prüfen.
+1. Vollständigen Webbuild und Preview-Build nachweisen, dann die Ansicht in
+   breiter/schmaler Darstellung prüfen. SQL- und React-Prüfungen bestehen.
 2. Originalansicht, frische Unterschrift pro Leistungsart, Vertreterberechtigung
    und Druck-/Scan-Pfad bauen. Originaldateien unveränderlich speichern,
    tatsächlich zurücklesen und ihre Bytes prüfen, bevor ein Beleg entsteht.
