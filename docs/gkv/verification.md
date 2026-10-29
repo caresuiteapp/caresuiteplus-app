@@ -2,6 +2,40 @@
 
 Stand: 29.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
+## Privater Originaldatei-Verifizierer am 29.10.2026
+
+Nach `885783a` ist der [Dienstkern für persönliche Bestätigungen](monthly-original-verifier.md)
+implementiert. Er erzeugt die Original-PDF selbst, bewahrt PDF/PNG im vorhandenen
+verschlüsselten Worker-Archiv auf, liest die gespeicherten Bytes zurück und
+erstellt einen privaten Prüfbeleg. Der vorhandene SQL-Befehl finalisiert damit
+im integrierten Test tatsächlich den Nachweis. Eine Korrektur benötigt eine
+frische Erfassung; das entwertete Original bleibt für berechtigte Leser erhalten.
+
+**20 neue Testmeldungen bestanden**: drei Datei-/PDF-Fälle, 16 integrierte
+Unterfälle und ihr Hauptfall. Die bisherige Monatsprüfung besteht weiterhin
+mit 27 Vertragsfällen, 24 SQL-Testmeldungen und zehn tatsächlichen React-Abläufen.
+Die neue Suite ist Bestandteil des bestehenden Webbuilds. Sie prüft auch
+Rechte-/Quellenwechsel während der Verifikation, Wiederverwendung anders
+kodierter Unterschriftsbilder, manipulierte Archive, Neustart und ungewisse
+Datenbankantworten. Office-Quellprüfung und Anmeldeauflösung bleiben Doubles;
+keine echten Patientenunterschriften oder produktiven Daten wurden verwendet.
+
+Der vollständige lokale Lauf von `npm run build:web:production` endet erneut
+mit Exitcode 0: App-Typcheck, 14 weitere Release-Gates mit 3.795 Vitest-Fällen,
+725 statische Routen und alle Abschlussprüfungen. Die abschließenden Ergänzungen
+an privatem Archivabruf, PNG-Prüfung und Nutzdatenlimit sind danach nochmals
+mit dem vollständigen Monats-Gate geprüft; sie verändern kein App-Bundle.
+Neun Katalogtests und der Konsistenzcheck bestehen. Alle drei synthetischen
+PDF-Seiten wurden mit Poppler gerendert und visuell auf vollständige Blöcke,
+Umlaute, Kopf-/Fußzeilen und Umbrüche kontrolliert. Das ist keine visuelle
+Abnahme der weiterhin getrennten Erfassungsoberfläche.
+
+Host-/Gateway-Freigabe, Originalanzeige und Erfassung in der App, Vertreter,
+Druck/Scan, Fach-XML und unabhängige Abnahme fehlen noch. Die neuen privaten
+SQL-Funktionen sind nicht ausgerollt und für alle bisherigen Runtime-Rollen
+gesperrt. Die folgenden Buildnachweise beziehen sich jeweils auf ihren
+ausdrücklich genannten früheren Commit.
+
 ## Monatsnachweis-SQL und React-Prüfungen am 29.10.2026
 
 Die Vercel-Protokolle sind über die verbundene Teamfreigabe jetzt lesbar. Der

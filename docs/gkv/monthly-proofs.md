@@ -104,20 +104,26 @@ private Request-, Beauftragungs- und Bestätigungstabellen bleiben unlesbar.
 ## Bestätigung und Vertrauensgrenze
 
 Die private Tabelle `care_security.gkv_monthly_confirmation_receipts` nimmt
-Belege eines zukünftigen, gesondert geprüften Originaldatei-Verifizierers auf.
+Belege des gesonderten Originaldatei-Verifizierers auf.
 Sie bindet Nachweis, Bearbeitungsstand, Inhalts-Hash, Erfassungskennung,
 verantwortliche Sitzung, Unterzeichnerrolle und gegebenenfalls Vollmachtreferenz
 an unveränderliche Original- und Unterschriftsobjekte samt Version und SHA-256.
 Die Prüfung lehnt fremde Pfade, alte Erfassungen, abgelaufene Belege,
 wiederverwendete Belege und identische bereits verwendete Unterschriftsbytes ab.
 
-**Dieser Verifizierer ist noch nicht implementiert oder berechtigt.** Es gibt
-keinen öffentlichen Erzeuger und keine Freigabe für `service_role`. Ohne einen
-solchen privaten Beleg kann `confirm` nicht erfolgreich sein. In lokalen Tests
-legt allein der Fixture-Administrator synthetische Belege an; das ist kein
-Nachweis einer tatsächlichen Unterschrift, Vertreterprüfung, PDF-Komposition
-oder Speicherung von Originalbytes. Bestehende Einsatzunterschriften werden
-nicht als Monatsbestätigung hochgestuft.
+Der [private Dienstkern](monthly-original-verifier.md) ist jetzt implementiert:
+serverseitig erzeugte PDF, verschlüsselte dauerhafte Originalablage, einmalige
+PNG-Erfassung, Zurücklesen, Bildfingerabdruck gegen Wiederverwendung und erneute
+SQL-Prüfung vor der Belegerteilung. Sein integrierter Test erzeugt Belege aus
+echten synthetischen Datei-Bytes und verbraucht sie über `confirm`. Die ältere
+SQL-Vertragssuite verwendet weiterhin ausdrücklich direkt angelegte Fixtures.
+
+**Die tatsächliche Host-/App-Anbindung und deren Berechtigung fehlen noch.**
+Es gibt keinen öffentlichen Erzeuger und keine Freigabe für `service_role`.
+Die private Schnittstelle unterstützt persönliche Patientenbestätigungen;
+Vertreter- und Scan-Fälle bleiben gesperrt. Bestehende Einsatzunterschriften
+werden nicht als Monatsbestätigung hochgestuft. Die neue Original-PDF ist die
+unveränderte Ansicht vor der Unterschrift, keine zusammengesetzte signierte PDF.
 
 Ein endgültiger Datensatz ist außerdem kein XSD-geprüfter, elektronisch
 signierter XML-Leistungsnachweis und kein Versandauftrag. Es gibt hier weder
@@ -215,11 +221,11 @@ bearbeitete offene Fassungen können weiterhin korrekt wiedergefunden werden.
 
 ## Nächste Umsetzung
 
-1. Die Ansicht in breiter/schmaler Darstellung prüfen. Vollständiger lokaler
-   Webbuild, SQL-/React-Prüfungen und ein Vercel-Preview bestehen für `46536b6`.
-2. Originalansicht, frische Unterschrift pro Leistungsart, Vertreterberechtigung
-   und Druck-/Scan-Pfad bauen. Originaldateien unveränderlich speichern,
-   tatsächlich zurücklesen und ihre Bytes prüfen, bevor ein Beleg entsteht.
+1. Den privaten Verifizierer an den persönlich authentisierten Host/Gateway
+   anbinden. Zielrechte und Migration vor jeder Aktivierung prüfen.
+2. Originalansicht und frische Unterschrift pro Leistungsart in der App anbinden
+   und breit/schmal prüfen. Private Originalablage, Byteprüfung und Archivabruf
+   sind implementiert; Vertreterberechtigung und Druck-/Scan-Pfad fehlen noch.
 3. Verantwortliche Pflegefachpersonen/Vertretungen administrativ verwalten und
    deren Entzug gegen laufende Bestätigungen prüfen.
 4. Gemischte Leistungsarten innerhalb eines Einsatzes fachlich aufteilen,

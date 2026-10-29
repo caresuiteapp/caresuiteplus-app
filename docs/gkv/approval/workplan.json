@@ -132,16 +132,22 @@
         "docs/gkv/sql/monthly-workspace-draft.sql",
         "src/lib/gkvExchange/monthlyWorkspace.ts",
         "src/lib/gkvExchange/monthlyWriter.ts",
-        "src/components/office/gkv/GkvMonthlyProofs.web.tsx"
+        "src/components/office/gkv/GkvMonthlyProofs.web.tsx",
+        "services/gkv/monthly-original-verifier.mjs",
+        "services/gkv/monthly-original-store.mjs",
+        "services/gkv/monthly-original-pdf.mjs",
+        "services/gkv/monthly-signature-png.mjs",
+        "docs/gkv/sql/monthly-original-verifier-draft.sql"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
         "tests/gkv-exchange/monthly-proof-contract.test.mjs",
         "tests/gkv-exchange/monthly-proofs.database.mjs",
         "tests/gkv-exchange/monthly-workspace.test.mjs",
-        "tests/gkv-exchange/monthly-ui-check.mjs"
+        "tests/gkv-exchange/monthly-ui-check.mjs",
+        "tests/gkv-exchange/monthly-originals.test.mjs"
       ],
-      "nextStep": "Speichervertrag für gebundene Bestätigung ist lokal geprüft; privater Originalbyte-Verifizierer, Unterschrifts-/Druck-/Scan-Oberfläche und Vertreterprüfung fehlen noch. Vor Aktivierung Zielrechte und Migration prüfen.",
+      "nextStep": "Privater Dienstkern für persönliche Bestätigungen mit Original-PDF, verschlüsselter Ablage, Byteprüfung und Belegerteilung ist implementiert und lokal integriert geprüft. Persönlich authentisierte Host-/App-Anbindung, Vertreterprüfung, Druck/Scan und Zielrechte/Migration fehlen weiterhin.",
       "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",
       "dependsOn": [
         "proof-capture"
