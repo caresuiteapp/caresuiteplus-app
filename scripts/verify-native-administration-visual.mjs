@@ -18,6 +18,8 @@ const mocks=new Set(['expo-router','react-native-safe-area-context','expo-linear
 for(const renderer of ['native','web']){
 await build({entryPoints:[renderer==='native'?fixture:resolve('scripts/fixtures/web-desktop-preview.jsx')],outfile:join(output,renderer+'-preview.js'),bundle:true,assetNames:'assets/[name]-[hash]',platform:'browser',format:'iife',jsx:'automatic',define:{'process.env.NODE_ENV':'"production"','process.env.EXPO_OS':'"web"','process.env':'{}','__DEV__':'false'},loader:{'.png':'file','.jpg':'file','.jpeg':'file','.ttf':'dataurl','.gif':'file','.mp4':'dataurl','.svg':'dataurl','.js':'jsx'},plugins:[{name:'isolated-native-preview',setup(b){
  b.onResolve({filter:/^@\/lib\/(auth\/accountSecurityService|platform\/devicePermissions|security\/protectedDataStorage)$/},args=>({path:args.path,namespace:'account-security-fixture'}));
+ b.onResolve({filter:/^(expo-speech|expo-speech-recognition|expo-audio)$/},()=>({path:resolve('scripts/fixtures/native-neo-device-preview.jsx')}));
+ b.onLoad({filter:/\.mp3$/},()=>({loader:'js',contents:'export default 1;'}));
  b.onLoad({filter:/.*/,namespace:'account-security-fixture'},args=>({loader:'js',resolveDir:root,contents:nativePortalAuditDeviceBindings[args.path]}));
  const platformTargets=new Set(['src/lib/platformConsole','src/lib/platformConsole/index','src/lib/platformConsole/PlatformAuthProvider','src/lib/platformConsole/platformAuthService','src/lib/platformConsole/platformTenantService','src/lib/platformConsole/platformSupabaseClient','src/lib/platformConsole/consoleWorkspaceService','src/lib/platformConsole/tenantDossierService.native','src/lib/platformConsole/tenantDossierService.shared','src/lib/platformConsole/tenantDossierService.web','src/lib/platformConsole/platformOperationsService.native','src/lib/platformConsole/platformOperationsService.web','src/lib/platformConsole/platformRuntime.native','src/lib/platformConsole/platformRuntime.web','src/lib/platformConsole/platformCompanyDirectoryService','src/lib/platformConsole/platformSession']);
  b.onResolve({filter:/.*/},args=>{if(!args.path.startsWith('@/')&&!args.path.startsWith('.'))return;const target=args.path.startsWith('@/')?resolve('src',args.path.slice(2)):resolve(args.resolveDir,args.path),normalized=target.replace(root+'/','').replace(/\.tsx?$/,'');if(args.importer===platformFixture&&['src/lib/platformConsole/consoleWorkspaceService','src/lib/platformConsole/platformOperationsService.web'].includes(normalized))return;return platformTargets.has(normalized)?{path:platformFixture}:undefined;});
@@ -225,13 +227,52 @@ async function verifyDesktopCenter(page,viewport,fontScale=1){
  const background=page.getByTestId('center-background-catalog').getByRole('button',{name:/ als Desktop-Hintergrund verwenden$/}).first();
  await background.scrollIntoViewIfNeeded();
  const preview=await background.boundingBox();if(!preview||preview.width<120||preview.x<-.5||preview.x+preview.width>viewport.width+.5)throw Error(JSON.stringify({message:'Native background catalogue is clipped.',viewport,fontScale,preview}));
+ const backgroundCards=page.getByTestId('center-background-catalog').getByRole('button',{name:/ als Desktop-Hintergrund verwenden$/});
+ const measureGrid=()=>backgroundCards.evaluateAll(elements=>elements.map(element=>{const r=element.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};}));
+ const initialGrid=await measureGrid();await page.waitForTimeout(2100);const settledGrid=await measureGrid();
+ if(!initialGrid.length||initialGrid.length!==settledGrid.length||initialGrid.some((card,index)=>Math.abs(card.x-settledGrid[index].x)>1||Math.abs(card.y-settledGrid[index].y)>1||Math.abs(card.width-settledGrid[index].width)>1))throw Error(JSON.stringify({message:'Native catalogue changes its columns after the initial layout.',viewport,fontScale,initialGrid,settledGrid}));
+ const columns=settledGrid.filter(card=>Math.abs(card.y-settledGrid[0].y)<2).length;
+ const catalogWidth=await page.getByTestId('center-background-catalog').evaluate(element=>element.getBoundingClientRect().width);
+ const expectedColumns=Math.max(1,Math.floor((catalogWidth+14)/(260*fontScale+14)));
+ if(columns!==expectedColumns)throw Error(JSON.stringify({message:'Native catalogue does not use its actual minimum card width.',viewport,fontScale,catalogWidth,columns,expectedColumns}));
+ const scroll=page.getByTestId('platform-modal-body-scroll');
+ const scrollSize=await scroll.evaluate(element=>({height:element.clientHeight,content:element.scrollHeight}));
+ if(scrollSize.content>scrollSize.height+2){
+  const box=await scroll.boundingBox();await page.mouse.move(box.x+box.width/2,box.y+box.height/2);await page.mouse.wheel(0,100000);
+  await page.waitForFunction(()=>document.querySelector('[data-testid="platform-modal-body-scroll"]')?.scrollTop>0);
+  await backgroundCards.last().scrollIntoViewIfNeeded();
+  const last=await backgroundCards.last().boundingBox(),visible=await scroll.boundingBox();
+  if(!last||last.y<visible.y-1||last.y+last.height>visible.y+visible.height+1)throw Error(JSON.stringify({message:'The last background cannot be reached inside the native modal scroll viewport.',viewport,fontScale,last,visible}));
+  await page.screenshot({path:join(output,`desktop-center-backgrounds-bottom-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ }
+ await background.scrollIntoViewIfNeeded();
  await background.click();await page.getByText('Aktiver Hintergrund',{exact:true}).first().waitFor();
  await page.screenshot({path:join(output,`desktop-center-backgrounds-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
  const done=page.getByRole('button',{name:'Center schließen',exact:true});await done.scrollIntoViewIfNeeded();await done.click();
  await center.waitFor({state:'hidden'});
  page.removeListener('pageerror',capture);
  if(errors.length)throw Error(JSON.stringify({screen:'desktop-center',viewport,fontScale,errors}));
- report.push({screen:'desktop-center',viewport,fontScale,shell,areas,card,artwork,background:preview,selectionSaved:true,errors});
+ report.push({screen:'desktop-center',viewport,fontScale,shell,areas,card,artwork,background:preview,selectionSaved:true,columns,expectedColumns,stableAfterMilliseconds:2100,scrollSize,errors});
+}
+async function verifyNativeDesktopNavigation(page,viewport,fontScale=1){
+ const neo=page.getByTestId('native-neo-assistant');await page.getByTestId('native-neo-header-dock').scrollIntoViewIfNeeded();await neo.scrollIntoViewIfNeeded();
+ const robot=await neo.boundingBox(),dock=await page.getByTestId('native-neo-header-dock').boundingBox();
+ if(!robot||!dock||Math.abs(robot.x+robot.width/2-viewport.width/2)>1||Math.abs(robot.y-dock.y)>2)throw Error(JSON.stringify({message:'Native Neo is not at the reserved top centre of the header.',viewport,fontScale,robot,dock}));
+ await page.getByRole('button',{name:'Neo-Assistent öffnen',exact:true}).click();
+ await page.getByText(/Prüfe den Sprachdienst in den Geräteeinstellungen/).waitFor();
+ const status=await page.getByTestId('native-neo-status').boundingBox();
+ if(!status||status.x<0||status.x+status.width>viewport.width+1)throw Error(JSON.stringify({message:'Neo speech failure is not visible inside the viewport.',viewport,fontScale,status}));
+ await page.screenshot({path:join(output,`desktop-neo-top-centre-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ const settings=page.getByRole('tab',{name:'Einstellungen',exact:true});await settings.scrollIntoViewIfNeeded();await settings.click();
+ await page.getByText('Mein Desktop · Einstellungen',{exact:true}).waitFor();
+ const navigation=page.getByTestId('native-navigation-document-settings');
+ if(!await navigation.isVisible()){const menu=page.getByRole('button',{name:'Navigation',exact:true});await menu.scrollIntoViewIfNeeded();await menu.click();}
+ await navigation.scrollIntoViewIfNeeded();await assertUnbrokenWord(navigation,'Vorlageneinstellungen');
+ await page.screenshot({path:join(output,`desktop-navigation-label-${viewport.width}x${viewport.height}-scale-${fontScale}.png`)});
+ if(viewport.width<900*fontScale){const close=page.getByRole('button',{name:'Schließen',exact:true});await close.last().click();}
+ const office=page.getByRole('tab',{name:'Office',exact:true});await office.scrollIntoViewIfNeeded();await office.click();
+ await page.getByText('Mein Desktop · Office',{exact:true}).waitFor();
+ report.push({screen:'native-desktop-navigation-and-neo',viewport,fontScale,robot,dock,status,wordIntact:'Vorlageneinstellungen',speechDevice:'unavailable-fixture'});
 }
 async function verifyWeatherDialog(page,viewport,fontScale=1){
  const heading=page.getByRole('heading',{name:'Wetterort ändern',exact:true});await heading.waitFor();
@@ -549,7 +590,7 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
    await page.getByRole('button',{name:'Abbrechen',exact:true}).click();
   }
   if(screen==='notes')await verifyNotesList(page,viewport);
-  if(screen==='desktop')await verifyDesktopCenter(page,viewport);
+  if(screen==='desktop'){await verifyDesktopCenter(page,viewport);await verifyNativeDesktopNavigation(page,viewport);}
   if(screen==='weather-dialog')await verifyWeatherDialog(page,viewport);
   if(screen.startsWith('owner-'))await verifyOwnerConsole(page,screen,viewport);
   if(screen==='desktop' && viewport.width<980){await page.getByRole('button',{name:'Navigation',exact:true}).click();await page.getByRole('textbox',{name:'Seiten suchen'}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`navigation-${viewport.width}x${viewport.height}.png`)});}

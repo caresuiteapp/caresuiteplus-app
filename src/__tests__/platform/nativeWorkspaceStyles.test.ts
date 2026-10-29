@@ -95,6 +95,11 @@ describe('native presentation of business layouts',()=>{
     expect(workspaceGridWidths('repeat(auto-fill,minmax(min(100%,280px),1fr))',900,16)).toHaveLength(3);
     expect(workspaceGridWidths('repeat(auto-fit,minmax(min(100%,280px),1fr))',240,16,1,4)).toEqual([240]);
   });
+  it.each([[1707,1,6],[1140,1,4],[1050,1,3],[390,1,1],[1140,1.6,2]])('honors calculated widget-card minimums at width %s and font scale %s', (width,fontScale,columns)=>{
+    const tracks=workspaceGridWidths('repeat(auto-fill,minmax(min(100%,calc(260px * 1)),1fr))',width,14,fontScale,46);
+    expect(tracks).toHaveLength(columns);
+    expect(tracks.reduce((sum,track)=>sum+track,0)+14*(columns-1)).toBeCloseTo(width);
+  });
   it('retains the personnel search track and three separate filters from the original stylesheet',()=>{
     const sheet=compileWorkspaceCss(personnelCss),parent={tag:'section',props:{className:'pe-list'}},node={tag:'div',props:{className:'pe-list-filters'}};
     const presentation=resolveWorkspacePresentation([sheet],node,[parent],1280);

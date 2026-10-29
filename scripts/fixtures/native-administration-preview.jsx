@@ -8,6 +8,7 @@ import { PortalPreview } from './native-portals-preview';
 import { createRoot } from 'react-dom/client';
 import { View, Text, ScrollView } from 'react-native';
 import { CommandCenterScreen } from '../../src/liquid-command/screens/CommandCenterScreen.native';
+import { RobotNavigationAssistant } from '../../src/ai/robot/RobotNavigationAssistant.native';
 import { ClientsListExperience as ClientsListView } from '../../src/components/office/ClientsListExperience.native';
 import { EmployeesListExperience as EmployeesListView } from '../../src/components/office/EmployeesListExperience.native';
 import { COMPANY_EDITOR_CSS,TenantCompanyEditorForms } from '../../src/components/tenant/forms/TenantCompanyEditorForms.native';
@@ -21,7 +22,7 @@ function Preview(){
  const page=new URLSearchParams(location.search).get('screen')??'desktop';
  const [form,setForm]=useState(snapshot),[tab,setTab]=useState('overview');
  if(['academy','consultation','catalog'].includes(page))return <ProfessionalPreview screen={page}/>;
- if(page==='desktop')return <CommandCenterScreen/>;
+ if(page==='desktop')return <View style={{flex:1,minHeight:0}}><CommandCenterScreen/><RobotNavigationAssistant/></View>;
  if(page==='weather-dialog')return <WeatherPreview/>;
  if(page.startsWith('owner-'))return <PlatformConsolePreview screen={page}/>;
  if(['help','help-article','google-workspace','google-service'].includes(page))return <HelpWorkspacePreview screen={page}/>;

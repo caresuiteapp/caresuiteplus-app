@@ -36,6 +36,39 @@ const context = Object.assign((key: string) => ({ default: () => null, source: k
 const routeTree = getRoutes(context, { platform: 'android', ignoreRequireErrors: true, ignoreEntryPoints: true });
 const config = getReactNavigationConfig(routeTree, true);
 
+// Exercise the installed imperative action builder as well as deep-link parsing.
+// The store contains navigation state only; no page or device host is substituted.
+let currentState: any;
+const actionPath = nodeRequire.resolve('expo-router/build/global-state/getNavigationAction');
+const actionRequire = createRequire(actionPath), actions = { exports: {} as any };
+const redirectPath = nodeRequire.resolve('expo-router/build/getRoutesRedirects');
+const redirectRequire = createRequire(redirectPath), redirects = { exports: {} as any };
+new Function('require', 'module', 'exports', readFileSync(redirectPath, 'utf8'))((id: string) => id === 'expo-linking'
+  ? { openURL: () => { throw Error('An internal page unexpectedly opened an external URL.'); } }
+  : redirectRequire(id), redirects, redirects.exports);
+new Function('require', 'module', 'exports', readFileSync(actionPath, 'utf8'))((id: string) => id === './store' ? {
+  store: { assertIsReady() {}, navigationRef: { current: { getRootState: () => currentState } }, linking: { config, getStateFromPath }, getRouteInfo: () => ({}), redirects: [] },
+} : id === '../getRoutesRedirects' ? redirects.exports : actionRequire(id), actions, actions.exports);
+function navigators(state: any, path = 'root'): any {
+  return { ...state, type: 'stack', key: path, index: state.index ?? state.routes.length - 1,
+    routes: state.routes.map((route: any, index: number) => ({ ...route, key: `${path}:${index}`, ...(route.state ? { state: navigators(route.state, `${path}/${route.name}`) } : {}) })) };
+}
+function activeNames(state: any): string[] {
+  const names: string[] = [];
+  while (state?.routes?.length) { const route = state.routes[state.index ?? state.routes.length - 1]; names.push(route.name); state = route.state; }
+  return names;
+}
+const nativePages = new Map<string, string>();
+function collectNativePages(node: any, parent = '') {
+  const path = `${parent}/${node.route ?? ''}`;
+  if (node.type === 'route' && !node.generated && !node.contextKey.includes('/+not-found.')) {
+    const href = '/' + path.split('/').filter((part: string) => part && part !== 'index' && !/^\(.+\)$/.test(part)).map((part: string) => /^\[\.\.\./.test(part) ? 'fixture-one/fixture-two' : /^\[.+\]$/.test(part) ? 'fixture-id' : part).join('/');
+    nativePages.set(href, node.contextKey);
+  }
+  for (const child of node.children ?? []) collectNativePages(child, path);
+}
+collectNativePages(routeTree);
+
 const catalogueCode = buildSync({
   stdin: { contents: `
     export { buildDesktopApps } from './src/liquid-command/navigation/desktopAppCatalogModel';
@@ -106,6 +139,11 @@ function selectedPagePattern(contextKey: string): RegExp {
 }
 
 describe('installed Expo Router resolves the actual native application catalogue', () => {
+  it.each([...nativePages])('selects an actual page for application path %s (%s)', (href) => {
+    const { node } = resolve(href);
+    expect(node.type).toBe('route'); expect(node.generated).not.toBe(true);
+    expect(href).toMatch(selectedPagePattern(node.contextKey));
+  });
   it('selects and loads every Web receiver without executing Android or native route modules', () => {
     const webContext = Object.assign((key: string) => {
       if (/\.(?:native|android|ios)\.[jt]sx?$/.test(key)) throw Error('Native route executed in Web: ' + key);
@@ -147,6 +185,20 @@ describe('installed Expo Router resolves the actual native application catalogue
     if (url.pathname !== '/business') expect(node.contextKey).not.toMatch(/business\/\(tabs\)\/index/);
     if (url.pathname.includes('/fixture-assignment/')) expect(leaf.params.id).toBe('fixture-assignment');
     if (url.pathname.includes('/fixture-appointment')) expect(leaf.params.id).toBe('fixture-appointment');
+  });
+  it.each(cases)('$role $label builds its correct imperative target from desktop, Office and QM', ({ href }) => {
+    for (const origin of ['/business', '/office', '/office/qm']) {
+      currentState = navigators(getStateFromPath(origin, config));
+      const action = actions.exports.getNavigateAction(href, {}, 'PUSH');
+      expect(action?.type).toBe('PUSH');
+      let target: any;
+      function find(state: any) { if (state.key === action.target) target = state; for (const route of state.routes) if (route.state) find(route.state); }
+      find(currentState); expect(target, `${origin} -> ${href}`).toBeTruthy();
+      const intended = activeNames(getStateFromPath(href, config));
+      const payload: string[] = [action.payload.name]; let params = action.payload.params;
+      while (params?.screen) { payload.push(params.screen); params = params.params; }
+      expect(intended.slice(-payload.length), `${origin} -> ${href}`).toEqual(payload);
+    }
   });
   it('selects actual native source files for the previously misdirected destinations', () => {
     for (const [href, file] of [

@@ -10,6 +10,7 @@ const state = vi.hoisted(() => ({
   pathname: '/business',
   mounts: 0,
   unmounts: 0,
+  nestedMounts: 0,
   focused: true,
   businessEffects: [] as (string | null | undefined)[],
   platform: 'android',
@@ -30,7 +31,8 @@ vi.mock('expo-router', () => ({
     const scene = <div data-navigator-instance={instance}>
       <span data-testid="destination">{state.pathname}</span>
       <BusinessChildProbe />
-      <button onClick={() => setNavigationMemory('retained')}>{navigationMemory}</button>
+      <NestedNavigatorProbe />
+      <button data-testid="retain-outer-state" onClick={() => setNavigationMemory('retained')}>{navigationMemory}</button>
     </div>;
     return screenLayout ? screenLayout({ children: scene }) : scene;
   },
@@ -58,6 +60,7 @@ vi.mock('@/components/assist/DeferredSignatureApprovalPopup', () => ({ DeferredS
 
 import { AuthContext } from '@/lib/auth/context';
 import { RequireRole } from '@/lib/auth/RequireRole';
+import { LiquidProductAccessGuard } from '@/liquid-command/guards/LiquidProductAccessGuard';
 import { getRouteByPath } from '@/lib/navigation/routes';
 import { APP_ROUTES } from '@/lib/navigation/routes';
 import { liquidPortalRoots, liquidPortalLoginRoutes } from '@/liquid-command/navigation/portalCatalog';
@@ -113,6 +116,15 @@ function BusinessChildProbe() {
   return <span data-testid="business-child">{role}</span>;
 }
 
+function NestedNavigatorProbe() {
+  const [instance] = useState(() => ++state.nestedMounts);
+  const [destination, setDestination] = useState('initial');
+  return <div data-nested-instance={instance}>
+    <span data-testid="nested-destination">{destination}</span>
+    <button data-testid="choose-nested-destination" onClick={() => setDestination('chosen-page')}>Unternavigation ändern</button>
+  </div>;
+}
+
 let host: HTMLDivElement;
 let root: Root;
 let auth: AuthContextValue;
@@ -122,7 +134,7 @@ const render = async () => {
 const changePath = async (pathname: string) => { state.pathname = pathname; await render(); };
 beforeEach(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
-  vi.clearAllMocks(); state.pathname = '/business'; state.mounts = 0; state.unmounts = 0;
+  vi.clearAllMocks(); state.pathname = '/business'; state.mounts = 0; state.unmounts = 0; state.nestedMounts = 0;
   state.focused = true; state.businessEffects = [];
   state.platform = 'android';
   auth = {
@@ -135,6 +147,29 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('native module navigator lifecycle', () => {
+  it('never lets a retained, unfocused module guard redirect the current page', async () => {
+    state.pathname = '/pflege/klienten'; state.focused = false;
+    const tree = <AuthContext.Provider value={auth}><LiquidProductAccessGuard><span data-testid="guard-child" /></LiquidProductAccessGuard></AuthContext.Provider>;
+    await act(async () => root.render(tree));
+    expect(state.router.replace).not.toHaveBeenCalled();
+    expect(host.querySelector('[data-testid="guard-child"]')).toBeNull();
+    state.focused = true; await act(async () => root.render(<AuthContext.Provider value={auth}><LiquidProductAccessGuard><span data-testid="guard-child" /></LiquidProductAccessGuard></AuthContext.Provider>));
+    expect(state.router.replace).toHaveBeenCalledExactlyOnceWith('/business');
+    expect(host.querySelector('[data-testid="guard-child"]')).toBeNull();
+  });
+  it.each(['/business/office/clients', '/business/office/employees', '/business/templates/documents-hub', '/business/integrations'])(
+    'retains a nested navigator when leaving and returning to native desktop via %s', async destination => {
+      await render();
+      await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="choose-nested-destination"]')!.click());
+      expect(host.querySelector('[data-testid="nested-destination"]')?.textContent).toBe('chosen-page');
+      await changePath(destination);
+      expect(host.querySelector('[data-testid="nested-destination"]')?.textContent).toBe('chosen-page');
+      expect(state.nestedMounts).toBe(1);
+      await changePath('/business');
+      expect(host.querySelector('[data-testid="nested-destination"]')?.textContent).toBe('chosen-page');
+      expect(state.nestedMounts).toBe(1);
+    },
+  );
   it.each([...owners.map(owner => owner.path), '/business', ...Object.values(liquidPortalRoots)])('preserves every explicitly allowed descendant role of owner %s', owner => {
     const allowed = getRouteByPath(owner)?.allowedRoles;
     expect(allowed?.length).toBeGreaterThan(0);
@@ -233,14 +268,14 @@ describe('native module navigator lifecycle', () => {
     await render();
     expect(host.querySelector('[data-testid="workspace-chrome"]')).toBeNull();
     const firstInstance = host.querySelector('[data-navigator-instance]')?.getAttribute('data-navigator-instance');
-    await act(async () => (host.querySelector('button') as HTMLButtonElement).click());
+    await act(async () => host.querySelector<HTMLButtonElement>('[data-testid="retain-outer-state"]')!.click());
 
     for (const pathname of ['/business/office/clients', '/business/office/documents', '/business']) {
       await changePath(pathname);
       expect(host.querySelector('[data-navigator-instance]')?.getAttribute('data-navigator-instance')).toBe(firstInstance);
       expect(host.querySelector('[data-testid="destination"]')?.textContent).toBe(pathname);
-      expect(host.querySelector('button')?.textContent).toBe('retained');
-      expect(Boolean(host.querySelector('[data-testid="workspace-chrome"]'))).toBe(pathname !== '/business');
+      expect(host.querySelector('[data-testid="retain-outer-state"]')?.textContent).toBe('retained');
+      expect(host.querySelector('[data-testid="workspace-chrome"]')).toBeNull();
     }
     expect(state.mounts).toBe(1); expect(state.unmounts).toBe(0);
     expect(state.router.replace).not.toHaveBeenCalled();

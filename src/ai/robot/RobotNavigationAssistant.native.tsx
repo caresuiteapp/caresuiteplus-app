@@ -1,5 +1,5 @@
-import { useEffect, useRef, useState } from 'react';
-import { AppState, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { AppState, PanResponder, Platform, Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname } from 'expo-router';
@@ -20,17 +20,26 @@ import { createNeoConversation } from './neoConversation.native';
 import { neoProfileName } from './neoCommands';
 import { matchVoiceClients, type VoiceClient } from './voiceCommands';
 import { NATIVE_NEO_AUDIO } from './neoAudio.native';
+import { nativeNeoPosition, type NativeNeoPosition } from './neoPosition.native';
 
 export function RobotNavigationAssistant() {
   const ready = useAppStartIntroReady(); const auth = useAuth(); const pathname = usePathname(); const permissions = usePermissions(); const tenantId = useServiceTenantId();
   // The current desktop owns Neo. Leaving it unmounts speech and pending work.
-  const desktop = pathname === '/business' || pathname === '/business/dashboard' || pathname === '/Desktop' || pathname === '/desktop';
+  const desktop = ['/', '/business', '/business/(tabs)', '/business/dashboard', '/Desktop', '/desktop'].includes(pathname);
   if (!desktop || !ready || !auth.authReady || !auth.isAuthenticated || !auth.user?.id || !tenantId || !permissions.can('office.access')) return null;
   return <NativeNeo key={`${tenantId}:${auth.user.id}`} tenantId={tenantId} />;
 }
 
 function NativeNeo({ tenantId }: { tenantId: string }) {
   const auth = useAuth(); const router = useRouter(); const permissions = usePermissions(); const insets = useSafeAreaInsets();
+  const { width, height } = useWindowDimensions();
+  const [moved, setMoved] = useState<NativeNeoPosition | null>(null);
+  const position = nativeNeoPosition(width, height, insets, moved);
+  const positionRef = useRef(position); positionRef.current = position;
+  const dragStart = useRef(position), suppressPressUntil = useRef(0);
+  const [needsLanguageModel, setNeedsLanguageModel] = useState(false), [downloading, setDownloading] = useState(false);
+  const [statusHeight, setStatusHeight] = useState(0);
+  const foreground = useRef(AppState.currentState ?? 'active'), permissionPending = useRef(false), permissionResume = useRef<(() => void) | null>(null);
   const weather = useDesktopWeather(JSON.stringify([tenantId, auth.user!.id]));
   const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false); const [listening, setListening] = useState(false); const [speaking, setSpeaking] = useState(false); const [speechError, setSpeechError] = useState('');
   const current = useRef({ permissions, auth, weather, router }); current.current = { permissions, auth, weather, router };
@@ -63,13 +72,29 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
   const stopSession = () => {
     openRef.current = false; generation.current++; recognitionIntent.current++; recognitionActive.current = false; lock.current = false;
     turn.current?.abort(); turn.current = null; ExpoSpeechRecognitionModule.abort(); stopAudio();
+    permissionResume.current?.(); permissionResume.current = null;
     if (alive.current) { setOpen(false); setBusy(false); setListening(false); setSpeaking(false); }
   };
   useEffect(() => {
     alive.current = true;
-    const subscription = AppState.addEventListener('change', state => { if (state !== 'active') stopSession(); });
+    const subscription = AppState.addEventListener('change', state => {
+      foreground.current = state;
+      if (state === 'active') { permissionResume.current?.(); permissionResume.current = null; }
+      // A system permission prompt may temporarily make the app inactive. A
+      // real background transition still cancels everything, including this wait.
+      else if (!(state === 'inactive' && permissionPending.current)) stopSession();
+    });
     return () => { alive.current = false; stopSession(); subscription.remove(); };
   }, []);
+
+  const stopRef = useRef(stopSession); stopRef.current = stopSession;
+  const drag = useMemo(() => PanResponder.create({
+    onMoveShouldSetPanResponder: (_event, gesture) => Math.hypot(gesture.dx, gesture.dy) > 7,
+    onPanResponderGrant: () => { dragStart.current = positionRef.current; stopRef.current(); },
+    onPanResponderMove: (_event, gesture) => setMoved(nativeNeoPosition(width, height, insets, { x: dragStart.current.x + gesture.dx, y: dragStart.current.y + gesture.dy })),
+    onPanResponderRelease: () => { suppressPressUntil.current = Date.now() + 400; },
+    onPanResponderTerminate: () => { suppressPressUntil.current = Date.now() + 400; },
+  }), [width, height, insets.top, insets.bottom, insets.left, insets.right]);
 
   const say = async (text: string, signal: AbortSignal) => {
     signal.throwIfAborted(); stopAudio(); setSpeaking(true);
@@ -108,16 +133,35 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
     } catch (cause) { if (!request.signal.aborted && alive.current && serial === generation.current) { setSpeechError(cause instanceof Error ? cause.message : 'Neo konnte nicht antworten. Tippe Neo erneut an.'); openRef.current = false; setOpen(false); } }
     finally { if (alive.current && serial === generation.current) { lock.current = false; setBusy(false); if (openRef.current && !request.signal.aborted) resume.current(); } }
   };
-  const listen = async () => {
+  const listen = async (greet = false) => {
     const intent = ++recognitionIntent.current; setSpeechError('');
-    if (!ExpoSpeechRecognitionModule.isRecognitionAvailable() || !ExpoSpeechRecognitionModule.supportsOnDeviceRecognition()) { openRef.current = false; setOpen(false); setSpeechError('Auf diesem Gerät ist keine lokale Spracherkennung verfügbar. Die Seiten bleiben über Apps und Navigation erreichbar.'); return; }
     try {
-      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!ExpoSpeechRecognitionModule.isRecognitionAvailable() || !ExpoSpeechRecognitionModule.supportsOnDeviceRecognition()) throw new Error('Auf diesem Gerät ist keine lokale Spracherkennung verfügbar. Prüfe den Sprachdienst in den Geräteeinstellungen.');
+      permissionPending.current = true;
+      let permission;
+      try { permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync(); }
+      finally { permissionPending.current = false; }
+      if (!alive.current || intent !== recognitionIntent.current || !openRef.current) return;
+      if (foreground.current === 'inactive') await new Promise<void>(resolve => { permissionResume.current = resolve; });
       if (!alive.current || intent !== recognitionIntent.current || !openRef.current) return;
       if (!permission.granted) { openRef.current = false; setOpen(false); setSpeechError('Das Mikrofon ist nicht freigegeben. Erlaube CareSuite den Mikrofonzugriff und tippe Neo erneut an.'); return; }
+      let language = 'de-DE';
+      if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
+        const languages = await ExpoSpeechRecognitionModule.getSupportedLocales({});
+        if (!alive.current || intent !== recognitionIntent.current || !openRef.current) return;
+        const installed = languages.installedLocales.find(locale => locale.replace('_', '-').toLowerCase() === 'de-de')
+          ?? languages.installedLocales.find(locale => /^de(?:[-_]|$)/i.test(locale));
+        if (!installed) { setNeedsLanguageModel(true); throw new Error('Das deutsche Sprachpaket fehlt auf diesem Gerät. Lade es einmal, damit Neo zuhören kann.'); }
+        language = installed; setNeedsLanguageModel(false);
+      }
+      if (greet) {
+        const request = new AbortController(); turn.current = request;
+        await say('Hallo, ich bin Neo. Wie kann ich dir helfen?', request.signal);
+        if (!alive.current || intent !== recognitionIntent.current || !openRef.current) return;
+      }
       recognitionActive.current = true; setListening(true);
-      ExpoSpeechRecognitionModule.start({ lang: 'de-DE', interimResults: false, continuous: false, requiresOnDeviceRecognition: true, addsPunctuation: false });
-    } catch { if (alive.current) { recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); setSpeechError('Die lokale Spracherkennung konnte nicht gestartet werden. Tippe Neo erneut an.'); } }
+      ExpoSpeechRecognitionModule.start({ lang: language, interimResults: false, continuous: false, requiresOnDeviceRecognition: true, addsPunctuation: false });
+    } catch (cause) { if (alive.current && intent === recognitionIntent.current) { recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); setSpeechError(cause instanceof Error ? cause.message : 'Die lokale Spracherkennung konnte nicht gestartet werden. Tippe Neo erneut an.'); } }
   };
   resume.current = () => { if (alive.current && openRef.current && !lock.current) void listen(); };
   useSpeechRecognitionEvent('start', () => { if (alive.current && recognitionActive.current && openRef.current) setListening(true); });
@@ -126,27 +170,44 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
     const text = event.results[0]?.transcript;
     if (event.isFinal && text && alive.current && recognitionActive.current && openRef.current) { recognitionActive.current = false; setListening(false); void command(text); }
   });
-  useSpeechRecognitionEvent('error', event => { if (alive.current && recognitionActive.current && openRef.current && event.error !== 'aborted') { recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); setSpeechError('Die lokale Spracherkennung ist gerade nicht verfügbar. Tippe Neo erneut an.'); } });
-  const activate = () => { if (openRef.current) stopSession(); else { openRef.current = true; setOpen(true); setSpeechError(''); void listen(); } };
-  return <View style={[styles.host, { bottom: Math.max(insets.bottom, 12) + 72 }]} pointerEvents="box-none">
-    {open || speechError ? <View style={[styles.status, speechError ? styles.errorStatus : null]} accessibilityLiveRegion="polite" accessibilityRole={speechError ? 'alert' : undefined}>
+  useSpeechRecognitionEvent('error', event => { if (alive.current && recognitionActive.current && openRef.current && event.error !== 'aborted') { recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); const missingModel = event.error === 'language-not-supported' && Platform.OS === 'android' && Number(Platform.Version) >= 33; setNeedsLanguageModel(missingModel); setSpeechError(missingModel ? 'Das deutsche Sprachpaket fehlt. Lade es einmal und tippe Neo erneut an.' : 'Die lokale Spracherkennung ist gerade nicht verfügbar. Prüfe den Sprachdienst und tippe Neo erneut an.'); } });
+  const downloadModel = async () => {
+    if (downloading) return;
+    stopSession(); const serial = generation.current; setDownloading(true);
+    try {
+      const result = await ExpoSpeechRecognitionModule.androidTriggerOfflineModelDownload({ locale: 'de-DE' });
+      if (!alive.current || serial !== generation.current) return;
+      setNeedsLanguageModel(result.status !== 'download_success');
+      setSpeechError(result.status === 'download_success' ? 'Das Sprachpaket ist bereit. Tippe Neo an, um zu sprechen.' : 'Der Sprachpaket-Download wurde angefordert. Schließe ihn im Gerät ab und tippe Neo erneut an.');
+    } catch { if (alive.current && serial === generation.current) setSpeechError('Das Sprachpaket konnte nicht geladen werden. Prüfe den Sprachdienst in den Geräteeinstellungen und versuche es erneut.'); }
+    finally { if (alive.current) setDownloading(false); }
+  };
+  const activate = () => { if (Date.now() < suppressPressUntil.current || downloading) return; if (openRef.current) stopSession(); else { openRef.current = true; setOpen(true); setSpeechError(''); void listen(true); } };
+  const statusWidth = Math.min(280, width - insets.left - insets.right - 24);
+  const statusLeft = Math.max(insets.left + 12, Math.min(width - insets.right - statusWidth - 12, position.x + 34 - statusWidth / 2)) - position.x;
+  const statusTop = Math.max(insets.top + 8, Math.min(position.y + 82, height - insets.bottom - statusHeight - 8)) - position.y;
+  return <View testID="native-neo-assistant" style={[styles.host, { left: position.x, top: position.y }]} pointerEvents="box-none">
+    {open || speechError ? <View testID="native-neo-status" onLayout={event => setStatusHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.status, { width: statusWidth, left: statusLeft, top: statusTop }, speechError ? styles.errorStatus : null]} accessibilityLiveRegion="polite" accessibilityRole={speechError ? 'alert' : undefined}>
       <View style={[styles.dot, listening && styles.listening, speechError ? styles.errorDot : null]} />
-      <Text style={styles.statusText}>{speechError || (speaking ? 'Neo spricht …' : busy ? 'Neo denkt nach …' : listening ? 'Ich höre zu …' : 'Du kannst direkt antworten.')}</Text>
+      <View style={{ flex: 1, minWidth: 0 }}><Text style={styles.statusText}>{speechError || (speaking ? 'Neo spricht …' : busy ? 'Neo denkt nach …' : listening ? 'Ich höre zu …' : 'Mikrofon wird vorbereitet …')}</Text>
+        {needsLanguageModel ? <Pressable accessibilityRole="button" accessibilityLabel="Deutsches Sprachpaket laden" disabled={downloading} onPress={() => { void downloadModel(); }} style={styles.modelAction}><Text style={styles.modelActionText}>{downloading ? 'Sprachpaket wird angefordert …' : 'Deutsches Sprachpaket laden'}</Text></Pressable> : null}
+      </View>
       {open ? <Pressable accessibilityRole="button" accessibilityLabel="Gespräch beenden" onPress={stopSession} style={styles.stop}><Text style={styles.stopText}>×</Text></Pressable> : null}
     </View> : null}
-    <Pressable accessibilityRole="button" accessibilityLabel={open ? 'Neo-Gespräch beenden' : 'Neo-Assistent öffnen'} accessibilityHint={open ? 'Beendet Mikrofon und Sprachausgabe.' : 'Antippen und mit Neo sprechen.'} onPress={activate} style={[styles.robot, listening || speaking || busy ? styles.activeRobot : null]}>
+    <Pressable {...drag.panHandlers} accessibilityRole="button" accessibilityLabel={open ? 'Neo-Gespräch beenden' : 'Neo-Assistent öffnen'} accessibilityHint={open ? 'Beendet Mikrofon und Sprachausgabe.' : 'Antippen und mit Neo sprechen. Durch Ziehen verschieben.'} accessibilityActions={[{ name: 'reset', label: 'Neo zurücksetzen' }]} onAccessibilityAction={event => { if (event.nativeEvent.actionName === 'reset') { stopSession(); setMoved(null); } }} onPress={activate} style={[styles.robot, listening || speaking || busy ? styles.activeRobot : null]}>
       <Image source={CARESUITE_ROBOT_LOGO} style={styles.image} resizeMode="contain" />
     </Pressable>
   </View>;
 }
 
 const styles = StyleSheet.create({
-  host: { position: 'absolute', right: 16, alignItems: 'flex-end', gap: 8, zIndex: 160 },
+  host: { position: 'absolute', width: 68, height: 74, alignItems: 'center', zIndex: 160 },
   robot: { width: 68, height: 74, alignItems: 'center', justifyContent: 'center', borderRadius: 34, borderWidth: 2, borderColor: 'transparent' },
   activeRobot: { borderColor: '#39c8f0', backgroundColor: '#47ceff12' },
   image: { width: 64, height: 70 },
-  status: { width: 280, maxWidth: '100%', flexDirection: 'row', gap: 9, alignItems: 'flex-start', padding: 12, borderWidth: 1, borderColor: '#c5dcf1', borderRadius: 18, backgroundColor: '#f4faff', elevation: 4 },
-  statusText: { color: '#16334d', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 20, flexShrink: 1, flexGrow: 1 },
+  status: { position: 'absolute', flexDirection: 'row', gap: 9, alignItems: 'flex-start', padding: 12, borderWidth: 1, borderColor: '#c5dcf1', borderRadius: 18, backgroundColor: '#f4faff', elevation: 4 },
+  statusText: { color: '#16334d', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 20 },
+  modelAction: { minHeight: 44, justifyContent: 'center', paddingVertical: 8 }, modelActionText: { color: '#165aa4', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 20, fontWeight: '700' },
   dot: { width: 8, height: 8, flexShrink: 0, marginTop: 6, borderRadius: 4, backgroundColor: '#1771d4' },
   listening: { backgroundColor: '#09816b' }, errorDot: { backgroundColor: '#b74432' }, errorStatus: { borderColor: '#d6a497' },
   stop: { minWidth: 44, minHeight: 44, marginTop: -8, marginRight: -8, alignItems: 'center', justifyContent: 'center' },

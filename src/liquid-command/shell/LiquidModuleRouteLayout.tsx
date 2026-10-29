@@ -27,7 +27,6 @@ const transparentContent = { backgroundColor: 'transparent' } as const;
 function LiquidModuleStack() {
   return (
     <Stack
-      screenLayout={Platform.OS === 'web' ? undefined : renderNativeModuleScreen}
       screenOptions={{
         headerShown: false,
         contentStyle: transparentContent,
@@ -112,17 +111,14 @@ function LiquidModuleFrame({ children }: { children: ReactNode }) {
   );
 }
 
-function renderNativeModuleScreen({ children }: { children: ReactNode }) {
-  return <LiquidModuleFrame>{children}</LiquidModuleFrame>;
-}
-
 function LiquidModuleContent() {
   const moduleKey = inferLiquidModule(usePathname());
   const stack = <LiquidModuleStack />;
   return (
     <>
-      {/* Native navigation state must live outside route-dependent chrome.
-          Reparenting Stack when leaving a module home remounts its navigator. */}
+      {/* Native route headers belong to RootShell and ScreenShell. A responsive
+          Web frame around a native scene also reparents nested navigators and
+          resets their selected destination, even when this outer Stack survives. */}
       {Platform.OS === 'web' ? <LiquidModuleFrame>{stack}</LiquidModuleFrame> : stack}
       {moduleKey === 'assist' ? <DeferredSignatureApprovalPopup /> : null}
     </>

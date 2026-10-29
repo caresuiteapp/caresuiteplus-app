@@ -122,7 +122,13 @@ export function workspaceGridWidths(template: string, available: number, gap: nu
   const tracks = sourceTracks.flatMap(track => {
     const repeat = track.match(/^repeat\(\s*(\d+|auto-fit|auto-fill)\s*,\s*([\s\S]+)\)$/);
     if (!repeat) return [track];
-    const minimum = Number(repeat[2].match(/minmax\(\s*(?:min\(\s*100%\s*,\s*)?(\d+(?:\.\d+)?)px/)?.[1] ?? 180);
+    // Card minimums may contain min()/calc() after CSS variables are resolved.
+    // Falling back to 180px changes the track count after native measurement.
+    const bounds = repeat[2].match(/^minmax\(([\s\S]*)\)$/);
+    const lower = bounds ? splitWorkspaceCss(bounds[1])[0] : repeat[2];
+    const measuredMinimum = length(lower, 14, available);
+    const minimum = typeof measuredMinimum === 'number' ? Math.max(1, measuredMinimum)
+      : typeof measuredMinimum === 'string' && measuredMinimum.endsWith('%') ? Math.max(1, available * parseFloat(measuredMinimum) / 100) : 180;
     // A mixed template has explicitly positioned tracks, such as a calendar's
     // time gutter plus seven days. Preserve that count when text is enlarged.
     let count = /^\d+$/.test(repeat[1])

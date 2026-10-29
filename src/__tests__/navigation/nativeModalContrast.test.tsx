@@ -25,7 +25,7 @@ vi.mock('react-native', () => {
 vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 24, bottom: 24 }) }));
 vi.mock('expo-linear-gradient', () => ({ LinearGradient: () => <div data-native-gradient /> }));
 vi.mock('@/components/keyboard/PortalKeyboard', () => ({
-  PortalKeyboardScrollView: ({ children, contentContainerStyle }: any) => <div data-modal-body style={Object.assign({}, ...contentContainerStyle)}>{children}</div>,
+  PortalKeyboardScrollView: ({ children, style, contentContainerStyle }: any) => <div data-modal-scroll style={style}><div data-modal-body style={Object.assign({}, ...contentContainerStyle)}>{children}</div></div>,
 }));
 vi.mock('@/components/ui/effects', () => ({ GlassSurface: ({ children, style }: any) => <div data-modal-surface style={style}>{children}</div> }));
 vi.mock('@/lib/platform/confirmAction', () => ({ confirmAction: async () => true }));
@@ -58,6 +58,13 @@ const text = (value: string) => Array.from(host.querySelectorAll('span')).find(n
 function ToneProbe() { return <span data-modal-tone>{useSurfaceContrastTone()}</span>; }
 
 describe('native company dialog surface', () => {
+  it('bounds the scroll viewport without shrinking the long Apps & Widgets content into it', async () => {
+    await act(async () => root.render(<PlatformModal visible title="Apps & Widgets" onClose={() => {}} bodyStyle={{ padding: 20, flexGrow: 0 }}>{Array.from({ length: 60 }, (_, index) => <div key={index}>Katalogeintrag {index + 1}</div>)}</PlatformModal>));
+    expect((host.querySelector('[data-modal-scroll]') as HTMLElement).style.flexShrink).toBe('1');
+    expect(Number.parseFloat((host.querySelector('[data-modal-scroll]') as HTMLElement).style.minHeight)).toBe(0);
+    expect((host.querySelector('[data-modal-body]') as HTMLElement).style.flexShrink).toBe('0');
+    expect(host.querySelector('[data-modal-body]')?.textContent).toContain('Katalogeintrag 60');
+  });
   it.each([false, true])('keeps the original light company surface under a dark shell (portal=%s)', async portalActive => {
     theme.portalActive = portalActive;
     const close = vi.fn();

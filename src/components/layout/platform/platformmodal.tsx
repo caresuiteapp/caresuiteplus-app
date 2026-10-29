@@ -185,7 +185,9 @@ export function PlatformModal({
           padding: compact ? careSpacing.md : careSpacing.lg,
           gap: careSpacing.sm,
           flexGrow: 1,
-          flexShrink: 1,
+          // Native scroll content must keep its measured height. Only the
+          // surrounding viewport shrinks to make room for header and footer.
+          flexShrink: Platform.OS === 'web' ? 1 : 0,
           minHeight: 0,
           backgroundColor: companySurface
             ? '#F4F8FD'
@@ -291,6 +293,7 @@ export function PlatformModal({
         />
       </View>
       <PortalKeyboardScrollView
+        testID="platform-modal-body-scroll"
         style={styles.bodyScroll}
         contentContainerStyle={[styles.body, bodyStyle]}
         keyboardShouldPersistTaps="handled"
