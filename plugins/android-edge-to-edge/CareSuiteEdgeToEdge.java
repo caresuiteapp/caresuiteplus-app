@@ -27,11 +27,14 @@ public final class CareSuiteEdgeToEdge {
 
   private CareSuiteEdgeToEdge() {}
 
-  public static int readStatusSurface(Window window) {
+  public static int readStatusSurface(Window window) { return read(window, true); }
+  public static int readNavigationSurface(Window window) { return read(window, false); }
+
+  private static int read(Window window, boolean status) {
     synchronized (SURFACES) {
       WeakReference<Surface> reference = SURFACES.get(window);
       Surface surface = reference == null ? null : reference.get();
-      return surface == null ? Color.TRANSPARENT : surface.statusColor;
+      return surface == null ? Color.TRANSPARENT : status ? surface.statusColor : surface.navigationColor;
     }
   }
 

@@ -35,7 +35,7 @@ def dex(methods=(), fields=()):
 
 class WindowApiAudit(unittest.TestCase):
     def test_all_reported_window_symbols_are_rejected(self):
-        for name in [b'getStatusBarColor', b'setStatusBarColor', b'setNavigationBarColor']:
+        for name in [b'getStatusBarColor', b'getNavigationBarColor', b'setStatusBarColor', b'setNavigationBarColor']:
             with self.subTest(name=name):
                 refs = retired_window_references(dex([(b'Landroid/view/Window;', name)]))
                 self.assertEqual([r['name'] for r in refs], [name.decode()])

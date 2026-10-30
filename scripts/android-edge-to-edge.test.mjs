@@ -31,7 +31,7 @@ test('window migration includes binary dependencies and excludes its own cutout 
   assert.match(gradle, /verifyCareSuiteEdgeToEdgeRewrite/);
   assert.doesNotMatch(gradle, /\bdependencies\s*\{/);
   const java = readFileSync(new URL('../plugins/android-edge-to-edge/CareSuiteEdgeToEdge.java', import.meta.url), 'utf8');
-  assert.doesNotMatch(java, /\.(?:getStatusBarColor|setStatusBarColor|setNavigationBarColor)\(/);
+  assert.doesNotMatch(java, /\.(?:getStatusBarColor|getNavigationBarColor|setStatusBarColor|setNavigationBarColor)\(/);
   assert.doesNotMatch(java, /LAYOUT_IN_DISPLAY_CUTOUT_MODE_(?:DEFAULT|SHORT_EDGES)/);
   assert.match(java, /WindowInsetsCompat\.Type\.statusBars\(\)/);
   assert.match(java, /WindowInsetsCompat\.Type\.navigationBars\(\)/);

@@ -4,7 +4,7 @@ import struct
 
 WINDOW = b'Landroid/view/Window;'
 PARAMS = b'Landroid/view/WindowManager$LayoutParams;'
-RETIRED_METHODS = {b'getStatusBarColor', b'setStatusBarColor', b'setNavigationBarColor'}
+RETIRED_METHODS = {b'getStatusBarColor', b'getNavigationBarColor', b'setStatusBarColor', b'setNavigationBarColor'}
 RETIRED_CONSTANTS = {b'LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT', b'LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES'}
 
 

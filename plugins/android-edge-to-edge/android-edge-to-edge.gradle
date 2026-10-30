@@ -20,8 +20,9 @@ class CareSuiteWindowVisitor extends ClassVisitor {
             @Override
             void visitMethodInsn(int opcode, String owner, String method, String desc, boolean isInterface) {
                 if (opcode == Opcodes.INVOKEVIRTUAL && owner == 'android/view/Window') {
-                    if (method == 'getStatusBarColor' && desc == '()I') {
-                        super.visitMethodInsn(Opcodes.INVOKESTATIC, CareSuiteWindowVisitor.BRIDGE, 'readStatusSurface', '(Landroid/view/Window;)I', false)
+                    if (method in ['getStatusBarColor', 'getNavigationBarColor'] && desc == '()I') {
+                        String replacement = method == 'getStatusBarColor' ? 'readStatusSurface' : 'readNavigationSurface'
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, CareSuiteWindowVisitor.BRIDGE, replacement, '(Landroid/view/Window;)I', false)
                         return
                     }
                     if (method in ['setStatusBarColor', 'setNavigationBarColor'] && desc == '(I)V') {
@@ -66,9 +67,11 @@ tasks.register('verifyCareSuiteEdgeToEdgeRewrite') {
         original.visit(Opcodes.V17, Opcodes.ACC_PUBLIC, 'CareSuiteLegacyWindowFixture', null, 'java/lang/Object', null)
         def method = original.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'run', '(Landroid/view/Window;Landroid/view/WindowManager$LayoutParams;)V', null, null)
         method.visitCode()
-        method.visitVarInsn(Opcodes.ALOAD, 0)
-        method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, 'android/view/Window', 'getStatusBarColor', '()I', false)
-        method.visitInsn(Opcodes.POP)
+        for (String name : ['getStatusBarColor', 'getNavigationBarColor']) {
+            method.visitVarInsn(Opcodes.ALOAD, 0)
+            method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, 'android/view/Window', name, '()I', false)
+            method.visitInsn(Opcodes.POP)
+        }
         for (String name : ['setStatusBarColor', 'setNavigationBarColor']) {
             method.visitVarInsn(Opcodes.ALOAD, 0)
             method.visitInsn(Opcodes.ICONST_0)
@@ -102,7 +105,7 @@ tasks.register('verifyCareSuiteEdgeToEdgeRewrite') {
                 }
             }
         }, 0)
-        if (bridgeCalls != ['readStatusSurface', 'paintStatusSurface', 'paintNavigationSurface', 'applyCutoutMode', 'applyCutoutMode']) {
+        if (bridgeCalls != ['readStatusSurface', 'readNavigationSurface', 'paintStatusSurface', 'paintNavigationSurface', 'applyCutoutMode', 'applyCutoutMode']) {
             throw new GradleException('Incomplete Android edge-to-edge rewrite: ' + bridgeCalls)
         }
         println('CareSuite: retired Window calls and DEFAULT/SHORT_EDGES stores replaced in actual JVM bytecode.')
