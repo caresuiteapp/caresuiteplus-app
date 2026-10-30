@@ -158,6 +158,48 @@ beforeEach(() => {
 describe('native retained protected-route guard', () => {
   const protectedPage = <RequireAuth redirectTo="/auth/business-login"><span>Protected business data</span></RequireAuth>;
 
+  it('leaves a stalled saved-session handoff after ten seconds without exposing protected data', async () => {
+    vi.useFakeTimers();
+    try {
+      state.pathname = '/business/office/clients'; auth.authMode = 'supabase'; auth.isAuthenticated = false;
+      state.getSession.mockResolvedValue({ ok: true, data: { user: { id: 'saved-user' } } });
+      await render(protectedPage);
+      expect(state.router.replace).not.toHaveBeenCalled();
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_001); });
+      expect(state.router.replace).toHaveBeenCalledExactlyOnceWith('/auth/business-login');
+      expect(host.textContent).not.toContain('Protected business data');
+    } finally { vi.clearAllTimers(); vi.useRealTimers(); }
+  });
+
+  it('cancels the saved-session fallback when the verified auth context arrives', async () => {
+    vi.useFakeTimers();
+    try {
+      state.pathname = '/business/office/clients'; auth.authMode = 'supabase'; auth.isAuthenticated = false;
+      state.getSession.mockResolvedValue({ ok: true, data: { user: { id: 'saved-user' } } });
+      await render(protectedPage);
+      auth.isAuthenticated = true; await render(protectedPage);
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_001); });
+      expect(state.router.replace).not.toHaveBeenCalled();
+      expect(host.textContent).toContain('Protected business data');
+    } finally { vi.clearAllTimers(); vi.useRealTimers(); }
+  });
+
+  it('bounds a session probe that never settles and cancels the fallback on native blur', async () => {
+    vi.useFakeTimers();
+    try {
+      state.pathname = '/business/office/clients'; auth.authMode = 'supabase'; auth.isAuthenticated = false;
+      state.getSession.mockReturnValue(new Promise(() => {}));
+      await render(protectedPage);
+      state.focused = false; await render(protectedPage);
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_001); });
+      expect(state.router.replace).not.toHaveBeenCalled();
+      state.focused = true; await render(protectedPage);
+      await act(async () => { await vi.advanceTimersByTimeAsync(10_001); });
+      expect(state.router.replace).toHaveBeenCalledExactlyOnceWith('/auth/business-login');
+      expect(host.textContent).not.toContain('Protected business data');
+    } finally { vi.clearAllTimers(); vi.useRealTimers(); }
+  });
+
   it('does not let an inactive business scene replace an active portal login after logout', async () => {
     state.pathname = '/auth/client-login'; state.focused = false; auth.isAuthenticated = false;
     await render(protectedPage);
