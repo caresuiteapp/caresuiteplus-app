@@ -134,7 +134,10 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
     <View testID="portal-visual-viewport" style={[styles.viewport, visibleHeight !== null ? {
       position: 'fixed', top: offsetTop, left: offsetLeft,
       height: visibleHeight, width: visibleWidth ?? '100%',
-    } as unknown as ViewStyle : null]}><LiquidBackdrop>
+    } as unknown as ViewStyle : null, Platform.OS !== 'web' && {
+      paddingLeft: insets.left,
+      paddingRight: insets.right,
+    }]}><LiquidBackdrop>
       <View style={styles.shell}>
         {desktopChrome ? (
           <View style={[styles.rail, kind === 'client' && styles.clientRail,
@@ -181,7 +184,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
             </Pressable>
           </View>
         ) : null}
-        <View style={styles.main}>
+        <View style={[styles.main, desktopChrome && Platform.OS !== 'web' && { paddingTop: insets.top }]}>
           {!visitExecutionFocus && !compactMessengerFocus ? <View
             style={[
               styles.topbar,
@@ -255,7 +258,9 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
         </View>
       </View>
       <View
-        style={[styles.portalFooter, showCompactNavigation ? { paddingBottom: Math.max(insets.bottom, 12) } : styles.portalFooterQuiet]}
+        style={[styles.portalFooter, showCompactNavigation ? { paddingBottom: Math.max(insets.bottom, 12) } : [styles.portalFooterQuiet,
+          Platform.OS !== 'web' && !keyboardVisible && { paddingBottom: insets.bottom },
+        ]]}
         testID="portal-navigation-footer"
       >
       {overlay}

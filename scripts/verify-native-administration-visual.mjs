@@ -78,6 +78,29 @@ async function assertUnbrokenWord(locator,word){
  const fragments=await locator.evaluate((element,word)=>{const walker=document.createTreeWalker(element,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode())){const start=node.textContent.indexOf(word);if(start>=0){const range=document.createRange();range.setStart(node,start);range.setEnd(node,start+word.length);return [...range.getClientRects()].filter(rect=>rect.width>0&&rect.height>0).length;}}return 0;},word);
  if(fragments!==1)throw Error(JSON.stringify({message:'Text splits an ordinary label inside a word.',word,fragments}));
 }
+async function verifyRecordTypography(page,screen,viewport){
+ const clients=screen.endsWith('clients'),name=clients?'Helene Musterfrau':'Marlene Beispiel';
+ const title=page.getByText(name,{exact:true}).filter({visible:true}).first();
+ const subtitle=clients?page.getByText(/^Geb\./).filter({visible:true}).first():page.getByText('Personalakte',{exact:true}).filter({visible:true}).first();
+ const titleBox=await title.boundingBox(),subtitleBox=await subtitle.boundingBox();
+ if(!titleBox||!subtitleBox||subtitleBox.y<titleBox.y+titleBox.height-.5)throw Error(JSON.stringify({message:'Record name and secondary information must occupy separate lines.',screen,viewport,titleBox,subtitleBox}));
+ await page.getByRole('button',{name:'Aktenkarten',exact:true}).click();
+ if(clients){
+  const carrier=page.getByText('Beispiel-Pflegekasse Nord mit einer langen Regionalbezeichnung').filter({visible:true}).first();
+  // Inspect the text ranges themselves: an outer span can include the nested
+  // insurance box, which would conceal an actual overlap in its overall rect.
+  const bounds=await carrier.evaluate(element=>{
+   const find=(root,match)=>{const walker=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);let node;while((node=walker.nextNode()))if(node.textContent.includes(match)){const range=document.createRange();range.selectNodeContents(node);const r=range.getBoundingClientRect();return {x:r.x,y:r.y,width:r.width,height:r.height};}return null;};
+   const card=element.closest('article')??element.parentElement;
+   return {carrier:find(card,'Beispiel-Pflegekasse Nord mit einer langen Regionalbezeichnung'),label:find(card,'Versichertennummer'),number:find(card,'X123456789')};
+  });
+  if(!bounds.carrier||!bounds.label||!bounds.number||bounds.label.y<bounds.carrier.y+bounds.carrier.height-.5||bounds.number.y<bounds.label.y+bounds.label.height-.5)throw Error(JSON.stringify({message:'Carrier, insurance label and number overlap.',screen,viewport,bounds}));
+  report.push({screen:'record-card-typography',renderer:screen,viewport,...bounds});
+ }
+ await page.screenshot({path:join(output,`${screen}-record-cards-${viewport.width}x${viewport.height}.png`)});
+ await page.getByRole('button',{name:'Liste',exact:true}).click();
+ report.push({screen:'record-list-typography',renderer:screen,viewport,titleBox,subtitleBox});
+}
 async function portalControlBounds(locator,viewport,message){
  await locator.scrollIntoViewIfNeeded();const bounds=await locator.boundingBox();
  if(!bounds||bounds.width<24||bounds.height<24||bounds.x<-.5||bounds.x+bounds.width>viewport.width+.5)throw Error(JSON.stringify({message,viewport,bounds}));
@@ -504,12 +527,15 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
   if(screen==='employee-shell' && viewport.width>=980){
    const logout=page.getByRole('button',{name:'Sicher abmelden',exact:true});
    const box=await logout.boundingBox();if(!box||box.y<24||box.y+box.height>viewport.height-34+.5)throw Error(JSON.stringify({message:'Sidebar logout extends below the safe visible viewport',viewport,box}));
+   const title=await page.getByText('Mein Arbeitsbereich',{exact:true}).boundingBox(),body=await page.getByText('Geprüfte Portalnavigation',{exact:true}).boundingBox();
+   if(!title||!body||title.y<24||body.y+body.height>viewport.height-34+.5)throw Error(JSON.stringify({message:'Wide portal chrome/content intrudes into tablet system bars.',viewport,title,body}));
   }
   if(screen==='family-home'){const area=await page.getByLabel('Portalbereich today',{exact:true}).boundingBox();const logout=await page.getByRole('button',{name:'Abmelden',exact:true}).boundingBox();if(!area||area.height<160||!logout||logout.x+logout.width>viewport.width+1)throw Error('Family portal content or logout is clipped.');}
   if(screen==='desktop'||screen==='web-desktop')await page.getByRole('button',{name:'Desktop bearbeiten',exact:true}).waitFor();
   if(screen==='inventory'||screen==='web-inventory')await page.getByText('Diensttelefon · Verwaltung Nord',{exact:true}).waitFor();
   const overflow=await page.evaluate(()=>document.body.scrollWidth>innerWidth+1);if(overflow||errors.length)throw new Error(JSON.stringify({screen,viewport,overflow,errors}));
   await page.screenshot({path:join(output,`${screen}-${viewport.width}x${viewport.height}.png`)});
+  if(['clients','web-clients','employees','web-employees'].includes(screen)&&viewport.width>=1100)await verifyRecordTypography(page,screen,viewport);
   if((screen==='consultation'||screen==='web-consultation')&&viewport.width===320){
    const workspace=await page.getByLabel('Beratung und Schulungen',{exact:true}).boundingBox(),header=await page.getByRole('button',{name:'Vorlagenbibliothek',exact:true}).locator('..').locator('..').boundingBox();
    if(!workspace||!header||Math.abs(header.y-workspace.y-16)>1)throw Error(JSON.stringify({message:'Consultation phone workspace must use the final authored 16px top padding.',screen,viewport,workspace,header}));
@@ -602,6 +628,16 @@ for(const viewport of [{width:768,height:1024},{width:320,height:740},{width:360
   if(screen==='desktop' && viewport.width<980){await page.getByRole('button',{name:'Navigation',exact:true}).click();await page.getByRole('textbox',{name:'Seiten suchen'}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`navigation-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='notes'||screen==='web-notes'){await page.getByRole('button',{name:/Teamrunde vorbereiten/}).click();await page.getByRole('textbox',{name:'Titel der Notiz',exact:true}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`${screen}-editor-${viewport.width}x${viewport.height}.png`)});if(screen==='notes'){const bounds=await page.getByRole('button',{name:'Speichern',exact:true}).boundingBox();if(!bounds||bounds.x<0||bounds.x+bounds.width>viewport.width+1)throw Error(JSON.stringify({message:'Note editor save action extends beyond the viewport.',viewport,bounds}));}await page.getByRole('button',{name:'Handschrift',exact:true}).click();await page.getByRole('slider',{name:'Stiftbreite',exact:true}).waitFor();await page.screenshot({path:join(output,`${screen}-handwriting-${viewport.width}x${viewport.height}.png`)});await page.getByRole('button',{name:'Mindmap',exact:true}).click();await page.screenshot({path:join(output,`${screen}-mindmap-${viewport.width}x${viewport.height}.png`)});}
   if(screen==='inventory'){await page.getByRole('button',{name:'Details ansehen',exact:true}).first().click();await page.getByRole('button',{name:'Ausgeben',exact:true}).click();await page.getByRole('combobox',{name:/Empfänger:in/}).waitFor();await page.waitForTimeout(400);await page.screenshot({path:join(output,`inventory-issue-${viewport.width}x${viewport.height}.png`)});}
+  if((screen==='notes'||screen==='web-notes')&&viewport.width>=1100){
+   await page.goto(`http://127.0.0.1:${server.address().port}/?screen=${screen}&notes-empty=1`);await page.evaluate(()=>document.fonts.ready);
+   const heading=page.getByRole('heading',{name:'Wichtiges bleibt festgehalten.',exact:true});await heading.waitFor();
+   const headingBox=await heading.boundingBox(),workspace=await page.getByLabel('Persönliche Notizen',{exact:true}).boundingBox();
+   if(!headingBox||!workspace||headingBox.y<workspace.y||headingBox.y+headingBox.height>viewport.height)throw Error(JSON.stringify({message:'Empty notebook welcome text starts outside the visible workspace.',screen,viewport,headingBox,workspace}));
+   await page.screenshot({path:join(output,`${screen}-empty-welcome-${viewport.width}x${viewport.height}.png`)});
+   const last=page.getByRole('button').filter({hasText:'Handschriftliches Blatt'});await last.scrollIntoViewIfNeeded();
+   const lastBox=await last.boundingBox();if(!lastBox||lastBox.y<workspace.y||lastBox.y+lastBox.height>viewport.height+.5)throw Error(JSON.stringify({message:'Last notebook template is not reachable by scrolling.',screen,viewport,lastBox}));
+   report.push({screen:'notes-empty-scroll',renderer:screen,viewport,headingBox,lastBox});
+  }
   await verifyActualPortal(page,screen,viewport);
   report.push({screen,viewport,overflow,errors});
   }catch(error){await recordCaseFailure(page,{screen,viewport,fontScale:1},error);}finally{await page.close();}
