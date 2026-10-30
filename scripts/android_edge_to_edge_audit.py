@@ -30,7 +30,8 @@ def retired_window_references(data):
     for name, header, width in [('strings', 56, 4), ('types', 64, 4), ('fields', 80, 8), ('methods', 88, 8)]:
         count, offset = u32(header), u32(header + 4)
         bounds(offset, count * width, 4)
-        if count > (1_000_000 if name == 'strings' else 65535) or (count and (offset < 112 or offset + count * width > data_off)) or (not count and offset):
+        maximum = 1_000_000 if name == 'strings' else 65535 if name == 'types' else 65536
+        if count > maximum or (count and (offset < 112 or offset + count * width > data_off)) or (not count and offset):
             raise ValueError('Invalid DEX symbol table in edge-to-edge audit: ' + name)
         tables[name] = (count, offset, width)
 

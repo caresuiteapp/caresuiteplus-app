@@ -10,15 +10,27 @@ const { configureEdgeToEdgeGradle, installAndroidEdgeToEdge } = require('../plug
 test('repeated prebuilds register exactly one app/dependency rewrite', () => {
   const once = configureEdgeToEdgeGradle('plugins { id "com.android.application" }\n');
   assert.equal(configureEdgeToEdgeGradle(once), once);
-  assert.equal(once.match(/apply from:/g).length, 1);
+  assert.equal(once.match(/class CareSuiteWindowVisitor extends/g).length, 1);
+  assert.equal(once.match(/import org.objectweb.asm.ClassVisitor/g).length, 1);
+  assert.match(once, /^import com.android.build.api.instrumentation.AsmClassVisitorFactory/);
+  assert.doesNotMatch(once, /apply from:/);
 });
 
-test('prebuild installs the exact tracked Java bridge and Gradle visitor without a new dependency', () => {
+test('prebuild replaces the isolated script registration and rejects incomplete generated blocks', () => {
+  const old = 'apply plugin: "com.android.application"\n\n// CareSuite: retire legacy Android window APIs in app and dependency bytecode.\napply from: file("caresuite-edge-to-edge.gradle")\n';
+  const migrated = configureEdgeToEdgeGradle(old);
+  assert.doesNotMatch(migrated, /apply from:/);
+  assert.match(migrated, /InstrumentationScope.ALL/);
+  assert.equal(configureEdgeToEdgeGradle(migrated), migrated);
+  assert.throws(() => configureEdgeToEdgeGradle('// CareSuite Android window migration: begin'), /incomplete/);
+});
+
+test('prebuild installs the exact tracked Java bridge without a new dependency', () => {
   const root = mkdtempSync(join(tmpdir(), 'caresuite-window-test-'));
   try {
     installAndroidEdgeToEdge(root);
     installAndroidEdgeToEdge(root);
-    for (const [source, output] of [['android-edge-to-edge.gradle', 'android/app/caresuite-edge-to-edge.gradle'], ['CareSuiteEdgeToEdge.java', 'android/app/src/main/java/app/caresuitehealthos/edge/CareSuiteEdgeToEdge.java']]) {
+    for (const [source, output] of [['CareSuiteEdgeToEdge.java', 'android/app/src/main/java/app/caresuitehealthos/edge/CareSuiteEdgeToEdge.java']]) {
       assert.equal(readFileSync(join(root, output), 'utf8'), readFileSync(new URL('../plugins/android-edge-to-edge/' + source, import.meta.url), 'utf8'));
     }
   } finally { rmSync(root, { recursive: true, force: true }); }

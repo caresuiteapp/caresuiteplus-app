@@ -7,7 +7,9 @@ from android_edge_to_edge_audit import retired_window_references, verify_edge_to
 
 def dex(methods=(), fields=()):
     strings = sorted({b'V', *(owner for owner, name in (*methods, *fields)), *(name for owner, name in (*methods, *fields))})
-    types = sorted({b'V', *(owner for owner, name in (*methods, *fields))}, key=strings.index)
+    string_indices = {value: index for index, value in enumerate(strings)}
+    types = sorted({b'V', *(owner for owner, name in (*methods, *fields))}, key=string_indices.__getitem__)
+    type_indices = {value: index for index, value in enumerate(types)}
     result = bytearray(112)
     result[:8] = b'dex\n039\0'
     struct.pack_into('<II', result, 36, 112, 0x12345678)
@@ -23,11 +25,11 @@ def dex(methods=(), fields=()):
         struct.pack_into('<I', result, sections['strings'] + index * 4, len(result))
         result.extend(bytes([len(value)]) + value + b'\0')
     for index, value in enumerate(types):
-        struct.pack_into('<I', result, sections['types'] + index * 4, strings.index(value))
-    struct.pack_into('<III', result, sections['protos'], strings.index(b'V'), types.index(b'V'), 0)
+        struct.pack_into('<I', result, sections['types'] + index * 4, string_indices[value])
+    struct.pack_into('<III', result, sections['protos'], string_indices[b'V'], type_indices[b'V'], 0)
     for key, entries in [('fields', fields), ('methods', methods)]:
         for index, (owner, name) in enumerate(entries):
-            struct.pack_into('<HHI', result, sections[key] + index * 8, types.index(owner), 0, strings.index(name))
+            struct.pack_into('<HHI', result, sections[key] + index * 8, type_indices[owner], 0, string_indices[name])
     struct.pack_into('<I', result, 32, len(result))
     struct.pack_into('<II', result, 104, len(result) - data_offset, data_offset)
     return bytes(result)
@@ -42,6 +44,12 @@ class WindowApiAudit(unittest.TestCase):
 
     def test_same_named_app_methods_are_not_framework_calls(self):
         self.assertEqual(retired_window_references(dex([(b'Lexample/Window;', b'setStatusBarColor')])), [])
+
+    def test_all_65536_method_indices_are_usable_and_larger_tables_are_rejected(self):
+        methods = [(b'Lexample/Window;', ('method%05d' % index).encode()) for index in range(65536)]
+        self.assertEqual(retired_window_references(dex(methods)), [])
+        with self.assertRaisesRegex(ValueError, 'symbol table'):
+            retired_window_references(dex([*methods, (b'Lexample/Window;', b'tooMany')]))
 
     def test_unsupported_cutout_constant_references_are_rejected(self):
         for name in [b'LAYOUT_IN_DISPLAY_CUTOUT_MODE_DEFAULT', b'LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES']:
