@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { getSession } from '@/lib/supabase';
 import type { AuthMode } from '@/lib/supabase/config';
 
-const SESSION_PROBE_MAX_MS = 10_000;
+export const SESSION_PROBE_MAX_MS = 10_000;
 
 /** True when Supabase client already has a session but React auth context has not caught up yet. */
 export function useSupabaseSessionProbe(

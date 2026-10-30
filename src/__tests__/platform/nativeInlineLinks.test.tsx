@@ -9,7 +9,7 @@ vi.mock('react-native',async importOriginal=>{
   const primitive=(kind:'text'|'view'|'pressable')=>React.forwardRef<HTMLElement,any>((props,ref)=>{
     if(React.useContext(InText)&&kind!=='text')throw Error('Native View cannot be inserted in a Text run');
     const style=actual.StyleSheet.flatten(typeof props.style==='function'?props.style({pressed:false}):props.style)??{};
-    const attach=(node:HTMLElement|null)=>{if(node)api.styles.set(node,style);if(typeof ref==='function')ref(node);else if(ref)ref.current=node;};
+    const attach=(node:HTMLElement|null)=>{if(node)api.styles.set(node,{...style,...(props.contentContainerStyle?{__contentContainerStyle:actual.StyleSheet.flatten(props.contentContainerStyle)}:{})});if(typeof ref==='function')ref(node);else if(ref)ref.current=node;};
     return React.createElement(kind==='text'?'span':kind==='pressable'&&props.accessibilityRole==='button'?'button':'div',{ref:attach,'data-native-host':kind,'data-testid':props.testID,role:props.accessibilityRole,'aria-label':props.accessibilityLabel,'aria-disabled':props.accessibilityState?.disabled,'data-accessible':props.accessible,'aria-expanded':props.accessibilityState?.expanded,disabled:props.disabled,onClick:(event:any)=>{event.stopPropagation();if(!props.disabled)props.onPress?.();}},<InText.Provider value={kind==='text'}>{props.children}</InText.Provider>);
   });
   return {...actual,View:primitive('view'),Text:primitive('text'),Pressable:primitive('pressable'),ScrollView:primitive('view'),Image:primitive('view'),TextInput:({value,accessibilityLabel}:any)=><input aria-label={accessibilityLabel} value={value} readOnly/>,Modal:({visible,children}:any)=>visible?<div role="dialog">{children}</div>:null,Platform:{...actual.Platform,OS:'android'},useWindowDimensions:()=>({width:360,height:800,scale:1,fontScale:1.6}),Linking:{openURL:api.openURL},Alert:{alert:api.alert},findNodeHandle:()=>null};
@@ -42,6 +42,13 @@ async function click(element:HTMLElement){expect(element).toBeTruthy();await act
 const links=()=>[...host.querySelectorAll<HTMLElement>('[role="link"]')];
 
 describe('native inline links through the shared renderer',()=>{
+  it('applies grid direction, wrapping and gaps to the scroll content rather than its viewport',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.scroll-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow-y:auto;gap:12px 18px;align-content:start}']}><NativeDiv className="scroll-grid" data-testid="scroll-grid"><NativeDiv>Erster Bereich</NativeDiv><NativeDiv>Zweiter Bereich</NativeDiv><NativeDiv>Dritter Bereich</NativeDiv></NativeDiv></NativeWorkspaceStyleScope>);
+    const style=api.styles.get(host.querySelector<HTMLElement>('[data-testid="scroll-grid"]')!)!;
+    expect(style.__contentContainerStyle).toMatchObject({flexDirection:'row',flexWrap:'wrap',rowGap:12,columnGap:18,alignContent:'flex-start'});
+    expect(style.flexDirection).toBeUndefined();
+    expect(style.rowGap).toBeUndefined();
+  });
   it('keeps actual Google unread titles and dossier counters in single primitive text runs',async()=>{
     await render(<><GoogleWorkspaceWidget service="gmail"/><TenantDossierFields row={{first_name:'Anna',phone:'',active:true}}/></>);
     const title=[...host.querySelectorAll<HTMLElement>('[data-native-host="view"]')].find(node=>node.textContent==='● Rückruf im Team')!;expect(title).toBeTruthy();expect(title.children).toHaveLength(1);expect(title.firstElementChild!.textContent).toBe('● Rückruf im Team');

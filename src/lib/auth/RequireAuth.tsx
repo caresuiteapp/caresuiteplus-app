@@ -8,7 +8,7 @@ import { useHydrated } from '@/hooks/useHydrated';
 import { getLoginRedirectForPath } from '@/lib/navigation';
 import { getSession } from '@/lib/supabase';
 import { useAuth } from './context';
-import { useSupabaseSessionProbe } from './useSupabaseSessionProbe';
+import { SESSION_PROBE_MAX_MS, useSupabaseSessionProbe } from './useSupabaseSessionProbe';
 
 type RequireAuthProps = {
   children: ReactNode;
@@ -33,6 +33,23 @@ export function RequireAuth({
     if (isAuthenticated) { clearReachedWebLoginReturn(); return; }
 
     let cancelled = false;
+    let fallback: ReturnType<typeof setTimeout> | undefined;
+
+    function returnToLogin() {
+      if (cancelled) return;
+      cancelled = true;
+      if (fallback) clearTimeout(fallback);
+      rememberWebLoginReturn();
+      const target = redirectTo ? String(redirectTo) : getLoginRedirectForPath(pathname);
+      runAppTransition(() => {
+        router.replace(target as never);
+      });
+    }
+
+    // A locally saved session can outlive a failed/cancelled context bootstrap.
+    // Wait for the verified context only for the same bounded handoff window as
+    // the loader. Focus changes, logout and successful authentication cancel it.
+    if (authMode === 'supabase') fallback = setTimeout(returnToLogin, SESSION_PROBE_MAX_MS);
 
     async function redirectIfStillAnonymous() {
       if (authMode === 'supabase') {
@@ -43,17 +60,14 @@ export function RequireAuth({
         }
       }
 
-      rememberWebLoginReturn();
-      const target = redirectTo ? String(redirectTo) : getLoginRedirectForPath(pathname);
-      runAppTransition(() => {
-        router.replace(target as never);
-      });
+      returnToLogin();
     }
 
-    void redirectIfStillAnonymous();
+    void redirectIfStillAnonymous().catch(returnToLogin);
 
     return () => {
       cancelled = true;
+      if (fallback) clearTimeout(fallback);
     };
   }, [authMode, authReady, focused, hydrated, isAuthenticated, pathname, redirectTo, router]);
 

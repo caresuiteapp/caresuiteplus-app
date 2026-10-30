@@ -33,7 +33,8 @@ vi.mock('@/liquid-command/components/DesktopCatalogArtwork.tsx',()=>({DesktopCat
 import {DesktopAreaSwitcher} from '@/liquid-command/components/DesktopAreaSwitcher.native';
 import {DESKTOP_AREAS} from '@/liquid-command/navigation/desktopAreas';
 import {workspaceGridWidths} from '@/lib/platform/nativeWorkspaceStyles.shared';
-import {NativeH1,NativeButton,NativeDiv,NativeSpan,NativeTable,NativeThead,NativeTbody,NativeTr,NativeTh,NativeTd,NativeColgroup,NativeCol,NativeWorkspaceStyleScope,NativeStrong} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeH1,NativeButton,NativeDiv,NativeSpan,NativeSmall,NativeB,NativeTable,NativeThead,NativeTbody,NativeTr,NativeTh,NativeTd,NativeColgroup,NativeCol,NativeWorkspaceStyleScope,NativeStrong} from '@/components/layout/NativeWorkspaceElements.native';
+import {clientRecordsCss} from '@/components/office/clientRecordsCss.web';
 import {WebActionIcon} from '@/components/icons/WebActionIcon.native';
 import {TenantSetupPanel} from '@/screens/platformConsole/TenantDossierWorkspace.native';
 import type {TenantDossier} from '@/lib/platformConsole/tenantDossierModel';
@@ -45,6 +46,35 @@ async function render(children:ReactNode){await act(async()=>root.render(childre
 const template='repeat(auto-fit,minmax(112px,1fr))';
 
 describe('native grid cells in the generated desktop-area chooser',()=>{
+  it('keeps record names and birth dates on their authored separate lines',async()=>{
+    await render(<NativeWorkspaceStyleScope css={[clientRecordsCss]}><NativeDiv className="cs-records"><NativeTable className="cs-records-table"><NativeTbody><NativeTr><NativeTd><NativeButton className="cs-records-identity"><NativeSpan data-testid="identity-copy"><NativeStrong>Helene Musterfrau</NativeStrong><NativeSmall>Geb. 24.8.1955</NativeSmall></NativeSpan></NativeButton></NativeTd></NativeTr></NativeTbody></NativeTable></NativeDiv></NativeWorkspaceStyleScope>);
+    const copy=host.querySelector<HTMLElement>('[data-testid="identity-copy"]')!;
+    expect(copy.dataset.nativeHost).toBe('div');
+    expect([...copy.children].map(child=>child.textContent)).toEqual(['Helene Musterfrau','Geb. 24.8.1955']);
+    expect(hosts.styles.get(copy.children[1] as HTMLElement)?.marginTop).toBe(4);
+  });
+  it('keeps a wrapped carrier above the insurance label and number without a native View inside Text',async()=>{
+    await render(<NativeWorkspaceStyleScope css={[clientRecordsCss]}><NativeDiv className="cs-records"><NativeSpan className="cs-records-card-carrier" data-testid="carrier">Krankenkasse mit einem langen Namen<NativeSpan className="cs-records-insurance" data-testid="insurance"><NativeSpan>Versichertennummer</NativeSpan><NativeB>A123456789</NativeB></NativeSpan></NativeSpan></NativeDiv></NativeWorkspaceStyleScope>);
+    const carrier=host.querySelector<HTMLElement>('[data-testid="carrier"]')!,insurance=host.querySelector<HTMLElement>('[data-testid="insurance"]')!;
+    expect(carrier.dataset.nativeHost).toBe('div');
+    expect(insurance.parentElement).toBe(carrier);
+    expect(insurance.dataset.nativeHost).toBe('div');
+    expect(hosts.styles.get(insurance)?.flexDirection).toBe('column');
+    expect(carrier.querySelector('span div')).toBeNull();
+    expect([...insurance.children].map(child=>child.textContent)).toEqual(['Versichertennummer','A123456789']);
+  });
+  it('retains one native text flow for plain inline emphasis and interpolated counts',async()=>{
+    await render(<NativeWorkspaceStyleScope css={[]}><NativeSpan data-testid="sentence">Es sind <NativeStrong>{1}{4}</NativeStrong> Akten vorhanden.</NativeSpan></NativeWorkspaceStyleScope>);
+    const sentence=host.querySelector<HTMLElement>('[data-testid="sentence"]')!;
+    expect(sentence.dataset.nativeHost).toBe('span');
+    expect(sentence.textContent).toBe('Es sind 14 Akten vorhanden.');
+    expect(sentence.querySelector('div')).toBeNull();
+  });
+  it('allows a blockified name span to fit beside a fixed icon in a horizontal row',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.identity{display:flex;gap:13px}.identity strong{display:block}.icon{width:42px;flex:none}']}><NativeDiv className="identity"><NativeSpan className="icon" data-testid="fixed-icon">HM</NativeSpan><NativeSpan data-testid="name-copy"><NativeStrong>Helene Mustermann-Beispiel</NativeStrong><NativeSmall>Personalakte</NativeSmall></NativeSpan></NativeDiv></NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="name-copy"]')!)?.flexShrink).toBe(1);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="fixed-icon"]')!)?.flexShrink).toBe(0);
+  });
   it.each([[320,1,248],[320,1.6,248],[1280,1,1050],[1280,1.6,1050]])('places the actual generated dossier setup action in a readable track at %dpx scale %s',async(viewport,fontScale,available)=>{
     hosts.width=viewport;hosts.fontScale=fontScale;const onSection=vi.fn(),counts={total:0,active:0,deleted:0,complete:0,portalEnabled:0,portalLinked:0},dossier:TenantDossier={tenantId:'fixture',checkedAt:'2026-10-26T08:00:00Z',company:{name:'Firma A'},platform:{},branding:null,billing:null,bank:null,portal:null,tax:null,register:null,counts:{clients:counts,employees:counts,accounts:1,adminAccounts:1,loggedInAccounts:0,lastLoginAt:null,services:0,pricedServices:0,assignments:0,documents:0},sections:[]};
     await render(<TenantSetupPanel dossier={dossier} onSection={onSection}/>);

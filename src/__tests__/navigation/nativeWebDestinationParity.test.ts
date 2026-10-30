@@ -11,6 +11,25 @@ vi.mock('expo-router', () => ({ Redirect: () => null, useLocalSearchParams: () =
 vi.mock('@/liquid-command/components/LiquidPrimitives', () => ({ LiquidState: () => null }));
 
 describe('Shared Web and native destinations', () => {
+  it.each([
+    ['/business/office/clients', 'Klient:innen'], ['/business/office/employees', 'Personal'],
+    ['/business/office/fahrtenbuch', 'Fahrtenbuch'], ['/business/office/invoices', 'Rechnungen'],
+    ['/business/office/payroll', 'Gehaltsstatistik'], ['/business/office/access', 'Portale & Zugänge'],
+    ['/business/office/document-catalog', 'Dokumentenkatalog'],
+  ])('names the actual %s page in the shared popup chrome', (path, title) => {
+    expect(administrationWorkspaceContext(`${path}?view=all#details`)).toMatchObject({ area: 'office', title });
+  });
+  it.each([
+    ['/business/office/clients/client-17', 'Klient:innenakte'],
+    ['/business/office/clients/client-17/contacts', 'Klient:innenakte'],
+    ['/business/office/clients/new', 'Neuaufnahme'],
+    ['/business/office/employees/employee-23', 'Personalakte'],
+    ['/business/office/employees/employee-23/edit', 'Personalakte'],
+    ['/business/office/employees/new', 'Personalakte anlegen'],
+    ['/business/office/employees/hr-cases', 'Personalvorgänge'],
+  ])('resolves the shared detail-page identity without guessing from %s', (path, title) => {
+    expect(administrationWorkspaceContext(path).title).toBe(title);
+  });
   it('renders the canonical receiving route with its original record context', () => {
     route.params = { area: 'clients', clientId: 'client-17' };
     expect(OfficeIndexRoute().props.href).toBe('/business/office/clients?clientId=client-17');
