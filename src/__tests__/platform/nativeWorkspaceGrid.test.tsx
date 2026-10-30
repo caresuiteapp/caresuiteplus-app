@@ -70,6 +70,11 @@ describe('native grid cells in the generated desktop-area chooser',()=>{
     expect(sentence.textContent).toBe('Es sind 14 Akten vorhanden.');
     expect(sentence.querySelector('div')).toBeNull();
   });
+  it('allows a blockified name span to fit beside a fixed icon in a horizontal row',async()=>{
+    await render(<NativeWorkspaceStyleScope css={['.identity{display:flex;gap:13px}.identity strong{display:block}.icon{width:42px;flex:none}']}><NativeDiv className="identity"><NativeSpan className="icon" data-testid="fixed-icon">HM</NativeSpan><NativeSpan data-testid="name-copy"><NativeStrong>Helene Mustermann-Beispiel</NativeStrong><NativeSmall>Personalakte</NativeSmall></NativeSpan></NativeDiv></NativeWorkspaceStyleScope>);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="name-copy"]')!)?.flexShrink).toBe(1);
+    expect(hosts.styles.get(host.querySelector<HTMLElement>('[data-testid="fixed-icon"]')!)?.flexShrink).toBe(0);
+  });
   it.each([[320,1,248],[320,1.6,248],[1280,1,1050],[1280,1.6,1050]])('places the actual generated dossier setup action in a readable track at %dpx scale %s',async(viewport,fontScale,available)=>{
     hosts.width=viewport;hosts.fontScale=fontScale;const onSection=vi.fn(),counts={total:0,active:0,deleted:0,complete:0,portalEnabled:0,portalLinked:0},dossier:TenantDossier={tenantId:'fixture',checkedAt:'2026-10-26T08:00:00Z',company:{name:'Firma A'},platform:{},branding:null,billing:null,bank:null,portal:null,tax:null,register:null,counts:{clients:counts,employees:counts,accounts:1,adminAccounts:1,loggedInAccounts:0,lastLoginAt:null,services:0,pricedServices:0,assignments:0,documents:0},sections:[]};
     await render(<TenantSetupPanel dossier={dossier} onSection={onSection}/>);
