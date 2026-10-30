@@ -11,6 +11,15 @@ export function nativeSource(file,original){let source=original;
   const block=(startText,endText,text)=>{const start=source.indexOf(startText),end=source.indexOf(endText,start);if(start<0||end<0)throw Error('Stale native block: '+file);source=source.slice(0,start)+text+source.slice(end);};
   const add=text=>{source=text+'\n'+source;};
   const delivery="import {shareNativeFile} from '@/lib/platform/nativeFileDelivery.native';";
+  if(file==='src/components/portal/EmployeePortalVisitStickyHeader.web.tsx'){
+    replace("'max(8px, env(safe-area-inset-top, 0px))' as unknown as number",'Math.max(8, insets.top)');
+  }
+  if(file==='src/components/portal/EmployeePortalVisitBottomBar.web.tsx'){
+    add("import {useSafeAreaInsets} from 'react-native-safe-area-context';\nimport {usePortalViewport} from '@/lib/portal/portalViewportContext';");
+    replace('  return (', '  const insets = useSafeAreaInsets();\n  const {footerInFlow} = usePortalViewport();\n  return (');
+    replace('style={styles.bar}', 'style={[styles.bar, {paddingBottom: Math.max(6, footerInFlow ? 0 : insets.bottom)}]}');
+    replace("paddingBottom: 'max(6px, env(safe-area-inset-bottom, 0px))' as unknown as number, ",'');
+  }
   if(file==='src/liquid-command/screens/DesktopWeatherLocationDialog.web.tsx'){
     replace("import { useEffect, useMemo, useState } from 'react';", "import { useEffect, useMemo, useRef, useState } from 'react';");
     replace("import { useWebFontScale } from '@/design/web/WebFontScaleProvider';",'');

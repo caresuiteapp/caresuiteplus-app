@@ -11,6 +11,14 @@ vi.mock('expo-router', () => ({ Redirect: () => null, useLocalSearchParams: () =
 vi.mock('@/liquid-command/components/LiquidPrimitives', () => ({ LiquidState: () => null }));
 
 describe('Shared Web and native destinations', () => {
+  it.each([
+    ['/business/office/clients', 'Klient:innen'], ['/business/office/employees', 'Personal'],
+    ['/business/office/fahrtenbuch', 'Fahrtenbuch'], ['/business/office/invoices', 'Rechnungen'],
+    ['/business/office/payroll', 'Gehaltsstatistik'], ['/business/office/access', 'Portale & Zugänge'],
+    ['/business/office/document-catalog', 'Dokumentenkatalog'],
+  ])('names the actual %s page in the shared popup chrome', (path, title) => {
+    expect(administrationWorkspaceContext(`${path}?view=all#details`)).toMatchObject({ area: 'office', title });
+  });
   it('renders the canonical receiving route with its original record context', () => {
     route.params = { area: 'clients', clientId: 'client-17' };
     expect(OfficeIndexRoute().props.href).toBe('/business/office/clients?clientId=client-17');

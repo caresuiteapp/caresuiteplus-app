@@ -46,7 +46,7 @@ export function EmployeePortalVisitStickyHeader(props: Props) {
             : timers?.activeTimer === 'pause' ? timers.pauseSeconds : null;
     const timerLabel = timers?.activeTimer === 'drive' ? 'Anfahrt' : timers?.activeTimer === 'pause' ? 'Pause' : 'Einsatzzeit';
     const time = (value: string) => Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) : 'Zeit offen';
-    return (<View style={[styles.root, { paddingTop: 'max(8px, env(safe-area-inset-top, 0px))' as unknown as number }]}>
+    return (<View style={[styles.root, { paddingTop: Math.max(8, insets.top) }]}>
       <View style={styles.row}>
         <View style={styles.identity}>
           <Text style={styles.clientName} numberOfLines={2}>{props.clientName}</Text>

@@ -184,7 +184,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
             </Pressable>
           </View>
         ) : null}
-        <View style={[styles.main, desktopChrome && Platform.OS !== 'web' && { paddingTop: insets.top }]}>
+        <View style={[styles.main, desktopChrome && !visitExecutionFocus && Platform.OS !== 'web' && { paddingTop: insets.top }]}>
           {!visitExecutionFocus && !compactMessengerFocus ? <View
             style={[
               styles.topbar,
