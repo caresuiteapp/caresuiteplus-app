@@ -37,7 +37,7 @@ try {
     }
     println('CareSuite: AGP ' + version + ', minSdk 24 und targetSdk 36 tatsächlich konfiguriert.')
   }\n`);
-  execFileSync(join(android, 'gradlew'), ['--no-daemon', '--stacktrace', '--max-workers=1', '-Dorg.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8', '--init-script', proof, ':app:help'], {
+  execFileSync(join(android, 'gradlew'), ['--no-daemon', '--stacktrace', '--max-workers=1', '-Dorg.gradle.jvmargs=-Xmx2048m -XX:MaxMetaspaceSize=1024m -Dfile.encoding=UTF-8', '--init-script', proof, ':app:help', ':app:verifyCareSuiteEdgeToEdgeRewrite'], {
     cwd: android, env: { ...process.env, GRADLE_USER_HOME: join(process.env.RUNNER_TEMP, 'caresuite-healthos-gradle') }, stdio: 'inherit',
   });
 } finally {

@@ -12,6 +12,7 @@ import sys
 import tarfile
 import tempfile
 import zipfile
+from android_edge_to_edge_audit import verify_edge_to_edge_archive
 
 
 def verify_packaged_icons(archive, root, output_directory):
@@ -391,6 +392,7 @@ def verify(bundle):
             raise ValueError('Genau ein nativer JavaScript/Hermes-Bundle erwartet')
         native_markers = verify_native_bundle(archive.read(native_bundles[0]))
         startup_constructors = verify_startup_constructors(archive)
+        edge_to_edge = verify_edge_to_edge_archive(archive)
         mapping_entry = 'BUNDLE-METADATA/com.android.tools.build.obfuscation/proguard.map'
         if names.count(mapping_entry) != 1:
             raise ValueError('Das signierte R8-Mapping im AAB fehlt oder ist nicht eindeutig')
@@ -431,6 +433,7 @@ def verify(bundle):
         'verifiedIntroFormats': len(manifest['formats']),
         'verifiedNativeSurfaceMarkers': native_markers,
         'verifiedStartupConstructors': startup_constructors,
+        'verifiedEdgeToEdge': edge_to_edge,
         'verifiedIconResources': len(icon_report['resources']),
         'iconSourceSha256': icon_report['sourceSha256'],
         'uploadCertificateSha256': upload_fingerprint,
@@ -443,6 +446,7 @@ def verify(bundle):
         **identity,
     }
     (bundle.parent / 'BUILD-INFO.json').write_text(json.dumps(info, indent=2) + '\n')
+    (bundle.parent / 'EDGE-TO-EDGE-VERIFICATION.json').write_text(json.dumps(edge_to_edge, indent=2) + '\n')
     print(f'AAB-Signatur und {len(manifest["formats"])} Introformate geprüft: {digest}')
 
 

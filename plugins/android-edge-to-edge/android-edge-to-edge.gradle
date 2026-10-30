@@ -1,0 +1,110 @@
+import com.android.build.api.instrumentation.AsmClassVisitorFactory
+import com.android.build.api.instrumentation.ClassContext
+import com.android.build.api.instrumentation.ClassData
+import com.android.build.api.instrumentation.FramesComputationMode
+import com.android.build.api.instrumentation.InstrumentationParameters
+import com.android.build.api.instrumentation.InstrumentationScope
+import org.objectweb.asm.ClassVisitor
+import org.objectweb.asm.MethodVisitor
+import org.objectweb.asm.Opcodes
+
+// These replacements preserve the operand-stack shape. They run before R8,
+// including precompiled React Native, AndroidX and Expo dependencies.
+class CareSuiteWindowVisitor extends ClassVisitor {
+    static final String BRIDGE = 'app/caresuitehealthos/edge/CareSuiteEdgeToEdge'
+    CareSuiteWindowVisitor(ClassVisitor next) { super(Opcodes.ASM9, next) }
+    @Override
+    MethodVisitor visitMethod(int access, String name, String descriptor, String signature, String[] exceptions) {
+        MethodVisitor next = super.visitMethod(access, name, descriptor, signature, exceptions)
+        return new MethodVisitor(Opcodes.ASM9, next) {
+            @Override
+            void visitMethodInsn(int opcode, String owner, String method, String desc, boolean isInterface) {
+                if (opcode == Opcodes.INVOKEVIRTUAL && owner == 'android/view/Window') {
+                    if (method == 'getStatusBarColor' && desc == '()I') {
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, CareSuiteWindowVisitor.BRIDGE, 'readStatusSurface', '(Landroid/view/Window;)I', false)
+                        return
+                    }
+                    if (method in ['setStatusBarColor', 'setNavigationBarColor'] && desc == '(I)V') {
+                        String replacement = method == 'setStatusBarColor' ? 'paintStatusSurface' : 'paintNavigationSurface'
+                        super.visitMethodInsn(Opcodes.INVOKESTATIC, CareSuiteWindowVisitor.BRIDGE, replacement, '(Landroid/view/Window;I)V', false)
+                        return
+                    }
+                }
+                super.visitMethodInsn(opcode, owner, method, desc, isInterface)
+            }
+            @Override
+            void visitFieldInsn(int opcode, String owner, String field, String desc) {
+                if (opcode == Opcodes.PUTFIELD && owner == 'android/view/WindowManager$LayoutParams' && field == 'layoutInDisplayCutoutMode' && desc == 'I') {
+                    super.visitMethodInsn(Opcodes.INVOKESTATIC, CareSuiteWindowVisitor.BRIDGE, 'applyCutoutMode', '(Landroid/view/WindowManager$LayoutParams;I)V', false)
+                    return
+                }
+                super.visitFieldInsn(opcode, owner, field, desc)
+            }
+        }
+    }
+}
+
+abstract class CareSuiteWindowVisitorFactory implements AsmClassVisitorFactory<InstrumentationParameters.None> {
+    @Override
+    ClassVisitor createClassVisitor(ClassContext context, ClassVisitor next) { new CareSuiteWindowVisitor(next) }
+    @Override
+    boolean isInstrumentable(ClassData data) {
+        // Never rewrite the bridge's own, SDK-guarded ALWAYS/NEVER field store.
+        !data.className.startsWith('app.caresuitehealthos.edge.CareSuiteEdgeToEdge')
+    }
+}
+
+androidComponents.onVariants(androidComponents.selector().withBuildType('release')) { variant ->
+    variant.instrumentation.transformClassesWith(CareSuiteWindowVisitorFactory, InstrumentationScope.ALL) {}
+    variant.instrumentation.setAsmFramesComputationMode(FramesComputationMode.COPY_FRAMES)
+}
+
+tasks.register('verifyCareSuiteEdgeToEdgeRewrite') {
+    doLast {
+        // Exercise real ASM input/output with the existing Gradle/JDK tooling.
+        def original = new org.objectweb.asm.ClassWriter(0)
+        original.visit(Opcodes.V17, Opcodes.ACC_PUBLIC, 'CareSuiteLegacyWindowFixture', null, 'java/lang/Object', null)
+        def method = original.visitMethod(Opcodes.ACC_PUBLIC | Opcodes.ACC_STATIC, 'run', '(Landroid/view/Window;Landroid/view/WindowManager$LayoutParams;)V', null, null)
+        method.visitCode()
+        method.visitVarInsn(Opcodes.ALOAD, 0)
+        method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, 'android/view/Window', 'getStatusBarColor', '()I', false)
+        method.visitInsn(Opcodes.POP)
+        for (String name : ['setStatusBarColor', 'setNavigationBarColor']) {
+            method.visitVarInsn(Opcodes.ALOAD, 0)
+            method.visitInsn(Opcodes.ICONST_0)
+            method.visitMethodInsn(Opcodes.INVOKEVIRTUAL, 'android/view/Window', name, '(I)V', false)
+        }
+        for (int mode : [Opcodes.ICONST_0, Opcodes.ICONST_1]) {
+            method.visitVarInsn(Opcodes.ALOAD, 1)
+            method.visitInsn(mode)
+            method.visitFieldInsn(Opcodes.PUTFIELD, 'android/view/WindowManager$LayoutParams', 'layoutInDisplayCutoutMode', 'I')
+        }
+        method.visitInsn(Opcodes.RETURN)
+        method.visitMaxs(2, 2)
+        method.visitEnd()
+        original.visitEnd()
+        def output = new org.objectweb.asm.ClassWriter(0)
+        new org.objectweb.asm.ClassReader(original.toByteArray()).accept(new CareSuiteWindowVisitor(output), 0)
+        def bridgeCalls = []
+        new org.objectweb.asm.ClassReader(output.toByteArray()).accept(new ClassVisitor(Opcodes.ASM9) {
+            @Override
+            MethodVisitor visitMethod(int a, String n, String d, String s, String[] e) {
+                new MethodVisitor(Opcodes.ASM9) {
+                    @Override
+                    void visitMethodInsn(int op, String owner, String name, String desc, boolean iface) {
+                        if (owner == 'android/view/Window') throw new GradleException('Retired Window API survived instrumentation: ' + name)
+                        if (owner == CareSuiteWindowVisitor.BRIDGE) bridgeCalls.add(name)
+                    }
+                    @Override
+                    void visitFieldInsn(int op, String owner, String name, String desc) {
+                        if (op == Opcodes.PUTFIELD && name == 'layoutInDisplayCutoutMode') throw new GradleException('Legacy cutout field store survived instrumentation.')
+                    }
+                }
+            }
+        }, 0)
+        if (bridgeCalls != ['readStatusSurface', 'paintStatusSurface', 'paintNavigationSurface', 'applyCutoutMode', 'applyCutoutMode']) {
+            throw new GradleException('Incomplete Android edge-to-edge rewrite: ' + bridgeCalls)
+        }
+        println('CareSuite: retired Window calls and DEFAULT/SHORT_EDGES stores replaced in actual JVM bytecode.')
+    }
+}

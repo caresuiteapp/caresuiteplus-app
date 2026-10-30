@@ -1,5 +1,6 @@
 const { withAppBuildGradle, withProjectBuildGradle, withGradleProperties, withDangerousMod } = require('expo/config-plugins');
 const { patchExpoLibrarySdk, patchReactNativeGradleCallbacks, patchExpoGeneratedDirectories } = require('./androidAgp9Compatibility.cjs');
+const { configureEdgeToEdgeGradle, installAndroidEdgeToEdge } = require('./androidEdgeToEdge.cjs');
 
 // AGP 9.0.1 supports the locked Gradle 9.3.1/JDK 17 toolchain. Keep Expo 57's
 // legacy plugin DSL while migrating the actual release optimizer to AGP 9.
@@ -33,6 +34,7 @@ function withAndroidReleaseOptimization(config) {
     patchExpoLibrarySdk(config.modRequest.projectRoot);
     patchReactNativeGradleCallbacks(config.modRequest.projectRoot);
     patchExpoGeneratedDirectories(config.modRequest.projectRoot);
+    installAndroidEdgeToEdge(config.modRequest.projectRoot);
     return config;
   }]);
   config = withProjectBuildGradle(config, config => {
@@ -42,7 +44,7 @@ function withAndroidReleaseOptimization(config) {
   });
   config = withAppBuildGradle(config, config => {
     if (config.modResults.language !== 'groovy') throw new Error('Android release: unerwartetes Gradle-Format.');
-    config.modResults.contents = optimizeAppBuildGradle(config.modResults.contents);
+    config.modResults.contents = configureEdgeToEdgeGradle(optimizeAppBuildGradle(config.modResults.contents));
     return config;
   });
   return withGradleProperties(config, config => {

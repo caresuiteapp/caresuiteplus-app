@@ -143,6 +143,7 @@ jobs:
             ${{ env.CARESUITE_AAB_DIR }}/CareSuite-HealthOS.aab
             ${{ env.CARESUITE_AAB_DIR }}/SHA256SUMS.txt
             ${{ env.CARESUITE_AAB_DIR }}/BUILD-INFO.json
+            ${{ env.CARESUITE_AAB_DIR }}/EDGE-TO-EDGE-VERIFICATION.json
             ${{ env.CARESUITE_AAB_DIR }}/APP-ICON-VERIFICATION.json
             ${{ env.CARESUITE_AAB_DIR }}/APP-ICON-PREVIEW.png
             ${{ env.CARESUITE_AAB_DIR }}/EAS-VERSION-BASELINE.json
@@ -196,6 +197,10 @@ jobs:
           cache: npm
       - name: Bestehende Projektabhängigkeiten laden
         run: npm ci
+      - name: Android-Fenster-Migration und native Layoutmessung prüfen
+        run: |
+          node --test scripts/android-edge-to-edge.test.mjs scripts/native-preview-layout.test.mjs
+          python3 scripts/android-edge-to-edge-audit.test.py
       - name: Aktuelle Produktionsversion und AAB-Prüfungen vorab prüfen
         run: npx --no-install vitest run src/__tests__/platform/healthosProductionVersionPreflight.test.ts src/__tests__/platform/healthosFullBuildResult.test.ts --maxWorkers=1
       - name: Standort-Start und veraltete Einwilligungsantworten prüfen
