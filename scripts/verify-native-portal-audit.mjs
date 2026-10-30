@@ -195,6 +195,8 @@ async function verifyTextLineControls(browser){
 
 async function metricLayoutAssertionErrors(page,row,state,role){
  const errors=[];
+ const caption=page.getByTestId('native-popup-page-title');
+ if(await caption.count())for(const word of (await caption.textContent()).split(/\s+/).filter(word=>word.length>5))errors.push(...await unbrokenLabelErrors(caption,word,'native page window title '+word));
  if(state==='error'){
   const title=page.getByTestId('global-workflow-feedback-title');
   if(await title.count()){
