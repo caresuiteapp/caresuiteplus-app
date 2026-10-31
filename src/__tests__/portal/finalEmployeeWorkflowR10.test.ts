@@ -73,7 +73,8 @@ describe('final employee workflow R10', () => {
     const tab = read('src/screens/portal/PortalTabScreen.tsx');
     const signature = read('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
     expect(shell).toContain('!visitExecutionFocus && !compactMessengerFocus');
-    expect(shell).not.toContain('desktopChrome && !visitExecutionFocus');
+    // Rendered execution navigation is covered by employeePortalNavigationAccess.
+    // Global source-string bans also match unrelated safe-area padding.
     expect(shell).toContain('(visitExecutionFocus || compactMessengerFocus) && styles.contentFrameFocus');
     expect(tab).toContain('employee-visit-focus-screen');
     expect(signature.match(/forceFullscreen/g)).toHaveLength(3);

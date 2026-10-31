@@ -161,9 +161,19 @@ describe('portal navigation stays accessible during GPS and execution', () => {
     expect(flatStyle(content[navIndex].props.style).position).not.toBe('absolute');
     expect(flatStyle(footer.props.style).flexShrink).toBe(0);
   });
-  it('keeps the desktop rail accessible in execution', () => {
+  it('keeps desktop navigation actions callable during execution with system insets', () => {
     state.width = 1280; state.path = '/portal/employee/assignments/visit/execute';
-    expect(shell().filter((node) => node.props.accessibilityRole === 'tab').length).toBeGreaterThan(5);
+    state.top = 32; state.bottom = 56;
+    const tabs = shell().filter((node) => node.props.accessibilityRole === 'tab');
+    expect(tabs.length).toBeGreaterThan(5);
+    for (const tab of tabs) {
+      expect(tab.props.onPress).toBeTypeOf('function');
+      tab.props.onPress();
+    }
+    expect(state.push).toHaveBeenCalledTimes(tabs.length);
+    expect(state.push).toHaveBeenCalledWith('/portal/employee/assignments');
+    expect(state.push).toHaveBeenCalledWith('/portal/employee/fahrtenbuch');
+    expect(state.push).toHaveBeenCalledWith('/portal/employee/offene-einsaetze');
   });
   it('opens the active approach directly in its assignment', () => {
     state.gate = true;
