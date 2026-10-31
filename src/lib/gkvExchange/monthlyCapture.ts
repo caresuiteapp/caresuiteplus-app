@@ -2,8 +2,8 @@ import type {PaperScan,PaperReview} from './monthlyPaper';
 import {monthlyBase64,readMonthlyOriginalResponse,type MonthlyCapture,type MonthlyOriginalCommand,type MonthlyOriginalReceipt,type MonthlyOriginalResponse} from './monthlyOriginalContract';
 import {monthlySha256} from './monthlyOriginalClient';
 type Transport=(command:MonthlyOriginalCommand)=>Promise<MonthlyOriginalResponse>;
-/** Memory-only capture. No PNG/token in browser storage. A failed write retains
- * its exact request until a read-only status check or explicit abandonment. */
+/** Memory-only capture. A signature is uploaded once. A pending verification
+ * retains only the capture identity; explicit retries use the host's archive. */
 export class MonthlyCaptureSession {
   readonly input:MonthlyCapture;
   original:Extract<MonthlyOriginalResponse,{kind:'original'}>|null=null;
@@ -32,7 +32,8 @@ export class MonthlyCaptureSession {
   }
   async #write(command:MonthlyOriginalCommand){
     if(this.busy)throw Error('Ein Vorgang wird bereits bearbeitet.');
-    this.busy=true;this.pending=structuredClone(command);this.checked=false;
+    this.busy=true;this.pending=['verify','review-scan'].includes(command.action)
+      ? {...this.input,action:'resume-verification'} : structuredClone(command);this.checked=false;
     try{
       const result=await this.#request(command);
       if(result.kind==='original')this.original=result;

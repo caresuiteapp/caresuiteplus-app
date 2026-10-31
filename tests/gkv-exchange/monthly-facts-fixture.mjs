@@ -31,7 +31,7 @@ export async function monthlyFactsFixture(){
   return v;
  };
  const prepare=async v=>{v.original=await worker.prepare(v.input);await worker.acknowledge(v.input,v.original.originalSha256);};
- const confirm=async v=>{v.receipt=await worker.verify(v.input,Buffer.from(signingPng(++ink),'base64'));v.p=await f.command('confirm',{id:v.p.id,revision:v.p.revision,content_sha256:v.p.content_sha256,receipt_id:v.receipt.receiptId});return v.p;};
+ const confirm=async v=>{v.png=Buffer.from(signingPng(++ink),'base64');v.receipt=await worker.verify(v.input,v.png);v.p=await f.command('confirm',{id:v.p.id,revision:v.p.revision,content_sha256:v.p.content_sha256,receipt_id:v.receipt.receiptId});return v.p;};
  return {f,store,storeOptions,database,setup,refresh,freeze,prepare,confirm,get worker(){return worker;},
   setComponentSigner(componentSigner){worker=new MonthlyOriginalVerifier({database,store,componentSigner,requireComponents:true});return worker;},
   async close(){database.close();store.close();await f.close();await rm(dir,{recursive:true,force:true});}};

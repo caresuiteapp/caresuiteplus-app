@@ -2306,6 +2306,8 @@ async function withMonthlyComponent(run, {transform,changeReply}={}) {
   },transform,changeReply));
 }
 test('monthly component: verified XML, real SOAP CMS and report are archived before receipt; retry and restart never sign twice',async()=>withMonthlyComponent(async m=>{
+  const guard=new DatabaseSync(m.storeOptions.path);
+  try{guard.exec("CREATE TRIGGER no_standalone_image BEFORE UPDATE ON monthly_originals WHEN NEW.signature IS NOT NULL BEGIN SELECT RAISE(ABORT,'standalone image forbidden'); END;");}finally{guard.close();}
   const originalIssue=m.database.issue;let issueCount=0;
   m.database.issue=async receipt=>{const result=await originalIssue(receipt);if(++issueCount===1)throw Error('synthetic lost database response');return result;};
   await assert.rejects(m.worker.verify(m.v.input,m.png),/lost database/);
@@ -2320,7 +2322,8 @@ test('monthly component: verified XML, real SOAP CMS and report are archived bef
   try{
     const components=new MonthlyComponentSigner({...m.config,store:reopened});
     const resumed=new MonthlyOriginalVerifier({database:m.database,store:reopened,componentSigner:components,requireComponents:true});
-    const receipt=await resumed.verify(m.v.input,m.png);
+    assert.equal(reopened.get(m.f.tenant,m.v.input.captureId).signature,null);
+    const receipt=await resumed.resumeVerification(m.v.input);
     assert.equal(receipt.receiptId,recovered.receipt.receiptId);
     assert.deepEqual(reopened.getComponent(m.f.tenant,m.v.input.captureId).cms,archive.cms);
     const final=await m.f.command('confirm',{id:m.v.p.id,revision:m.v.p.revision,content_sha256:m.v.p.content_sha256,receipt_id:receipt.receiptId});
@@ -2389,7 +2392,7 @@ test('monthly component: a durable in-flight reservation cannot be replayed even
   // Emulate a process dying immediately after its durable reservation.
   const unsigned=new MonthlyOriginalVerifier({database:m.database,store:m.store,requireComponents:false});
   await unsigned.verify(m.v.input,m.png);
-  const candidate=await generateCapturedMonthlyXml(m.store.get(m.f.tenant,m.v.input.captureId));
+  const candidate=await generateCapturedMonthlyXml({...m.store.get(m.f.tenant,m.v.input.captureId),signature:m.png});
   m.store.reserveComponent(m.f.tenant,m.v.input.captureId,candidate);m.store.beginComponent(m.f.tenant,m.v.input.captureId);
   const reopened=new MonthlyOriginalStore(m.storeOptions);
   try{
@@ -2408,7 +2411,7 @@ test('monthly component: host refuses frozen facts without signing configuration
 });
 test('monthly component: saved CMS resumes only read-only verification after a process interruption',async()=>withMonthlyComponent(async m=>{
   const unsigned=new MonthlyOriginalVerifier({database:m.database,store:m.store,requireComponents:false});await unsigned.verify(m.v.input,m.png);
-  const candidate=await generateCapturedMonthlyXml(m.store.get(m.f.tenant,m.v.input.captureId));
+  const candidate=await generateCapturedMonthlyXml({...m.store.get(m.f.tenant,m.v.input.captureId),signature:m.png});
   m.store.reserveComponent(m.f.tenant,m.v.input.captureId,candidate);const reserved=m.store.beginComponent(m.f.tenant,m.v.input.captureId);
   const prepared=await preparePin(m.connector,m.statusClient),c=prepared.bundle.certificates.find(c=>c.certRef==='C.SIG');
   const signed=await m.connector.signSmcbComponent({status:prepared.status,certificate:c.certificate,verification:c.verification,data:candidate.bytes});
@@ -2416,19 +2419,17 @@ test('monthly component: saved CMS resumes only read-only verification after a p
   const reopened=new MonthlyOriginalStore(m.storeOptions);
   try{
     const worker=new MonthlyOriginalVerifier({database:m.database,store:reopened,componentSigner:new MonthlyComponentSigner({...m.config,store:reopened}),requireComponents:true});
-    await worker.verify(m.v.input,m.png);
+    await worker.resumeVerification(m.v.input);
     assert.equal(reopened.getComponent(m.f.tenant,m.v.input.captureId).record.state,'complete');
   }finally{reopened.close();}
   assert.deepEqual(m.requests.map(q=>cmsOperation(q.bytes)).filter(Boolean),['GetJobNumber','SignDocument','VerifyDocument']);
 }));
-test('monthly component: quota or authenticated-state corruption prevents key use',async()=>withMonthlyComponent(async m=>{
+test('monthly component: authenticated-state corruption prevents key use',async()=>withMonthlyComponent(async m=>{
   const unsigned=new MonthlyOriginalVerifier({database:m.database,store:m.store,requireComponents:false});await unsigned.verify(m.v.input,m.png);
-  const candidate=await generateCapturedMonthlyXml(m.store.get(m.f.tenant,m.v.input.captureId));
-  const small=new MonthlyOriginalStore({...m.storeOptions,maxTenantBytes:1024});
-  try{assert.throws(()=>small.reserveComponent(m.f.tenant,m.v.input.captureId,candidate),/MONTHLY_STORE_QUOTA/);assert.equal(small.getComponent(m.f.tenant,m.v.input.captureId),null);}finally{small.close();}
+  const candidate=await generateCapturedMonthlyXml({...m.store.get(m.f.tenant,m.v.input.captureId),signature:m.png});
   m.store.reserveComponent(m.f.tenant,m.v.input.captureId,candidate);m.store.beginComponent(m.f.tenant,m.v.input.captureId);
   const db=new DatabaseSync(m.storeOptions.path);try{db.prepare("UPDATE monthly_components SET state='prepared'").run();}finally{db.close();}
-  await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_INTEGRITY/);
+  await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_(STORE|COMPONENT)_INTEGRITY/);
   assert.equal(m.requests.length,0);
 }));
 test('monthly component: authenticated mTLS host carries frozen capture through CMS and private receipt without exposing archive bytes',async()=>withMonthlyComponent(async m=>{
@@ -2443,6 +2444,9 @@ test('monthly component: authenticated mTLS host carries frozen capture through 
   const result=await callMonthlyHost(env,{...m.v.input,action:'verify',pngBase64:m.png.toString('base64')},'Bearer '+m.f.token());
   assert.equal(result.kind,'receipt');assert.equal(m.store.getComponent(m.f.tenant,m.v.input.captureId).record.state,'complete');
   assert.equal(Object.hasOwn(result,'cms'),false);assert.equal(JSON.stringify(result).includes(m.png.toString('base64')),false);
+  const resumed=await callMonthlyHost(env,{...m.v.input,action:'resume-verification'},'Bearer '+m.f.token());
+  assert.deepEqual(resumed,result);assert.equal(m.store.get(m.f.tenant,m.v.input.captureId).signature,null);
+  assert.equal(m.requests.filter(q=>cmsOperation(q.bytes)==='SignDocument').length,1);
   const final=await m.f.command('confirm',{id:m.v.p.id,revision:m.v.p.revision,content_sha256:m.v.p.content_sha256,receipt_id:result.receipt.receiptId});assert.equal(final.status,'final');
  }finally{listener.closeAllConnections();await new Promise(r=>listener.close(r));host.close();}
 }));

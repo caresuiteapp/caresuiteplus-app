@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { openStore, transaction, Vault, isUuid } from './storage.mjs';
 import {verifyEccComponentSignedContent} from '../kim/ecc-cms.mjs';
+import {assertCapturedMonthlyXml} from './monthly-captured-xml.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const identity = (tenant, capture, part) => `monthly-original-v1:${tenant}:${capture}:${part}`;
@@ -34,13 +35,19 @@ export class MonthlyOriginalStore {
       record BLOB NOT NULL,xml BLOB NOT NULL,cms BLOB,certificate BLOB,report BLOB,
       PRIMARY KEY(tenant,capture)
     ) STRICT;`);
+    // Additive upgrade: old encrypted captures remain readable. No image is
+    // deleted merely by opening a pre-existing archive.
+    transaction(this.#db,()=>{
+      if(!this.#db.prepare('PRAGMA table_info(monthly_originals)').all().some(c=>c.name==='signature_binding'))
+        this.#db.exec('ALTER TABLE monthly_originals ADD COLUMN signature_binding BLOB');
+    });
   }
   #scope(tenant, capture) {
     if (![tenant, capture].every(isUuid)) throw new Error('MONTHLY_STORE_SCOPE');
   }
   #remaining(tenant, required) {
     const used = this.#db.prepare(`SELECT coalesce(sum(length(original)+length(snapshot)
-      +coalesce(length(acknowledgment),0)+coalesce(length(signature),0)+coalesce(length(receipt),0)),0) n
+      +coalesce(length(acknowledgment),0)+coalesce(length(signature),0)+coalesce(length(receipt),0)+coalesce(length(signature_binding),0)),0) n
       FROM monthly_originals WHERE tenant=?`).get(tenant).n;
     const scans=this.#db.prepare('SELECT coalesce(sum(length(document)+length(manifest)),0) n FROM monthly_scans WHERE tenant=?').get(tenant).n;
     const pages=this.#db.prepare('SELECT coalesce(sum(length(image)),0) n FROM monthly_scan_pages WHERE tenant=?').get(tenant).n;
@@ -56,18 +63,37 @@ export class MonthlyOriginalStore {
     const original = open(row.original, `original:${row.original_version}:${row.original_digest}`);
     if (original.length !== row.original_size || digest(original) !== row.original_digest
       || snapshot.proof.tenant_id !== tenant || snapshot.captureId !== capture) throw new Error('MONTHLY_STORE_INTEGRITY');
-    let signature = null, receipt = null;
-    if (row.signature) {
-      signature = open(row.signature, `signature:${row.signature_version}:${row.signature_digest}:${row.signature_ink_digest}`);
+    let signature = null, receipt = null, signatureStorage = null;
+    if (row.receipt) {
       receipt = JSON.parse(open(row.receipt, 'receipt').toString('utf8'));
-      if (signature.length !== row.signature_size || digest(signature) !== row.signature_digest
-        || receipt.signature_sha256 !== row.signature_digest || receipt.signature_ink_sha256 !== row.signature_ink_digest
+      if (receipt.signature_sha256 !== row.signature_digest || receipt.signature_ink_sha256 !== row.signature_ink_digest
         || receipt.signature_version !== row.signature_version || receipt.original_sha256 !== row.original_digest
         || receipt.original_version !== row.original_version || receipt.tenant_id !== tenant || receipt.capture_id !== capture) throw new Error('MONTHLY_STORE_INTEGRITY');
-    } else if (row.receipt || row.signature_digest || row.signature_version || row.signature_ink_digest || row.signature_size) throw new Error('MONTHLY_STORE_INTEGRITY');
+      if(row.signature_binding){
+        if(row.signature)throw Error('MONTHLY_STORE_INTEGRITY');
+        const b=JSON.parse(open(row.signature_binding,'signature-binding').toString('utf8'));
+        const component=this.#db.prepare('SELECT state,record,xml FROM monthly_components WHERE tenant=? AND capture=?').get(tenant,capture);
+        if(!component)throw Error('MONTHLY_STORE_INTEGRITY');
+        const record=JSON.parse(open(component.record,'component:record').toString('utf8'));
+        const xml=open(component.xml,'component:xml');
+        if(b.schema!=='gkv-embedded-signature-v1'||b.tenantId!==tenant||b.captureId!==capture||b.receiptId!==receipt.id
+          ||b.signatureVersion!==row.signature_version||b.sha256!==row.signature_digest||b.inkSha256!==row.signature_ink_digest
+          ||b.size!==row.signature_size||b.xmlSha256!==digest(xml)||record.xmlSha256!==b.xmlSha256
+          ||record.tenantId!==tenant||record.captureId!==capture||record.receiptId!==receipt.id||record.state!==component.state
+          ||record.proofId!==receipt.proof_id||record.revision!==receipt.proof_revision||record.contentSha256!==receipt.content_sha256
+          ||record.originalSha256!==row.original_digest||record.signatureStorage!=='embedded-only'
+          ||record.signatureSha256!==b.sha256||record.signatureInkSha256!==b.inkSha256)throw Error('MONTHLY_STORE_INTEGRITY');
+        signatureStorage='embedded-only';
+      }else{
+        if(!row.signature)throw Error('MONTHLY_STORE_INTEGRITY');
+        signature=open(row.signature,`signature:${row.signature_version}:${row.signature_digest}:${row.signature_ink_digest}`);
+        if(signature.length!==row.signature_size||digest(signature)!==row.signature_digest)throw Error('MONTHLY_STORE_INTEGRITY');
+        signatureStorage='separate';
+      }
+    } else if (row.signature || row.signature_binding || row.signature_digest || row.signature_version || row.signature_ink_digest || row.signature_size) throw new Error('MONTHLY_STORE_INTEGRITY');
     return { snapshot, original, originalSha256: row.original_digest, originalVersion: row.original_version,
       acknowledgedAt: row.acknowledgment ? JSON.parse(open(row.acknowledgment, 'acknowledgment').toString('utf8')).at : null,
-      signature, receipt };
+      signature, receipt, signatureStorage };
   }
   create(snapshotInput, originalInput) {
     const snapshot = structuredClone(snapshotInput), tenant = snapshot.proof.tenant_id, capture = snapshot.captureId;
@@ -124,7 +150,7 @@ export class MonthlyOriginalStore {
       const original=this.get(tenant,capture),prior=this.getScan(tenant,capture);
       if(!original?.snapshot.paper||!original.acknowledgedAt)throw Error('MONTHLY_ORIGINAL_ACKNOWLEDGMENT');
       if(prior){if(!prior.bytes.equals(inspected.bytes))throw Error('MONTHLY_CAPTURE_CONFLICT');return prior.meta;}
-      if(original.signature||inspected.pages.length!==original.snapshot.paper.pageCount)throw Error('MONTHLY_PAPER_INPUT');
+      if(original.receipt||inspected.pages.length!==original.snapshot.paper.pageCount)throw Error('MONTHLY_PAPER_INPUT');
       if(this.#db.prepare('SELECT 1 FROM monthly_scans WHERE tenant=? AND (digest=? OR render_digest=?)').get(tenant,inspected.sha256,inspected.renderSha256))throw Error('MONTHLY_SIGNATURE_REUSED');
       const version=randomUUID(),meta={scanSha256:inspected.sha256,scanVersion:version,renderSha256:inspected.renderSha256,
         pages:inspected.pages.map(({sha256,width,height})=>({sha256,width,height}))};
@@ -144,8 +170,8 @@ export class MonthlyOriginalStore {
     return transaction(this.#db, () => {
       const stored = this.get(tenant, capture);
       if (!stored?.acknowledgedAt) throw new Error('MONTHLY_ORIGINAL_ACKNOWLEDGMENT');
-      if (stored.signature) {
-        if (!stored.signature.equals(inspected.bytes)) throw new Error('MONTHLY_CAPTURE_CONFLICT');
+      if (stored.receipt) {
+        if (stored.receipt.signature_sha256!==inspected.sha256||stored.receipt.signature_ink_sha256!==inspected.inkSha256) throw new Error('MONTHLY_CAPTURE_CONFLICT');
         return stored;
       }
       if (this.#db.prepare('SELECT 1 FROM monthly_originals WHERE tenant=? AND signature_ink_digest=?').get(tenant, inspected.inkSha256)) throw new Error('MONTHLY_SIGNATURE_REUSED');
@@ -157,6 +183,42 @@ export class MonthlyOriginalStore {
         .run(version, inspected.sha256, inspected.inkSha256, inspected.bytes.length,
           sealedSignature, sealedReceipt, tenant, capture);
       return this.get(tenant, capture);
+    });
+  }
+  /** Receipt metadata and the checked XML commit together. New normative
+   * captures never write a standalone PNG, including into SQLite WAL pages. */
+  reserveEmbeddedSignature(tenant,capture,value,candidate){
+    this.#scope(tenant,capture);
+    const receipt=structuredClone(value.receipt),signature=assertCapturedMonthlyXml(candidate,receipt);
+    const xml=Buffer.from(candidate.bytes),b=structuredClone(candidate.captureBinding),v=structuredClone(candidate.verification);
+    return transaction(this.#db,()=>{
+      const original=this.get(tenant,capture);
+      if(!original?.acknowledgedAt||JSON.stringify(original.snapshot)!==JSON.stringify(value.snapshot)
+        ||original.originalSha256!==receipt.original_sha256||original.originalVersion!==receipt.original_version
+        ||receipt.tenant_id!==tenant||receipt.capture_id!==capture||b.captureId!==capture
+        ||b.proofId!==receipt.proof_id||b.revision!==receipt.proof_revision||b.contentSha256!==receipt.content_sha256
+        ||b.originalSha256!==original.originalSha256||signature.sha256!==receipt.signature_sha256
+        ||signature.inkSha256!==receipt.signature_ink_sha256||!receipt.verified_at)throw Error('MONTHLY_COMPONENT_BINDING');
+      if(original.receipt&&JSON.stringify(original.receipt)!==JSON.stringify(receipt))throw Error('MONTHLY_CAPTURE_CONFLICT');
+      const prior=this.getComponent(tenant,capture);
+      if(prior&&(!prior.xml.equals(xml)||JSON.stringify(prior.record.captureBinding)!==JSON.stringify(b)))throw Error('MONTHLY_COMPONENT_CONFLICT');
+      if(original.signatureStorage==='embedded-only')return original;
+      if(this.#db.prepare('SELECT 1 FROM monthly_originals WHERE tenant=? AND capture<>? AND signature_ink_digest=?').get(tenant,capture,signature.inkSha256))throw Error('MONTHLY_SIGNATURE_REUSED');
+      const record={...(prior?.record??{schema:'gkv-monthly-component-v1',tenantId:tenant,captureId:capture,
+        proofId:receipt.proof_id,revision:receipt.proof_revision,receiptId:receipt.id,contentSha256:receipt.content_sha256,
+        originalSha256:original.originalSha256,xmlSha256:b.xmlSha256,verification:v,captureBinding:b,
+        state:'prepared',attemptId:null,hardwareEvidence:'not-attested',tiEvidence:'not-attested',dispatchReady:false}),
+        signatureStorage:'embedded-only',signatureSha256:signature.sha256,signatureInkSha256:signature.inkSha256};
+      const binding={schema:'gkv-embedded-signature-v1',tenantId:tenant,captureId:capture,receiptId:receipt.id,
+        signatureVersion:receipt.signature_version,...signature,xmlSha256:b.xmlSha256};
+      const sealedReceipt=this.#vault.seal(Buffer.from(JSON.stringify(receipt)),identity(tenant,capture,'receipt'));
+      const sealedBinding=this.#vault.seal(Buffer.from(JSON.stringify(binding)),identity(tenant,capture,'signature-binding'));
+      const sizes=this.#db.prepare('SELECT coalesce(length(signature),0)+coalesce(length(receipt),0)+coalesce(length(signature_binding),0) n FROM monthly_originals WHERE tenant=? AND capture=?').get(tenant,capture);
+      this.#remaining(tenant,sealedReceipt.length+sealedBinding.length-sizes.n);
+      this.#db.prepare(`UPDATE monthly_originals SET signature_version=?,signature_digest=?,signature_ink_digest=?,signature_size=?,signature=NULL,receipt=?,signature_binding=? WHERE tenant=? AND capture=?`)
+        .run(receipt.signature_version,signature.sha256,signature.inkSha256,signature.size,sealedReceipt,sealedBinding,tenant,capture);
+      this.#writeComponent(tenant,capture,record,{xml});
+      return this.get(tenant,capture);
     });
   }
   sealVerification(tenant, capture, at) {
@@ -217,6 +279,7 @@ export class MonthlyOriginalStore {
     const candidate=structuredClone(value),xml=Buffer.from(candidate.bytes??[]),b=candidate.captureBinding,v=candidate.verification;
     return transaction(this.#db,()=>{
       const original=this.get(tenant,capture),r=original?.receipt;
+      assertCapturedMonthlyXml(value,r);
       if(!r?.verified_at||!xml.length||xml.length>8*1024*1024||b?.captureId!==capture||b.proofId!==r.proof_id
         ||b.revision!==r.proof_revision||b.contentSha256!==r.content_sha256||b.originalSha256!==original.originalSha256
         ||b.xmlSha256!==digest(xml)||v?.sha256!==b.xmlSha256||v.checkedAt!==new Date(r.verified_at).toISOString()

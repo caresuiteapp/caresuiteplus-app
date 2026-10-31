@@ -2,6 +2,44 @@
 
 Stand: 31.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
+## Eingebettete Unterschrift und Wiederaufnahme am 31.10.2026
+
+Der Arbeitsstand nach `c8f402a2` ergänzt die
+[atomare Einbettung ohne separate PNG-Ablage](monthly-embedded-signature.md).
+Neue Nachweise mit vollständigen Fachangaben speichern ausschließlich das geprüfte
+XML und seine verschlüsselte Quittungsbindung. Ein expliziter Fortsetzungsauftrag
+verwendet die Erfassungskennung; der Browser hält kein PNG für einen erneuten
+Upload zurück. Anmeldung, Quelle, Vertretung und Kartenzustand werden weiterhin
+geprüft. Die getrennte Monatsbestätigung bleibt erforderlich.
+
+- 66 XML-Prüfmeldungen bestanden, einschließlich zehn neuer Prüfmeldungen zur
+  atomaren Ablage: tatsächlicher Python/XSD-Worker, SQLite-Schreibsperre für freie
+  Bilder, Rollback, Quota, Manipulation, Wiederverwendung, Kontextwechsel,
+  Wiederaufnahme und ältere Schemata.
+- Zwölf integrierte Monats-CMS-Prüfungen bestanden. Die vollständige lokale
+  mTLS-/SOAP-Kette speichert kein eigenständiges PNG und wiederholt nach Neustart
+  oder verlorener Antwort keinen SignDocument-Aufruf. Der neue Fortsetzungsauftrag
+  wurde auch über den tatsächlichen mTLS-Host ausgeführt.
+- Das Monats-Web-Gate bestand mit 140 Prüfmeldungen: sechs Gatewayfälle,
+  27 Vertrags-/Arbeitsplatzfälle, 24 Datenbankfälle, 59 Original-/Host-/Papier-/
+  Fachangabenfälle und 24 React-DOM-Bedienabläufe. Die Oberfläche fordert beim
+  Fortsetzen keinen weiteren Bild-Upload an; die Monatsbestätigung bleibt separat.
+- Die eigenständige App-Typprüfung mit 6.144 MiB Heap bestand (Exit 0).
+  Katalogkonsistenz und neun Katalogfälle bestanden.
+
+Der übergreifende Dienstetest läuft ohne parallele lokale Typprüfung mit höchstens
+zwei Testdateien gleichzeitig. Den abschließenden Gesamtlauf und die automatischen
+Vercel-Vorschauen dokumentiert
+[Draft-PR #129](https://github.com/caresuiteapp/caresuiteplus-app/pull/129).
+Die Schutzfristen bleiben unverändert. Aus den synthetischen Antworten werden
+keine Hardware-/TI-Nachweise abgeleitet.
+
+Alte separate Bildablagen und Sicherungskopien benötigen weiterhin einen
+gesondert geprüften Bereinigungsablauf. Die neue Ablage belegt keine physische
+Speicherlöschung, visuelle Browserabnahme, echte Karte/TI, Produktionsfreigabe
+oder unabhängige Softwareprüfung. Die sechs SQL-Entwürfe wurden nicht produktiv
+angewendet; der zusätzliche SQLite-Schritt ist eine additive Schemaerweiterung.
+
 ## CMS-Komponentensignatur und Archiv am 31.10.2026
 
 Der Arbeitsstand nach `59b3945f` ergänzt die

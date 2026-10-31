@@ -164,12 +164,15 @@ test('monthly browser contract, gateway, real mTLS host and SQL worker/session b
       await capture.prepare();await capture.acknowledge();await assert.rejects(capture.verify(signingPng(++count)),/lost/);
       assert.ok(capture.pending);await capture.check();assert.equal(capture.pending,null);assert.ok(capture.receipt);assert.equal(writes,1);
     });
-    await t.test('an absent response permits only an explicit retry of the identical request and PNG',async()=>{
+    await t.test('an unsent signature is forgotten; explicit resume cannot create a replacement or replay its PNG',async()=>{
       const v=await f.proof();let lose=true;const commands=[];
       const capture=new MonthlyCaptureSession(v.input,v.p.content_sha256,async command=>{commands.push(structuredClone(command));if(command.action==='verify'&&lose){lose=false;throw Error('not sent');}return send(command);});
       await capture.prepare();await capture.acknowledge();await assert.rejects(capture.verify(signingPng(++count)));
-      assert.throws(()=>capture.retry(),/zuerst/);await capture.check();assert.equal(capture.checked,true);await capture.retry();
-      const sent=commands.filter(c=>c.action==='verify');assert.deepEqual(sent[0],sent[1]);assert.ok(capture.receipt);
+      assert.deepEqual(capture.pending,{...v.input,action:'resume-verification'});
+      assert.throws(()=>capture.retry(),/zuerst/);await capture.check();assert.equal(capture.checked,true);
+      await assert.rejects(capture.retry(),/noch nicht.*gespeichert/);
+      assert.equal(commands.filter(c=>c.action==='verify').length,1);
+      assert.deepEqual(commands.at(-1),{...v.input,action:'resume-verification'});assert.equal(capture.receipt,null);
     });
     await t.test('lost prepare and acknowledgment replies recover through read-only status',async()=>{
       for(const action of ['prepare','acknowledge']){

@@ -166,7 +166,7 @@ export class MonthlyOriginalVerifier {
   }
   async acknowledge(value, originalSha256) {
     const input = request(value), context = await this.#context(input), stored = this.#bound(input, context);
-    if (stored.signature || stored.originalSha256 !== originalSha256) fail('MONTHLY_ORIGINAL_ACKNOWLEDGMENT');
+    if (stored.receipt || stored.originalSha256 !== originalSha256) fail('MONTHLY_ORIGINAL_ACKNOWLEDGMENT');
     this.#store.acknowledge(input.tenantId, input.captureId, originalSha256, context.checkedAt);
     return { captureId: input.captureId, acknowledged: true };
   }
@@ -213,24 +213,51 @@ export class MonthlyOriginalVerifier {
         ||Date.parse(review.signedAt)<Date.parse(context.authority.valid_from)||Date.parse(review.signedAt)>=Date.parse(context.authority.valid_until)))fail('MONTHLY_PAPER_INPUT');
     const page=this.#store.getScanPage(input.tenantId,input.captureId,review.signatureBox.page);
     const png=await cropMonthlyScan(page,review.signatureBox,scan.meta.pages.length);
-    return this.#verify(input,png,{schema:'gkv-paper-review-v1',scanPath:`tenant/${input.tenantId}/gkv/monthly/${input.proofId}/captures/${input.captureId}/scan.pdf`,
+    const pending=this.#verify(input,png,{schema:'gkv-paper-review-v1',scanPath:`tenant/${input.tenantId}/gkv/monthly/${input.proofId}/captures/${input.captureId}/scan.pdf`,
       scanVersion:scan.meta.scanVersion,scanSha256:scan.meta.scanSha256,renderSha256:scan.meta.renderSha256,
       pageSha256:scan.meta.pages.map(p=>p.sha256),signatureBox:review.signatureBox,issuedAt:original.snapshot.preparedAt,
       signedAt:review.signedAt,reviewedBy:context.actorId});
+    png.fill(0);return pending;
   }
   async verify(value, pngInput) {
     if(value?.method)fail('MONTHLY_PAPER_INPUT');
     return this.#verify(value,pngInput);
   }
+  /** Explicit retry by capture identity only. Neither a PNG nor a replacement
+   * receipt is accepted. Current personal/session/source checks still apply. */
+  async resumeVerification(value){
+    const input=request(value),context=await this.#context(input),stored=this.#bound(input,context);
+    if(!stored.receipt)fail('MONTHLY_SIGNATURE_NOT_STORED');
+    if(stored.signature){
+      try{return await this.#verify(input,stored.signature,stored.receipt.paper&&{...stored.receipt.paper,reviewedAt:null});}
+      finally{stored.signature.fill(0);}
+    }
+    return this.#finishVerification(input,stored);
+  }
+  async #finishVerification(input,stored){
+    const context=await this.#context(input);this.#bound(input,context);
+    if(context.proof.payload.xmlFacts){
+      const archive=this.#store.getComponent(input.tenantId,input.captureId);
+      if(!archive)fail('MONTHLY_COMPONENT_BINDING');
+      if(this.#components)await this.#components.signCaptured({tenantId:input.tenantId,captureId:input.captureId,
+        assertCurrent:async()=>{this.#bound(input,await this.#context(input));}});
+      this.#bound(input,await this.#context(input));
+    }
+    const result=await this.#db.issue(structuredClone(stored.receipt)),expected=this.#receipt(input,context,stored);
+    if(canonical(result)!==canonical(expected))fail('MONTHLY_VERIFIER_RECEIPT');
+    return expected;
+  }
   async #verify(value, pngInput, paper) {
     const input = request(value);
     // Copy before the first await; caller buffer changes cannot alter this request.
     if (!(pngInput instanceof Uint8Array) || pngInput.length > 2 * 1024 * 1024) fail('MONTHLY_SIGNATURE_PNG');
-    const png = Buffer.from(pngInput), context = await this.#context(input), prior = this.#bound(input, context);
+    const png = Buffer.from(pngInput);let inspected,prior;
+    try {
+    const context=await this.#context(input);prior=this.#bound(input,context);
     if (!prior.acknowledgedAt) fail('MONTHLY_ORIGINAL_ACKNOWLEDGMENT');
-    const inspected = inspectMonthlySignature(png);
+    inspected = inspectMonthlySignature(png);
     const prefix = `tenant/${input.tenantId}/gkv/monthly/${input.proofId}/captures/${input.captureId}`;
-    let stored = this.#store.reserveSignature(input.tenantId, input.captureId, inspected, (original, signatureVersion) => ({
+    const buildReceipt=(original, signatureVersion) => ({
       id: randomUUID(), tenant_id: input.tenantId, proof_id: input.proofId, proof_revision: input.revision,
       content_sha256: context.proof.content_sha256, capture_id: input.captureId, actor_id: context.actorId,
       signer_role: context.authority ? 'representative' : 'patient', signer_name: context.authority?.signer_name ?? context.proof.payload.clientName,
@@ -239,7 +266,23 @@ export class MonthlyOriginalVerifier {
       signature_path: `${prefix}/signature.png`, signature_version: signatureVersion, signature_sha256: inspected.sha256,
       signature_ink_sha256: inspected.inkSha256, captured_at: context.checkedAt, verified_at: null,
       ...(paper?{paper:{...paper,reviewedAt:null}}:{}),
-    }));
+    });
+    if(context.proof.payload.xmlFacts){
+      if(prior.receipt&&(prior.receipt.signature_sha256!==inspected.sha256||prior.receipt.signature_ink_sha256!==inspected.inkSha256
+        ||canonical(prior.receipt.paper&&{...prior.receipt.paper,reviewedAt:null})!==canonical(paper&&{...paper,reviewedAt:null})))fail('MONTHLY_CAPTURE_CONFLICT');
+      if(prior.signatureStorage==='embedded-only')return await this.#finishVerification(input,prior);
+      const verified=await this.#context(input);this.#bound(input,verified);
+      if(prior.receipt&&!prior.receipt.verified_at)prior=this.#store.sealVerification(input.tenantId,input.captureId,verified.checkedAt);
+      const receipt=prior.receipt?structuredClone(prior.receipt):buildReceipt(prior,randomUUID());
+      if(!receipt.verified_at){receipt.verified_at=verified.checkedAt;if(receipt.paper)receipt.paper.reviewedAt=verified.checkedAt;}
+      const transient={...prior,signature:png,receipt};
+      const candidate=await generateCapturedMonthlyXml(transient,paper?this.#store.getScan(input.tenantId,input.captureId):undefined);
+      this.#bound(input,await this.#context(input));
+      const stored=this.#store.reserveEmbeddedSignature(input.tenantId,input.captureId,transient,candidate);
+      png.fill(0);inspected.bytes.fill(0);prior.signature?.fill(0);
+      return await this.#finishVerification(input,stored);
+    }
+    let stored = this.#store.reserveSignature(input.tenantId, input.captureId, inspected, buildReceipt);
     // Verify the saved signature again. The receipt is built from read-back
     // originals, never from browser metadata or a reported upload success.
     if(canonical(stored.receipt.paper && {...stored.receipt.paper,reviewedAt:null})!==canonical(paper && {...paper,reviewedAt:null}))fail('MONTHLY_CAPTURE_CONFLICT');
@@ -248,18 +291,7 @@ export class MonthlyOriginalVerifier {
     const verified = await this.#context(input);
     this.#bound(input, verified);
     stored = this.#store.sealVerification(input.tenantId, input.captureId, verified.checkedAt);
-    if (context.proof.payload.xmlFacts) {
-      const candidate=await generateCapturedMonthlyXml(stored, paper ? this.#store.getScan(input.tenantId,input.captureId) : undefined);
-      // The independent schema worker yields: repeat identity/source/authority
-      // checks before issuing a receipt. The unsigned candidate is not released.
-      this.#bound(input, await this.#context(input));
-      if(this.#components)await this.#components.signCaptured({tenantId:input.tenantId,captureId:input.captureId,candidate,
-        assertCurrent:async()=>{this.#bound(input,await this.#context(input));}});
-      this.#bound(input,await this.#context(input));
-    }
-    const result = await this.#db.issue(structuredClone(stored.receipt));
-    const expected = this.#receipt(input, context, stored);
-    if (canonical(result) !== canonical(expected)) fail('MONTHLY_VERIFIER_RECEIPT');
-    return expected;
+    return await this.#finishVerification(input,stored);
+    } finally {png.fill(0);inspected?.bytes.fill(0);prior?.signature?.fill(0);}
   }
 }

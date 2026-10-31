@@ -141,7 +141,7 @@ var archiveAction = (action) => action === "archive" || action === "archive-scan
 var captureKeys = (v) => [...v.authorityId !== void 0 ? ["authorityId"] : [], ...v.method !== void 0 ? ["method"] : []];
 var prefix = (input) => `tenant/${input.tenantId}/gkv/monthly/${input.proofId}/captures/${input.captureId}`;
 function readMonthlyOriginalCommand(value) {
-  if (!object3(value) || !["prepare", "read", "status", "archive", "archive-scan", "acknowledge", "verify", "upload-scan", "scan-page", "review-scan"].includes(value.action) || ![value.tenantId, value.proofId, value.captureId].every(uuid3) || !Number.isSafeInteger(value.revision) || Number(value.revision) < 1 || value.authorityId !== void 0 && (!uuid3(value.authorityId) || archiveAction(value.action)) || value.method !== void 0 && (value.method !== "paper" || archiveAction(value.action)) || ["upload-scan", "scan-page", "review-scan"].includes(String(value.action)) && value.method !== "paper" || value.action === "verify" && value.method !== void 0) fail3();
+  if (!object3(value) || !["prepare", "read", "status", "archive", "archive-scan", "acknowledge", "verify", "upload-scan", "scan-page", "review-scan", "resume-verification"].includes(value.action) || ![value.tenantId, value.proofId, value.captureId].every(uuid3) || !Number.isSafeInteger(value.revision) || Number(value.revision) < 1 || value.authorityId !== void 0 && (!uuid3(value.authorityId) || archiveAction(value.action)) || value.method !== void 0 && (value.method !== "paper" || archiveAction(value.action)) || ["upload-scan", "scan-page", "review-scan"].includes(String(value.action)) && value.method !== "paper" || value.action === "verify" && value.method !== void 0) fail3();
   const extra = value.action === "acknowledge" ? ["originalSha256"] : value.action === "verify" ? ["pngBase64"] : value.action === "upload-scan" ? ["pdfBase64"] : value.action === "scan-page" ? ["page", "scanSha256"] : value.action === "review-scan" ? ["review"] : [];
   if (!keys(value, [...captureKeys(value), "action", "tenantId", "proofId", "revision", "captureId", ...extra])) fail3();
   if (value.action === "acknowledge" && !hash(value.originalSha256)) fail3();
@@ -185,7 +185,7 @@ function readMonthlyOriginalResponse(value, input, actorId) {
     } else if (value.archive !== null) fail3();
   } else if (value.kind === "acknowledged" && input.action === "acknowledge") {
     if (!keys(value, [...base, "originalSha256"]) || value.originalSha256 !== input.originalSha256) fail3();
-  } else if (value.kind === "receipt" && ["verify", "review-scan"].includes(input.action)) {
+  } else if (value.kind === "receipt" && ["verify", "review-scan", "resume-verification"].includes(input.action)) {
     if (!keys(value, [...base, "receipt"])) fail3();
     readMonthlyOriginalReceipt(value.receipt, input, actorId);
   } else if (value.kind === "scan" && input.action === "upload-scan") {
@@ -280,7 +280,7 @@ function callMonthlyHost(env, input, authorization) {
             if (!incoming.complete) throw Error();
             const value = JSON.parse(Buffer.concat(chunks).toString("utf8"));
             if (incoming.statusCode !== 200) {
-              const allowed = ["MONTHLY_UNCONFIGURED", "MONTHLY_AUTH", "MONTHLY_FORBIDDEN", "MONTHLY_STALE", "MONTHLY_BUSY", "MONTHLY_COMPONENT_HELD", "MONTHLY_COMPONENT_PIN_REQUIRED", "MONTHLY_FILE_SIZE", "MONTHLY_PAPER_PROFILE", "MONTHLY_INPUT", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"];
+              const allowed = ["MONTHLY_UNCONFIGURED", "MONTHLY_AUTH", "MONTHLY_FORBIDDEN", "MONTHLY_STALE", "MONTHLY_BUSY", "MONTHLY_COMPONENT_HELD", "MONTHLY_COMPONENT_PIN_REQUIRED", "MONTHLY_SIGNATURE_NOT_STORED", "MONTHLY_FILE_SIZE", "MONTHLY_PAPER_PROFILE", "MONTHLY_INPUT", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"];
               return finish(allowed.includes(value?.error) ? value.error : "MONTHLY_UNAVAILABLE");
             }
             finish(null, value);
@@ -301,7 +301,7 @@ function callMonthlyHost(env, input, authorization) {
 }
 
 // api/_lib/monthly-host-handler.mjs
-var status = (code) => code === "MONTHLY_AUTH" ? 401 : code === "MONTHLY_FORBIDDEN" ? 403 : ["MONTHLY_INPUT", "MONTHLY_PAPER_PROFILE"].includes(code) ? 400 : code === "MONTHLY_FILE_SIZE" ? 413 : ["MONTHLY_STALE", "MONTHLY_BUSY", "MONTHLY_COMPONENT_HELD", "MONTHLY_COMPONENT_PIN_REQUIRED", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"].includes(code) ? 409 : 503;
+var status = (code) => code === "MONTHLY_AUTH" ? 401 : code === "MONTHLY_FORBIDDEN" ? 403 : ["MONTHLY_INPUT", "MONTHLY_PAPER_PROFILE"].includes(code) ? 400 : code === "MONTHLY_FILE_SIZE" ? 413 : ["MONTHLY_STALE", "MONTHLY_BUSY", "MONTHLY_COMPONENT_HELD", "MONTHLY_COMPONENT_PIN_REQUIRED", "MONTHLY_SIGNATURE_NOT_STORED", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"].includes(code) ? 409 : 503;
 function createMonthlyHostHandler({ env, fetch: http = fetch }) {
   return async (req, res) => {
     res.setHeader("Cache-Control", "private, no-store");
@@ -325,7 +325,7 @@ function createMonthlyHostHandler({ env, fetch: http = fetch }) {
       const result = await callMonthlyHost(env, input, req.headers.authorization);
       return res.status(200).json(readMonthlyOriginalResponse(result, input, principal.actorId));
     } catch (error) {
-      const code = ["MONTHLY_AUTH", "MONTHLY_FORBIDDEN", "MONTHLY_STALE", "MONTHLY_UNCONFIGURED", "MONTHLY_BUSY", "MONTHLY_COMPONENT_HELD", "MONTHLY_COMPONENT_PIN_REQUIRED", "MONTHLY_PAPER_PROFILE", "MONTHLY_INPUT", "MONTHLY_FILE_SIZE", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"].includes(error?.message) ? error.message : "MONTHLY_UNAVAILABLE";
+      const code = ["MONTHLY_AUTH", "MONTHLY_FORBIDDEN", "MONTHLY_STALE", "MONTHLY_UNCONFIGURED", "MONTHLY_BUSY", "MONTHLY_COMPONENT_HELD", "MONTHLY_COMPONENT_PIN_REQUIRED", "MONTHLY_SIGNATURE_NOT_STORED", "MONTHLY_PAPER_PROFILE", "MONTHLY_INPUT", "MONTHLY_FILE_SIZE", "MONTHLY_SIGNATURE_REUSED", "MONTHLY_QUOTA"].includes(error?.message) ? error.message : "MONTHLY_UNAVAILABLE";
       return res.status(status(code)).json({ error: code });
     }
   };

@@ -9,7 +9,7 @@ import {readMonthlyOriginalCommand,readMonthlyOriginalResponse,monthlyBase64,MON
 
 export const monthlyError = error => {
   const code = error?.message;
-  if (['MONTHLY_AUTH','MONTHLY_FORBIDDEN','MONTHLY_STALE','MONTHLY_UNCONFIGURED','MONTHLY_BUSY','MONTHLY_FILE_SIZE','MONTHLY_PAPER_PROFILE','MONTHLY_COMPONENT_HELD','MONTHLY_COMPONENT_PIN_REQUIRED'].includes(code)) return code;
+  if (['MONTHLY_AUTH','MONTHLY_FORBIDDEN','MONTHLY_STALE','MONTHLY_UNCONFIGURED','MONTHLY_BUSY','MONTHLY_FILE_SIZE','MONTHLY_PAPER_PROFILE','MONTHLY_COMPONENT_HELD','MONTHLY_COMPONENT_PIN_REQUIRED','MONTHLY_SIGNATURE_NOT_STORED'].includes(code)) return code;
   if(code==='MONTHLY_COMPONENT_BUSY')return 'MONTHLY_BUSY';
   if (code === 'MONTHLY_SIGNATURE_PNG' || code === 'MONTHLY_ORIGINAL_CONTRACT' || code === 'MONTHLY_PAPER_INPUT') return 'MONTHLY_INPUT';
   if (code === 'MONTHLY_SIGNATURE_REUSED') return code;
@@ -19,7 +19,7 @@ export const monthlyError = error => {
 };
 export const monthlyHttpStatus = code => code === 'MONTHLY_AUTH' ? 401 : code === 'MONTHLY_FORBIDDEN' ? 403
   : ['MONTHLY_INPUT','MONTHLY_PAPER_PROFILE'].includes(code) ? 400 : code === 'MONTHLY_FILE_SIZE' ? 413
-  : ['MONTHLY_STALE','MONTHLY_SIGNATURE_REUSED','MONTHLY_QUOTA','MONTHLY_BUSY','MONTHLY_COMPONENT_HELD','MONTHLY_COMPONENT_PIN_REQUIRED'].includes(code) ? 409 : 503;
+  : ['MONTHLY_STALE','MONTHLY_SIGNATURE_REUSED','MONTHLY_QUOTA','MONTHLY_BUSY','MONTHLY_COMPONENT_HELD','MONTHLY_COMPONENT_PIN_REQUIRED','MONTHLY_SIGNATURE_NOT_STORED'].includes(code) ? 409 : 503;
 
 export class MonthlyOriginalHost {
   #tenant; #store; #config; #keyId; #key; #http; #components; #busy = false; #closed = false;
@@ -63,6 +63,7 @@ export class MonthlyOriginalHost {
         result={...envelope,kind:'archived-scan',...meta,pdfBase64:bytes.toString('base64')};
       }
       else if (action === 'verify') result = {...envelope,kind: 'receipt',receipt: await verifier.verify(capture,monthlyBase64(pngBase64))};
+      else if (action === 'resume-verification') result = {...envelope,kind:'receipt',receipt:await verifier.resumeVerification(capture)};
       else result = {...envelope,kind: 'state',...await verifier.status(capture)};
       return readMonthlyOriginalResponse(result,input,principal.actorId);
     } finally { database?.close(); this.#busy = false; }

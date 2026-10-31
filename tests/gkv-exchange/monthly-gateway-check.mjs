@@ -7,6 +7,8 @@ const body={action:'prepare',tenantId:'81bd07c1-ea07-47c2-998e-b435c395e3a1',
 for(const [name,request,code,error] of [
   ['GET',{method:'GET',headers:{}},405,'MONTHLY_INPUT'],
   ['unauthenticated POST',{method:'POST',headers:{'content-type':'application/json'},body},401,'MONTHLY_AUTH'],
+  ['unauthenticated resume',{method:'POST',headers:{'content-type':'application/json'},body:{...body,action:'resume-verification'}},401,'MONTHLY_AUTH'],
+  ['resume cannot upload a replacement image',{method:'POST',headers:{'content-type':'application/json'},body:{...body,action:'resume-verification',pngBase64:'AAAA'}},400,'MONTHLY_INPUT'],
   ['invalid input',{method:'POST',headers:{'content-type':'application/json'},body:{...body,actorId:body.tenantId}},400,'MONTHLY_INPUT'],
   ['unsupported encoding',{method:'POST',headers:{'content-type':'application/json','content-encoding':'gzip'},body},415,'MONTHLY_INPUT'],
 ]){

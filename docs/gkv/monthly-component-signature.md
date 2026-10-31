@@ -24,8 +24,9 @@ Dies ist keine pauschale CAdES-Konformitätsaussage.
 ## Ablauf im vorhandenen Host
 
 1. Persönliche Anmeldung, Beauftragung, Quelle, Fassung, Vertretungsbefugnis und
-   vorab gespeicherte Fachangaben prüfen. Original-PDF reproduzieren; gespeicherte
-   PNG bzw. vollständigen Vertreter-Scan erneut prüfen.
+   vorab gespeicherte Fachangaben prüfen. Original-PDF reproduzieren; PNG im
+   Arbeitsspeicher bzw. vollständigen Vertreter-Scan prüfen. Neue Fachnachweise
+   speichern kein eigenständiges PNG; siehe [Einbettung und Wiederaufnahme](monthly-embedded-signature.md).
 2. Die genauen XML-Bytes unabhängig im bestehenden Python/lxml-Worker prüfen und
    mit Prüfbeleg, Quittungskennung, Fassung und Inhaltshash verschlüsselt speichern.
 3. SMC-B anhand der provisionierten Institution und Rollen auswählen; tatsächliche
@@ -91,8 +92,8 @@ automatischen zweiten Kartenaufruf. Negative/unterbrochene Prüfungen archiviere
 bislang keinen vollständigen negativen Bericht in diesem Monatsjournal.
 
 Weiter offen sind die reale Zuordnung Institution/IK, persönliche ursprüngliche
-Beschäftigtennummernerfassung, die Bereinigung separat gespeicherter
-Unterschriftsbilder nach Einbettung, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe,
+Beschäftigtennummernerfassung, die Bereinigung älterer separater
+Unterschriftsbilder einschließlich alter Sicherungskopien, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe,
 Aufbewahrungs-/Backupnachweise und das kommende XML-Profil ab Februar 2027.
 Die [Vereinbarung, Abschnitt 4.2.1](https://www.gkv-datenaustausch.de/media/dokumente/leistungserbringer_1/pflege/2023_10_05_Vereinbarung__105_Abs.2_Satz_2_SGBXI_final.pdf)
 ist damit noch nicht vollständig nachgewiesen. `dispatchReady` bleibt false;

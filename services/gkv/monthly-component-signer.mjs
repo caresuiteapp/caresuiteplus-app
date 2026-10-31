@@ -43,7 +43,8 @@ export class MonthlyComponentSigner {
     const sig=p=>p.bundle.certificates.find(c=>c.certRef==='C.SIG');
     try {
       // Candidate and its exact patient receipt precede the durable reservation.
-      archive=this.#store.reserveComponent(tenantId,captureId,candidate);
+      archive=candidate?this.#store.reserveComponent(tenantId,captureId,candidate):this.#store.getComponent(tenantId,captureId);
+      if(!archive)throw Error('MONTHLY_COMPONENT_BINDING');
       await assertCurrent();
       if(archive.record.state==='complete')return archive;
       if(!['prepared','signed'].includes(archive.record.state))throw Error('MONTHLY_COMPONENT_HELD');

@@ -2,7 +2,7 @@ import {authenticateMonthly} from '../../services/gkv/monthly-auth.mjs';
 import {readMonthlyOriginalCommand,readMonthlyOriginalResponse,MONTHLY_WIRE_LIMIT} from '../../src/lib/gkvExchange/monthlyOriginalContract.ts';
 import {callMonthlyHost} from './monthly-host-transport.mjs';
 const status = code => code === 'MONTHLY_AUTH' ? 401 : code === 'MONTHLY_FORBIDDEN' ? 403 : ['MONTHLY_INPUT','MONTHLY_PAPER_PROFILE'].includes(code) ? 400
-  : code === 'MONTHLY_FILE_SIZE' ? 413 : ['MONTHLY_STALE','MONTHLY_BUSY','MONTHLY_COMPONENT_HELD','MONTHLY_COMPONENT_PIN_REQUIRED','MONTHLY_SIGNATURE_REUSED','MONTHLY_QUOTA'].includes(code) ? 409 : 503;
+  : code === 'MONTHLY_FILE_SIZE' ? 413 : ['MONTHLY_STALE','MONTHLY_BUSY','MONTHLY_COMPONENT_HELD','MONTHLY_COMPONENT_PIN_REQUIRED','MONTHLY_SIGNATURE_NOT_STORED','MONTHLY_SIGNATURE_REUSED','MONTHLY_QUOTA'].includes(code) ? 409 : 503;
 export function createMonthlyHostHandler({env,fetch:http=fetch}) {
   return async (req,res) => {
     res.setHeader('Cache-Control','private, no-store'); res.setHeader('X-Content-Type-Options','nosniff');
@@ -17,7 +17,7 @@ export function createMonthlyHostHandler({env,fetch:http=fetch}) {
       const result=await callMonthlyHost(env,input,req.headers.authorization);
       return res.status(200).json(readMonthlyOriginalResponse(result,input,principal.actorId));
     } catch (error) {
-      const code=['MONTHLY_AUTH','MONTHLY_FORBIDDEN','MONTHLY_STALE','MONTHLY_UNCONFIGURED','MONTHLY_BUSY','MONTHLY_COMPONENT_HELD','MONTHLY_COMPONENT_PIN_REQUIRED','MONTHLY_PAPER_PROFILE','MONTHLY_INPUT','MONTHLY_FILE_SIZE','MONTHLY_SIGNATURE_REUSED','MONTHLY_QUOTA'].includes(error?.message) ? error.message : 'MONTHLY_UNAVAILABLE';
+      const code=['MONTHLY_AUTH','MONTHLY_FORBIDDEN','MONTHLY_STALE','MONTHLY_UNCONFIGURED','MONTHLY_BUSY','MONTHLY_COMPONENT_HELD','MONTHLY_COMPONENT_PIN_REQUIRED','MONTHLY_SIGNATURE_NOT_STORED','MONTHLY_PAPER_PROFILE','MONTHLY_INPUT','MONTHLY_FILE_SIZE','MONTHLY_SIGNATURE_REUSED','MONTHLY_QUOTA'].includes(error?.message) ? error.message : 'MONTHLY_UNAVAILABLE';
       return res.status(status(code)).json({error:code});
     }
   };

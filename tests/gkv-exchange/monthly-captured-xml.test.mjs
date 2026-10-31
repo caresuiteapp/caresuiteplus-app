@@ -8,6 +8,7 @@ import {signingPng} from './monthly-host-fixture.mjs';
 import {readMonthlyProof} from '../../src/lib/gkvExchange/monthlyProof.ts';
 import {monthlyDifferences} from '../../src/lib/gkvExchange/monthlyWorkspace.ts';
 import {generateCapturedMonthlyXml} from '../../services/gkv/monthly-captured-xml.mjs';
+import {cropMonthlyScan} from '../../services/gkv/monthly-scan.mjs';
 import {paperScanFixture} from './monthly-paper-fixture.mjs';
 import {monthlyFactsFixture,lines} from './monthly-facts-fixture.mjs';
 test('monthly captured XML: actual Python/XSD worker, originals and confirmation',async t=>{
@@ -28,7 +29,7 @@ test('monthly captured XML: actual Python/XSD worker, originals and confirmation
    }finally{await task.destroy();}
    if(process.env.MONTHLY_FACTS_REVIEW_PDF)await writeFile(process.env.MONTHLY_FACTS_REVIEW_PDF,v.original.bytes);
    await confirm(v);assert.equal(v.p.status,'final');assert.deepEqual(v.p.payload.xmlFacts,facts);
-   const captured=store.get(f.tenant,v.input.captureId),xml=await generateCapturedMonthlyXml(captured);
+   const captured={...store.get(f.tenant,v.input.captureId),signature:v.png},xml=await generateCapturedMonthlyXml(captured);
    assert.equal(xml.verification.schemaValid,true);assert.equal(xml.captureBinding.displayedContentMatches,true);
    assert.equal(xml.captureBinding.upstreamEmployeeCaptureVerified,false);assert.equal(xml.verification.dispatchReady,false);
    assert.ok(xml.bytes.includes(Buffer.from('<Beschaeftigtennummer>123123123</Beschaeftigtennummer>')));
@@ -52,7 +53,10 @@ test('monthly captured XML: actual Python/XSD worker, originals and confirmation
    const meta=await worker.uploadScan(v.input,scanBytes);
    v.receipt=await worker.verifyPaper(v.input,{scanSha256:meta.scanSha256,reviewedPages:meta.pages.map(p=>p.sha256),signatureBox:v.original.paper.signatureBox,
     signedAt:new Date().toISOString(),reviewConfirmed:true});
-   const captured=store.get(f.tenant,v.input.captureId),scan=store.getScan(f.tenant,v.input.captureId),xml=await generateCapturedMonthlyXml(captured,scan);
+   const captured=store.get(f.tenant,v.input.captureId),scan=store.getScan(f.tenant,v.input.captureId);
+   assert.equal(captured.signature,null);
+   captured.signature=await cropMonthlyScan(store.getScanPage(f.tenant,v.input.captureId,v.original.paper.signatureBox.page),v.original.paper.signatureBox,scan.meta.pages.length);
+   const xml=await generateCapturedMonthlyXml(captured,scan);
    assert.equal(xml.verification.embeddedFileSha256,meta.scanSha256);assert.ok(xml.bytes.includes(Buffer.from('<Art_der_Unterschrift>3</Art_der_Unterschrift>')));
    assert.ok(xml.bytes.includes(Buffer.from(scanBytes.toString('base64'))));
    await assert.rejects(generateCapturedMonthlyXml(captured));

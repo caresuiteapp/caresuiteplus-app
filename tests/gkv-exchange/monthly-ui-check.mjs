@@ -340,6 +340,29 @@ try{
   assert.equal(button('Unterschrift im Test zeichnen'),undefined);assert.equal(button('Monatsbestätigung speichern'),undefined);
   await click('Erfassung schließen');assert.equal(field('Leistungsmonat').disabled,false);assert.equal(work.at(-1).dirty,false);
  });
+ await check('explicit continuation sends only the capture identity after a stored signature response fails',async()=>{
+  ws=workspace(p);history=[p];const api=globalThis.monthlyApi.requestMonthlyOriginal;let saved;
+  globalThis.monthlyApi.requestMonthlyOriginal=async(...args)=>{
+   const command=args[2];
+   if(command.action==='verify'){saved=await api(...args);captureState.receipt=null;throw Error('Signaturprüfung unterbrochen');}
+   if(command.action==='resume-verification'){
+    calls.push(['capture',structuredClone(command)]);
+    assert.equal(Object.hasOwn(command,'pngBase64'),false);assert.equal(Object.hasOwn(command,'review'),false);
+    captureState.receipt=saved.receipt;return saved;
+   }
+   return api(...args);
+  };
+  await mount();await selectClient();await click('Original zur Bestätigung öffnen');
+  await React.act(async()=>container.querySelector('iframe').dispatchEvent(new window.Event('load')));
+  await React.act(async()=>container.querySelector('.gx-signature-choice input').click());
+  await click('Geprüft, Unterschrift erfassen');await click('Unterschrift im Test zeichnen');
+  assert.equal(button('Unterschrift im Test zeichnen'),undefined);assert.equal(button('Monatsbestätigung speichern'),undefined);
+  await click('Erfassung prüfen');await click('Erfassung unverändert wiederholen');
+  assert.ok(button('Monatsbestätigung speichern'));
+  assert.equal(calls.filter(c=>c[0]==='capture'&&c[1].action==='verify').length,1);
+  assert.equal(calls.filter(c=>c[0]==='capture'&&c[1].action==='resume-verification').length,1);
+  assert.equal(calls.filter(c=>c[0]==='write').length,0);
+ });
  await check('a late original response cannot return after tenant switch or revoked write delegation',async()=>{
   ws=workspace(p);history=[p];const wait=deferred(),api=globalThis.monthlyApi.requestMonthlyOriginal;let response;
   globalThis.monthlyApi.requestMonthlyOriginal=async(...args)=>{response=await api(...args);return wait.promise;};

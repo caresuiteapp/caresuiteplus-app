@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "assessedAt": "2026-10-31",
-  "baselineCommit": "59b3945f8905d7cccdd675d4a943f106a5388660",
+  "baselineCommit": "c8f402a23abadb755ae71e8f46d7d7958d89a11b",
   "productionReady": false,
   "scopeComplete": false,
   "scopeGaps": [
@@ -179,9 +179,10 @@
         "tests/gkv-exchange/monthly-facts.test.mjs",
         "tests/gkv-exchange/monthly-captured-xml.test.mjs",
         "tests/gkv-exchange/connector-cms.test.mjs",
-        "tests/gkv-exchange/tsl-ocsp.test.mjs"
+        "tests/gkv-exchange/tsl-ocsp.test.mjs",
+        "tests/gkv-exchange/monthly-embedded-signature.test.mjs"
       ],
-      "nextStep": "Der konfigurierte Host bindet tatsächliche XML-Bytes an SMC-B-CMS, VerifyDocument und ein verschlüsseltes Journal; unklare Kartenaufrufe bleiben über Neustarts gesperrt. Persönliche Erfassungsherkunft, Bildbereinigung nach Einbettung, Hardware-/TI-Nachweise, Provisionierung, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe und unabhängige Prüfung bleiben offen.",
+      "nextStep": "Neue Fachnachweise speichern XML und Quittungsbindung atomar ohne eigenständige PNG-Ablage; Wiederaufnahme erfolgt über die Erfassungskennung. Der konfigurierte Host bindet tatsächliche XML-Bytes an SMC-B-CMS, VerifyDocument und ein verschlüsseltes Journal; unklare Kartenaufrufe bleiben über Neustarts gesperrt. Persönliche Erfassungsherkunft, Bereinigung älterer Bildablagen und Sicherungskopien, Hardware-/TI-Nachweise, Provisionierung, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe und unabhängige Prüfung bleiben offen.",
       "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",
       "dependsOn": [
         "proof-capture"
@@ -268,9 +269,10 @@
         "tests/gkv-exchange/monthly-facts.test.mjs",
         "tests/gkv-exchange/monthly-captured-xml.test.mjs",
         "tests/gkv-exchange/connector-cms.test.mjs",
-        "tests/gkv-exchange/tsl-ocsp.test.mjs"
+        "tests/gkv-exchange/tsl-ocsp.test.mjs",
+        "tests/gkv-exchange/monthly-embedded-signature.test.mjs"
       ],
-      "nextStep": "Der konfigurierte Host bindet tatsächliche XML-Bytes an SMC-B-CMS, VerifyDocument und ein verschlüsseltes Journal; unklare Kartenaufrufe bleiben über Neustarts gesperrt. Persönliche Erfassungsherkunft, Bildbereinigung nach Einbettung, Hardware-/TI-Nachweise, Provisionierung, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe und unabhängige Prüfung bleiben offen.",
+      "nextStep": "Neue Fachnachweise speichern XML und Quittungsbindung atomar ohne eigenständige PNG-Ablage; Wiederaufnahme erfolgt über die Erfassungskennung. Der konfigurierte Host bindet tatsächliche XML-Bytes an SMC-B-CMS, VerifyDocument und ein verschlüsseltes Journal; unklare Kartenaufrufe bleiben über Neustarts gesperrt. Persönliche Erfassungsherkunft, Bereinigung älterer Bildablagen und Sicherungskopien, Hardware-/TI-Nachweise, Provisionierung, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe und unabhängige Prüfung bleiben offen.",
       "acceptance": "Unabhängige Prüfung der erzeugten Bytes, Negativfälle für Schema, Signatur, IMG-Zuordnung und zeitgültige PROD-/MOD-ID.",
       "dependsOn": [
         "proof-confirmation"

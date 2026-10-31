@@ -11,7 +11,7 @@ const keys = (v: Record<string, unknown>, allowed: string[]) => Object.keys(v).l
 function fail(): never { throw new Error('MONTHLY_ORIGINAL_CONTRACT'); }
 export type MonthlyCapture = {tenantId: string; proofId: string; revision: number; captureId: string; authorityId?: string;method?: 'paper'};
 export type MonthlyOriginalCommand = MonthlyCapture & (
-  {action: 'prepare' | 'read' | 'status' | 'archive' | 'archive-scan'} |
+  {action: 'prepare' | 'read' | 'status' | 'archive' | 'archive-scan' | 'resume-verification'} |
   {action: 'upload-scan'; pdfBase64: string} |
   {action: 'scan-page'; page: number; scanSha256: string} |
   {action: 'review-scan'; review: PaperReview} |
@@ -42,7 +42,7 @@ const archiveAction=(action:unknown)=>action==='archive'||action==='archive-scan
 const captureKeys=(v:Record<string,unknown>)=>[...(v.authorityId!==undefined?['authorityId']:[]),...(v.method!==undefined?['method']:[])];
 const prefix=(input:MonthlyCapture)=>`tenant/${input.tenantId}/gkv/monthly/${input.proofId}/captures/${input.captureId}`;
 export function readMonthlyOriginalCommand(value: unknown): MonthlyOriginalCommand {
-  if (!object(value) || !['prepare','read','status','archive','archive-scan','acknowledge','verify','upload-scan','scan-page','review-scan'].includes(value.action as string)
+  if (!object(value) || !['prepare','read','status','archive','archive-scan','acknowledge','verify','upload-scan','scan-page','review-scan','resume-verification'].includes(value.action as string)
     || ![value.tenantId,value.proofId,value.captureId].every(uuid) || !Number.isSafeInteger(value.revision) || Number(value.revision) < 1
     || (value.authorityId !== undefined && (!uuid(value.authorityId) || archiveAction(value.action)))
     || (value.method!==undefined && (value.method!=='paper'||archiveAction(value.action)))
@@ -95,7 +95,7 @@ export function readMonthlyOriginalResponse(value: unknown, input: MonthlyOrigin
     } else if (value.archive !== null) fail();
   } else if (value.kind === 'acknowledged' && input.action === 'acknowledge') {
     if (!keys(value, [...base,'originalSha256']) || value.originalSha256 !== input.originalSha256) fail();
-  } else if (value.kind === 'receipt' && ['verify','review-scan'].includes(input.action)) {
+  } else if (value.kind === 'receipt' && ['verify','review-scan','resume-verification'].includes(input.action)) {
     if (!keys(value, [...base,'receipt'])) fail(); readMonthlyOriginalReceipt(value.receipt, input, actorId);
   } else if(value.kind==='scan' && input.action==='upload-scan'){
     if(!keys(value,[...base,'scan']))fail();readPaperScan(value.scan);
