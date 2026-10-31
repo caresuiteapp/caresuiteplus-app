@@ -1,0 +1,90 @@
+{
+  "date": "2026-10-31",
+  "parentCommit": "8976dc97c762d59789fc986d9015809f93b325af",
+  "parentPreviewObservedState": "READY",
+  "validation": {
+    "fullNode": {
+      "passed": 15189,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "logSha256": "196b04c60648186d70869944447afc38e8bd767be5df8fa272217803a7f5c765",
+      "newCasesIncluded": 74
+    },
+    "viewAndLockVitest": {
+      "passed": 61,
+      "files": 5,
+      "actualReactWebNativeInteractionsIncluded": 10,
+      "logSha256": "6fe5221ac96eff4c30b0603e15d74f3ad165b06cca7b9ea98138724fa76fbbc2"
+    },
+    "productionWebBuild": {
+      "status": "passed",
+      "command": "NODE_OPTIONS=--max-semi-space-size=8 CARESUITE_TYPESCRIPT_HEAP_MIB=6144 npm run build:web:production",
+      "priorAttempts": [
+        {
+          "heapMiB": 6144,
+          "result": "TypeScript process SIGKILL without diagnostic",
+          "logSha256": "465d22bf991c74e9a8f8a8bd4d9c13adc2a2d8f6e2a54aba976b8999d13d4ff8"
+        },
+        {
+          "heapMiB": 5632,
+          "result": "V8 heap limit, SIGABRT without TypeScript diagnostic",
+          "logSha256": "5b8025d9ccf90c3ed1c64a82b487d68c4ba04a203e515f635b3745b2f64e68f2"
+        }
+      ],
+      "exitCode": 0,
+      "logSha256": "b816d987f262be774e4306d4e821d4e892b39b19b5ddfb01ab87ae2fdc9a4f19",
+      "checks": [
+        "Native parity, zero stale files",
+        "full TypeScript",
+        "all release verifiers",
+        "686 Web parent routes",
+        "Vercel configuration",
+        "Expo static Web export",
+        "Neo model and speech assets",
+        "21 calendar files",
+        "7 identical React initial roots",
+        "public branding pages"
+      ]
+    }
+  },
+  "readContract": {
+    "pageSize": 500,
+    "referenceIdBatch": 100,
+    "maximumRowsPerReadAndReferenceAggregate": 100000,
+    "exactCountRequired": true,
+    "duplicateIdsRejected": true,
+    "independentTenantAndReferenceValidation": true,
+    "atomicDatabaseSnapshot": false,
+    "networkWorkAbortedByUiDeadline": false,
+    "uiDeadlineMs": {
+      "web": 120000,
+      "native": 15000
+    }
+  },
+  "sourceHashes": {
+    "src/lib/pflege/carePlanCompleteRead.ts": "f1f48a39b4679f68c53154a0b9a4e042263f0fbc5e9a89b46964c5d3340ab4d3",
+    "src/lib/pflege/carePlanRepository.supabase.ts": "8e8e77ac0127701f80a70df4a715caa8fe64c7a76f3bcc2fe5bb49e213409d8f",
+    "src/hooks/useCarePlanList.web.ts": "b8215af148e4fe3a6e2c66fb240dbafd24739d20778d782756ab42fe2dfc72c1",
+    "src/hooks/useCarePlanList.native.ts": "48ffa896f957cc4b3a0b0a5c37a453361ad4947e17073f48ef6419d9f3b00afd",
+    "src/components/pflege/CarePlansListView.web.tsx": "76666014693042ff2678cea04e2026578ee6cb52a6dc44582e10afc5bdddf6a7",
+    "src/components/pflege/CarePlansListView.native.tsx": "d8e383fc1c10fe849d6fa04d96adb1a696636db8155f7f8c1478e0bb2a00bfda",
+    "src/screens/pflege/CarePlansListScreen.web.tsx": "b6d4d32969cb2813c453899c92f9fd2a146b568a17adbd89c59a153c45cd3924",
+    "src/screens/pflege/PflegeplanungListScreen.web.tsx": "748cb63e8be5325e1ef53f627bff68cbc8236060d2be17434d297c20ca19a402"
+  },
+  "boundaries": {
+    "globalPflegeLock": true,
+    "remoteDatabaseChanges": false,
+    "applicationGrants": false,
+    "mainMergeOrPromotion": false,
+    "signedAppPackage": false,
+    "clinicalAcceptance": false,
+    "authenticatedHttpRls": false,
+    "realConcurrentTransactions": false,
+    "browserLayoutOrDeviceAcceptance": false,
+    "nativeWriterClosure": false
+  },
+  "parentPreviewInitialObservedState": "QUEUED",
+  "parentPreviewDeploymentId": "dpl_3AiNjk8igzhCf3CUYBK6ZAsPuDAT",
+  "parentPreviewTarget": null
+}

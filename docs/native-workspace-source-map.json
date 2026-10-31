@@ -2848,6 +2848,18 @@
       "environment": []
     },
     {
+      "web": "src/hooks/useCarePlanList.web.ts",
+      "native": "src/hooks/useCarePlanList.native.ts",
+      "sourceHash": "b8215af148e4fe3a6e2c66fb240dbafd24739d20778d782756ab42fe2dfc72c1",
+      "environment": []
+    },
+    {
+      "web": "src/components/pflege/CarePlansListView.web.tsx",
+      "native": "src/components/pflege/CarePlansListView.native.tsx",
+      "sourceHash": "76666014693042ff2678cea04e2026578ee6cb52a6dc44582e10afc5bdddf6a7",
+      "environment": []
+    },
+    {
       "web": "src/lib/pflege/careSchedulingPreferenceEvidence.web.ts",
       "native": "src/lib/pflege/careSchedulingPreferenceEvidence.native.ts",
       "sourceHash": "a07d948f6ab4f870a8490d8d054b0b7d021be4dc2ea737779b77e9931a79017a",
@@ -5721,6 +5733,12 @@
       "environment": []
     },
     {
+      "web": "src/screens/pflege/CarePlansListScreen.web.tsx",
+      "native": "src/screens/pflege/CarePlansListScreen.native.tsx",
+      "sourceHash": "b6d4d32969cb2813c453899c92f9fd2a146b568a17adbd89c59a153c45cd3924",
+      "environment": []
+    },
+    {
       "web": "src/lib/pflege/careQualityVisitOriginals.web.ts",
       "native": "src/lib/pflege/careQualityVisitOriginals.native.ts",
       "sourceHash": "7fd56049fc735a8378f43441f2750d317f8b0c7535d1e500bc69d292f2bc99fa",
@@ -6005,6 +6023,12 @@
       "web": "src/screens/pflege/PflegeberichteListScreen.web.tsx",
       "native": "src/screens/pflege/PflegeberichteListScreen.native.tsx",
       "sourceHash": "e9213ba80fde6eccba086a3c934a63f1e117489b88f27c81673e7190112bb4d5",
+      "environment": []
+    },
+    {
+      "web": "src/screens/pflege/PflegeplanungListScreen.web.tsx",
+      "native": "src/screens/pflege/PflegeplanungListScreen.native.tsx",
+      "sourceHash": "748cb63e8be5325e1ef53f627bff68cbc8236060d2be17434d297c20ca19a402",
       "environment": []
     },
     {
@@ -8683,6 +8707,10 @@
     {
       "web": "app/pflege/planung/[id].tsx",
       "native": "app/pflege/planung/[id].native.tsx"
+    },
+    {
+      "web": "app/pflege/planung/index.tsx",
+      "native": "app/pflege/planung/index.native.tsx"
     },
     {
       "web": "app/pflege/risiken.tsx",

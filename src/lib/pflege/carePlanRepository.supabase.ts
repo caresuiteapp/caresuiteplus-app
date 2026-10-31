@@ -3,6 +3,7 @@ import type { CarePlanDetail, CarePlanListItem, CarePlanTask } from '@/types/mod
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { readCompleteCarePlanRows } from './carePlanCompleteRead.ts';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 
 type Row = Record<string, unknown>;
@@ -99,37 +100,36 @@ async function loadReferences(
   const employeeIds = [...new Set(plans.map((row) => text(row.primary_nurse_id)).filter(Boolean))];
   const planIds = plans.map((row) => text(row.id)).filter(Boolean);
 
-  const [clientResult, employeeResult, itemResult] = await Promise.all([
-    clientIds.length
-      ? fromUnknownTable(supabase, 'clients')
-          .select('id,first_name,last_name,city,care_level,status')
-          .eq('tenant_id', tenantId)
-          .in('id', clientIds)
-      : Promise.resolve({ data: [], error: null }),
-    employeeIds.length
-      ? fromUnknownTable(supabase, 'employees')
-          .select('id,first_name,last_name')
-          .eq('tenant_id', tenantId)
-          .in('id', employeeIds)
-      : Promise.resolve({ data: [], error: null }),
-    planIds.length
-      ? fromUnknownTable(supabase, 'care_plan_items')
-          .select('*')
-          .eq('tenant_id', tenantId)
-          .in('care_plan_id', planIds)
-          .order('sort_order', { ascending: true })
-      : Promise.resolve({ data: [], error: null }),
+  async function references(table: string, columns: string, ids: string[], key: string): Promise<ServiceResult<Row[]>> {
+    const rows: Row[] = [], seen = new Set<string>();
+    for (let index = 0; index < ids.length; index += 100) {
+      const batch = ids.slice(index, index + 100), allowed = new Set(batch);
+      const result = await readCompleteCarePlanRows((from, to) => fromUnknownTable(supabase!, table)
+        .select(columns, { count: 'exact' }).eq('tenant_id', tenantId).in(key, batch)
+        .order('id', { ascending: true }).range(from, to),
+      row => row.tenant_id === tenantId && typeof row[key] === 'string' && allowed.has(row[key] as string));
+      if (!result.ok) return result;
+      if (rows.length + result.data.length > 100_000) return { ok: false, error: 'Pflegeplan-Bezüge überschreiten den vollständig lesbaren Umfang.' };
+      for (const row of result.data) {
+        if (seen.has(String(row.id))) return { ok: false, error: 'Pflegeplan-Bezüge haben sich während des Lesens geändert. Bitte erneut laden.' };
+        seen.add(String(row.id)); rows.push(row);
+      }
+    }
+    return { ok: true, data: rows };
+  }
+  const [clients, employees, items] = await Promise.all([
+    references('clients', 'id,tenant_id,first_name,last_name,city,care_level,status', clientIds, 'id'),
+    references('employees', 'id,tenant_id,first_name,last_name', employeeIds, 'id'),
+    references('care_plan_items', '*', planIds, 'care_plan_id'),
   ]);
-  const error = clientResult.error ?? employeeResult.error ?? itemResult.error;
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  return {
-    ok: true,
-    data: {
-      clients: new Map(((clientResult.data ?? []) as Row[]).map((row) => [text(row.id), row])),
-      employees: new Map(((employeeResult.data ?? []) as Row[]).map((row) => [text(row.id), row])),
-      items: (itemResult.data ?? []) as Row[],
-    },
-  };
+  if (!clients.ok) return clients;
+  if (!employees.ok) return employees;
+  if (!items.ok) return items;
+  return { ok: true, data: {
+    clients: new Map(clients.data.map(row => [text(row.id), row])),
+    employees: new Map(employees.data.map(row => [text(row.id), row])),
+    items: items.data.sort((a, b) => Number(a.sort_order ?? 0) - Number(b.sort_order ?? 0)),
+  } };
 }
 
 function mapListItem(row: Row, clients: Map<string, Row>, items: Row[]): CarePlanListItem {
@@ -159,13 +159,11 @@ export const carePlanLiveRepository = {
   async list(tenantId: string): Promise<ServiceResult<CarePlanListItem[]>> {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
-    const { data, error } = await fromUnknownTable(supabase, 'care_plans')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .neq('status', 'archived')
-      .order('updated_at', { ascending: false });
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    const plans = (data ?? []) as Row[];
+    const result = await readCompleteCarePlanRows((from, to) => fromUnknownTable(supabase, 'care_plans')
+      .select('*', { count: 'exact' }).eq('tenant_id', tenantId).neq('status', 'archived')
+      .order('id', { ascending: true }).range(from, to), row => row.tenant_id === tenantId && row.status !== 'archived');
+    if (!result.ok) return result;
+    const plans = result.data.sort((a, b) => text(b.updated_at).localeCompare(text(a.updated_at)));
     const references = await loadReferences(tenantId, plans);
     if (!references.ok) return references;
     return {
@@ -185,6 +183,7 @@ export const carePlanLiveRepository = {
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
     if (!data) return { ok: true, data: null };
     const row = data as Row;
+    if (row.id !== id || row.tenant_id !== tenantId) return { ok: false, error: 'Pflegeplan gehört nicht zur aktuellen Auswahl.' };
     const references = await loadReferences(tenantId, [row]);
     if (!references.ok) return references;
     const client = references.data.clients.get(text(row.client_id));
@@ -200,6 +199,9 @@ export const carePlanLiveRepository = {
     ]);
     if (diagnosisResult.error || orderResult.error) {
       return { ok: false, error: toGermanSupabaseError(diagnosisResult.error ?? orderResult.error) };
+    }
+    if (![diagnosisResult.count, orderResult.count].every(value => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0)) {
+      return { ok: false, error: 'Diagnose- und Verordnungsanzahl konnten nicht bestätigt werden.' };
     }
     return {
       ok: true,
@@ -224,7 +226,7 @@ export const carePlanLiveRepository = {
         city: client ? text(client.city) || '—' : '—',
         employeeName: employee
           ? `${text(employee.first_name)} ${text(employee.last_name)}`.trim() || '—'
-          : 'Nicht zugewiesen',
+          : row.primary_nurse_id ? 'Zugeordnete Pflegekraft nicht lesbar.' : 'Nicht zugewiesen',
         nextActionHint: list.alertCount > 0
           ? `${list.alertCount} Maßnahme(n) müssen evaluiert werden.`
           : 'Keine fällige Evaluation aus den geladenen Maßnahmen ermittelt. Fachliche Aktualität separat prüfen.',
