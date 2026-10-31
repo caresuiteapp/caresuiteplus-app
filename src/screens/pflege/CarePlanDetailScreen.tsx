@@ -150,15 +150,15 @@ export function CarePlanDetailScreen() {
         <SectionPanel
           title="Vitalwerte"
           subtitle={
-            plan.dueVitalsCount > 0
+            (plan.dueVitalsCount ?? 0) > 0
               ? `${plan.dueVitalsCount} fällige Messung(en)`
-              : 'Aktuelle Messungen'
+              : 'In dieser Planansicht nicht geladen'
           }
         >
           {vitals.length === 0 ? (
             <EmptyState
-              title="Keine Vitalwerte"
-              message="Für diesen Pflegeplan liegen noch keine Messungen vor."
+              title="Vitalwerte separat prüfen"
+              message="Diese Planansicht lädt keine Vitalmessungen. Vorhandene Messungen und fällige Kontrollen prüfen Sie im Bereich Vitalwerte."
             />
           ) : (
             vitals.map((reading) => (

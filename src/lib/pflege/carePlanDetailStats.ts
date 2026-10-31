@@ -50,10 +50,10 @@ export function buildCarePlanDetailKpis(plan: CarePlanDetail, mode: ColorMode = 
     {
       id: 'due-vitals',
       label: 'Fällige Vitalwerte',
-      value: String(plan.dueVitalsCount),
-      subValue: plan.dueVitalsCount > 0 ? 'Messung(en)' : 'Keine fällig',
+      value: plan.dueVitalsCount === null ? '—' : String(plan.dueVitalsCount),
+      subValue: plan.dueVitalsCount === null ? 'Nicht geladen' : plan.dueVitalsCount > 0 ? 'Messung(en)' : 'Keine fällig',
       icon: '🩺',
-      accentColor: plan.dueVitalsCount > 0 ? colors.orange : colors.textMuted,
+      accentColor: (plan.dueVitalsCount ?? 0) > 0 ? colors.orange : colors.textMuted,
     },
     validityKpi,
     {

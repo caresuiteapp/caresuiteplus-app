@@ -1,0 +1,23 @@
+# Pflegeplan-Details: eigener Leseablauf am 31.10.2026
+
+Ausgangspunkt ist `0728349126bcbcabdee259715cf196730aca9013`. Die GitHub-Statusabfrage bestätigt für genau diesen Commit erfolgreiche Abschlüsse der vier Vercel-Projekte `caresuiteplus-app`, `caresuiteplus`, `caresuiteplusapp` und `repository`. Dieser Nachweis gilt nicht automatisch für den nachfolgenden Quellstand und ist keine Produktions-Promotion.
+
+## Tatsächliche Korrektur
+
+Die Web-Detailroute verwendete den allgemeinen `useAsyncQuery` ohne eigenen Abfrageschlüssel für Konto und Sitzung. Dessen Abhängigkeiten enthielten lediglich Mandant, Plan-ID und Rollenbezeichnung. Ein anderer Auth-Account oder ein anderes internes Profil mit derselben Rolle war damit keine neue Detailgeneration. Der separate gespeicherte SIS-Lesebeleg hatte bereits eine stärkere Bindung; er schützte nicht automatisch die übrigen angezeigten Planfelder.
+
+`useCarePlanDetail.web.ts` bindet den gesamten angezeigten Detailstand an das tatsächliche Auth-Konto, internes Profil, Mandant, Rolle, Token, Ablaufzeit, bestätigte Rechtemenge, SDK und konkrete Plan-ID. Ein Wechsel entfernt den vorherigen Stand bereits beim Rendern. Die Antwort muss unabhängig von Abfragefiltern zur angeforderten Plan-ID und zum Mandanten passen. Der existierende Dienst führt weiterhin seine Lese- und Rollenprüfung aus; dieser Block gewährt keine Datenbankrechte.
+
+Jeder Leseversuch besitzt ein eigenes Ticket. Zurückbehaltene Neuladeaktionen, konkurrierende lokale Aufrufe und Antworten nach Auswahlwechsel oder Unmount können keine alten Daten veröffentlichen. Ein ausdrücklich begonnenes Neuladen entfernt den zuvor angezeigten Stand. Schlägt es fehl, erscheinen Fehler und erneuter Versuch statt einer unbemerkt alten Plananzeige. Die Fortschreiben-Aktion prüft unmittelbar vor der Navigation ihre ursprüngliche Anzeige und das aktuelle Verwaltungsrecht. Auch ein früherer erfolgreicher Stand ist nach einem Neuladen keine gültige Aktionsgrundlage mehr.
+
+Die Native-Implementierung und ihre Einbindung in den Detailbildschirm werden ausschließlich aus der Web-Quelle erzeugt. Der Quellabgleich umfasst nun 1.155 Module und 271 Routen, vier unveränderte dedizierte Native-Ausnahmen und null veraltete generierte Dateien.
+
+## Verständliche Grenzen der Anzeige
+
+Der bestehende Detaildienst lädt keine Vitalmessungen; die bisher feste leere Liste belegte deshalb nicht das Fehlen von Messungen. Die Ansicht benennt diesen fehlenden Leseumfang jetzt ausdrücklich und verweist auf den Bereich Vitalwerte. Die Detaildaten unterscheiden ausdrücklich `null` für nicht geladene Vitalfälligkeiten von einer tatsächlich ermittelten Null. Auch die Kennzahl im Kopfbereich zeigt bei `null` „Nicht geladen“. Ebenso wird aus null ermittelten fälligen Maßnahmen keine fachliche Aktualitätsaussage mehr abgeleitet. Die neue Formulierung beschreibt ausschließlich den technischen Fälligkeitsbefund. Damit wird weder eine Vitalabfrage implementiert noch eine pflegefachliche Entscheidung getroffen.
+
+## Verifikation
+
+40 tatsächliche Hook-Verhaltenstests prüfen Web und generiertes Native. Sie umfassen getrennte Account-/Profilwechsel, Mandant, Sitzung, Ablaufzeit, Rolle, Rechteidentität, SDK und Auswahl, verspätete Antworten, Fehler und Wiederholung, doppelte Aufrufe, Unmount sowie fremde ID-/Mandantenantworten und zurückbehaltene Aktionsgrundlagen. Die Hooks werden mit synthetischen Dienst- und Auth-Grenzen ausgeführt. Es sind keine authentifizierten HTTP-, optischen Browser- oder Geräteprüfungen.
+
+62 betroffene Vitest-Fälle in fünf Suiten bestehen, einschließlich drei Fällen zur Unterscheidung zwischen unbekannter Fälligkeit, ermittelter Null und positiver Anzahl sowie der globalen Modul- und Navigationssperren. Der vollständige Node-Lauf des abschließenden Quellstands besteht mit **15.115 Tests, null Fehlern und null übersprungenen Fällen**; die 40 neuen Hookfälle sind enthalten. Die vollständige Produktions-Releasekette ist mit Exitcode 0 bestanden: gemeinsamer Native-Quellabgleich, TypeScript, sämtliche fachübergreifenden Releaseprüfungen, 686 Elternrouten, Vercel-Konfiguration, statischer Expo-Webexport, Sprachdateien, 21 Kalenderdateien, sieben identische initiale React-Wurzeln und öffentliche Markenseiten. Log-Hashes und Quellstände stehen im zugehörigen Audit. Die dokumentierten früheren 15.071 Fälle gehören weiterhin zu ihrem eigenen datierten Lauf. Pflege bleibt gesperrt; PR #155 bleibt ein Entwurf. Es erfolgen keine entfernte Datenbankänderung, keine API-Rechtevergabe, keine Hauptzweigübernahme und kein signiertes App-Paket. Vollständige native Pflegeplan-Schreibketten, HTTP-/RLS-Nachweise und pflegefachliche Abnahme bleiben offen.

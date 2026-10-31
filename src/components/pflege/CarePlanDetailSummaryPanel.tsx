@@ -104,7 +104,7 @@ export function CarePlanDetailSummaryPanel({ planId }: CarePlanDetailSummaryPane
         <SummaryRow label="Gültig bis" value={plan.validUntil ? formatDate(plan.validUntil) : 'Offen'} />
         <SummaryRow label="Pflegekraft" value={plan.employeeName} />
         <SummaryRow label="Standort" value={plan.city} />
-        {plan.dueVitalsCount > 0 ? (
+        {(plan.dueVitalsCount ?? 0) > 0 ? (
           <SummaryRow label="Fällige Vitalwerte" value={String(plan.dueVitalsCount)} />
         ) : null}
       </SectionPanel>

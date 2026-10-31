@@ -5709,9 +5709,15 @@
       "environment": []
     },
     {
+      "web": "src/hooks/useCarePlanDetail.web.ts",
+      "native": "src/hooks/useCarePlanDetail.native.ts",
+      "sourceHash": "7403fb1464397701b4d855f382be76747daffde238b7300d90de7b643e721c3b",
+      "environment": []
+    },
+    {
       "web": "src/screens/pflege/CarePlanDetailScreen.web.tsx",
       "native": "src/screens/pflege/CarePlanDetailScreen.native.tsx",
-      "sourceHash": "fc57cce83f0ba1ca45428509575e96196111d59b2afe01769efaf690682dc1d1",
+      "sourceHash": "2c0f52e46592181d864ccf20d3d6ea677943035efa8c6e9d64af7879ad0d2154",
       "environment": []
     },
     {

@@ -227,8 +227,8 @@ export const carePlanLiveRepository = {
           : 'Nicht zugewiesen',
         nextActionHint: list.alertCount > 0
           ? `${list.alertCount} Maßnahme(n) müssen evaluiert werden.`
-          : 'Pflegeplan ist fachlich aktuell.',
-        dueVitalsCount: 0,
+          : 'Keine fällige Evaluation aus den geladenen Maßnahmen ermittelt. Fachliche Aktualität separat prüfen.',
+        dueVitalsCount: null,
         diagnosisCount: diagnosisResult.count ?? 0,
         activeOrderCount: orderResult.count ?? 0,
       },

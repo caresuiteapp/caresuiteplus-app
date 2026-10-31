@@ -10,7 +10,7 @@ import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton, PremiumCard, SectionPanel } from '@/components/ui';
 import { NativeCarePlanSourcePanel } from "../../components/pflege/NativeCarePlanSourcePanel.native.tsx";
-import { useCarePlanDetail } from '@/hooks/useCarePlanDetail';
+import { useCarePlanDetail } from "../../hooks/useCarePlanDetail.native.ts";
 import { useCareRuntimePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -48,7 +48,7 @@ export function CarePlanDetailScreen() {
     const tenantId = useServiceTenantId();
     const isReadOnly = !can('pflege.plans.manage');
     const roleKey = profile?.roleKey ?? 'nurse';
-    const { data: plan, vitals, loading, error, refresh, notFound, } = useCarePlanDetail(id);
+    const { data: plan, vitals, loading, error, refresh, notFound, isCurrent, } = useCarePlanDetail(id);
     if (loading || permissionsLoading) {
         return (<ScreenShell title="Pflegeplan" subtitle="Wird geladen…">
         <LoadingState message="Pflegeplandetails werden geladen…"/>
@@ -69,7 +69,8 @@ export function CarePlanDetailScreen() {
         return <ScreenShell title="Pflegeplan"><ErrorState message="Der geladene Pflegeplan gehört nicht zur aktuellen Auswahl. Bitte neu laden." onRetry={refresh}/></ScreenShell>;
     }
     return (<ScreenShell title={plan.title} subtitle={`${plan.clientName} · ${roleLabel ?? 'Demo'}`} rightSlot={<View style={styles.headerActions}>
-          {!isReadOnly ? (<PremiumButton title="Fortschreiben" size="sm" onPress={() => router.push(`/pflege/planung/${plan.id}/edit` as never)}/>) : null}
+          {!isReadOnly ? (<PremiumButton title="Fortschreiben" size="sm" onPress={() => { if (isCurrent() && can('pflege.plans.manage'))
+                router.push(`/pflege/planung/${plan.id}/edit` as never); }}/>) : null}
           <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()}/>
         </View>}>
       <CarePlanDetailHero plan={plan} roleKey={roleKey} isReadOnly={isReadOnly}/>
@@ -113,10 +114,10 @@ export function CarePlanDetailScreen() {
               </PremiumCard>)))}
         </SectionPanel>
 
-        <SectionPanel title="Vitalwerte" subtitle={plan.dueVitalsCount > 0
+        <SectionPanel title="Vitalwerte" subtitle={(plan.dueVitalsCount ?? 0) > 0
             ? `${plan.dueVitalsCount} fällige Messung(en)`
-            : 'Aktuelle Messungen'}>
-          {vitals.length === 0 ? (<EmptyState title="Keine Vitalwerte" message="Für diesen Pflegeplan liegen noch keine Messungen vor."/>) : (vitals.map((reading) => (<VitalReadingListCard key={reading.id} reading={reading} onPress={() => router.push(`/pflege/vitalwerte/${reading.id}` as never)}/>)))}
+            : 'In dieser Planansicht nicht geladen'}>
+          {vitals.length === 0 ? (<EmptyState title="Vitalwerte separat prüfen" message="Diese Planansicht lädt keine Vitalmessungen. Vorhandene Messungen und fällige Kontrollen prüfen Sie im Bereich Vitalwerte."/>) : (vitals.map((reading) => (<VitalReadingListCard key={reading.id} reading={reading} onPress={() => router.push(`/pflege/vitalwerte/${reading.id}` as never)}/>)))}
         </SectionPanel>
 
         <PflegeCrossModuleLinksPanel context="care-plan"/>

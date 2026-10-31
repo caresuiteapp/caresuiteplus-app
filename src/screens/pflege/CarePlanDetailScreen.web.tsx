@@ -8,7 +8,7 @@ import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton, PremiumCard, SectionPanel } from '@/components/ui';
 import { NativeCarePlanSourcePanel } from '@/components/pflege/NativeCarePlanSourcePanel.web';
-import { useCarePlanDetail } from '@/hooks/useCarePlanDetail';
+import { useCarePlanDetail } from '@/hooks/useCarePlanDetail.web';
 import { useCareRuntimePermissions } from '@/hooks/pflege/useCareRuntimePermissions.web';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -55,6 +55,7 @@ export function CarePlanDetailScreen() {
     error,
     refresh,
     notFound,
+    isCurrent,
   } = useCarePlanDetail(id);
 
   if (loading || permissionsLoading) {
@@ -94,7 +95,7 @@ export function CarePlanDetailScreen() {
       rightSlot={
         <View style={styles.headerActions}>
           {!isReadOnly ? (
-            <PremiumButton title="Fortschreiben" size="sm" onPress={() => router.push(`/pflege/planung/${plan.id}/edit` as never)} />
+            <PremiumButton title="Fortschreiben" size="sm" onPress={() => { if (isCurrent() && can('pflege.plans.manage')) router.push(`/pflege/planung/${plan.id}/edit` as never); }} />
           ) : null}
           <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
         </View>
@@ -163,15 +164,15 @@ export function CarePlanDetailScreen() {
         <SectionPanel
           title="Vitalwerte"
           subtitle={
-            plan.dueVitalsCount > 0
+            (plan.dueVitalsCount ?? 0) > 0
               ? `${plan.dueVitalsCount} fällige Messung(en)`
-              : 'Aktuelle Messungen'
+              : 'In dieser Planansicht nicht geladen'
           }
         >
           {vitals.length === 0 ? (
             <EmptyState
-              title="Keine Vitalwerte"
-              message="Für diesen Pflegeplan liegen noch keine Messungen vor."
+              title="Vitalwerte separat prüfen"
+              message="Diese Planansicht lädt keine Vitalmessungen. Vorhandene Messungen und fällige Kontrollen prüfen Sie im Bereich Vitalwerte."
             />
           ) : (
             vitals.map((reading) => (

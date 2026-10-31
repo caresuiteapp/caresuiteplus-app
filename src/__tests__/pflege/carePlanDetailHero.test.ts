@@ -3,6 +3,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { getDemoCarePlanListItems } from '@/data/demo/carePlans';
+import type { CarePlanDetail } from '@/types/modules/pflege';
 import { buildCarePlanDetailKpis } from '@/lib/pflege/carePlanDetailStats';
 import { fetchCarePlanDetail } from '@/lib/pflege/carePlanDetailService';
 
@@ -39,4 +40,11 @@ describe('Pflege Care Plan Detail Hero (Sprint 67)', () => {
     expect(service).toContain('guardServiceTenant');
     expect(service).not.toContain('service_role');
   });
+});
+
+for (const count of [null, 0, 2]) it(`distinguishes unloaded vitals from measured zero and positive count: ${count}`, () => {
+  const plan = { tasks: [], validUntil: null, careLevel: null, dueVitalsCount: count } as unknown as CarePlanDetail;
+  const kpi = buildCarePlanDetailKpis(plan).find(item => item.id === 'due-vitals');
+  expect(kpi?.value).toBe(count === null ? '—' : String(count));
+  expect(kpi?.subValue).toBe(count === null ? 'Nicht geladen' : count === 0 ? 'Keine fällig' : 'Messung(en)');
 });

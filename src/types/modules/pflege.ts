@@ -54,7 +54,8 @@ export type CarePlanDetail = CarePlan & {
   city: string;
   employeeName: string;
   nextActionHint: string;
-  dueVitalsCount: number;
+  /** null: vital scheduling was not loaded for this detail. */
+  dueVitalsCount: number | null;
   diagnosisCount: number;
   activeOrderCount: number;
 };
