@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "synthetic": true,
+  "source": "Actual synthetic Staging SQL rollback fixture output, retained without rewriting packet or receipt values.",
+  "sourceFixture": "supabase/tests/pflege_wound_workspace_staging.sql",
+  "relatedPhotoFixture": "supabase/tests/pflege_wound_photo_consent_staging.sql",
+  "capturedOn": "2026-10-22",
+  "appliedMigrationVersions": ["20261022055559", "20261022055652", "20261022055659"],
+  "sha256": "a4cb532d08853d9b7b57d77a88070c03ab8a6fe5e5b697af8387e4ae6e5abcef",
+  "sqlRollbackAndCleanupVerified": true,
+  "authHttpVerified": false,
+  "browserVerified": false,
+  "storageBytesVerified": false,
+  "realClinicalQualificationVerified": false,
+  "limits": "Scope identifiers, packets and retained receipts only. No Auth claims, sessions, tokens or real patient data. Privileged synthetic qualification provisioning is not a real qualification or provisioning acceptance test."
+}

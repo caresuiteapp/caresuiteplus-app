@@ -482,6 +482,24 @@
       "environment": []
     },
     {
+      "web": "src/lib/careAssessment/useAssessmentPathOwnership.web.ts",
+      "native": "src/lib/careAssessment/useAssessmentPathOwnership.native.ts",
+      "sourceHash": "6966a8b51cad1d1672403c924b32a472c8750a56601947dee102df92672ae578",
+      "environment": []
+    },
+    {
+      "web": "src/lib/clients/clientRecordNativeOriginal.web.ts",
+      "native": "src/lib/clients/clientRecordNativeOriginal.native.ts",
+      "sourceHash": "4ed8c893af825c513aefc0c0afbc00a4e588ff384b87f933452e8842449c7ee1",
+      "environment": []
+    },
+    {
+      "web": "src/lib/careAssessment/useAssessmentPathDraft.web.ts",
+      "native": "src/lib/careAssessment/useAssessmentPathDraft.native.ts",
+      "sourceHash": "0ec9b9321233f1cef82ee34e924acdd809b4aecdeb8770b0a97ce3cb45adff06",
+      "environment": []
+    },
+    {
       "web": "src/lib/pflege/medicationTimeDisplay.web.ts",
       "native": "src/lib/pflege/medicationTimeDisplay.native.ts",
       "sourceHash": "abc3c79c2367364a03228a1fd8086cc7938c10c19decbcbf7583d4496d9091cc",
@@ -518,7 +536,7 @@
     {
       "web": "src/lib/pflege/medicationAdministrationService.ts",
       "native": "src/lib/pflege/medicationAdministrationService.native.ts",
-      "sourceHash": "6d76d76f1bcdf06616dbfcee2ee820e9c54dc9dee4b4ae9ed0c701283de48d81",
+      "sourceHash": "f63d9b6edea86aa716cc07cc8728c01b5298449e75f484cf7b81b2bf1969102a",
       "environment": []
     },
     {
@@ -532,19 +550,19 @@
     {
       "web": "src/lib/permissions/carePermissionOwner.web.ts",
       "native": "src/lib/permissions/carePermissionOwner.native.ts",
-      "sourceHash": "e672707f6904044c33b4b681bc6b14e237acd219f0113b2db06a0594b4f3cf2e",
+      "sourceHash": "307cf2ba400b3df3e7ac0716f6dad29cb316e2c273c2701649846cc8724cda32",
       "environment": []
     },
     {
       "web": "src/lib/permissions/currentCarePermissions.web.ts",
       "native": "src/lib/permissions/currentCarePermissions.native.ts",
-      "sourceHash": "653655e04170f3809a4e6798b50a7b7be25f256f901ea9004c514817358b1175",
+      "sourceHash": "13ac0307e775a00db36b141669ea9f6f18b738f1ff9e7f255a45b49021a9e57f",
       "environment": []
     },
     {
       "web": "src/lib/permissions/confirmedCarePermissions.web.ts",
       "native": "src/lib/permissions/confirmedCarePermissions.native.ts",
-      "sourceHash": "db8e0f61453d4fbacd0d5fa0b5af2f65a025a5416b2ab5a8bf99b689cd9a46bb",
+      "sourceHash": "c2a0f2c939cb91e819d70af69eac17553955dd1b012f7c9607a994e048d731ed",
       "environment": []
     },
     {
@@ -559,7 +577,7 @@
     {
       "web": "src/hooks/useMedicationSubmission.web.ts",
       "native": "src/hooks/useMedicationSubmission.native.ts",
-      "sourceHash": "63e583b9c0c963c876de5be0cd57a1956bfa096bc8c175a7fbb310d060cc9596",
+      "sourceHash": "03d74d9c76882b6f384f41135977881a19f993a69da0edf9986c19c75be974ba",
       "environment": []
     },
     {
@@ -595,10 +613,8 @@
     {
       "web": "src/lib/careAssessment/assessmentPathWorkspaceDomain.web.ts",
       "native": "src/lib/careAssessment/assessmentPathWorkspaceDomain.native.ts",
-      "sourceHash": "8a29d941fabe102797f63ed63f1258e3da7de7336b9326d6f2c2d57dda102786",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "9a9e86f5afa00383ec33859a0b4e5f35e285a2513c10129ad8d7a329ba544b36",
+      "environment": []
     },
     {
       "web": "src/lib/pflege/caseHandoverDomain.web.ts",
@@ -626,12 +642,22 @@
       ]
     },
     {
+      "web": "src/lib/pflege/careWorkspaceAuthority.web.ts",
+      "native": "src/lib/pflege/careWorkspaceAuthority.native.ts",
+      "sourceHash": "7f7044557775e2ee727793ef186726129bbf4e23c1c06d29d320d31eed650400",
+      "environment": []
+    },
+    {
+      "web": "src/lib/careAssessment/assessmentWorkspaceTransport.web.ts",
+      "native": "src/lib/careAssessment/assessmentWorkspaceTransport.native.ts",
+      "sourceHash": "bd9046a3f2af10b9189d8bba085a2c0f585a12998a930780a35281815ed78a91",
+      "environment": []
+    },
+    {
       "web": "src/lib/careAssessment/assessmentPathWorkspaceRepository.web.ts",
       "native": "src/lib/careAssessment/assessmentPathWorkspaceRepository.native.ts",
-      "sourceHash": "159122bd9b19cb616e2a91f67cb0d1ffa6b48aeccd1c9deadef999de7cb2964c",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "a07f61178ab4593c2c5e08a91ebaa0496e4c9eb7640081a52a1716add8c4ca76",
+      "environment": []
     },
     {
       "web": "src/lib/careAssessment/assessmentPathWorkspaceRepository.supabase.web.ts",
@@ -642,32 +668,27 @@
     {
       "web": "src/lib/careAssessment/assessmentPathWorkspaceWorkflow.web.ts",
       "native": "src/lib/careAssessment/assessmentPathWorkspaceWorkflow.native.ts",
-      "sourceHash": "8b863b9a218423faa88aa57038e3619324c706a184a3846e74a1eae35946f6f3",
+      "sourceHash": "5f5c06de6fc89ac0783b663c3051cdc8920fb0bd9db0323d92034bf15c378f4d",
       "environment": [
-        "structuredClone",
         "navigator"
       ]
     },
     {
       "web": "src/lib/careAssessment/assessmentPathWorkspaceForm.web.ts",
       "native": "src/lib/careAssessment/assessmentPathWorkspaceForm.native.ts",
-      "sourceHash": "447544e77149596608c3375fc26fa259bbf9b01a28e4ffe7267d3756fbd00ddf",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "e6c70dcd951530355fc8099155a68b09ea2da17197d2aecd738b92086c46fe9c",
+      "environment": []
     },
     {
       "web": "src/lib/careAssessment/assessmentPathWorkspaceDraft.web.ts",
       "native": "src/lib/careAssessment/assessmentPathWorkspaceDraft.native.ts",
-      "sourceHash": "274873b83f4d3ab6a3e493ff23f096ad0e4ab081f90e6607d44ee9ddc427bba3",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "c78c360d2d9660e0e8bc5970a16c3cc0c92054632026355514a0491e693be02d",
+      "environment": []
     },
     {
       "web": "src/components/careAssessment/AssessmentPathWorkspace.web.tsx",
       "native": "src/components/careAssessment/AssessmentPathWorkspace.native.tsx",
-      "sourceHash": "643f5821f933c4c6b9a5235732bc43039c010baf2e08db96066098f5e5d55ab3",
+      "sourceHash": "ca322c84a70eef4a1960469a9b845e28e860f0adc3297392ade2531cd5f62d2a",
       "environment": [
         "window",
         "crypto"
@@ -676,18 +697,14 @@
     {
       "web": "src/lib/careAssessment/carePlanPathWorkspaceDomain.web.ts",
       "native": "src/lib/careAssessment/carePlanPathWorkspaceDomain.native.ts",
-      "sourceHash": "22a8d2725bc391920b35b32b7407d24134103cb73bcf653fe016f1fb44c1203a",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "f77f7f8fa214a252600ce8439e275c414e3b042d0df193a373abf9f264a6706b",
+      "environment": []
     },
     {
       "web": "src/lib/careAssessment/carePlanPathWorkspaceRepository.web.ts",
       "native": "src/lib/careAssessment/carePlanPathWorkspaceRepository.native.ts",
-      "sourceHash": "5b15b0f0dfb2be34caf71dde1e8e16bced97cf8161fc9727d89bdd7be9aa703a",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "caf6f9ffd518533be2cf712d96ab2e7078da704d771f016951c62f51c2fceb5d",
+      "environment": []
     },
     {
       "web": "src/lib/careAssessment/carePlanPathWorkspaceRepository.supabase.web.ts",
@@ -698,36 +715,43 @@
     {
       "web": "src/lib/careAssessment/carePlanPathWorkspaceWorkflow.web.ts",
       "native": "src/lib/careAssessment/carePlanPathWorkspaceWorkflow.native.ts",
-      "sourceHash": "ac4c134c1a1a046832fd7adcc4c243d447c0a5cef678454f24b10565ebc9338a",
+      "sourceHash": "df92d67f27a4c92aa92b0225278c7da5b24e0883511720e2a9527a1466b8ad73",
       "environment": [
-        "structuredClone",
         "navigator"
       ]
     },
     {
       "web": "src/lib/careAssessment/carePlanPathWorkspaceForm.web.ts",
       "native": "src/lib/careAssessment/carePlanPathWorkspaceForm.native.ts",
-      "sourceHash": "4d49c041a356df066f9308dcbf30e3773ed1140ec26dc331398565a1184baf8d",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "bd6bc8674606b057e37fce808f19fb1107e4d07a10a123ed801306b67e78545a",
+      "environment": []
     },
     {
       "web": "src/lib/careAssessment/carePlanPathWorkspaceDraft.web.ts",
       "native": "src/lib/careAssessment/carePlanPathWorkspaceDraft.native.ts",
-      "sourceHash": "48f9623fc85aeeeed1ba1e939f974d888cd4e2b031de5793f25c5399a502be15",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "84945686ac697cd4e0abc64b5a8419e4fd094e88c7bf7196ad7ba40804c44a7b",
+      "environment": []
     },
     {
       "web": "src/components/careAssessment/CarePlanPathWorkspace.web.tsx",
       "native": "src/components/careAssessment/CarePlanPathWorkspace.native.tsx",
-      "sourceHash": "1920795d91e79330599ccf43b1a10ee77cdd40b326f47368ab0010c36a444703",
+      "sourceHash": "e8ae267efdb0b031824b2f54ad5737791c2394fe9528071874ed51631155d4eb",
       "environment": [
         "window",
         "crypto"
       ]
+    },
+    {
+      "web": "src/lib/careAssessment/useAssessmentPathSelection.web.ts",
+      "native": "src/lib/careAssessment/useAssessmentPathSelection.native.ts",
+      "sourceHash": "6a133f1105b1c84e896777e0d63d64562fc9c3c55897c13407fe421dc57cd70e",
+      "environment": []
+    },
+    {
+      "web": "src/components/careAssessment/AssessmentPlanPaths.web.tsx",
+      "native": "src/components/careAssessment/AssessmentPlanPaths.native.tsx",
+      "sourceHash": "cafe35334a7c3aaab99756d7d4016d20f92c903a58f9b608cb7a9812104fb4b8",
+      "environment": []
     },
     {
       "web": "src/lib/careAssessment/counselingCoordinationPath.web.ts",
@@ -880,12 +904,6 @@
         "structuredClone",
         "crypto"
       ]
-    },
-    {
-      "web": "src/lib/clients/clientRecordNativeOriginal.web.ts",
-      "native": "src/lib/clients/clientRecordNativeOriginal.native.ts",
-      "sourceHash": "4ed8c893af825c513aefc0c0afbc00a4e588ff384b87f933452e8842449c7ee1",
-      "environment": []
     },
     {
       "web": "src/lib/careAssessment/mentalHealthOriginals.web.ts",
@@ -1584,9 +1602,15 @@
       "environment": []
     },
     {
+      "web": "src/lib/permissions/careSdkOwner.web.ts",
+      "native": "src/lib/permissions/careSdkOwner.native.ts",
+      "sourceHash": "0c6abb4b421a4609e787509665a6312a8c7882b362d0b4cccf1643f540158f89",
+      "environment": []
+    },
+    {
       "web": "src/lib/clients/clientIntakeIdentitySession.web.ts",
       "native": "src/lib/clients/clientIntakeIdentitySession.native.ts",
-      "sourceHash": "6aad3b0ac1717be8ddf02ded75e926d5495a6c2064c0f873490ba402e3c4064a",
+      "sourceHash": "bfded23c99101636b10359e22078f4e8fe8c42820fa4f9fae6f6145fa15a0534",
       "environment": []
     },
     {
@@ -1619,7 +1643,7 @@
     {
       "web": "src/components/office/ClientIntakeIdentityPanel.web.tsx",
       "native": "src/components/office/ClientIntakeIdentityPanel.native.tsx",
-      "sourceHash": "6b95b8e63290d0f1afdf36517efec2f53f9b8dee06208257d76df26d80147f26",
+      "sourceHash": "1b99f1b45491afe3b25e350c44749d22e8a767bd060a51ed27fb4fd9a858ab9f",
       "environment": []
     },
     {
@@ -2645,41 +2669,73 @@
     {
       "web": "src/lib/pflege/basicCarePacket.web.ts",
       "native": "src/lib/pflege/basicCarePacket.native.ts",
-      "sourceHash": "e7d6f48f23001b5effe227e9f8ef2d265e78dff17d9a6bdf77ffdfde3aa60913",
+      "sourceHash": "3fa8555ee8e0a79c9e766f070796c4fa0257a0037b48ff4b0d880116c1da36b2",
+      "environment": []
+    },
+    {
+      "web": "src/lib/pflege/basicCareBinding.web.ts",
+      "native": "src/lib/pflege/basicCareBinding.native.ts",
+      "sourceHash": "6da682db91f542c5166a004c42853101eea2c591ee55491e11e7b00954ef5855",
       "environment": [
-        "structuredClone"
+        "crypto"
       ]
     },
     {
       "web": "src/lib/pflege/basicCareRepository.supabase.web.ts",
       "native": "src/lib/pflege/basicCareRepository.supabase.native.ts",
-      "sourceHash": "f443a6247c7611356db74d870497437bc901a4b4df4c97c9248bf235fd013979",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "2104e7ce6733820d45cd16def5d18dc897763770a2a39fd49c5b08c936a40508",
+      "environment": []
+    },
+    {
+      "web": "src/lib/pflege/basicCareBindingRepository.supabase.web.ts",
+      "native": "src/lib/pflege/basicCareBindingRepository.supabase.native.ts",
+      "sourceHash": "0521454d576a18fd08628d91aebdd78b56af7409403ce7d431e6351a12ee2175",
+      "environment": []
     },
     {
       "web": "src/lib/pflege/basicCareWorkflow.web.ts",
       "native": "src/lib/pflege/basicCareWorkflow.native.ts",
-      "sourceHash": "2c59126877d57c95ce2be2fa81fd41089e987672de70deb1914507a454b3f88f",
+      "sourceHash": "aecacef9c15d0999e1412a356261e16d9e3de12804db8aaab05c8cc6453b7daa",
       "environment": [
-        "localStorage",
-        "structuredClone"
+        "navigator",
+        "localStorage"
+      ]
+    },
+    {
+      "web": "src/lib/pflege/basicCareBindingWorkflow.web.ts",
+      "native": "src/lib/pflege/basicCareBindingWorkflow.native.ts",
+      "sourceHash": "9fb7b0e82c2a31ea2ef1c51017b54694f0ea7552d70bbbb03daea12f4fcf0165",
+      "environment": [
+        "localStorage"
+      ]
+    },
+    {
+      "web": "src/components/pflege/BasicCareBindingPanel.web.tsx",
+      "native": "src/components/pflege/BasicCareBindingPanel.native.tsx",
+      "sourceHash": "0ae43b7d894a49c3e2cd50608c1a48bf6427c29562098fb4eff11a0a409d8aab",
+      "environment": [
+        "crypto"
       ]
     },
     {
       "web": "src/components/pflege/BasicCareWorkspacePanel.web.tsx",
       "native": "src/components/pflege/BasicCareWorkspacePanel.native.tsx",
-      "sourceHash": "cac2fccaef0505920696721840c3825ced102a98285d3b987c80ee27118ca597",
+      "sourceHash": "796b66e865bf8a1cb80cd9ab240aaa2cb4e6ae4282e8e2a20424d2e4b6e2f25a",
       "environment": [
         "structuredClone",
         "crypto"
       ]
     },
     {
+      "web": "src/lib/pflege/careDocumentationPacket.web.ts",
+      "native": "src/lib/pflege/careDocumentationPacket.native.ts",
+      "sourceHash": "e6c4929807f02cb2133915d62167576731909a4d4abdd3142fea0b8ff7bf9eff",
+      "environment": []
+    },
+    {
       "web": "src/lib/pflege/careDocumentationPathWorkspaceDomain.web.ts",
       "native": "src/lib/pflege/careDocumentationPathWorkspaceDomain.native.ts",
-      "sourceHash": "1e4821b3ebf1f72fe7f7338de5ca2d9ac49bd79f67cc812e0dc21192ddb48fe2",
+      "sourceHash": "802e62c8dfe0fe914fe37467b3b23c86195000345af0270f3ef1bde8cf7fc17a",
       "environment": [
         "structuredClone"
       ]
@@ -2687,10 +2743,8 @@
     {
       "web": "src/lib/pflege/careDocumentationPathWorkspaceRepository.web.ts",
       "native": "src/lib/pflege/careDocumentationPathWorkspaceRepository.native.ts",
-      "sourceHash": "4e1cf4334e606df40f4507c9407e0371c23e0e21ba402f3a7d39747138877c7d",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "9841e81cce19cbc628bfde478b718d85a445c852209ad7e8fdc2b8faeaab6d98",
+      "environment": []
     },
     {
       "web": "src/lib/pflege/careDocumentationPathWorkspaceRepository.supabase.web.ts",
@@ -2733,20 +2787,10 @@
       ]
     },
     {
-      "web": "src/lib/pflege/careDocumentationPacket.web.ts",
-      "native": "src/lib/pflege/careDocumentationPacket.native.ts",
-      "sourceHash": "415e8f73403bdb12f78a74623a42c6b47b20ccd868337bd530eb959d8ed337f2",
-      "environment": [
-        "structuredClone"
-      ]
-    },
-    {
       "web": "src/lib/pflege/careDocumentationRepository.supabase.web.ts",
       "native": "src/lib/pflege/careDocumentationRepository.supabase.native.ts",
-      "sourceHash": "d2eb5fafcd3a23e6cef79e24529cf2f34f5b610e5aaaec95428ea322200aa0b7",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "52d42fc179f584a95735e5b36554fdb909947b07e63d0803bb1bc3aa1309a8c6",
+      "environment": []
     },
     {
       "web": "src/lib/pflege/careDocumentationWorkflow.web.ts",
@@ -2804,6 +2848,18 @@
       "environment": []
     },
     {
+      "web": "src/hooks/useCarePlanList.web.ts",
+      "native": "src/hooks/useCarePlanList.native.ts",
+      "sourceHash": "b8215af148e4fe3a6e2c66fb240dbafd24739d20778d782756ab42fe2dfc72c1",
+      "environment": []
+    },
+    {
+      "web": "src/components/pflege/CarePlansListView.web.tsx",
+      "native": "src/components/pflege/CarePlansListView.native.tsx",
+      "sourceHash": "76666014693042ff2678cea04e2026578ee6cb52a6dc44582e10afc5bdddf6a7",
+      "environment": []
+    },
+    {
       "web": "src/lib/pflege/careSchedulingPreferenceEvidence.web.ts",
       "native": "src/lib/pflege/careSchedulingPreferenceEvidence.native.ts",
       "sourceHash": "a07d948f6ab4f870a8490d8d054b0b7d021be4dc2ea737779b77e9931a79017a",
@@ -2818,7 +2874,7 @@
     {
       "web": "src/components/pflege/CareWriteReconciliationNotice.web.tsx",
       "native": "src/components/pflege/CareWriteReconciliationNotice.native.tsx",
-      "sourceHash": "a8638f14de08d9fa2d321ffa43b5d9af8b5f2707ae1d71f17dc2d9c3aa58d062",
+      "sourceHash": "64834257403d0960a4561862d981ff58edd9fa05b81ebe9f37d584f8950038db",
       "environment": []
     },
     {
@@ -2968,6 +3024,47 @@
       "environment": []
     },
     {
+      "web": "src/lib/pflege/medicationSafetyPacket.web.ts",
+      "native": "src/lib/pflege/medicationSafetyPacket.native.ts",
+      "sourceHash": "f13ba255f30f8b2e2c685d1de0b60232a7b0512b6702f5dcd5fed988360f551e",
+      "environment": [
+        "structuredClone"
+      ]
+    },
+    {
+      "web": "src/lib/pflege/medicationOrderRevisionDomain.web.ts",
+      "native": "src/lib/pflege/medicationOrderRevisionDomain.native.ts",
+      "sourceHash": "c929216f2a0349b5b4efaec289bdde11112c834f5fa0386f23460f17aedb2035",
+      "environment": [
+        "structuredClone"
+      ]
+    },
+    {
+      "web": "src/lib/pflege/medicationDailyPlanDomain.web.ts",
+      "native": "src/lib/pflege/medicationDailyPlanDomain.native.ts",
+      "sourceHash": "a4e19f5f09d17cdd491984ca7644dd680065f60d54b10389e799b877369d391d",
+      "environment": [
+        "structuredClone"
+      ]
+    },
+    {
+      "web": "src/lib/pflege/medicationDailyPlanService.web.ts",
+      "native": "src/lib/pflege/medicationDailyPlanService.native.ts",
+      "sourceHash": "16e2ecf09d3e2d66faf01b32d624115fbce7165666a34e4a8f510ac59e73e50a",
+      "environment": [
+        "structuredClone"
+      ]
+    },
+    {
+      "web": "src/components/pflege/MedicationDailyPlanPanel.web.tsx",
+      "native": "src/components/pflege/MedicationDailyPlanPanel.native.tsx",
+      "sourceHash": "de1c883f46e5a34457406ba744f4a24aa62eb75883657d55bb649ba07483a670",
+      "environment": [
+        "structuredClone",
+        "crypto"
+      ]
+    },
+    {
       "web": "src/lib/pflege/medicationHistoricalPlan.web.ts",
       "native": "src/lib/pflege/medicationHistoricalPlan.native.ts",
       "sourceHash": "f6a0410ea0401c94c69fc347f64f8e48c962c15d19a590b30db0518a2876916b",
@@ -2982,11 +3079,54 @@
       "environment": []
     },
     {
-      "web": "src/lib/pflege/medicationSafetyPacket.web.ts",
-      "native": "src/lib/pflege/medicationSafetyPacket.native.ts",
-      "sourceHash": "f13ba255f30f8b2e2c685d1de0b60232a7b0512b6702f5dcd5fed988360f551e",
+      "web": "src/lib/pflege/medicationOrderReviewDomain.web.ts",
+      "native": "src/lib/pflege/medicationOrderReviewDomain.native.ts",
+      "sourceHash": "f426a05ad7232bdcdd617bd7bddf59ba0f6eb660f5304fb39ca888c04df84d3b",
       "environment": [
         "structuredClone"
+      ]
+    },
+    {
+      "web": "src/lib/pflege/medicationOrderReviewService.web.ts",
+      "native": "src/lib/pflege/medicationOrderReviewService.native.ts",
+      "sourceHash": "db154fb561748f634ae189dec75fec10d6575c0eb77aa00dc700b262b45f409f",
+      "environment": [
+        "structuredClone"
+      ]
+    },
+    {
+      "web": "src/lib/pflege/medicationOrderReviewWorkflow.web.ts",
+      "native": "src/lib/pflege/medicationOrderReviewWorkflow.native.ts",
+      "sourceHash": "88f6fbd8d42886360672364a756af24ecf30e6d5c2a4f64b592c065e231347bf",
+      "environment": [
+        "localStorage",
+        "structuredClone"
+      ]
+    },
+    {
+      "web": "src/lib/pflege/medicationOrderRevisionService.web.ts",
+      "native": "src/lib/pflege/medicationOrderRevisionService.native.ts",
+      "sourceHash": "b359370e6bb8ad1bd1af02689097e0bad30c66b48540f3a240eed18a890b5b37",
+      "environment": [
+        "structuredClone"
+      ]
+    },
+    {
+      "web": "src/components/pflege/MedicationOrderReviewPanel.web.tsx",
+      "native": "src/components/pflege/MedicationOrderReviewPanel.native.tsx",
+      "sourceHash": "78b32a469be2e75690ae1217670e3ee1f721ec99f743dc97ff97771f30280441",
+      "environment": [
+        "structuredClone",
+        "crypto"
+      ]
+    },
+    {
+      "web": "src/components/pflege/MedicationOrderRevisionPanel.web.tsx",
+      "native": "src/components/pflege/MedicationOrderRevisionPanel.native.tsx",
+      "sourceHash": "efd08cf92a61b3a3345b723088b590bdfedb655dea1a99a809f11bea63fcc8cb",
+      "environment": [
+        "structuredClone",
+        "crypto"
       ]
     },
     {
@@ -3025,7 +3165,7 @@
     {
       "web": "src/lib/pflege/medicationSafetyRepository.supabase.web.ts",
       "native": "src/lib/pflege/medicationSafetyRepository.supabase.native.ts",
-      "sourceHash": "a9c3366304d2ce9d7400f4498cd3b225a4e8b68d8755663174ef6dc49c91aaa2",
+      "sourceHash": "9cf48a5972d15b5d3faed7de936c5bac41430eb0837cbba71066bda1fa15aeb2",
       "environment": [
         "structuredClone"
       ]
@@ -3073,34 +3213,99 @@
       ]
     },
     {
+      "web": "src/lib/pflege/nativeCarePlanSourceRepository.web.ts",
+      "native": "src/lib/pflege/nativeCarePlanSourceRepository.native.ts",
+      "sourceHash": "7e249d6fea7b4bdfea6acbc6946df78d38652e96e5230058b8a246156dd81b85",
+      "environment": []
+    },
+    {
+      "web": "src/lib/pflege/nativeCarePlanSourceController.web.ts",
+      "native": "src/lib/pflege/nativeCarePlanSourceController.native.ts",
+      "sourceHash": "fb92f5e1001d6307c4da470adc1ca13848caab4680e494c2ae5f56e451d96b4d",
+      "environment": []
+    },
+    {
+      "web": "src/lib/pflege/nativeCarePlanSourceRepository.supabase.web.ts",
+      "native": "src/lib/pflege/nativeCarePlanSourceRepository.supabase.native.ts",
+      "sourceHash": "4cf4051ec3c865e432b887eae74c06f001e0a1048b3bd841241aa7b11cb1ae0b",
+      "environment": []
+    },
+    {
+      "web": "src/hooks/pflege/useNativeCarePlanSource.web.ts",
+      "native": "src/hooks/pflege/useNativeCarePlanSource.native.ts",
+      "sourceHash": "cc98b3845866f10f2cf5d5bf3791e388fba2dc83e6baba5294995eb6fa753598",
+      "environment": []
+    },
+    {
+      "web": "src/components/pflege/NativeCarePlanSourcePanel.web.tsx",
+      "native": "src/components/pflege/NativeCarePlanSourcePanel.native.tsx",
+      "sourceHash": "7ecd7421d91f25c578d39f5507d5fbb7928e6a60c2be120ca378e94b4b6884fc",
+      "environment": []
+    },
+    {
       "web": "src/lib/pflege/nutritionEliminationPacket.web.ts",
       "native": "src/lib/pflege/nutritionEliminationPacket.native.ts",
-      "sourceHash": "9d1bf621fdc2bd4ecc3e0c26b21e023f5365202e381493e27906361e424c4d46",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "488b08d48f79ec79c1ed088ebd690eed054aa427a8e5b0534edbb53542d045aa",
+      "environment": []
     },
     {
       "web": "src/lib/pflege/nutritionEliminationRepository.supabase.web.ts",
       "native": "src/lib/pflege/nutritionEliminationRepository.supabase.native.ts",
-      "sourceHash": "22dddaf3252e3a706403ad0c746332259b931ccc4c942fb84cd273b4f260bacb",
+      "sourceHash": "6812c3b0bbf1e99dd74379290762e6bf04c6d51751ba9e8a1c01704856d08ebe",
+      "environment": []
+    },
+    {
+      "web": "src/lib/pflege/nutritionHistoryPresentation.web.ts",
+      "native": "src/lib/pflege/nutritionHistoryPresentation.native.ts",
+      "sourceHash": "565753108f25da124cc10d6a0d99840b7ab14084c84d4e7cfbd7bea60e50309d",
+      "environment": []
+    },
+    {
+      "web": "src/lib/pflege/nutritionWorkspaceActions.web.ts",
+      "native": "src/lib/pflege/nutritionWorkspaceActions.native.ts",
+      "sourceHash": "e06f772e65110f817d45387e4b817e89265bd18add304b7d9e5efaabf9a44a45",
+      "environment": []
+    },
+    {
+      "web": "src/lib/pflege/nutritionPlanBindingDomain.web.ts",
+      "native": "src/lib/pflege/nutritionPlanBindingDomain.native.ts",
+      "sourceHash": "913d62c7d18c05552af00c0bf2fba47305d7edb9999eacfa5bff5ae201b648ed",
+      "environment": []
+    },
+    {
+      "web": "src/lib/pflege/nutritionPlanBindingRepository.supabase.web.ts",
+      "native": "src/lib/pflege/nutritionPlanBindingRepository.supabase.native.ts",
+      "sourceHash": "1488c95264895488668ab6cc41d0092aa59bf85e9327d5fd1538b254d7f7cc0a",
+      "environment": []
+    },
+    {
+      "web": "src/lib/pflege/nutritionPlanBindingWorkflow.web.ts",
+      "native": "src/lib/pflege/nutritionPlanBindingWorkflow.native.ts",
+      "sourceHash": "cf9b64d76ccaa6722ac8125ee59383f116e9951fc0c208d102a13bac76bb53ec",
       "environment": [
-        "structuredClone"
+        "localStorage"
+      ]
+    },
+    {
+      "web": "src/components/pflege/NutritionPlanBindingCapturePanel.web.tsx",
+      "native": "src/components/pflege/NutritionPlanBindingCapturePanel.native.tsx",
+      "sourceHash": "fd3854a5f06adb752dd26cb0a48556f0a820e3fd29821cfff3f52c4d037977a1",
+      "environment": [
+        "crypto"
       ]
     },
     {
       "web": "src/lib/pflege/nutritionEliminationWorkflow.web.ts",
       "native": "src/lib/pflege/nutritionEliminationWorkflow.native.ts",
-      "sourceHash": "7b3d3f0de743220821bddc70560416a9926c9bca05679d944321dff49a1b3736",
+      "sourceHash": "7b39759c875fad25cb57357a3c42a8cb822b6fd0a88b21530ac191f808a80c59",
       "environment": [
-        "localStorage",
-        "structuredClone"
+        "localStorage"
       ]
     },
     {
       "web": "src/components/pflege/NutritionReviewPanel.web.tsx",
       "native": "src/components/pflege/NutritionReviewPanel.native.tsx",
-      "sourceHash": "54f1c374bf0b0fc3056cbbb33075f0d97365949ad706fe585f3ea84ba308a3e8",
+      "sourceHash": "f36f0d8e44401d8af04c92a5686cbbac8a78b490095f10fbe8241bd6836d16ce",
       "environment": [
         "crypto",
         "structuredClone"
@@ -3115,7 +3320,7 @@
     {
       "web": "src/components/pflege/NutritionEliminationWorkspacePanel.web.tsx",
       "native": "src/components/pflege/NutritionEliminationWorkspacePanel.native.tsx",
-      "sourceHash": "b7fc11e9d17cfa3a9a88bf7880faee3966dd8f2c1ac9b97c055af25580f6cc1f",
+      "sourceHash": "6bb912530436ac813c4c099da9e8d60a19198b29c3b1681d476edc94cf4851b3",
       "environment": [
         "structuredClone",
         "crypto"
@@ -3189,7 +3394,7 @@
     {
       "web": "src/lib/pflege/respiratoryIntensiveCareRepository.supabase.web.ts",
       "native": "src/lib/pflege/respiratoryIntensiveCareRepository.supabase.native.ts",
-      "sourceHash": "024afa2b01b6807f340d072e61bdb0b63d4e067cbc4c1e5cad2f5b6220913c3a",
+      "sourceHash": "2ef0e42d2e0d72bd1124bbeff96b7f14d92773bf9315923c020ecb426d1863bc",
       "environment": [
         "structuredClone"
       ]
@@ -3326,7 +3531,7 @@
     {
       "web": "src/lib/pflege/treatmentCarePacket.web.ts",
       "native": "src/lib/pflege/treatmentCarePacket.native.ts",
-      "sourceHash": "88cd7a4f9cfc5f9351c4fe990eef70489f9fdabdc2e5ba9e98604279de3916ea",
+      "sourceHash": "c20bd0412f2a858fdcb9d7750d7a8a726d3c8ca3f46ca0853ba299f7fed4266a",
       "environment": [
         "structuredClone"
       ]
@@ -3342,7 +3547,7 @@
     {
       "web": "src/lib/pflege/treatmentCareReviewRepository.supabase.web.ts",
       "native": "src/lib/pflege/treatmentCareReviewRepository.supabase.native.ts",
-      "sourceHash": "31968dc0e4f8f49c90bc47f5893fb46f2d7bf02930b60cd4053c2c1fe59ac316",
+      "sourceHash": "d73be8f8a1dd761419053a678e38e19474a555bf0924678793097989fc320874",
       "environment": [
         "structuredClone"
       ]
@@ -3409,15 +3614,29 @@
     {
       "web": "src/lib/pflege/vitalCarePathPacket.web.ts",
       "native": "src/lib/pflege/vitalCarePathPacket.native.ts",
-      "sourceHash": "71b26aafdb160fd6cdb41f4e4746554c137a5aa7987424926c8d0414bca8c3bb",
+      "sourceHash": "8fb44a35bd9dd2d5f8c8cd5ad9e06920a5d338925635b06b43e217f402a300c2",
       "environment": [
         "structuredClone"
       ]
     },
     {
+      "web": "src/lib/pflege/vitalCareReview.web.ts",
+      "native": "src/lib/pflege/vitalCareReview.native.ts",
+      "sourceHash": "69a30f418a0e527a95e451069a425ea53ca43b442618c08e77c5047908bbc4d3",
+      "environment": [
+        "structuredClone"
+      ]
+    },
+    {
+      "web": "src/lib/pflege/vitalWorkspaceReadProof.web.ts",
+      "native": "src/lib/pflege/vitalWorkspaceReadProof.native.ts",
+      "sourceHash": "43c155a69d8052ae464f992722271ae38e5bb5308e21bd2bed25cd6e9f0eccea",
+      "environment": []
+    },
+    {
       "web": "src/lib/pflege/vitalCarePathRepository.supabase.web.ts",
       "native": "src/lib/pflege/vitalCarePathRepository.supabase.native.ts",
-      "sourceHash": "7d164931fa5f1e62348c846a53db1290528589ba45d58a5c19db5eb3cb9ddf16",
+      "sourceHash": "f41cbaf2c13d8253e50d9d2723b78cec5e80d334f6a25a20126e3296212b112e",
       "environment": [
         "structuredClone"
       ]
@@ -3441,17 +3660,9 @@
       ]
     },
     {
-      "web": "src/lib/pflege/vitalCareReview.web.ts",
-      "native": "src/lib/pflege/vitalCareReview.native.ts",
-      "sourceHash": "69a30f418a0e527a95e451069a425ea53ca43b442618c08e77c5047908bbc4d3",
-      "environment": [
-        "structuredClone"
-      ]
-    },
-    {
       "web": "src/lib/pflege/vitalCareReviewRepository.supabase.web.ts",
       "native": "src/lib/pflege/vitalCareReviewRepository.supabase.native.ts",
-      "sourceHash": "a364512b716dcb99cd977471fb0a7bcd006b32ad78d520c414bfd9b67fa86877",
+      "sourceHash": "0ecb2b9293e512ae0c3d1cec671c2d9411b1684913007607975c750f2b10793c",
       "environment": [
         "structuredClone"
       ]
@@ -3468,7 +3679,7 @@
     {
       "web": "src/components/pflege/VitalCareReviewPanel.web.tsx",
       "native": "src/components/pflege/VitalCareReviewPanel.native.tsx",
-      "sourceHash": "3c6270250be73db2301dca69534b73c1f6f2d5bfc16f35c5b12845fa09c5426f",
+      "sourceHash": "50e353f057129639d4f57e7d9d04b0ab17ec3303df4f1734fda3b6b2f1737c10",
       "environment": [
         "crypto"
       ]
@@ -3476,7 +3687,7 @@
     {
       "web": "src/components/pflege/VitalCarePathWorkspacePanel.web.tsx",
       "native": "src/components/pflege/VitalCarePathWorkspacePanel.native.tsx",
-      "sourceHash": "24ffdcaee9ec869ed07d55e9c22209e6ee85589a49ec87b370d440f08893703e",
+      "sourceHash": "adfaf0dbec6edacc6fe00dc95ce2795b0a9b707684647c52e7eab1483029fcad",
       "environment": [
         "structuredClone",
         "crypto"
@@ -3489,15 +3700,21 @@
       "environment": []
     },
     {
+      "web": "src/lib/pflege/vitalSdkOwner.web.ts",
+      "native": "src/lib/pflege/vitalSdkOwner.native.ts",
+      "sourceHash": "d7edb0b49a02d92a08d05354dd2596fd2736edc65c56192ba8d69dddb8336205",
+      "environment": []
+    },
+    {
       "web": "src/lib/pflege/vitalHistoryClientsOriginalRead.web.ts",
       "native": "src/lib/pflege/vitalHistoryClientsOriginalRead.native.ts",
-      "sourceHash": "59bada00c8fc7e0016269dac66301e32ee1a7b63f4f7f579405f4ab4bd8ff19b",
+      "sourceHash": "697cd5608bc829a3faaf143cb5c57211d2fdbb9aaaf9b9c5662d7f78c7a0c947",
       "environment": []
     },
     {
       "web": "src/lib/pflege/vitalHistoryRuntime.web.ts",
       "native": "src/lib/pflege/vitalHistoryRuntime.native.ts",
-      "sourceHash": "8eeb218456e060b5f7c613c7acd5b5c3e549ccc0553e7a2e694704593011b8a2",
+      "sourceHash": "ff069a2ed209ece8c404072282cda3079996306e795e4e44fc4e8eff921a9913",
       "environment": []
     },
     {
@@ -3521,7 +3738,7 @@
     {
       "web": "src/lib/pflege/vitalHistoryViewRuntime.web.ts",
       "native": "src/lib/pflege/vitalHistoryViewRuntime.native.ts",
-      "sourceHash": "a35087d243d4272faea923f870cdb9e4de54de7ac04c75225ef37cced8cb8a69",
+      "sourceHash": "8077ef3da181b7acc2c8c52edc54fb0dd0e4be4b65d281cd6e23cad9e5a38f32",
       "environment": []
     },
     {
@@ -3559,7 +3776,7 @@
     {
       "web": "src/lib/pflege/woundPathPacket.web.ts",
       "native": "src/lib/pflege/woundPathPacket.native.ts",
-      "sourceHash": "ff16f4ef3dfd4c9ddb026d0e5c207d4e3c82c5957ad39be99a4ce07edcfd83c8",
+      "sourceHash": "65415578adcb5d4c51e1c6c035208dce3e7d4b7d477aaea4732f68b314166463",
       "environment": [
         "structuredClone"
       ]
@@ -3575,7 +3792,7 @@
     {
       "web": "src/lib/pflege/woundPathReviewRepository.supabase.web.ts",
       "native": "src/lib/pflege/woundPathReviewRepository.supabase.native.ts",
-      "sourceHash": "2dac6a339c78fef9b5ba4232b96b19c9a75981849f99e9e7aaa51df03467ef80",
+      "sourceHash": "5a9633ef53b6366b2c7b47a8ad160e21934aff70be423a6f19125fd67044e448",
       "environment": [
         "structuredClone"
       ]
@@ -3600,7 +3817,7 @@
     {
       "web": "src/lib/pflege/woundPathRepository.supabase.web.ts",
       "native": "src/lib/pflege/woundPathRepository.supabase.native.ts",
-      "sourceHash": "2ddfbc43590ec2808ccc08b4de9e9b7a07a70a317c54ec6eddc8b20bbd783471",
+      "sourceHash": "27d0a535825f927edca83752de886ec0de0e23a9b2e062d62170e081cd6cd829",
       "environment": [
         "structuredClone"
       ]
@@ -4748,9 +4965,15 @@
       "environment": []
     },
     {
+      "web": "src/lib/careAssessment/useAssessmentNativeDraft.web.ts",
+      "native": "src/lib/careAssessment/useAssessmentNativeDraft.native.ts",
+      "sourceHash": "c8cdf28220966f5e45dafff46171a05c8bd89932cbeadfae3beaa5f1c250e619",
+      "environment": []
+    },
+    {
       "web": "src/lib/careAssessment/assessmentInstrumentPacket.web.ts",
       "native": "src/lib/careAssessment/assessmentInstrumentPacket.native.ts",
-      "sourceHash": "5f68eac57fe25a6751d7906974e6369846b6249099403ed60bff1070cde017ed",
+      "sourceHash": "ab43b0cef00d3bf233b3d436a694ca232438b16cfcbb73f111d6cf386bfca996",
       "environment": [
         "structuredClone"
       ]
@@ -4758,21 +4981,19 @@
     {
       "web": "src/lib/careAssessment/assessmentInstrumentRepository.supabase.web.ts",
       "native": "src/lib/careAssessment/assessmentInstrumentRepository.supabase.native.ts",
-      "sourceHash": "4efb169cd689dd79897b2e35b3b05d4d3167aee326e341075e22827e02e37f7e",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "0d1a5e4c87bb55f98e07b59db4b4d85bf92a39e77725a735078537b2856314c0",
+      "environment": []
     },
     {
       "web": "src/screens/careAssessment/AssessmentInstrumentPanel.web.tsx",
       "native": "src/screens/careAssessment/AssessmentInstrumentPanel.native.tsx",
-      "sourceHash": "52dc0192543f10672b5ba7c4976940f3b73db7554e28adacd590caed72eafa01",
+      "sourceHash": "29879c2eec660e409e6f6af4451397ba9bf2b808ac37fdc364ffa004d39edecb",
       "environment": []
     },
     {
       "web": "src/lib/careAssessment/planLifecyclePacket.web.ts",
       "native": "src/lib/careAssessment/planLifecyclePacket.native.ts",
-      "sourceHash": "e8dfd5c31de8a6a5d32000edf711fdcca9b11d9bce6bc96e7c5c8ced38d4e35a",
+      "sourceHash": "1e1bb0a3aff2e2ac58e44ea1c9935167fd94b1ed9493dbb88d3f7372b18d6a4e",
       "environment": [
         "structuredClone"
       ]
@@ -4910,7 +5131,7 @@
     {
       "web": "src/lib/careAssessment/planReviewOverview.ts",
       "native": "src/lib/careAssessment/planReviewOverview.native.ts",
-      "sourceHash": "eaee9e2e313eb6f6004ae008aa67dacea887363365ed3162a9662952f2cdfbb8",
+      "sourceHash": "6268e466d6277004f123f4f735e59fba346842ba7643dcf04ef2bf72d2ff0a6a",
       "environment": []
     },
     {
@@ -4955,24 +5176,30 @@
     {
       "web": "src/lib/careAssessment/planLifecycleRepository.supabase.web.ts",
       "native": "src/lib/careAssessment/planLifecycleRepository.supabase.native.ts",
-      "sourceHash": "c1051ae9eb75509e7d389fd5282ea54ad7921a7803a505ee709140620c5285b7",
-      "environment": [
-        "structuredClone"
-      ]
+      "sourceHash": "9f79b4d9b97bc6198e5c52fbe0ebb7c193d70bd5f301662ef275a5ccaa8106ea",
+      "environment": []
     },
     {
       "web": "src/screens/careAssessment/PlanLifecyclePanel.web.tsx",
       "native": "src/screens/careAssessment/PlanLifecyclePanel.native.tsx",
-      "sourceHash": "a1ff48ee2b29196ceaadd5775739f25fb623d3b7369c8f43ef8c5122433280bb",
+      "sourceHash": "da272f3fa41131890699875d24f7ff5f5cd1951a91f7a39cbdffe0073c21d389",
       "environment": [
         "crypto",
         "structuredClone"
       ]
     },
     {
+      "web": "src/lib/careAssessment/useAssessmentPathJournals.web.ts",
+      "native": "src/lib/careAssessment/useAssessmentPathJournals.native.ts",
+      "sourceHash": "d84fb62cf3488e106456a0763fcce640506f05c606277e0ccf64090b6f758262",
+      "environment": [
+        "window"
+      ]
+    },
+    {
       "web": "src/screens/careAssessment/CareAssessmentWorkspaceScreen.web.tsx",
       "native": "src/screens/careAssessment/CareAssessmentWorkspaceScreen.native.tsx",
-      "sourceHash": "23123d3d5530bb6754f8d934f1eb02d52c40859eb60c2d79142beea2f653df9c",
+      "sourceHash": "ba05f4af5c2f309652b4dc5176d94edd22bf87bfff21de7b7056788cefd212ea",
       "environment": [
         "structuredClone"
       ]
@@ -5494,6 +5721,24 @@
       "environment": []
     },
     {
+      "web": "src/hooks/useCarePlanDetail.web.ts",
+      "native": "src/hooks/useCarePlanDetail.native.ts",
+      "sourceHash": "7403fb1464397701b4d855f382be76747daffde238b7300d90de7b643e721c3b",
+      "environment": []
+    },
+    {
+      "web": "src/screens/pflege/CarePlanDetailScreen.web.tsx",
+      "native": "src/screens/pflege/CarePlanDetailScreen.native.tsx",
+      "sourceHash": "2c0f52e46592181d864ccf20d3d6ea677943035efa8c6e9d64af7879ad0d2154",
+      "environment": []
+    },
+    {
+      "web": "src/screens/pflege/CarePlansListScreen.web.tsx",
+      "native": "src/screens/pflege/CarePlansListScreen.native.tsx",
+      "sourceHash": "b6d4d32969cb2813c453899c92f9fd2a146b568a17adbd89c59a153c45cd3924",
+      "environment": []
+    },
+    {
       "web": "src/lib/pflege/careQualityVisitOriginals.web.ts",
       "native": "src/lib/pflege/careQualityVisitOriginals.native.ts",
       "sourceHash": "7fd56049fc735a8378f43441f2750d317f8b0c7535d1e500bc69d292f2bc99fa",
@@ -5576,7 +5821,7 @@
     {
       "web": "src/lib/clients/clientRecordNativeWrites.web.ts",
       "native": "src/lib/clients/clientRecordNativeWrites.native.ts",
-      "sourceHash": "9e953b53b1b9ac68b9839de6e797514bac78ab3dc76b46ad79dde28eab902c33",
+      "sourceHash": "ddeb40d2cadf09c8c95734ff4e21265263c664bdc0f397a2383456b57e5924e6",
       "environment": []
     },
     {
@@ -5639,6 +5884,12 @@
       ]
     },
     {
+      "web": "src/lib/pflege/ambulatoryWoundService.web.ts",
+      "native": "src/lib/pflege/ambulatoryWoundService.native.ts",
+      "sourceHash": "3ad78bd18c9839ac58cd681c8938e8c800de1161ddf5ddf523fa3db76906c62e",
+      "environment": []
+    },
+    {
       "web": "src/screens/pflege/WoundDocumentationForm.web.tsx",
       "native": "src/screens/pflege/WoundDocumentationForm.native.tsx",
       "sourceHash": "d502cec3fc9a0568344eb2d976dff1f6d8e91307ff05ee190474012e79a1adbc",
@@ -5687,15 +5938,43 @@
       ]
     },
     {
+      "web": "src/lib/pflege/medicationEventWrite.web.ts",
+      "native": "src/lib/pflege/medicationEventWrite.native.ts",
+      "sourceHash": "ce42df127fbf8b5ae2525b6b5a92c261cf3da5a417837bcfdbe3a0396606842c",
+      "environment": [
+        "structuredClone"
+      ]
+    },
+    {
       "web": "src/lib/pflege/medicationWitnessPool.web.ts",
       "native": "src/lib/pflege/medicationWitnessPool.native.ts",
       "sourceHash": "1583923068d7e8091a7d41d4228756fc8c1691b722c0d73390230ddcd4fbaed8",
       "environment": []
     },
     {
+      "web": "src/lib/pflege/medicationSourceCaptureReceipt.web.ts",
+      "native": "src/lib/pflege/medicationSourceCaptureReceipt.native.ts",
+      "sourceHash": "c8b4dc827dffa47f44a9316d500c1f52a7c03652afcad6c72b2c24c292f0d7e6",
+      "environment": [
+        "structuredClone"
+      ]
+    },
+    {
+      "web": "src/lib/pflege/medicationSourceCaptureService.web.ts",
+      "native": "src/lib/pflege/medicationSourceCaptureService.native.ts",
+      "sourceHash": "a8487e0964d90daec6b22d708603f2ee8be8c595236b5b867c9f4a7ea004429f",
+      "environment": []
+    },
+    {
+      "web": "src/lib/pflege/medicationSourceWorkflow.web.ts",
+      "native": "src/lib/pflege/medicationSourceWorkflow.native.ts",
+      "sourceHash": "d504ac79ee376baabca94a606e7d4a73f3fe624bf73c70728940efc4917cb139",
+      "environment": []
+    },
+    {
       "web": "src/screens/pflege/MedicationDetailScreen.web.tsx",
       "native": "src/screens/pflege/MedicationDetailScreen.native.tsx",
-      "sourceHash": "bca2d68acf8310e4ca63ee8ca026a9e48d494403b15fd19c4d1e396b2f541ec2",
+      "sourceHash": "6ff8fdeac4aead20eb8fd1026b4ac230dc4c4f4b6d72513bbb102b23fd7378d6",
       "environment": [
         "structuredClone"
       ]
@@ -5737,13 +6016,19 @@
     {
       "web": "src/screens/pflege/PflegeberichtErstellenScreen.web.tsx",
       "native": "src/screens/pflege/PflegeberichtErstellenScreen.native.tsx",
-      "sourceHash": "5ecdf9cf7b6de0763a635ced4eb15c787252e50afbe380ba4f42c53a94fdd86c",
+      "sourceHash": "d0c8ff98bacc06804489b0778d6915d14e1010879f998ab94bb909fcd3867a63",
       "environment": []
     },
     {
       "web": "src/screens/pflege/PflegeberichteListScreen.web.tsx",
       "native": "src/screens/pflege/PflegeberichteListScreen.native.tsx",
       "sourceHash": "e9213ba80fde6eccba086a3c934a63f1e117489b88f27c81673e7190112bb4d5",
+      "environment": []
+    },
+    {
+      "web": "src/screens/pflege/PflegeplanungListScreen.web.tsx",
+      "native": "src/screens/pflege/PflegeplanungListScreen.native.tsx",
+      "sourceHash": "748cb63e8be5325e1ef53f627bff68cbc8236060d2be17434d297c20ca19a402",
       "environment": []
     },
     {
@@ -5875,7 +6160,7 @@
     {
       "web": "src/lib/pflege/treatmentCareRepository.supabase.web.ts",
       "native": "src/lib/pflege/treatmentCareRepository.supabase.native.ts",
-      "sourceHash": "d86c91371ffed41b4f2c534628c6e3c9c25ad0b28d2d68258a9dc34c1079a038",
+      "sourceHash": "cd98ef5abda91cd6bf6218aa5da352030c1f92a1b3fddecdc646a3cf1887dcfb",
       "environment": [
         "structuredClone"
       ]
@@ -5901,7 +6186,7 @@
     {
       "web": "src/screens/pflege/TreatmentCareWorkspaceScreen.web.tsx",
       "native": "src/screens/pflege/TreatmentCareWorkspaceScreen.native.tsx",
-      "sourceHash": "0dd7cf52ce81c4d1ecc87d6b67ec90eecdad27265123497111540c87d5753c86",
+      "sourceHash": "3df7138209fb9deeb98d22232331a9868134eaaf2f450261c30df894082d05b3",
       "environment": [
         "structuredClone",
         "crypto"
@@ -5983,21 +6268,29 @@
       ]
     },
     {
+      "web": "src/lib/pflege/vitalNativeWriteReceipt.web.ts",
+      "native": "src/lib/pflege/vitalNativeWriteReceipt.native.ts",
+      "sourceHash": "b890741a7840ba2101a8f1d4faa93266fa0fde557d24283e85dd1653412b7c6f",
+      "environment": [
+        "structuredClone"
+      ]
+    },
+    {
       "web": "src/lib/pflege/vitalCreateNativeWrite.web.ts",
       "native": "src/lib/pflege/vitalCreateNativeWrite.native.ts",
-      "sourceHash": "0ea12c476e627ecf00b57d9f4ac60d1460f77e55cc28e044686827222a672b91",
+      "sourceHash": "f600f78d6b68ea94dc2e47daee4bb3002be922b4709edc6637e54440116173cc",
       "environment": []
     },
     {
       "web": "src/lib/pflege/vitalCreateOriginalRead.web.ts",
       "native": "src/lib/pflege/vitalCreateOriginalRead.native.ts",
-      "sourceHash": "a195c4cd83023a740c19fa90992989b4b901e17fae69308aa9805e858549b45d",
+      "sourceHash": "83ca85337ae2b9368ebd43e086e29d54ff5b8cbc531407fc9cf0695b3a3ad1ef",
       "environment": []
     },
     {
       "web": "src/lib/pflege/vitalCreateRuntime.web.ts",
       "native": "src/lib/pflege/vitalCreateRuntime.native.ts",
-      "sourceHash": "8c078907d3d66da7663b95d1d9a793ec09e7818814c8b7bfc5be2806add9dc75",
+      "sourceHash": "e39a4f1aab1003e06201dc35cab02c300f2390cd5086b0adebfb3e74a2b66086",
       "environment": []
     },
     {
@@ -6009,7 +6302,7 @@
     {
       "web": "src/lib/pflege/vitalDetailRuntime.web.ts",
       "native": "src/lib/pflege/vitalDetailRuntime.native.ts",
-      "sourceHash": "3ffc7834d7cd7f27eb308d24222f489ccd765e76299342d0a4faa46592840ec1",
+      "sourceHash": "b54b45cfa99f96359a58fd4d5ede37da0fef22326f98749379d8081ed9158038",
       "environment": []
     },
     {
@@ -6021,13 +6314,13 @@
     {
       "web": "src/lib/pflege/vitalDetailNativeWrite.web.ts",
       "native": "src/lib/pflege/vitalDetailNativeWrite.native.ts",
-      "sourceHash": "085a922de7073fda2fb834277049ad696831c95b16c19f2fc5775180cc07fffe",
+      "sourceHash": "4cb5dea0565e46b009faa10b63194bd5774eb7421174a513987b340efc9b7607",
       "environment": []
     },
     {
       "web": "src/lib/pflege/vitalDetailWriteRuntime.web.ts",
       "native": "src/lib/pflege/vitalDetailWriteRuntime.native.ts",
-      "sourceHash": "e44dbb106775adb25c7c0c237d917d3ca8fcff43579cba67b9f3a71d9b5fd33c",
+      "sourceHash": "ab112e2b9ae7b87b23344fef968190d0e76553a8fe6611dd244269860accaf8f",
       "environment": []
     },
     {
@@ -8406,6 +8699,18 @@
     {
       "web": "app/pflege/personal.tsx",
       "native": "app/pflege/personal.native.tsx"
+    },
+    {
+      "web": "app/pflege/plans/[id]/index.tsx",
+      "native": "app/pflege/plans/[id]/index.native.tsx"
+    },
+    {
+      "web": "app/pflege/planung/[id].tsx",
+      "native": "app/pflege/planung/[id].native.tsx"
+    },
+    {
+      "web": "app/pflege/planung/index.tsx",
+      "native": "app/pflege/planung/index.native.tsx"
     },
     {
       "web": "app/pflege/risiken.tsx",

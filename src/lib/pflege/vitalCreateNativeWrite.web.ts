@@ -4,6 +4,8 @@ import {withServiceQueryTimeout} from '@/lib/services/queryTimeout';
 import type {MedicationWriteResult} from './medicationAdministrationService';
 import type {VitalMeasurementPayload} from './vitalMeasurementDomain';
 import type {VitalCreateRuntimeWeb} from './vitalCreateRuntime.web';
+import {captureVitalCreateReceiptScopeWeb,assertVitalCreateRequestSessionWeb} from './vitalCreateRuntime.web';
+import {assertVitalMeasurementWriteReceiptWeb} from './vitalNativeWriteReceipt.web';
 type Row=Record<string,unknown>;
 const outcomes=new WeakMap<object,{runtime:VitalCreateRuntimeWeb;id:string;replay:boolean;original:unknown;flight:object|null;settled:boolean}>();
 export function isOwnVitalCreateWriteResultWeb(result:unknown,runtime:VitalCreateRuntimeWeb,id:string,replay:boolean,flight:object|null=null){const own=result&&typeof result==='object'?outcomes.get(result):null;return !!own&&own.runtime===runtime&&own.id===id&&own.replay===replay&&own.flight===flight;}
@@ -15,7 +17,7 @@ export async function executeVitalCreateNativeWeb(runtime:VitalCreateRuntimeWeb,
  const outcome=(result:MedicationWriteResult,original:unknown,settled:boolean)=>{const own=freeze(result);outcomes.set(own,{runtime,id,replay,original,flight,settled});runtime.settleRequest(id,own,replay,flight);return own;};
  const unknown=(settled:boolean,original:unknown=null)=>outcome({ok:false,error:entered||replay?'Die ursprüngliche Speicherbestätigung fehlt. Dieselbe Anfrage mit aktuellen Rechten erneut prüfen.':'Aktuelle eigene Auswahl, Rechte und Verbindung zuerst prüfen.',uncertain:entered||replay},original,settled);
  try{
-  const payload=runtime.beginRequest(id,value,replay);flight=runtime.writeFlight(id);if(!flight)throw Error('Eigene ursprüngliche Transportphase fehlt.');const sdk=runtime.assertRequest(id,payload),rpc=(sdk as unknown as Row).rpc,second=(sdk as unknown as Row).rpc;
+  const payload=runtime.beginRequest(id,value,replay);flight=runtime.writeFlight(id);if(!flight)throw Error('Eigene ursprüngliche Transportphase fehlt.');const scope=captureVitalCreateReceiptScopeWeb(runtime,id,payload);await assertVitalCreateRequestSessionWeb(runtime,id,payload);const sdk=runtime.assertRequest(id,payload),rpc=(sdk as unknown as Row).rpc,second=(sdk as unknown as Row).rpc;
   if(typeof rpc!=='function'||rpc!==second)throw Error('Nativer RPCaufruf ist nicht bestätigt.');
   const args=freeze(clone({request_id:id,payload}));if(runtime.assertRequest(id,payload)!==sdk)throw Error('Ursprüngliche Verbindung fehlt.');
   // Method entry may start transport. A later denied Then entry is unknown,
@@ -25,13 +27,19 @@ export async function executeVitalCreateNativeWeb(runtime:VitalCreateRuntimeWeb,
   const native=new Promise<unknown>((resolve,reject)=>{if(runtime.assertRequest(id,payload)!==sdk)throw Error('Ursprüngliche Verbindung fehlt.');observing=true;Reflect.apply(first,query,[resolve,reject]);});
   // Keep observing this original native promise after a UI deadline or editor
   // cleanup. Terminal transport facts are stored before any current UI grant.
-  const completion=native.then(raw=>{
+  const completion=native.then(async raw=>{
    let response:Row|null=null;
    try{response=freeze(clone(raw)) as Row;if(!response||typeof response!=='object'||Array.isArray(response)||!Object.hasOwn(response,'error')||!Object.hasOwn(response,'status'))throw Error('Ganzes Speicherergebnis fehlt.');
     if(response.error!==null){const error=response.error as Row;if(!error||typeof error!=='object'||typeof response.status!=='number')throw Error('Unbekanntes Speicherergebnis.');return outcome({ok:false,error:'Die Messung wurde nicht bestätigt. Bitte den ursprünglichen Speicherauftrag prüfen.',uncertain:!isDefiniteMedicationRejection(typeof error.code==='string'?error.code:undefined,response.status)},response,true);}
     if(![200,201].includes(response.status as number)||!uuid(response.data))throw Error('Ursprüngliche Speicherbestätigung fehlt.');
    }catch{return unknown(true,response);}
-   return outcome({ok:true,data:{id:response.data as string}},response,true);
+   try{
+    const nativeId=response!.data as string;await assertVitalCreateRequestSessionWeb(runtime,id,payload);if(runtime.assertRequest(id,payload)!==sdk)throw Error('Eigener Bestätigungsbezug fehlt.');const confirm=(sdk as unknown as Row).rpc,confirmAgain=(sdk as unknown as Row).rpc;if(typeof confirm!=='function'||confirm!==confirmAgain)throw Error('Eigener Originalabruf fehlt.');
+    const args=freeze(clone({measurement_id:nativeId,request_id:id,payload}));if(runtime.assertRequest(id,payload)!==sdk)throw Error('Aktuelle eigene Bestätigung fehlt.');const query=Reflect.apply(confirm,sdk,['confirm_ambulatory_vital_measurement',args]),then=(query as Row).then,again=(query as Row).then;if(typeof then!=='function'||then!==again)throw Error('Eigener Bestätigungstransport fehlt.');
+    const rawConfirmation=await new Promise<unknown>((resolve,reject)=>{if(runtime.assertRequest(id,payload)!==sdk)throw Error('Eigener Bestätigungsbezug geändert.');Reflect.apply(then,query,[resolve,reject]);}),confirmation=freeze(clone(rawConfirmation)) as Row;
+    if(!confirmation||typeof confirmation!=='object'||Array.isArray(confirmation)||confirmation.error!==null||![200,201].includes(confirmation.status as number))throw Error('Vollständiger eigener Messbeleg fehlt.');const retained=assertVitalMeasurementWriteReceiptWeb(confirmation.data,scope,nativeId,id,payload);
+    return outcome({ok:true,data:{id:nativeId}},freeze({...response,confirmation,retained}),true);
+   }catch{return unknown(true,response);}
   },()=>unknown(true));
   return await withServiceQueryTimeout(completion,'Vitalwert speichern',20_000);
  }catch{return unknown(!observing);}

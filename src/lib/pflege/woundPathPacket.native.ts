@@ -188,12 +188,20 @@ export function woundPathOriginalIssue(v: unknown, c: {
     tenantId: string;
     clientId: string;
     woundId: string;
-}): string | null { const o = v as WoundPathOriginal; if (!o || ![o.id, o.rootId, o.headId, o.recordedBy].every(uuid) || o.tenantId !== c.tenantId || o.clientId !== c.clientId || o.woundId !== c.woundId || !kinds.has(o.kind) || !Number.isSafeInteger(o.revision) || o.revision < 1 || !instant(o.recordedAt) || !sha(o.contentFingerprint) || !Array.isArray(o.history) || Object.keys(o.history).length !== o.history.length || o.history.length !== o.revision || o.history.length > 2000)
-    return 'Wundpfadhistorie fehlt, ist abgeschnitten oder fremd.'; for (let n = 0; n < o.history.length; n++) {
-    const h = o.history[n], previous = n === 0 ? null : o.history[n - 1].id;
-    if (!uuid(h.id) || h.revision !== n + 1 || h.previousId !== previous || !instant(h.recordedAt) || !uuid(h.recordedBy) || !text(h.recordedByName, 1) || !sha(h.contentFingerprint) || woundPathEntryIssue(h.payload))
-        return 'Wundpfadhistorie besitzt eine Lücke oder ungültigen Inhalt.';
-} const h = o.history.at(-1)!; return o.id !== h.id || o.headId !== h.id || o.revision !== h.revision || o.kind !== h.payload.kind || o.recordedAt !== h.recordedAt || o.recordedBy !== h.recordedBy || o.recordedByName !== h.recordedByName || o.contentFingerprint !== h.contentFingerprint || stable(o.payload) !== stable(h.payload) ? 'Wundpfad-Originalkopf widerspricht der Historie.' : null; }
+}): string | null {
+    const o = v as WoundPathOriginal;
+    if (!o || ![o.id, o.rootId, o.headId, o.recordedBy].every(uuid) || o.tenantId !== c.tenantId || o.clientId !== c.clientId || o.woundId !== c.woundId || !kinds.has(o.kind) || !Number.isSafeInteger(o.revision) || o.revision < 1 || !instant(o.recordedAt) || !sha(o.contentFingerprint) || !Array.isArray(o.history) || Object.keys(o.history).length !== o.history.length || o.history.length !== o.revision || o.history.length > 2000 || o.history[0]?.id !== o.rootId)
+        return 'Wundpfadhistorie fehlt, ist abgeschnitten oder fremd.';
+    const seen = new Set<string>();
+    for (let n = 0; n < o.history.length; n++) {
+        const h = o.history[n], previous = n === 0 ? null : o.history[n - 1].id;
+        if (!h || !uuid(h.id) || seen.has(h.id.toLowerCase()) || h.revision !== n + 1 || h.previousId !== previous || !instant(h.recordedAt) || !uuid(h.recordedBy) || !text(h.recordedByName, 1) || !sha(h.contentFingerprint) || woundPathEntryIssue(h.payload) || h.payload.tenantId !== o.tenantId || h.payload.clientId !== o.clientId || h.payload.woundId !== o.woundId || micros(h.recordedAt) !== micros(h.payload.observedAt))
+            return 'Wundpfadhistorie besitzt eine Lücke oder ungültigen Inhalt.';
+        seen.add(h.id.toLowerCase());
+    }
+    const h = o.history.at(-1)!;
+    return o.id !== h.id || o.headId !== h.id || o.revision !== h.revision || o.kind !== h.payload.kind || o.recordedAt !== h.recordedAt || o.recordedBy !== h.recordedBy || o.recordedByName !== h.recordedByName || o.contentFingerprint !== h.contentFingerprint || stable(o.payload) !== stable(h.payload) ? 'Wundpfad-Originalkopf widerspricht der Historie.' : null;
+}
 export function woundPathPacketIssue(v: unknown): string | null {
     const p = v as WoundPathPacket;
     if (!p || p.schemaVersion !== '1' || !['create', 'revise'].includes(p.action) || ![p.requestId, p.tenantId, p.clientId, p.woundId, p.actorId].every(uuid) || p.entry?.tenantId !== p.tenantId || p.entry.clientId !== p.clientId || p.entry.woundId !== p.woundId)

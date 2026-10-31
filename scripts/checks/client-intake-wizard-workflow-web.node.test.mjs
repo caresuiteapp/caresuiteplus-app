@@ -1,3 +1,4 @@
+import {assertCareSdkOwnerWeb} from '../../src/lib/permissions/careSdkOwner.web.ts';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -20,7 +21,7 @@ const settle=async()=>{for(let n=0;n<150;n++)await Promise.resolve();};
 function workspace(patch={}){
  const slots=[],effects=[],queue=[],timers=new Map(),store=patch.store??new Map(),calls=[],listeners=new Map();let index=0,clock=0;
  const env={tenant:id(1),allowed:true,permissionLoading:false,options:undefined,candidates:[],realIdentity:false,
-  auth:{authReady:true,isAuthenticated:true,isLoading:false,profileBootstrapError:null,profile:{id:id(2),tenantId:id(1),roleKey:'business_admin'},user:{id:id(2),roleKey:'business_admin'},session:{user:{id:id(2),roleKey:'business_admin'},accessToken:'test-only',expiresAt:null},portalSession:null},...patch};
+  auth:{authReady:true,isAuthenticated:true,isLoading:false,profileBootstrapError:null,profile:{id:id(2),tenantId:id(1),roleKey:'business_admin'},user:{id:id(2),roleKey:'business_admin'},session:{user:{id:id(2),roleKey:'business_admin'},accessToken:'test-only',expiresAt:(Math.floor(Date.now()/1000)+3600)*1000},portalSession:null},...patch};
  const useRef=initial=>{const i=index++;return slots[i]??={current:initial};};
  const useState=initial=>{const i=index++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return[slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];};
  const memo=(run,deps)=>{const i=index++;if(!slots[i]||deps.some((v,j)=>v!==slots[i].deps[j]))slots[i]={deps,value:run()};return slots[i].value;};
@@ -35,10 +36,11 @@ function workspace(patch={}){
   async review(){return true;} approveNew(){return true;} async selectExisting(){throw Error('Not part of isolated queue regressions');}
  }
  const identityDb={async rpc(name,args){
+  if(['resolve_current_profile_id','current_tenant_id'].includes(name))return{data:name==='resolve_current_profile_id'?env.auth.profile?.id:env.tenant,error:null};
   assert.equal(name,'web_prepare_client_intake_identity_review');calls.push(['reviewPreparation',structuredClone(args)]);await env.prepareGate?.promise;
   const prepared=Date.now();return env.prepareFailure?{data:null,error:{message:'rejected'}}:{data:{review_id:id(500),request_id:args.p_request_id,tenant_id:args.p_tenant_id,actor_profile_id:args.p_actor_profile_id,
    resolution:'create_distinct',candidate_count:args.p_candidates.length,prepared_at:new Date(prepared).toISOString(),expires_at:new Date(prepared+300000).toISOString()},error:null};
- },auth:{getSession:async()=>({data:{session:{user:{id:env.auth.profile?.id},access_token:env.auth.session?.accessToken}},error:null}),getUser:async()=>({data:{user:{id:env.auth.profile?.id}},error:null})},from:table=>{
+ },auth:{getSession:async()=>({data:{session:{user:{id:env.auth.user?.id},access_token:env.auth.session?.accessToken,expires_at:env.auth.session?.expiresAt/1000}},error:null}),getUser:async()=>({data:{user:{id:env.auth.user?.id}},error:null})},from:table=>{
   assert.equal(table,'clients');const filters=[];let pattern=null,patternKey=null;
   const q={select:()=>q,eq:(key,value)=>{filters.push(['eq',key,value]);return q;},neq:(key,value)=>{filters.push(['neq',key,value]);return q;},gt:(key,value)=>{filters.push(['gt',key,value]);return q;},
    ilike:(key,value)=>{patternKey=key;pattern=value;return q;},order:()=>q,limit:()=>q,then:(resolve,reject)=>(async()=>{
@@ -47,7 +49,7 @@ function workspace(patch={}){
       .filter(row=>patternKey==='last_name'?String(row.last_name).toLowerCase().includes(pattern.slice(1,-1).toLowerCase()):String(row.insurance_number??'').toLowerCase()===pattern.toLowerCase()).map(row=>structuredClone(row)),error:null};
    })().then(resolve,reject)};return q;
  }};
- const ActualIdentitySession=new Function('getSupabaseClient','isUuid',`${identitySource};return ClientIntakeIdentitySession;`)(()=>identityDb,isUuid);
+ const ActualIdentitySession=new Function('getSupabaseClient','isUuid','assertCareSdkOwnerWeb',`${identitySource};return ClientIntakeIdentitySession;`)(()=>identityDb,isUuid,assertCareSdkOwnerWeb);
  const deps={window:{addEventListener:(name,run)=>listeners.set(name,run),removeEventListener:(name,run)=>{if(listeners.get(name)===run)listeners.delete(name);}},useRef,useState,useEffect,useMemo:memo,useCallback:(fn,deps)=>memo(()=>fn,deps),
   createEmptyIntakeForm,hasIntakeDraftContent,carePermissionOwner,sameCarePermissionOwner,carePermissionOwnerIsCurrent,ClientIntakeWorkflow,ClientIntakeIdentitySession:env.realIdentity?ActualIdentitySession:ApprovedIdentityPort,
   withIntakeBrowserLock:async(_key,operation)=>operation(),AsyncStorage:storage,
@@ -172,12 +174,36 @@ test('actual dirty intake warns before document unload until a save is acknowled
  assert.equal(event.prevented,true);assert.equal(event.returnValue,'');await w.tick();w.render();assert.equal(w.listeners.has('beforeunload'),true);
  gate.resolve();await settle();w.render();assert.equal(w.listeners.has('beforeunload'),false);w.dispose();
 });
-for(const saved of [false,true])test(`actual Cancel handler ${saved?'leaves after a confirmed save':'keeps an unconfirmed draft open'}`,async()=>{
- const text=read('src/components/office/clientintakewizardform.web.tsx');
- const handler=text.match(/const handleCancel = async \(\) => \{([\s\S]*?)\n  \};/);assert.ok(handler);
- let savedCalls=0,left=0;const action=new Function('prepareToLeave','onCancel',`return async()=>{${handler[1]}};`)(async()=>{savedCalls++;return saved;},()=>{left++;});
- await action();assert.equal(savedCalls,1);assert.equal(left,saved?1:0);
+// Execute the current form's actual close callback and save(true), including
+// their shared synchronous action lock. This controls hook leaves, not layout.
+function actualCloseUi(options={}){
+ const source=read('src/components/office/clientintakewizardform.web.tsx');
+ const request=source.slice(source.indexOf('  const requestClose = useCallback('),source.indexOf('  useEffect(() => { onCloseRequestChange'));
+ const save=source.slice(source.indexOf('  async function save('),source.indexOf('  async function reset('));
+ assert.ok(request.startsWith('  const requestClose'));assert.ok(save.startsWith('  async function save'));
+ const state={closed:0,saves:0,confirmation:null,error:null,action:null,showErrors:false};
+ const actionLock={current:false},alive={current:true},lastFocus={current:null},opener={focus(){}};
+ const wizard={isEditMode:false,submitting:false,discardingDraft:false,async saveDraft(){state.saves++;return options.gate?await options.gate.promise:options.saved??false;},async saveFirstContact(){throw Error('Not a first-contact leaf');},...options.wizard};
+ const deps={useCallback:fn=>fn,actionLock,alive,wizard,dirty:options.dirty??true,onCancel:()=>{state.closed++;options.onCancel?.();},lastFocus,document:{activeElement:opener},
+  setActionError:value=>{state.error=value;},setConfirmation:value=>{state.confirmation=value;},setAction:value=>{state.action=value;},setShowErrors:value=>{state.showErrors=value;},firstContact:false};
+ const actions=new Function(...Object.keys(deps),stripTypeScriptTypes(request+save)+';return{requestClose,save};')(...Object.values(deps));
+ return{...actions,state,actionLock,alive,lastFocus,opener};
+}
+function actualCloseDelegate(path,deps){
+ const source=read(path),start=source.indexOf(path.includes('modal')?'  const closeRequest = useRef':'  const close = useCallback');
+ const end=source.indexOf(path.includes('modal')?'  useEffect(':'  return <ScreenShell',start);
+ assert.ok(start>=0&&end>start);
+ return new Function('useRef','useCallback',...Object.keys(deps),stripTypeScriptTypes(source.slice(start,end))+';return{closeRequest,setCloseRequest};')(value=>({current:value}),fn=>fn,...Object.values(deps));
+}
+for(const saved of [false,true])test(`actual dirty close ${saved?'closes after explicitly confirmed save':'keeps an unconfirmed draft open after explicit save'}`,async()=>{
+ const ui=actualCloseUi({saved});ui.requestClose();assert.equal(ui.state.confirmation,'close');assert.equal(ui.state.saves,0);assert.equal(ui.state.closed,0);assert.equal(ui.lastFocus.current,ui.opener);
+ await ui.save(true);assert.equal(ui.state.saves,1);assert.equal(ui.state.closed,saved?1:0);assert.equal(ui.actionLock.current,false);
+ if(!saved){assert.equal(ui.state.showErrors,true);assert.match(ui.state.error,/nicht vollständig bestätigt/);}
 });
+test('actual close skips an unchanged draft and never starts another save',()=>{const ui=actualCloseUi({dirty:false});ui.requestClose();assert.equal(ui.state.closed,1);assert.equal(ui.state.saves,0);assert.equal(ui.state.confirmation,null);});
+for(const key of ['submitting','discardingDraft'])test(`actual close remains blocked while wizard ${key}`,()=>{const ui=actualCloseUi({wizard:{[key]:true}});ui.requestClose();assert.equal(ui.state.closed,0);assert.equal(ui.state.confirmation,null);assert.equal(ui.state.saves,0);});
+test('actual explicit save is exclusive and cannot close after its form unmounts during await',async()=>{const gate=deferred(),ui=actualCloseUi({gate});const first=ui.save(true);await ui.save(true);assert.equal(ui.state.saves,1);ui.requestClose();assert.equal(ui.state.confirmation,null);ui.alive.current=false;gate.resolve(true);await first;assert.equal(ui.state.closed,0);assert.equal(ui.actionLock.current,false);});
+
 test('restored local clinical intake fields remain hidden until current runtime permission is confirmed',async()=>{
  const w=await ready({allowed:false,permissionLoading:false,legacy:{form:{...createEmptyIntakeForm(),firstName:'Private restored person'},stepIndex:1,clientId:id(3)}});
  assert.equal(w.render().form.firstName,'');assert.match(w.render().loadError,/Berechtigung/);w.dispose();
@@ -242,16 +268,16 @@ test('same-owner permission loss while opening an existing person does not leave
  const pending=w.render().openExistingPerson(id(20));await settle();w.env.allowed=false;gate.resolve();assert.equal(await pending,null);
  w.env.allowed=true;delete w.env.identityGate;assert.equal(await w.render().reviewIdentity(),true);w.dispose();
 });
-test('existing-person routing uses its own callback without a false created notification',async()=>{
+test('prepared Pflege existing-person selection returns only the selected identity without a false created notification',async()=>{
  const w=await ready({realIdentity:true,candidates:[person()]});fillIdentity(w);await w.render().reviewIdentity();
- const text=read('src/components/office/clientintakewizardform.web.tsx');const handler=text.match(/const handleOpenExisting = async \(id: string\) => \{([\s\S]*?)\n  \};/);assert.ok(handler);
- const events=[];const action=new Function('wizard','onOpenExisting','onCancel','router','clientRecordRoute',`return async id=>{${handler[1].replace(/ as never/g,'')}};`)(w.render(),id=>events.push(['open',id]),()=>events.push(['cancel']),{push:route=>events.push(['route',route])},id=>`/clients/${id}`);
- await action(id(20));assert.deepEqual(events,[['open',id(20)]]);assert.equal(w.render().createdId,null);w.dispose();
+ assert.equal(await w.render().openExistingPerson(id(20)),id(20));assert.equal(w.render().selectedExistingId,id(20));assert.equal(w.render().createdId,null);assert.equal(w.render().isSuccess,false);
+ assert.equal(w.calls.some(call=>['save','documents','complete'].includes(call[0])),false);w.dispose();
 });
-for(const allowed of [false,true])test(`the actual modal close handler ${allowed?'closes after its form guard':'keeps an unconfirmed form open'}`,async()=>{
- const source=read('src/components/office/clientintakemodal.web.tsx');const handler=source.match(/const requestClose = async \(\) => \{([\s\S]*?)\n  \};/);assert.ok(handler);
- let closed=0;const closing={current:false};const run=new Function('closing','closeGuard','onClose',`return async()=>{${handler[1]}};`)(closing,{current:async()=>allowed},()=>closed++);
- await run();assert.equal(closed,allowed?1:0);assert.equal(closing.current,false);
+for(const saved of [false,true])test(`actual modal delegates close to its current form ${saved?'until explicit save confirms':'without treating an unconfirmed save as exit'}`,async()=>{
+ let closed=0;const ui=actualCloseUi({saved,onCancel:()=>closed++}),parent=actualCloseDelegate('src/components/office/clientintakemodal.web.tsx',{onClose:()=>closed++});
+ parent.setCloseRequest(ui.requestClose);parent.closeRequest.current();assert.equal(closed,0);assert.equal(ui.state.confirmation,'close');
+ await ui.save(true);assert.equal(closed,saved?1:0);
+ parent.setCloseRequest(null);parent.closeRequest.current();assert.equal(closed,saved?2:1);
 });
 
 test('create permission without sensitive read permission keeps the whole intake local and cannot infer no candidates',async()=>{
@@ -263,10 +289,12 @@ test('manual save cannot authorize closing when newer input was entered during i
  const gate=deferred(),w=await ready({saveGate:gate});w.render().updateField('firstName','Initial');const pending=w.render().saveDraft();await settle();
  w.render().updateField('firstName','Newer input');w.render();gate.resolve();assert.equal(await pending,false);assert.equal(w.render().form.firstName,'Newer input');assert.equal(w.render().draftSaveFeedback.variant,'warning');w.dispose();
 });
-test('the standalone intake Back handler waits for the actual form guard and cannot navigate after unmount',async()=>{
- const source=read('src/screens/business/office/ClientIntakeWizardScreen.web.tsx');const handler=source.match(/const requestBack = async \(\) => \{([\s\S]*?)\n  \};/);assert.ok(handler);
- for(const allowed of [false,true]){let backed=0;const leaving={current:false};const closeGuard={current:async()=>allowed};const run=new Function('leaving','closeGuard','router',`return async()=>{${handler[1]}};`)(leaving,closeGuard,{back:()=>backed++});await run();assert.equal(backed,allowed?1:0);}
- const gate=deferred(),closeGuard={current:()=>gate.promise};let backed=0;const run=new Function('leaving','closeGuard','router',`return async()=>{${handler[1]}};`)({current:false},closeGuard,{back:()=>backed++});const pending=run();closeGuard.current=null;gate.resolve(true);await pending;assert.equal(backed,0);
+test('actual standalone Back delegates to the form confirmation and cannot use a late save after form unmount',async()=>{
+ for(const saved of [false,true]){let backed=0;const ui=actualCloseUi({saved,onCancel:()=>backed++}),parent=actualCloseDelegate('src/screens/business/office/ClientIntakeWizardScreen.web.tsx',{router:{back:()=>backed++}});
+  parent.setCloseRequest(ui.requestClose);parent.closeRequest.current();assert.equal(backed,0);assert.equal(ui.state.confirmation,'close');await ui.save(true);assert.equal(backed,saved?1:0);
+ }
+ const gate=deferred();let backed=0;const ui=actualCloseUi({gate,onCancel:()=>backed++}),parent=actualCloseDelegate('src/screens/business/office/ClientIntakeWizardScreen.web.tsx',{router:{back:()=>backed++}});
+ parent.setCloseRequest(ui.requestClose);parent.closeRequest.current();const saving=ui.save(true);ui.alive.current=false;parent.setCloseRequest(null);gate.resolve(true);await saving;assert.equal(backed,0);
 });
 
 test('real composed first-write preparation failure preserves local input and cannot dispatch a person',async()=>{

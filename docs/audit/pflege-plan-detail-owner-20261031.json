@@ -1,0 +1,71 @@
+{
+  "date": "2026-10-31",
+  "parentCommit": "0728349126bcbcabdee259715cf196730aca9013",
+  "parentVercelStatuses": {
+    "caresuiteplus-app": "success",
+    "caresuiteplus": "success",
+    "caresuiteplusapp": "success",
+    "repository": "success"
+  },
+  "validation": {
+    "detailOwnerBehavior": {
+      "passed": 40,
+      "platforms": [
+        "web",
+        "generated-native"
+      ]
+    },
+    "viewAndLockVitest": {
+      "passed": 62,
+      "files": 5,
+      "logSha256": "a15ba8137a4452e7c988ae280a50d8b017d75a52258e0940a24342fb1a43bc27"
+    },
+    "fullNode": {
+      "status": "passed",
+      "passed": 15115,
+      "failed": 0,
+      "skipped": 0,
+      "exitCode": 0,
+      "logSha256": "5e172c5f8c0ae1f6ab8d24cb14c5c99914f841dee79d5d59ba8fa9d65d118e3c"
+    },
+    "productionWebBuild": {
+      "status": "passed",
+      "command": "CARESUITE_TYPESCRIPT_HEAP_MIB=6144 npm run build:web:production",
+      "exitCode": 0,
+      "logSha256": "aba84cbec9f6fbcb63f0f71b394d558ecba10267791d1f8f60b1c0e9858c83f6",
+      "checks": [
+        "shared Native source parity",
+        "full TypeScript",
+        "all production release verifiers",
+        "686 parent route patterns",
+        "Vercel configuration",
+        "Expo static Web export",
+        "Neo assets",
+        "21 calendar reader files",
+        "7 identical initial React roots",
+        "public branding pages"
+      ]
+    }
+  },
+  "sourceHashes": {
+    "src/hooks/useCarePlanDetail.web.ts": "7403fb1464397701b4d855f382be76747daffde238b7300d90de7b643e721c3b",
+    "src/hooks/useCarePlanDetail.native.ts": "37a6a104b5b5052a4a06401b2457785210eb327c54ac9d77a2ff564b30b707aa",
+    "src/screens/pflege/CarePlanDetailScreen.web.tsx": "2c0f52e46592181d864ccf20d3d6ea677943035efa8c6e9d64af7879ad0d2154",
+    "src/screens/pflege/CarePlanDetailScreen.native.tsx": "d7250f4aacfe777b15973b08316ad89d7c0229db84ee846c4870e6bbba4a779e",
+    "src/lib/pflege/carePlanDetailStats.ts": "af56c09249b89b5c984bae61e0ab955f58d3d9d97b0fe743c02c5ff286ef467c",
+    "src/lib/pflege/carePlanRepository.supabase.ts": "8f869924e75c969b6bae99948c59792cae51bc07af9d545f0f3812dacddea1c2",
+    "src/types/modules/pflege.ts": "2e866e3b393a13acbad9e24b3d792dbfa748968fe50e9403764e99f178006e91",
+    "scripts/checks/care-plan-detail-owner.node.test.mjs": "21d4ca2f2beefc519927b2ca3ab7f69e9558fe46d2c1e5a95b5c5aaab705b39e"
+  },
+  "boundaries": {
+    "globalPflegeLock": true,
+    "externalDatabaseMutation": false,
+    "applicationGrants": false,
+    "mainMergeOrPromotion": false,
+    "signedAppPackage": false,
+    "clinicalAcceptance": false,
+    "authenticatedHttpRls": false,
+    "visualLayoutOrRealDeviceAcceptance": false,
+    "nativePlanWriterClosure": false
+  }
+}

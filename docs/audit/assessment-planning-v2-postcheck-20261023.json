@@ -1,0 +1,59 @@
+{
+  "schemaVersion": 1,
+  "observedOn": "2026-10-23",
+  "project": "shwpweerzsfkqaivmaoc",
+  "migrationVersion": "20261023010345",
+  "cleanup": [
+    {
+      "assessment_roots": 0,
+      "assessment_events": 0,
+      "plan_roots": 0,
+      "plan_events": 0,
+      "synthetic_fixture_tenants": 0
+    }
+  ],
+  "scope": "Counts only; empty ledgers do not establish the unanswered authority test passed.",
+  "security": {
+    "newObjectsFindingsOnly": [
+      {
+        "detail": "Table \\`assessment_planning_v2_private.assessment_events\\` has RLS enabled, but no policies exist",
+        "observed_at": "2026-10-23T01:08:53.583Z"
+      },
+      {
+        "name": "assessment_events",
+        "type": "table",
+        "schema": "assessment_planning_v2_private"
+      },
+      {
+        "detail": "Table \\`assessment_planning_v2_private.assessment_roots\\` has RLS enabled, but no policies exist",
+        "observed_at": "2026-10-23T01:08:53.583Z"
+      },
+      {
+        "name": "assessment_roots",
+        "type": "table",
+        "schema": "assessment_planning_v2_private"
+      },
+      {
+        "detail": "Table \\`assessment_planning_v2_private.plan_events\\` has RLS enabled, but no policies exist",
+        "observed_at": "2026-10-23T01:08:53.583Z"
+      },
+      {
+        "name": "plan_events",
+        "type": "table",
+        "schema": "assessment_planning_v2_private"
+      },
+      {
+        "detail": "Table \\`assessment_planning_v2_private.plan_roots\\` has RLS enabled, but no policies exist",
+        "observed_at": "2026-10-23T01:08:53.583Z"
+      },
+      {
+        "name": "plan_roots",
+        "type": "table",
+        "schema": "assessment_planning_v2_private"
+      }
+    ],
+    "intentionalDenyAll": true,
+    "existingProjectWarningsRemain": true,
+    "remediation": "https://supabase.com/docs/guides/database/database-linter?lint=0008_rls_enabled_no_policy"
+  }
+}

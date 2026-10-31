@@ -20,6 +20,7 @@ export type CarePermissionOwner = Readonly<{
   demo: boolean;
 }>;
 
+const authSubjects = new WeakMap<object, string>();
 const clinicalRoles = new Set(['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor', 'akademie_admin']);
 const uuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 
@@ -29,12 +30,14 @@ export function carePermissionOwner(auth: CarePermissionAuth, tenantId: string |
   if (!profile || !uuid(profile.id) || !uuid(tenantId) || profile.tenantId !== tenantId || !clinicalRoles.has(profile.roleKey ?? '') || auth.portalSession) return null;
   if (demo) return Object.freeze({ tenantId, profileId: profile.id, roleKey: profile.roleKey as RoleKey, accessToken: null, expiresAt: null, demo: true });
   const user = auth.user, session = auth.session;
-  if (auth.authReady !== true || auth.isAuthenticated !== true || auth.isLoading !== false || auth.profileBootstrapError || !user || !session || user.id !== profile.id || session.user.id !== profile.id || (user.roleKey && user.roleKey !== profile.roleKey) || (session.user.roleKey && session.user.roleKey !== profile.roleKey) || typeof session.accessToken !== 'string' || !session.accessToken || (session.expiresAt !== null && (!Number.isFinite(session.expiresAt) || session.expiresAt <= now))) return null;
-  return Object.freeze({ tenantId, profileId: profile.id, roleKey: profile.roleKey as RoleKey, accessToken: session.accessToken, expiresAt: session.expiresAt, demo: false });
+  if (auth.authReady !== true || auth.isAuthenticated !== true || auth.isLoading !== false || auth.profileBootstrapError || !user || !session || !uuid(user.id) || user.id !== session.user.id || (user.roleKey && user.roleKey !== profile.roleKey) || (session.user.roleKey && session.user.roleKey !== profile.roleKey) || typeof session.accessToken !== 'string' || !session.accessToken || (session.expiresAt !== null && (!Number.isFinite(session.expiresAt) || session.expiresAt <= now))) return null;
+  const owner = Object.freeze({ tenantId, profileId: profile.id, roleKey: profile.roleKey as RoleKey, accessToken: session.accessToken, expiresAt: session.expiresAt, demo: false });
+  authSubjects.set(owner, user.id);
+  return owner;
 }
 
 export function sameCarePermissionOwner(a: CarePermissionOwner | null, b: CarePermissionOwner | null): boolean {
-  return a === b || (!!a && !!b && a.tenantId === b.tenantId && a.profileId === b.profileId && a.roleKey === b.roleKey && a.accessToken === b.accessToken && a.expiresAt === b.expiresAt && a.demo === b.demo);
+  return a === b || (!!a && !!b && a.tenantId === b.tenantId && a.profileId === b.profileId && a.roleKey === b.roleKey && a.accessToken === b.accessToken && a.expiresAt === b.expiresAt && a.demo === b.demo && (!authSubjects.has(a) || !authSubjects.has(b) || authSubjects.get(a) === authSubjects.get(b)));
 }
 
 export function carePermissionOwnerIsCurrent(owner: CarePermissionOwner | null, now = Date.now()): owner is CarePermissionOwner {

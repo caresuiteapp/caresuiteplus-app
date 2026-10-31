@@ -408,42 +408,77 @@ export class ClientRecordNativeWrites {
     recover(lease: ClientNativeWriteLease, input: ClientIntakeFormData): Promise<ClientNativeWriteOutcome> {
         return this.run(lease, 'recovery', async (attempt) => {
             const form = captureForm(input);
-            const promoted = form.intakeDocuments.filter(doc => Boolean(doc.finalizedHtml || doc.previewHtml)
-                && (doc.status === 'finalized' || doc.status === 'signed' || doc.status === 'pending_signature' && Boolean(doc.signatures.client?.dataUrl)));
             const { tenantId, clientId, actorId } = attempt.entry.original.scope, db = attempt.db;
-            if (form.intakeContractType)
-                await this.step(attempt, 'client_contract_selection.upsert', 'write', () => db.from('client_contract_selection').upsert({
-                    tenant_id: tenantId, client_id: clientId, contract_type: form.intakeContractType,
-                    selected_template_key: form.intakeDocuments.find(doc => doc.documentType === 'client_contract')?.templateKey ?? null, updated_by: actorId,
-                }, { onConflict: 'tenant_id,client_id' }).select('id').single());
+            // Match the shared repository's preflight. A recovery form is not authority
+            // to replace a signed original or submit a fresh signature capture.
+            const retained = await this.step(attempt, 'client_intake_documents.existing', 'read', () => db.from('client_intake_documents')
+                .select('id, template_key, status, preview_html, finalized_html, rendered_pdf_path, finalized_at, updated_at').eq('tenant_id', tenantId).eq('client_id', clientId));
+            const rows = own(retained, 'data');
+            if (!Array.isArray(rows))
+                throw Error('Die gespeicherten ursprünglichen Dokumentfassungen sind nicht bestätigt.');
+            const existingByKey = new Map<string, Row>();
+            for (const row of rows) {
+                if (!object(row) || !woundUuid(own(row, 'id')) || typeof own(row, 'template_key') !== 'string' || !own(row, 'template_key') || existingByKey.has(own(row, 'template_key') as string)
+                    || typeof own(row, 'status') !== 'string' || typeof own(row, 'updated_at') !== 'string' || !own(row, 'updated_at')
+                    || ['preview_html', 'finalized_html', 'rendered_pdf_path', 'finalized_at'].some(key => own(row, key) !== null && typeof own(row, key) !== 'string'))
+                    throw Error('Gespeicherte ursprüngliche Dokumentfassungen sind unvollständig oder doppelt.');
+                existingByKey.set(own(row, 'template_key') as string, clone(row) as Row);
+            }
             for (const doc of form.intakeDocuments) {
-                const saved = await this.step(attempt, 'client_intake_documents.upsert', 'write', () => db.from('client_intake_documents').upsert({
-                    tenant_id: tenantId, client_id: clientId, template_key: doc.templateKey, document_type: doc.documentType, title: doc.title,
-                    status: doc.status, is_required: doc.isRequired, version: doc.version, source: doc.source, tenant_template_id: doc.tenantTemplateId,
-                    preview_html: doc.previewHtml, finalized_html: doc.finalizedHtml, rendered_pdf_path: doc.renderedPdfPath,
-                    missing_placeholders: doc.missingPlaceholders, preview_opened_at: doc.previewOpenedAt, finalized_at: doc.finalizedAt, updated_by: actorId,
-                }, { onConflict: 'tenant_id,client_id,template_key' }).select('id').single());
+                const existing = existingByKey.get(doc.templateKey), captures = Object.values(doc.signatures).some(signature => signature?.dataUrl);
+                const finalClaim = doc.status === 'signed' || doc.status === 'finalized' || Boolean(doc.finalizedAt || doc.finalizedHtml);
+                const preserved = existing && (existing.status === 'finalized' || existing.finalized_at) && Boolean((existing.finalized_html as string | null)?.trim() || (existing.preview_html as string | null)?.trim() || (existing.rendered_pdf_path as string | null)?.trim());
+                if (captures || (finalClaim && !preserved))
+                    throw Error('Signierte Aufnahmeunterlagen benötigen den verifizierten atomaren Serverabschluss. Das vorhandene Original bleibt erhalten.');
+            }
+            const documentsToSave: ClientIntakeFormData['intakeDocuments'] = [];
+            for (const doc of form.intakeDocuments) {
+                const existing = existingByKey.get(doc.templateKey), savedContent = (existing?.finalized_html as string | null)?.trim() || (existing?.preview_html as string | null)?.trim() || (existing?.rendered_pdf_path as string | null)?.trim();
+                const incomingContent = doc.finalizedHtml?.trim() || doc.previewHtml?.trim() || doc.renderedPdfPath?.trim();
+                if (savedContent && existing && ['revoked', 'replaced'].includes(doc.status)) {
+                    documentsToSave.push({ ...doc, previewHtml: existing.preview_html as string | null, finalizedHtml: existing.finalized_html as string | null, renderedPdfPath: existing.rendered_pdf_path as string | null, finalizedAt: existing.finalized_at as string | null });
+                    continue;
+                }
+                if (savedContent && (existing?.status === 'finalized' || existing?.finalized_at || !incomingContent || (['signed', 'pending_signature'].includes(String(existing?.status ?? '')) && ['not_started', 'preview_open'].includes(doc.status))))
+                    continue;
+                if (['finalized', 'signed', 'pending_signature'].includes(doc.status) && !incomingContent)
+                    throw Error('„' + doc.title + '“ kann ohne Dokumentinhalt nicht gespeichert werden. Bitte die Vorschau erneut öffnen.');
+                documentsToSave.push(doc);
+            }
+            if (!documentsToSave.length) {
+                if (!this.current(attempt.entry, db))
+                    throw Error(blockedScope);
+                attempt.complete = true;
+                return;
+            }
+            const promoted = documentsToSave.filter(doc => Boolean(doc.finalizedHtml || doc.previewHtml) && (doc.status === 'finalized' || doc.status === 'signed' || doc.status === 'pending_signature' && Boolean(doc.signatures.client?.dataUrl)));
+            if (form.intakeContractType)
+                await this.step(attempt, 'client_contract_selection.upsert', 'write', () => db.from('client_contract_selection').upsert({ tenant_id: tenantId, client_id: clientId, contract_type: form.intakeContractType,
+                    selected_template_key: form.intakeDocuments.find(doc => doc.documentType === 'client_contract')?.templateKey ?? null, updated_by: actorId }, { onConflict: 'tenant_id,client_id' }).select('id').single());
+            for (const doc of documentsToSave) {
+                const existing = existingByKey.get(doc.templateKey), patch = { tenant_id: tenantId, client_id: clientId, template_key: doc.templateKey, document_type: doc.documentType, title: doc.title,
+                    status: doc.status, is_required: doc.isRequired, version: doc.version, source: doc.source, tenant_template_id: doc.tenantTemplateId, preview_html: doc.previewHtml, finalized_html: doc.finalizedHtml,
+                    rendered_pdf_path: doc.renderedPdfPath, missing_placeholders: doc.missingPlaceholders, preview_opened_at: doc.previewOpenedAt, finalized_at: doc.finalizedAt, updated_at: new Date().toISOString(), updated_by: actorId };
+                const saved = await this.step(attempt, existing ? 'client_intake_documents.update' : 'client_intake_documents.insert', 'write', () => existing
+                    ? db.from('client_intake_documents').update(patch).eq('id', existing.id).eq('tenant_id', tenantId).eq('client_id', clientId).eq('updated_at', existing.updated_at).select('id').maybeSingle()
+                    : db.from('client_intake_documents').insert(patch).select('id').single());
                 const documentId = nativeId(saved);
-                await this.step(attempt, 'client_document_events.insert', 'write', () => db.from('client_document_events').insert({
-                    tenant_id: tenantId, client_id: clientId, document_id: documentId,
-                    event_type: doc.status === 'finalized' ? 'document_finalized' : 'document_updated', summary: `${doc.title}: ${doc.status}`, actor_profile_id: actorId,
-                }));
+                await this.step(attempt, 'client_document_events.insert', 'write', () => db.from('client_document_events').insert({ tenant_id: tenantId, client_id: clientId, document_id: documentId,
+                    event_type: doc.status === 'finalized' ? 'document_finalized' : 'document_updated', summary: doc.title + ': ' + doc.status, actor_profile_id: actorId }));
                 for (const [role, signature] of Object.entries(doc.signatures)) {
                     if (!signature?.dataUrl)
                         continue;
-                    await this.step(attempt, 'client_document_signatures.upsert', 'write', () => db.from('client_document_signatures').upsert({
-                        tenant_id: tenantId, client_id: clientId, document_id: documentId, signer_role: role,
-                        signature_data: signature.dataUrl, signed_at: signature.signedAt, signer_name: signature.signerName ?? null,
-                    }, { onConflict: 'document_id,signer_role' }).select('id').single());
+                    await this.step(attempt, 'client_document_signatures.upsert', 'write', () => db.from('client_document_signatures').upsert({ tenant_id: tenantId, client_id: clientId, document_id: documentId,
+                        signer_role: role, signature_data: signature.dataUrl, signed_at: signature.signedAt, signer_name: signature.signerName ?? null }, { onConflict: 'document_id,signer_role' }).select('id').single());
                 }
             }
-            const privacy = form.intakeDocuments.find(doc => doc.templateKey === 'privacy_consent_default');
-            const contract = form.intakeDocuments.find(doc => doc.documentType === 'client_contract');
-            await this.step(attempt, 'client_consent_status.upsert', 'write', () => db.from('client_consent_status').upsert({
-                tenant_id: tenantId, client_id: clientId, privacy_status: privacy?.status ?? 'not_started', contract_status: contract?.status ?? 'not_started',
-                assignment_status: form.intakeAssignmentEnabled ? form.intakeDocuments.find(doc => doc.templateKey === 'assignment_declaration_care_health_insurance')?.status ?? 'not_started' : 'skipped_optional',
-                privacy_finalized_at: privacy?.finalizedAt ?? null, contract_finalized_at: contract?.finalizedAt ?? null, updated_by: actorId,
-            }, { onConflict: 'tenant_id,client_id' }).select('id').single(), promoted.length === 0);
+            const effectiveState = (doc: ClientIntakeFormData['intakeDocuments'][number] | undefined, templateKey?: string) => {
+                const existing = existingByKey.get(doc?.templateKey ?? templateKey ?? '');
+                return existing && (!doc || !documentsToSave.includes(doc)) ? { status: existing.status, finalizedAt: existing.finalized_at } : doc;
+            };
+            const privacy = effectiveState(form.intakeDocuments.find(doc => doc.templateKey === 'privacy_consent_default'), 'privacy_consent_default'), contract = effectiveState(form.intakeDocuments.find(doc => doc.documentType === 'client_contract')), assignment = effectiveState(form.intakeDocuments.find(doc => doc.templateKey === 'assignment_declaration_care_health_insurance'), 'assignment_declaration_care_health_insurance');
+            await this.step(attempt, 'client_consent_status.upsert', 'write', () => db.from('client_consent_status').upsert({ tenant_id: tenantId, client_id: clientId, privacy_status: privacy?.status ?? 'not_started', contract_status: contract?.status ?? 'not_started',
+                assignment_status: assignment?.status ?? (form.intakeAssignmentEnabled ? 'not_started' : 'skipped_optional'), privacy_finalized_at: privacy?.finalizedAt ?? null, contract_finalized_at: contract?.finalizedAt ?? null, updated_by: actorId }, { onConflict: 'tenant_id,client_id' }).select('id').single(), promoted.length === 0);
             for (const [index, doc] of promoted.entries()) {
                 const saved = await this.step(attempt, 'promotion.intakeLookup', 'read', () => db.from('client_intake_documents').select('id').eq('tenant_id', tenantId).eq('client_id', clientId).eq('template_key', doc.templateKey).single());
                 const intakeId = nativeId(saved), fileName = `${doc.templateKey}.html`, terminal = index === promoted.length - 1;
@@ -458,7 +493,9 @@ export class ClientRecordNativeWrites {
                 }
                 const existing = await this.step(attempt, 'promotion.byFile', 'read', () => db.from('client_documents').select('id, intake_document_id, source, mime_type').eq('tenant_id', tenantId).eq('client_id', clientId).eq('file_name', fileName).maybeSingle());
                 if (own(existing, 'data') !== null) {
-                    const existingId = nativeId(existing);
+                    const existingId = nativeId(existing), retainedFile = own(existing, 'data');
+                    if (own(retainedFile, 'source') !== 'intake' || own(retainedFile, 'intake_document_id') !== intakeId || own(retainedFile, 'mime_type') !== 'text/html')
+                        throw Error('Der Dokumentname gehört bereits zu einer anderen Originaldatei. Die vorhandene Datei wurde nicht ersetzt.');
                     await this.step(attempt, 'promotion.linkByFile', 'write', () => db.from('client_documents').update(patch).eq('id', existingId).eq('tenant_id', tenantId), terminal);
                     continue;
                 }
@@ -468,7 +505,7 @@ export class ClientRecordNativeWrites {
                     tenant_id: tenantId, client_id: clientId, title, file_name: fileName, mime_type: 'text/html',
                     category: doc.documentType === 'privacy_consent' || doc.documentType === 'additional_consent' ? 'einwilligung'
                         : doc.documentType === 'client_contract' || doc.documentType === 'assignment_declaration' ? 'vertrag' : 'sonstige',
-                    status: 'abgeschlossen', sensitivity: 'care', source: 'intake', intake_document_id: intakeId, portal_visible: true, uploaded_by: actorId,
+                    status: patch.status, sensitivity: 'care', source: 'intake', intake_document_id: intakeId, portal_visible: true, uploaded_by: actorId,
                 }), terminal);
                 // A returned 23505 is an error, not corroboration of this original payload.
             }

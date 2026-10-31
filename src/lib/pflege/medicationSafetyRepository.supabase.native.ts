@@ -1,5 +1,6 @@
 // Generated native presentation from src/lib/pflege/medicationSafetyRepository.supabase.web.ts. Update through scripts/port-native-workspaces.mjs.
 import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { requireCareWorkspaceAuthorityWeb } from "./careWorkspaceAuthority.native.ts";
 import { getSupabaseClient } from "../supabase/client.ts";
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
@@ -59,10 +60,7 @@ const dbClient = () => getSupabaseClient() as unknown as {
 const stable = (v: unknown): string => JSON.stringify(v, (_key, item: unknown) => object(item) ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
 const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
 const text = (v: unknown, min = 0): v is string => typeof v === 'string' && v.trim().length >= min;
-async function authority(c: Context) { const db = dbClient(); if (!db || !c.isCurrent())
-    throw Error(unavailable); const session = await db.auth.getSession(); if (!c.isCurrent() || session.error || !session.data.session || session.data.session.user.id !== c.actorId || session.data.session.expires_at !== undefined && session.data.session.expires_at * 1000 <= Date.now())
-    throw Error(unavailable); const user = await db.auth.getUser(session.data.session.access_token); if (!c.isCurrent() || user.error || user.data.user?.id !== c.actorId || dbClient() !== db)
-    throw Error(unavailable); return db; }
+async function authority(context: Context) { return requireCareWorkspaceAuthorityWeb(context, dbClient, (request, operation) => withServiceQueryTimeout(Promise.resolve(request), operation, 20000), unavailable); }
 function decodeOriginal(v: unknown, c: Pick<Context, 'tenantId' | 'clientId' | 'medicationId'>): MedicationSafetyOriginal { const issue = medicationSafetyOriginalIssue(v, c); if (issue)
     throw Error(issue); return structuredClone(v as MedicationSafetyOriginal); }
 function decodeOrderDefaults(v: unknown): MedicationSafetyEntry['order'] { if (!object(v) || !['medicationName', 'activeIngredient', 'strength', 'form', 'dose', 'unit', 'route', 'prescriber', 'validFrom', 'indication', 'maximumDoseUnit'].every(key => typeof v[key] === 'string') || !(v.validUntil === null || typeof v.validUntil === 'string') || typeof v.isPrn !== 'boolean' || !['minimumIntervalMinutes', 'maximumDose', 'maximumPeriodHours'].every(key => v[key] === null || typeof v[key] === 'string'))

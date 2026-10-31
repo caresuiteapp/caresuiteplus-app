@@ -1,4 +1,4 @@
-import {decodeCurrentPlanReview} from './currentPlanReviewDomain';
+import {decodeCurrentPlanReview} from './currentPlanReviewDomain.web.ts';
 import {decodeEvaluationRecords,planEvaluationVersion,type EvaluationPlan,type EvaluationRecord,type EvaluationMeasure} from './planEvaluationDomain.ts';
 import type {EvaluationMeasureReview} from './planEvaluationMeasures.ts';
 import {sameWoundJson,woundInstant} from '../pflege/woundCareDomain.ts';

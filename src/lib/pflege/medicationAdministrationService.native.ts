@@ -361,7 +361,7 @@ export async function fetchMedicationSourceFingerprint(order: MedicationDocument
         return { ok: false, error: error instanceof Error ? error.message : 'Inhaltsfingerabdruck konnte nicht erfasst werden.' };
     }
 }
-export async function archiveMedicationSourceCopy(order: MedicationDocumentation, sourceId: string, tenantId: string, requestId: string, role: RoleKey | null): Promise<MedicationWriteResult> {
+export async function archiveMedicationSourceCopy(order: MedicationDocumentation, sourceId: string, tenantId: string, requestId: string, role: RoleKey | null, isCurrent: () => boolean = () => true): Promise<MedicationWriteResult> {
     for (const permission of ['pflege.medications.manage', 'pflege.medications.view', 'office.documents.view', 'office.clients.view_sensitive'] as const) {
         const denied = enforcePermission<{
             id: string;
@@ -378,7 +378,7 @@ export async function archiveMedicationSourceCopy(order: MedicationDocumentation
     if (!client || getServiceMode() !== 'supabase')
         return unavailable;
     return submitMedicationSourceArchive({ tenantId, clientId: order.clientId, medicationId: order.id, sourceId }, requestId, {
-        isCurrent: () => !guardServiceTenant(tenantId),
+        isCurrent: () => isCurrent() && !guardServiceTenant(tenantId),
         invoke: (sourceId, requestId) => withServiceQueryTimeout(client.functions.invoke('medication-source-archive', { body: { sourceId, requestId } }), 'Quellenarchivierung', 60000),
         readConfirmed: async (id) => {
             const result = await withServiceQueryTimeout(Promise.resolve(fromUnknownTable(client, 'medication_source_archives').select('*').eq('id', id).eq('tenant_id', tenantId).eq('client_id', order.clientId).eq('medication_id', order.id).eq('source_id', sourceId).eq('status', 'ready').maybeSingle()), 'Archivbestätigung', 20000);

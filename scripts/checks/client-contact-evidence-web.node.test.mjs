@@ -43,6 +43,8 @@ for(const value of [time,'1969-12-31T23:59:59.999999Z','2026-02-30T00:00:00Z','2
 // with only the newly imported pure helper provided as its actual module dependency.
 let fixture=read('scripts/checks/client-native-parent-web.node.test.mjs');fixture=fixture.slice(0,fixture.indexOf("test('Actual Parent"));
 fixture=fixture.replace(/^const root=.*$/m,`const root=${JSON.stringify(root)},read=p=>readFileSync(resolve(root,p),'utf8');`);
+// The imported fixture is evaluated from a data URL; retain the real helper URL.
+fixture=fixture.replace("new URL('./helpers/current-intake-validation.mjs',import.meta.url).href",JSON.stringify(new URL('./helpers/current-intake-validation.mjs',import.meta.url).href));
 fixture=fixture.replace("const apiFields='","const apiFields='capturePanelContactRead,capturePanelInternalNotesRead,");
 fixture=fixture.replace('const args={...identitySession','const contactEvidence=awaitNever;const args={...contactEvidence,...identitySession');
 // Top-level load uses the same actual module/WeakSet instance as this suite. No forged projection or authorization leaf.

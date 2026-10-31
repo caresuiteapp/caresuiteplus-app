@@ -1,5 +1,6 @@
 // Generated native presentation from src/lib/pflege/respiratoryIntensiveCareRepository.supabase.web.ts. Update through scripts/port-native-workspaces.mjs.
 import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { requireCareWorkspaceAuthorityWeb } from "./careWorkspaceAuthority.native.ts";
 import { getSupabaseClient } from "../supabase/client.ts";
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
@@ -54,10 +55,7 @@ const dbClient = () => getSupabaseClient() as unknown as {
         status?: number;
     }>;
 } | null;
-async function authority(c: Context) { const db = dbClient(); if (!db || !c.isCurrent())
-    throw Error(unavailable); const session = await db.auth.getSession(); if (!c.isCurrent() || session.error || !session.data.session || session.data.session.user.id !== c.actorId || session.data.session.expires_at !== undefined && session.data.session.expires_at * 1000 <= Date.now())
-    throw Error(unavailable); const user = await db.auth.getUser(session.data.session.access_token); if (!c.isCurrent() || user.error || user.data.user?.id !== c.actorId || dbClient() !== db)
-    throw Error(unavailable); return db; }
+async function authority(context: Context) { return requireCareWorkspaceAuthorityWeb(context, dbClient, (request, operation) => withServiceQueryTimeout(Promise.resolve(request), operation, 20000), unavailable); }
 function decode(v: unknown, c: Pick<Context, 'tenantId' | 'clientId' | 'measurementId'>) { const issue = respiratoryCareOriginalIssue(v, c); if (issue)
     throw Error(issue); return structuredClone(v as RespiratoryCareOriginal); }
 export async function readRespiratoryCareSources(c: Context): Promise<Result<RespiratoryCareSources>> { try {

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "synthetic": true,
+  "source": "Actual synthetic Staging SQL rollback fixture output, retained without rewriting packet, native row or receipt values. Recursive Auth and credential screening found no fields requiring redaction.",
+  "sourceFixture": "supabase/tests/pflege_care_documentation_quarantined_staging.sql",
+  "sourceFixtureSha256": "bb209bb196ec2fe6cf14e3b86c9c4c5c855fc7af2cb78f76d79c64873feaffaf",
+  "sourcePatch": "supabase/patches/ambulatory_care_documentation_quarantined.sql",
+  "sourcePatchSha256": "0d8bd54acc3a3123c248a74c752e71760c6307b8d13db79ac1f8435545a0e173",
+  "capturedOn": "2026-10-22",
+  "appliedMigrationVersions": [
+    "20261022080425"
+  ],
+  "sha256": "08faefffb517502c4faad9abb15c822267aeea0681e44fd21f5ccaa1228ef244",
+  "sqlRollbackAndCleanupVerified": true,
+  "authHttpVerified": false,
+  "browserVerified": false,
+  "realClinicalQualificationVerified": false,
+  "limits": "Only explicitly authored unsigned care_report creation and append-only correction succeeded. All six other clinical kinds, content signing, fresh legacy path writes and unproven historical legacy path confirmation remain blocked. All seven public APIs and family helpers remain quarantined with no EXECUTE grants to anon, authenticated or service_role. No Auth claims, sessions, tokens or real patient data are retained. Privileged synthetic SQL provisioning is not authenticated HTTP, real qualification, browser, parallel transaction, deployment or module activation acceptance."
+}

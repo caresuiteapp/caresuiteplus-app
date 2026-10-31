@@ -16,7 +16,7 @@ import { woundEditorAccess, type WoundEditorOwner } from "../../lib/pflege/wound
 import { MedicationEventTimeInput, currentMedicationEventTime, medicationEventInstant } from "../../components/pflege/MedicationEventTimeInput.native.tsx";
 import { spacing, typography } from '@/theme';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
-import { writeWoundLifecycle } from '@/lib/pflege/ambulatoryWoundService';
+import { writeWoundLifecycle } from "../../lib/pflege/ambulatoryWoundService.native.ts";
 import { fetchWoundWithCorrections } from '@/lib/pflege/woundAssessmentCorrectionService';
 import { validateWoundHealingCorrectionBasis } from '@/lib/pflege/woundAssessmentCorrectionDomain';
 import { emptyWoundLifecycle, closedWoundStatuses, openWoundStatuses, validateWoundLifecycle, validateWoundLifecycleSnapshot, type WoundLifecycleRequest } from '@/lib/pflege/woundLifecycleDomain';

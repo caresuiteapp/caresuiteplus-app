@@ -10,6 +10,8 @@ const root = resolve(new URL('../../', import.meta.url).pathname), read = p => r
 let fixture = read('scripts/checks/client-native-parent-web.node.test.mjs');
 fixture = fixture.slice(0, fixture.indexOf("test('Actual Parent"));
 fixture = fixture.replace(/^const root=.*$/m, `const root=${JSON.stringify(root)},read=p=>readFileSync(resolve(root,p),'utf8');`);
+// Resolve the actual validator helper before evaluating the fixture from a data URL.
+fixture = fixture.replace("new URL('./helpers/current-intake-validation.mjs',import.meta.url).href", JSON.stringify(new URL('./helpers/current-intake-validation.mjs',import.meta.url).href));
 fixture = fixture.replace("const apiFields='", "const apiFields='timelineAccess,timelineControllersRef,");
 fixture = fixture.replace('render();return {get api()', 'render();return {get nativeSdk(){return nativeDb;},get api()');
 // Explicit native SDK status is required by the139 note reader before any insert.

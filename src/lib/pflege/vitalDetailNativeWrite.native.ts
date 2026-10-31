@@ -4,6 +4,7 @@ import { isDefiniteMedicationRejection } from './medicationRequestState.ts';
 import { withServiceQueryTimeout } from '../services/queryTimeout';
 import { vitalDetailNativeWriteAuthorityWeb, type VitalDetailWriteRuntimeWeb, type VitalDetailPayloadWeb, type VitalDetailOperationWeb } from "./vitalDetailWriteRuntime.native.ts";
 import type { MedicationWriteResult } from "./medicationAdministrationService.native.ts";
+import { assertVitalDetailWriteReceiptWeb } from "./vitalNativeWriteReceipt.native.ts";
 type Row = Record<string, unknown>;
 const outcomes = new WeakMap<object, {
     runtime: VitalDetailWriteRuntimeWeb;
@@ -31,6 +32,7 @@ export async function executeVitalDetailNativeWriteWeb(runtime: VitalDetailWrite
         flight = authority.flightToken(kind, id);
         if (!flight)
             throw Error('Eigene native Transportphase fehlt.');
+        const scope = authority.receiptScope(kind, id);
         await authority.assertSession(kind, id, payload, frame);
         const sdk = authority.assertRequest(kind, id, payload, frame), rpc = (sdk as unknown as Row).rpc, second = (sdk as unknown as Row).rpc;
         if (typeof rpc !== 'function' || rpc !== second)
@@ -47,7 +49,7 @@ export async function executeVitalDetailNativeWriteWeb(runtime: VitalDetailWrite
             throw Error('Nativer Thenaufruf ist nicht bestätigt.');
         const native = new Promise<unknown>((resolve, reject) => { if (authority.assertRequest(kind, id, payload, frame) !== sdk)
             throw Error('Ursprüngliche native Verbindung fehlt.'); observing = true; Reflect.apply(then, query, [resolve, reject]); });
-        const completion = native.then(raw => {
+        const completion = native.then(async (raw) => {
             let response: Row | null = null;
             try {
                 response = freeze(clone(raw)) as Row;
@@ -65,8 +67,30 @@ export async function executeVitalDetailNativeWriteWeb(runtime: VitalDetailWrite
             catch {
                 return unknown(true, response);
             }
-            // Own native terminal facts survive closed attachments and revoked current UI rights.
-            return outcome({ ok: true, data: { id: response.data as string } }, response, true);
+            try {
+                const nativeId = response!.data as string;
+                await authority.assertSession(kind, id, payload, frame);
+                if (authority.assertRequest(kind, id, payload, frame) !== sdk)
+                    throw Error('Aktueller eigener Quittungsbezug fehlt.');
+                const confirm = (sdk as unknown as Row).rpc, again = (sdk as unknown as Row).rpc;
+                if (typeof confirm !== 'function' || confirm !== again)
+                    throw Error('Nativer eigener Originalabruf fehlt.');
+                const name = kind === 'follow_up' ? 'confirm_ambulatory_vital_follow_up' : 'confirm_ambulatory_vital_invalidation', key = kind === 'follow_up' ? 'follow_up_id' : 'invalidation_id', args = freeze(clone({ [key]: nativeId, request_id: id, payload }));
+                if (authority.assertRequest(kind, id, payload, frame) !== sdk)
+                    throw Error('Eigener Bestätigungsbezug geändert.');
+                const query = Reflect.apply(confirm, sdk, [name, args]), then = (query as Row).then, last = (query as Row).then;
+                if (typeof then !== 'function' || then !== last)
+                    throw Error('Nativer eigener Bestätigungstransport fehlt.');
+                const rawConfirmation = await new Promise<unknown>((resolve, reject) => { if (authority.assertRequest(kind, id, payload, frame) !== sdk)
+                    throw Error('Eigener Bestätigungsbezug fehlt.'); Reflect.apply(then, query, [resolve, reject]); }), confirmation = freeze(clone(rawConfirmation)) as Row;
+                if (!confirmation || typeof confirmation !== 'object' || Array.isArray(confirmation) || confirmation.error !== null || ![200, 201].includes(confirmation.status as number))
+                    throw Error('Eigener vollständiger Kontrollbeleg fehlt.');
+                const retained = assertVitalDetailWriteReceiptWeb(confirmation.data, scope, nativeId, id, kind, payload);
+                return outcome({ ok: true, data: { id: nativeId } }, freeze({ ...response, confirmation, retained }), true);
+            }
+            catch {
+                return unknown(true, response);
+            }
         }, () => unknown(observing));
         return await withServiceQueryTimeout(completion, kind === 'follow_up' ? 'Originale Vitalwertkontrolle speichern' : 'Originalen Ungültigkeitsvermerk speichern', 20000);
     }

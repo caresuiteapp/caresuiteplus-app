@@ -27,7 +27,7 @@ async function page(runtime: VitalCreateRuntimeWeb, ticket: VitalCreateReadTicke
     else
         q = method(runtime, ticket, q, 'eq', ['tenant_id', runtime.tenantId]);
     if (table === 'clients') {
-        q = method(runtime, ticket, q, 'eq', ['status', 'active']);
+        q = method(runtime, ticket, q, 'in', ['status', ['active', 'aktiv']]);
         q = method(runtime, ticket, q, 'is', ['deleted_at', null]);
     }
     if (table === 'client_module_assignments') {
@@ -61,7 +61,7 @@ async function page(runtime: VitalCreateRuntimeWeb, ticket: VitalCreateReadTicke
         else {
             if (!uuid(row.id) || row.tenant_id !== runtime.tenantId || table !== 'clients' && !uuid(row.client_id))
                 throw Error('Nativer Originalbestand ist fremd.');
-            if (table === 'clients' && (row.status !== 'active' || row.deleted_at != null) || table === 'client_module_assignments' && (row.module_key !== 'pflege' || row.is_active !== true || typeof row.status !== 'string') || table === 'client_vital_sign_settings' && row.client_id !== ticket.clientId)
+            if (table === 'clients' && (!['active', 'aktiv'].includes(row.status as string) || row.deleted_at != null) || table === 'client_module_assignments' && (row.module_key !== 'pflege' || row.is_active !== true || typeof row.status !== 'string') || table === 'client_vital_sign_settings' && row.client_id !== ticket.clientId)
                 throw Error('Nativer Originalbestand hat einen anderen Abrufbezug.');
         }
     }

@@ -1,0 +1,286 @@
+{
+  "schemaVersion": 1,
+  "project": "shwpweerzsfkqaivmaoc",
+  "sourceSha256": "075d091fd6f6a0e78c74c05b40c3160e1e3c97a0f8448db6af5b6cb1794c3dcc",
+  "applyConfirmed": true,
+  "sourceScope": "Only NEW additive V2 objects; existing path and native data/privileges untouched by installer.",
+  "metadata": {
+    "observed_at": "2026-10-23 01:04:20.022687+00",
+    "migrations": [
+      {
+        "name": "pflege_assessment_planning_v2_quarantined",
+        "version": "20261023010345"
+      }
+    ],
+    "new_tables": [
+      {
+        "rls": true,
+        "anon": false,
+        "name": "assessment_events",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "rls": true,
+        "anon": false,
+        "name": "assessment_roots",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "rls": true,
+        "anon": false,
+        "name": "plan_events",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "rls": true,
+        "anon": false,
+        "name": "plan_roots",
+        "service_role": false,
+        "authenticated": false
+      }
+    ],
+    "new_functions": [
+      {
+        "anon": false,
+        "name": "commit_event",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "confirm_event",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "context",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "current_source",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "event_json",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "fields",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "fingerprint",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "header",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "history",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "immutable",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "instant",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "instrument_projection",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "measure_projection",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "payload_keys",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "read_instrument_packet",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "read_lifecycle_packet",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "require",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "scope",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "source_field",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "sources",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "state",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "supported",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "text_value",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "utc",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "uuid_value",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "validate",
+        "schema": "assessment_planning_v2_private",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "web_assessment_path_v2_context",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "web_care_plan_path_v2_context",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "web_commit_assessment_path_v2_event",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "web_commit_care_plan_path_v2_event",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "web_confirm_assessment_path_v2_event",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "web_confirm_care_plan_path_v2_event",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "web_read_assessment_instrument_v2_packet",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      },
+      {
+        "anon": false,
+        "name": "web_read_plan_lifecycle_v2_packet",
+        "schema": "public",
+        "service_role": false,
+        "authenticated": false
+      }
+    ]
+  }
+}

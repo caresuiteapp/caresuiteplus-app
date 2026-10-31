@@ -5,6 +5,8 @@ import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
 import type { MedicationWriteResult } from "./medicationAdministrationService.native.ts";
 import type { VitalMeasurementPayload } from './vitalMeasurementDomain';
 import type { VitalCreateRuntimeWeb } from "./vitalCreateRuntime.native.ts";
+import { captureVitalCreateReceiptScopeWeb, assertVitalCreateRequestSessionWeb } from "./vitalCreateRuntime.native.ts";
+import { assertVitalMeasurementWriteReceiptWeb } from "./vitalNativeWriteReceipt.native.ts";
 type Row = Record<string, unknown>;
 const outcomes = new WeakMap<object, {
     runtime: VitalCreateRuntimeWeb;
@@ -27,6 +29,8 @@ export async function executeVitalCreateNativeWeb(runtime: VitalCreateRuntimeWeb
         flight = runtime.writeFlight(id);
         if (!flight)
             throw Error('Eigene ursprüngliche Transportphase fehlt.');
+        const scope = captureVitalCreateReceiptScopeWeb(runtime, id, payload);
+        await assertVitalCreateRequestSessionWeb(runtime, id, payload);
         const sdk = runtime.assertRequest(id, payload), rpc = (sdk as unknown as Row).rpc, second = (sdk as unknown as Row).rpc;
         if (typeof rpc !== 'function' || rpc !== second)
             throw Error('Nativer RPCaufruf ist nicht bestätigt.');
@@ -44,7 +48,7 @@ export async function executeVitalCreateNativeWeb(runtime: VitalCreateRuntimeWeb
             throw Error('Ursprüngliche Verbindung fehlt.'); observing = true; Reflect.apply(first, query, [resolve, reject]); });
         // Keep observing this original native promise after a UI deadline or editor
         // cleanup. Terminal transport facts are stored before any current UI grant.
-        const completion = native.then(raw => {
+        const completion = native.then(async (raw) => {
             let response: Row | null = null;
             try {
                 response = freeze(clone(raw)) as Row;
@@ -62,7 +66,30 @@ export async function executeVitalCreateNativeWeb(runtime: VitalCreateRuntimeWeb
             catch {
                 return unknown(true, response);
             }
-            return outcome({ ok: true, data: { id: response.data as string } }, response, true);
+            try {
+                const nativeId = response!.data as string;
+                await assertVitalCreateRequestSessionWeb(runtime, id, payload);
+                if (runtime.assertRequest(id, payload) !== sdk)
+                    throw Error('Eigener Bestätigungsbezug fehlt.');
+                const confirm = (sdk as unknown as Row).rpc, confirmAgain = (sdk as unknown as Row).rpc;
+                if (typeof confirm !== 'function' || confirm !== confirmAgain)
+                    throw Error('Eigener Originalabruf fehlt.');
+                const args = freeze(clone({ measurement_id: nativeId, request_id: id, payload }));
+                if (runtime.assertRequest(id, payload) !== sdk)
+                    throw Error('Aktuelle eigene Bestätigung fehlt.');
+                const query = Reflect.apply(confirm, sdk, ['confirm_ambulatory_vital_measurement', args]), then = (query as Row).then, again = (query as Row).then;
+                if (typeof then !== 'function' || then !== again)
+                    throw Error('Eigener Bestätigungstransport fehlt.');
+                const rawConfirmation = await new Promise<unknown>((resolve, reject) => { if (runtime.assertRequest(id, payload) !== sdk)
+                    throw Error('Eigener Bestätigungsbezug geändert.'); Reflect.apply(then, query, [resolve, reject]); }), confirmation = freeze(clone(rawConfirmation)) as Row;
+                if (!confirmation || typeof confirmation !== 'object' || Array.isArray(confirmation) || confirmation.error !== null || ![200, 201].includes(confirmation.status as number))
+                    throw Error('Vollständiger eigener Messbeleg fehlt.');
+                const retained = assertVitalMeasurementWriteReceiptWeb(confirmation.data, scope, nativeId, id, payload);
+                return outcome({ ok: true, data: { id: nativeId } }, freeze({ ...response, confirmation, retained }), true);
+            }
+            catch {
+                return unknown(true, response);
+            }
         }, () => unknown(true));
         return await withServiceQueryTimeout(completion, 'Vitalwert speichern', 20000);
     }

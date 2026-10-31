@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "createdOn": "2026-10-23",
+  "scope": "Supplementary source candidates retained for later review/execution; no installation, clinical approval or test pass is implied. Original larger fixtures remain unchanged.",
+  "authorityCall": "Two connector calls were interrupted or unanswered; no result retained and no PASS.",
+  "executionRule": "Before any future run, independently review exact bytes and the actual required migration versions; root serializes fixture calls, synthetic staging only, full rollback.",
+  "files": [
+    {
+      "path": "supabase/tests/pflege_basic_care_authority_unit_staging.sql",
+      "bytes": 14941,
+      "sha256": "b8a3f3893b3660e7acf67ee0bf0d0bd6c6717e720484bc00a704ded57db700ad",
+      "runtimeStatus": "NOT_CONFIRMED"
+    },
+    {
+      "path": "supabase/tests/pflege_basic_care_review_acceptance_correction_unit_staging.sql",
+      "bytes": 14998,
+      "sha256": "c16bfc3b8ab162235315581473fd6808fbd8876b82181f008bf1e158ce85ec11",
+      "runtimeStatus": "NOT_CONFIRMED"
+    },
+    {
+      "path": "supabase/tests/pflege_basic_care_review_auth_relink_unit_staging.sql",
+      "bytes": 14973,
+      "sha256": "1156d9aa2e189ac1d4ee8df4d75b2059668423f90e7a776249102ca38e75c771",
+      "runtimeStatus": "NOT_CONFIRMED"
+    },
+    {
+      "path": "supabase/tests/pflege_basic_care_review_corrected_request_unit_staging.sql",
+      "bytes": 14997,
+      "sha256": "91c1d2a8b4e7bba03c564ae4f0e968864ffacc2baca49952f804f621c38e8d52",
+      "runtimeStatus": "NOT_CONFIRMED"
+    },
+    {
+      "path": "supabase/tests/pflege_basic_care_review_dto_unit_staging.sql",
+      "bytes": 14857,
+      "sha256": "cbbacce8900a84fa9f858f980115058897ccd126f213f8a19126698638528f39",
+      "runtimeStatus": "NOT_CONFIRMED"
+    },
+    {
+      "path": "supabase/tests/pflege_basic_care_review_pages_unit_staging.sql",
+      "bytes": 14943,
+      "sha256": "1aee9ec996fc464760b089a0cfb5545c3b4cea161e28074fd9085a9bb10d72e3",
+      "runtimeStatus": "NOT_CONFIRMED"
+    },
+    {
+      "path": "supabase/tests/pflege_basic_care_review_qualification_unit_staging.sql",
+      "bytes": 14946,
+      "sha256": "7113e3717881411af933b5b758a4e514c98b394ca490e7f4f950c7ce18004677",
+      "runtimeStatus": "NOT_CONFIRMED"
+    },
+    {
+      "path": "supabase/tests/pflege_basic_care_review_return_unit_staging.sql",
+      "bytes": 14995,
+      "sha256": "79c40de429176bedb4feedcffa6864b9bc8bf4d91879773db4a096ed1bede419",
+      "runtimeStatus": "NOT_CONFIRMED"
+    },
+    {
+      "path": "supabase/tests/pflege_basic_care_review_self_exclusion_unit_staging.sql",
+      "bytes": 14995,
+      "sha256": "31f3e090a507b1de6b458c54232b887aedda5a32cf7110f373e4b95fd70af039",
+      "runtimeStatus": "NOT_CONFIRMED"
+    },
+    {
+      "path": "supabase/tests/fixtures/basic_care_review_auth_relink_unit_map.json",
+      "bytes": 2233,
+      "sha256": "763a9481449dee6f5ce84c6a6007e253f57f078a4eed139c6c72b50a96afff3e",
+      "runtimeStatus": "NOT_CONFIRMED"
+    },
+    {
+      "path": "scripts/checks/validate-basic-care-review-auth-relink-unit-evidence.mjs",
+      "bytes": 2487,
+      "sha256": "f8614d6df298edeeaa2ec97ded457d2ea2d4d83237935d235f99bb9010e38c60",
+      "runtimeStatus": "NOT_CONFIRMED"
+    }
+  ]
+}

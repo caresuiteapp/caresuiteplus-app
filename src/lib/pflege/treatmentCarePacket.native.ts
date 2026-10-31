@@ -251,12 +251,20 @@ export function treatmentCareOriginalIssue(v: unknown, c: {
     tenantId: string;
     clientId: string;
     orderId: string;
-}): string | null { const o = v as TreatmentCareOriginal; if (!o || ![o.id, o.rootId, o.headId, o.recordedBy].every(uuid) || o.tenantId !== c.tenantId || o.clientId !== c.clientId || o.orderId !== c.orderId || !Number.isSafeInteger(o.revision) || o.revision < 1 || !instant(o.recordedAt) || !sha(o.contentFingerprint) || !Array.isArray(o.history) || o.history.length !== o.revision || o.history.length > 2000)
-    return 'Behandlungshistorie fehlt, ist abgeschnitten oder fremd.'; for (let n = 0; n < o.history.length; n++) {
-    const h = o.history[n], previous = n === 0 ? null : o.history[n - 1].id;
-    if (!uuid(h.id) || h.revision !== n + 1 || h.previousId !== previous || !instant(h.recordedAt) || !uuid(h.recordedBy) || !text(h.recordedByName, 1) || !sha(h.contentFingerprint) || treatmentCareEntryIssue(h.payload, { allowLegacyMaterial: true }))
-        return 'Behandlungshistorie hat eine Lücke oder einen ungültigen Inhalt.';
-} const head = o.history.at(-1)!; return o.id !== head.id || o.headId !== head.id || o.revision !== head.revision || o.recordedAt !== head.recordedAt || o.recordedBy !== head.recordedBy || o.recordedByName !== head.recordedByName || o.contentFingerprint !== head.contentFingerprint || stable(o.payload) !== stable(head.payload) ? 'Behandlungsoriginalkopf widerspricht der Historie.' : null; }
+}): string | null {
+    const o = v as TreatmentCareOriginal;
+    if (!o || ![o.id, o.rootId, o.headId, o.recordedBy].every(uuid) || o.tenantId !== c.tenantId || o.clientId !== c.clientId || o.orderId !== c.orderId || !kinds.has(o.kind) || typeof o.voided !== 'boolean' || !Number.isSafeInteger(o.revision) || o.revision < 1 || !instant(o.recordedAt) || !sha(o.contentFingerprint) || !Array.isArray(o.history) || Object.keys(o.history).length !== o.history.length || o.history.length !== o.revision || o.history.length > 2000 || o.history[0]?.id !== o.rootId)
+        return 'Behandlungshistorie fehlt, ist abgeschnitten oder fremd.';
+    const ids = new Set<string>();
+    for (let n = 0; n < o.history.length; n++) {
+        const h = o.history[n], previous = n === 0 ? null : o.history[n - 1];
+        if (!h || !uuid(h.id) || ids.has(h.id.toLowerCase()) || h.revision !== n + 1 || h.previousId !== (previous?.id ?? null) || !instant(h.recordedAt) || previous && instantMicros(h.recordedAt)! < instantMicros(previous.recordedAt)! || !uuid(h.recordedBy) || !text(h.recordedByName, 1) || !text(h.reason) || !sha(h.contentFingerprint) || treatmentCareEntryIssue(h.payload, { allowLegacyMaterial: true }) || h.payload.clientId !== o.clientId || h.payload.orderId !== o.orderId || h.payload.kind !== o.kind)
+            return 'Behandlungshistorie hat eine Lücke oder einen ungültigen Inhalt.';
+        ids.add(h.id.toLowerCase());
+    }
+    const head = o.history.at(-1)!;
+    return o.id !== head.id || o.headId !== head.id || o.revision !== head.revision || o.recordedAt !== head.recordedAt || o.recordedBy !== head.recordedBy || o.recordedByName !== head.recordedByName || o.contentFingerprint !== head.contentFingerprint || stable(o.payload) !== stable(head.payload) ? 'Behandlungsoriginalkopf widerspricht der Historie.' : null;
+}
 export function treatmentCarePacketIssue(v: unknown): string | null {
     const p = v as TreatmentCarePacket;
     if (!p || p.schemaVersion !== '1' || !['create', 'revise'].includes(p.action) || ![p.requestId, p.tenantId, p.clientId, p.orderId, p.actorId].every(uuid) || p.entry.clientId !== p.clientId || p.entry.orderId !== p.orderId)

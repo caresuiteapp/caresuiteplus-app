@@ -1,5 +1,7 @@
 // Generated native presentation from src/lib/pflege/careDocumentationPathWorkspaceDomain.web.ts. Update through scripts/port-native-workspaces.mjs.
 import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { cloneClientNativeOriginal, sameClientNativeOriginal } from "../clients/clientRecordNativeOriginal.native.ts";
+import { careDocumentationInstantMicros } from "./careDocumentationPacket.native.ts";
 export const careDocumentationPathVersion = '2026-10-16.5' as const;
 export const careDocumentationPathKinds = ['care_report', 'planned_service_record', 'partial_service_record', 'non_service_record', 'refusal_record', 'incident_report', 'incident_closure', 'protocol_record', 'content_confirmation', 'history_review', 'control_order', 'control_result', 'control_nonperformance', 'external_document_review', 'documentation_review_request', 'documentation_review_return', 'documentation_review_decision', 'correction'] as const;
 export type CareDocumentationPathKind = (typeof careDocumentationPathKinds)[number];
@@ -97,6 +99,7 @@ export type CareDocumentationPathContext = {
     sources: {
         count: number;
         rows: CareDocumentationPathSource[];
+        stateFingerprint: string;
     };
     history: CareDocumentationPathHistory;
 };
@@ -119,9 +122,9 @@ const text = (v: unknown, label: string) => { if (typeof v !== 'string' || !v.tr
     throw Error(`${label} fehlt.`); return v; };
 const id = (v: unknown, label: string) => { const x = text(v, label); if (!uuid.test(x) || x !== x.toLowerCase())
     throw Error(`${label} ist ungültig.`); return x; };
-const time = (v: unknown, label: string) => { const x = text(v, label); if (!instant.test(x) || Number.isNaN(Date.parse(x)))
+const time = (v: unknown, label: string) => { const x = text(v, label); if (!instant.test(x) || careDocumentationInstantMicros(x) === null)
     throw Error(`${label} ist ungültig.`); return x; };
-export function careDocumentationPathSource(v: unknown, label = 'Originalquelle'): asserts v is CareDocumentationPathSource { if (!object(v) || Object.keys(v).sort().join(',') !== 'id,kind,snapshot')
+function unsafeCareDocumentationPathSource(v: unknown, label = 'Originalquelle'): asserts v is CareDocumentationPathSource { if (!object(v) || Object.keys(v).sort().join(',') !== 'id,kind,snapshot')
     throw Error(`${label} ist unvollständig.`); id(v.id, `${label}-ID`); text(v.kind, `${label}-Art`); if (!object(v.snapshot) || v.snapshot.id !== v.id)
     throw Error(`${label} stimmt nicht mit dem nativen Original überein.`); }
 function validateField(value: unknown, rule: Field) { const x = text(value, rule.label); if (rule.type === 'uuid')
@@ -129,7 +132,7 @@ function validateField(value: unknown, rule: Field) { const x = text(value, rule
     time(x, rule.label); if (rule.type === 'sha256' && !sha.test(x))
     throw Error(`${rule.label} ist ungültig.`); if (rule.type === 'enum' && !rule.values?.includes(x))
     throw Error(`${rule.label} hat einen unbekannten Wert.`); }
-export function validateCareDocumentationPathCommand(c: CareDocumentationPathCommand) { if (!object(c) || c.version !== careDocumentationPathVersion)
+function unsafeValidateCareDocumentationPathCommand(c: CareDocumentationPathCommand) { if (!object(c) || Object.keys(c).sort().join(',') !== 'actorId,clientId,eventId,expectedHeadId,kind,note,occurredAt,payload,requestId,tenantId,version' || c.version !== careDocumentationPathVersion)
     throw Error('Dokumentationspfadvorgang oder Version ist ungültig.'); id(c.requestId, 'Anfrage-ID'); id(c.eventId, 'Ereignis-ID'); id(c.tenantId, 'Mandant'); id(c.clientId, 'Pflegefall'); id(c.actorId, 'Akteur'); if (c.expectedHeadId !== null)
     id(c.expectedHeadId, 'Erwarteter Verlaufskopf'); if (!careDocumentationPathKinds.includes(c.kind))
     throw Error('Dokumentationspfadvorgang ist unbekannt.'); time(c.occurredAt, 'Tatsächlicher Vorgangszeitpunkt'); if (text(c.note, 'Nachvollziehbarer Anlass').length > 4000)
@@ -149,12 +152,16 @@ export function validateCareDocumentationPathCommand(c: CareDocumentationPathCom
 } for (const source of selected) {
     if (source.snapshot.tenant_id !== undefined && source.snapshot.tenant_id !== c.tenantId)
         throw Error('Ausgewählte Originale gehören nicht zum aktuellen Mandanten.');
+    if (source.snapshot.tenantId !== undefined && source.snapshot.tenantId !== c.tenantId)
+        throw Error('Ausgewählte Originale gehören nicht zum aktuellen Mandanten.');
+    if (source.snapshot.clientId !== undefined && source.snapshot.clientId !== c.clientId)
+        throw Error('Ausgewählte Originale gehören nicht zum aktuellen Pflegefall.');
     if (source.snapshot.client_id !== undefined && source.snapshot.client_id !== c.clientId)
         throw Error('Ausgewählte Originale gehören nicht zum aktuellen Pflegefall.');
 } for (const rule of d.fields)
     validateField(c.payload[rule.key], rule); }
 export const emptyCareDocumentationPathState = (): CareDocumentationPathState => ({ headId: null, events: [], corrected: [] });
-export function applyCareDocumentationPathCommand(state: CareDocumentationPathState, c: CareDocumentationPathCommand) { validateCareDocumentationPathCommand(c); if (c.expectedHeadId !== state.headId)
+function unsafeApplyCareDocumentationPathCommand(state: CareDocumentationPathState, c: CareDocumentationPathCommand) { validateCareDocumentationPathCommand(c); if (c.expectedHeadId !== state.headId)
     throw Error('Der  Dokumentationspfadverlauf wurde zwischenzeitlich geändert.'); if (state.events.some(x => x.id === c.eventId || x.command.requestId === c.requestId))
     throw Error('Anfrage oder Ereignis ist bereits vorhanden.'); const corrected = [...state.corrected]; if (c.kind === 'correction') {
     const target = String(c.payload.targetId);
@@ -162,42 +169,82 @@ export function applyCareDocumentationPathCommand(state: CareDocumentationPathSt
         throw Error('Nur ein vorhandener noch nicht berichtigter Originalvorgang kann berichtigt werden.');
     corrected.push(target);
 } return { headId: c.eventId, events: [...state.events], corrected }; }
-export function decodeCareDocumentationPathHistory(value: unknown, scope: {
+function unsafeDecodeCareDocumentationPathHistory(value: unknown, scope: {
     tenantId: string;
     clientId: string;
-}) { if (!object(value) || value.version !== careDocumentationPathVersion || value.tenantId !== scope.tenantId || value.clientId !== scope.clientId || !Array.isArray(value.events) || value.count !== value.events.length)
+}) { if (!object(value) || Object.keys(value).sort().join(',') !== 'clientId,count,events,headId,tenantId,version' || value.version !== careDocumentationPathVersion || value.tenantId !== scope.tenantId || value.clientId !== scope.clientId || !Array.isArray(value.events) || value.count !== value.events.length || value.events.length > 1000)
     throw Error('Der  Dokumentationspfadverlauf ist unvollständig.'); let state = emptyCareDocumentationPathState(); for (let i = 0; i < value.events.length; i++) {
     const raw = value.events[i];
-    if (!object(raw) || raw.sequence !== i + 1 || raw.previousId !== state.headId || raw.tenantId !== scope.tenantId || raw.clientId !== scope.clientId || !object(raw.command))
+    if (!object(raw) || Object.keys(raw).sort().join(',') !== 'actorId,actorName,clientId,command,id,previousId,recordedAt,sequence,tenantId' || raw.sequence !== i + 1 || raw.previousId !== state.headId || raw.tenantId !== scope.tenantId || raw.clientId !== scope.clientId || !object(raw.command))
         throw Error('Der  Dokumentationspfadverlauf ist abgeschnitten oder falsch zugeordnet.');
+    id(raw.actorId, 'Erfassende Person');
+    text(raw.actorName, 'Name der erfassenden Person');
+    time(raw.recordedAt, 'Erfassungszeitpunkt');
     const c = structuredClone(raw.command) as CareDocumentationPathCommand;
     validateCareDocumentationPathCommand(c);
-    if (raw.id !== c.eventId || c.tenantId !== scope.tenantId || c.clientId !== scope.clientId)
+    if (raw.id !== c.eventId || raw.actorId !== c.actorId || c.tenantId !== scope.tenantId || c.clientId !== scope.clientId || careDocumentationInstantMicros(raw.recordedAt)! < careDocumentationInstantMicros(c.occurredAt)! || i > 0 && careDocumentationInstantMicros(raw.recordedAt)! < careDocumentationInstantMicros((value.events[i - 1] as CareDocumentationPathEvent).recordedAt)!)
         throw Error('Der  Dokumentationspfadverlauf enthält ein fremdes Original.');
     state = applyCareDocumentationPathCommand(state, c);
     state.events.push(structuredClone(raw) as CareDocumentationPathEvent);
 } if (value.headId !== state.headId)
     throw Error('Der  Dokumentationspfadverlauf hat keinen eindeutigen Kopf.'); return { history: structuredClone(value) as CareDocumentationPathHistory, state }; }
-export function decodeCareDocumentationPathContext(value: unknown, expected: {
+function unsafeDecodeCareDocumentationPathContext(value: unknown, expected: {
     tenantId: string;
     clientId: string;
     actorId: string;
-}) { if (!object(value) || Object.keys(value).sort().join(',') !== 'actorId,clientId,history,loadedAt,sources,tenantId,version' || value.version !== careDocumentationPathVersion || value.tenantId !== expected.tenantId || value.clientId !== expected.clientId || value.actorId !== expected.actorId || !object(value.sources) || !Array.isArray(value.sources.rows) || value.sources.count !== value.sources.rows.length)
+}) { if (!object(value) || Object.keys(value).sort().join(',') !== 'actorId,clientId,history,loadedAt,sources,tenantId,version' || value.version !== careDocumentationPathVersion || value.tenantId !== expected.tenantId || value.clientId !== expected.clientId || value.actorId !== expected.actorId || !object(value.sources) || Object.keys(value.sources).sort().join(',') !== 'count,rows,stateFingerprint' || typeof value.sources.stateFingerprint !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(value.sources.stateFingerprint) || !Array.isArray(value.sources.rows) || value.sources.count !== value.sources.rows.length)
     throw Error('Vollständige Dokumentationsoriginale konnten nicht bestätigt werden.'); time(value.loadedAt, 'Lesezeitpunkt'); const seen = new Set<string>(); for (const row of value.sources.rows) {
     careDocumentationPathSource(row);
     const key = `${row.kind}:${row.id}`;
     if (seen.has(key))
         throw Error('Originalquelle ist doppelt.');
     seen.add(key);
+    if (row.kind === 'client_record') {
+        if (row.id !== expected.clientId || row.snapshot.tenant_id !== expected.tenantId)
+            throw Error('Das Pflegefalloriginal ist nicht ausdrücklich dem eigenen Fall zugeordnet.');
+    }
+    else if (!(row.snapshot.tenant_id === expected.tenantId && row.snapshot.client_id === expected.clientId || row.snapshot.tenantId === expected.tenantId && row.snapshot.clientId === expected.clientId))
+        throw Error('Die native Originalquelle hat keine vollständige eigene Mandanten- und Fallzuordnung.');
+    if (row.kind === 'care_documentation_path_event') {
+        const event = (value.history as CareDocumentationPathHistory).events.find(event => event.id === row.id);
+        if (!event || !sameClientNativeOriginal(row.snapshot, { ...event, client_id: expected.clientId }))
+            throw Error('Eine Pfadquelle stimmt nicht mit dem vollständig gelesenen Originalverlauf überein.');
+    }
     if (row.snapshot.tenant_id !== undefined && row.snapshot.tenant_id !== expected.tenantId)
         throw Error('Originalquelle gehört zu einem anderen Mandanten.');
+    if (row.snapshot.tenantId !== undefined && row.snapshot.tenantId !== expected.tenantId)
+        throw Error('Originalquelle gehört zu einem anderen Mandanten.');
+    if (row.snapshot.clientId !== undefined && row.snapshot.clientId !== expected.clientId)
+        throw Error('Originalquelle gehört zu einem anderen Pflegefall.');
     if (row.snapshot.client_id !== undefined && row.snapshot.client_id !== expected.clientId)
         throw Error('Originalquelle gehört zu einem anderen Pflegefall.');
 } decodeCareDocumentationPathHistory(value.history, expected); return structuredClone(value) as CareDocumentationPathContext; }
-export function assertCareDocumentationPathSelectionCurrent(c: CareDocumentationPathCommand, context: CareDocumentationPathContext) { validateCareDocumentationPathCommand(c); for (const rule of careDocumentationPathDefinitions[c.kind].sources) {
+function unsafeAssertCareDocumentationPathSelectionCurrent(c: CareDocumentationPathCommand, context: CareDocumentationPathContext) { validateCareDocumentationPathCommand(c); for (const rule of careDocumentationPathDefinitions[c.kind].sources) {
     const source = c.payload[rule.key] as CareDocumentationPathSource;
-    if (!context.sources.rows.some(row => JSON.stringify(row) === JSON.stringify(source)))
+    if (!context.sources.rows.some(row => sameClientNativeOriginal(row, source)))
         throw Error('Eine ausgewählte Dokumentationsgrundlage ist nicht mehr aktuell.');
 } }
-export function decodeCareDocumentationPathReceipt(value: unknown, c: CareDocumentationPathCommand) { if (!object(value) || value.version !== careDocumentationPathVersion || value.requestId !== c.requestId || !object(value.command) || JSON.stringify(value.command) !== JSON.stringify(c) || !object(value.event) || value.event.id !== c.eventId || JSON.stringify(value.event.command) !== JSON.stringify(c))
+function unsafeDecodeCareDocumentationPathReceipt(value: unknown, c: CareDocumentationPathCommand) { if (!object(value) || value.version !== careDocumentationPathVersion || value.requestId !== c.requestId || !object(value.command) || !sameClientNativeOriginal(value.command, c) || !object(value.event) || value.event.id !== c.eventId || !sameClientNativeOriginal(value.event.command, c))
     throw Error('Die native Dokumentationsquittung stimmt nicht mit der gesicherten Anfrage überein.'); return structuredClone(value) as CareDocumentationPathReceipt; }
+function readScope(value: object, actor = false) { const own = (key: string) => { const d = Object.getOwnPropertyDescriptor(value, key); if (!d || !('value' in d) || !d.enumerable)
+    throw Error('Eigene Dokumentationszuordnung fehlt.'); return id(d.value, key); }; return { tenantId: own('tenantId'), clientId: own('clientId'), ...(actor ? { actorId: own('actorId') } : {}) }; }
+/** Validate intact descriptors before reading any native scope or clinical content. */
+export function careDocumentationPathSource(value: unknown, label = 'Originalquelle'): asserts value is CareDocumentationPathSource { unsafeCareDocumentationPathSource(cloneClientNativeOriginal(value), label); }
+export function validateCareDocumentationPathCommand(value: CareDocumentationPathCommand) { unsafeValidateCareDocumentationPathCommand(cloneClientNativeOriginal(value)); }
+export function applyCareDocumentationPathCommand(state: CareDocumentationPathState, c: CareDocumentationPathCommand) { return unsafeApplyCareDocumentationPathCommand(cloneClientNativeOriginal(state), cloneClientNativeOriginal(c)); }
+export function decodeCareDocumentationPathHistory(value: unknown, scope: {
+    tenantId: string;
+    clientId: string;
+}) { return unsafeDecodeCareDocumentationPathHistory(cloneClientNativeOriginal(value), readScope(scope)); }
+export function decodeCareDocumentationPathContext(value: unknown, expected: {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+}) { return unsafeDecodeCareDocumentationPathContext(cloneClientNativeOriginal(value), readScope(expected, true) as {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+}); }
+export function assertCareDocumentationPathSelectionCurrent(c: CareDocumentationPathCommand, context: CareDocumentationPathContext) { return unsafeAssertCareDocumentationPathSelectionCurrent(cloneClientNativeOriginal(c), cloneClientNativeOriginal(context)); }
+export function decodeCareDocumentationPathReceipt(value: unknown, c: CareDocumentationPathCommand) { const command = cloneClientNativeOriginal(c); validateCareDocumentationPathCommand(command); const receipt = unsafeDecodeCareDocumentationPathReceipt(cloneClientNativeOriginal(value), command), event = receipt.event; if (event.actorId !== command.actorId || event.tenantId !== command.tenantId || event.clientId !== command.clientId || event.previousId !== command.expectedHeadId || !Number.isSafeInteger(event.sequence) || event.sequence < 1 || !text(event.actorName, 'Erfassende Person') || careDocumentationInstantMicros(event.recordedAt) === null || careDocumentationInstantMicros(event.recordedAt)! < careDocumentationInstantMicros(command.occurredAt)!)
+    throw Error('Die native Dokumentationsquittung gehört zu einer anderen Erfassung.'); return receipt; }

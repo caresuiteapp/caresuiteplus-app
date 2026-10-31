@@ -34,7 +34,7 @@ const doc = (overrides = {}) => ({ templateKey: 'privacy_consent_default', docum
   signatures: { client: { role: 'client', dataUrl: 'data:image/png;base64,ORIGINAL', signedAt: '2026-10-25T02:30:00.123456+02:00', signerName: undefined },
     employee: { role: 'employee', dataUrl: 'data:image/png;base64,STAFF', signedAt: '2026-10-11 10:00:00.123456+00:00', signerName: 'Original Staff' } },
   unknownOriginal: { optional: undefined, history: ['z', 'a'] }, ...overrides });
-const form = () => ({ intakeContractType: 'assist', intakeAssignmentEnabled: false, intakeDocuments: [doc()],
+const form = () => ({ intakeContractType: 'assist', intakeAssignmentEnabled: false, intakeDocuments: [doc({status:'preview_open',finalizedHtml:null,finalizedAt:null,signatures:{client:{role:'client',dataUrl:'',signedAt:'2026-10-25T02:30:00.123456+02:00',signerName:undefined},employee:{role:'employee',dataUrl:'',signedAt:'2026-10-11 10:00:00.123456+00:00',signerName:'Original Staff'}}})],
   unselectedOriginal: { raw: 'unchanged', optional: undefined, history: ['second', 'first'] } });
 
 function harness(options = {}) {
@@ -44,7 +44,7 @@ function harness(options = {}) {
     if (call.kind !== 'read') return { data: { id: id(40) }, error: null };
     if (call.table === 'clients') return { data: { status: 'active' }, error: null };
     if (call.table === 'assignments') return { data: null, error: null, count: 0 };
-    if (call.table === 'client_intake_documents') return { data: { id: id(40) }, error: null };
+    if (call.table === 'client_intake_documents') return { data: call.cardinality ? { id: id(40) } : structuredClone(control.existingDocuments??[]), error: null };
     if (call.table === 'client_documents' && control.promotion === 'intake' && call.filters.some(([k]) => k === 'intake_document_id')) return { data: { id: id(41) }, error: null };
     if (call.table === 'client_documents' && control.promotion === 'file' && call.filters.some(([k]) => k === 'file_name')) return { data: { id: id(42), intake_document_id: null, source: 'upload', mime_type: 'application/pdf' }, error: null };
     return { data: null, error: null };
@@ -100,21 +100,22 @@ test('Complete native Delete retains whole Office/service/repository/assignment/
   assert.deepEqual(actual.steps.map(s => s.outcome), Array(6).fill('acknowledged'));
   assert.ok(Object.isFrozen(actual)); assert.ok(Object.isFrozen(actual.steps)); assert.ok(Object.isFrozen(actual.steps[0]));
 });
-for (const promotion of ['insert', 'intake', 'file']) for (const status of ['finalized', 'signed', 'pending_signature']) {
-  test(`Full native Recovery/${promotion}/${status} matches every original Shared persistence/promotion request`, async () => {
-    const h = harness({ action: 'recovery', promotion }), input = form(); input.intakeDocuments[0].status = status;
-    const before = structuredClone(input), result = await h.controller.recover(h.capture(), input);
-    const legacy = harness({ action: 'recovery', promotion }), previous = await sharedRecovery(legacy)(id(1), id(4), input, id(2));
-    assert.equal(previous.ok, true); assert.equal(result.status, 'acknowledged'); assert.equal(result.currentAtReturn, true);
-    assert.deepEqual(h.calls, legacy.calls); assert.deepEqual(input, before);
-    assert.equal(h.writes().find(c => c.table === 'client_document_signatures').payload.signed_at, before.intakeDocuments[0].signatures.client.signedAt);
-    assert.equal(Object.hasOwn(h.writes().find(c => c.table === 'client_intake_documents').payload, 'tenant_template_id'), true);
-  });
+for (const promotion of ['insert','intake','file'])for(const status of ['finalized','signed','pending_signature']){
+ test(`Native Recovery/${promotion}/${status} matches current shared original-preservation policy`,async()=>{
+  const h=harness({action:'recovery',promotion}),input=form();input.intakeDocuments[0].status=status;
+  const before=structuredClone(input),result=await h.controller.recover(h.capture(),input),legacy=harness({action:'recovery',promotion}),previous=await sharedRecovery(legacy)(id(1),id(4),input,id(2));
+  assert.deepEqual(h.calls,legacy.calls);assert.deepEqual(input,before);
+  if(status==='pending_signature'){
+   assert.equal(previous.ok,true);assert.equal(result.status,'acknowledged');assert.equal(result.currentAtReturn,true);
+   assert.equal(Object.hasOwn(h.writes().find(c=>c.table==='client_intake_documents').payload,'tenant_template_id'),true);
+  }else{assert.equal(previous.ok,false);assert.equal(result.status,'blocked');assert.equal(result.writeStarted,false);assert.equal(h.writes().length,0);assert.match(result.error,/atomaren Serverabschluss/);}
+  assert.equal(h.writes().filter(c=>c.table==='client_document_signatures').length,0);
+ });
 }
 test('Empty original intake selection follows the existing native Consent path without invented signatures/promotions', async () => {
   const h = harness({ action: 'recovery' }), f = form(); f.intakeContractType = ''; f.intakeDocuments = [];
   assert.equal((await h.controller.recover(h.capture(), f)).status, 'acknowledged');
-  assert.deepEqual(h.calls.map(c => c.table), ['client_consent_status']);
+  assert.deepEqual(h.calls.map(c=>c.table),['client_intake_documents']);assert.equal(h.writes().length,0);
 });
 test('Whole original form is captured synchronously before first await, retaining raw times/undefined and all later payloads', async () => {
   const h = harness({ action: 'recovery' }), f = form(), before = structuredClone(f);
@@ -195,11 +196,11 @@ for (let boundary = 0; boundary < 6; boundary++) test(`Actual Delete await ${bou
   assert.equal(result.writeStarted, boundary >= 3); assert.equal(result.currentAtReturn, false);
   assert.equal(result.steps.at(-1).outcome, 'acknowledged');
 });
-for (let boundary = 0; boundary < 10; boundary++) test(`Actual full Recovery await ${boundary + 1} stops next native step but preserves all known acknowledgements`, async () => {
+for (let boundary = 0; boundary < 5; boundary++) test(`Actual full Recovery await ${boundary + 1} stops next native step but preserves all known acknowledgements`, async () => {
   const h = harness({ action: 'recovery' }); h.control.intercept = (_, index) => { if (index === boundary) h.control.allowed = false; };
   const result = await h.controller.recover(h.capture(), form());
-  assert.equal(h.calls.length, boundary + 1); assert.equal(result.status, boundary === 9 ? 'acknowledged' : 'uncertain');
-  assert.equal(result.writeStarted, true); assert.equal(result.currentAtReturn, false); assert.equal(result.steps.at(-1).outcome, 'acknowledged');
+  assert.equal(h.calls.length,boundary+1);assert.equal(result.status,boundary===4?'acknowledged':boundary===0?'blocked':'uncertain');
+  assert.equal(result.writeStarted,boundary>0); assert.equal(result.currentAtReturn, false); assert.equal(result.steps.at(-1).outcome, 'acknowledged');
 });
 for (const loss of ['actionTicket', 'recordTicket', 'fullTicket', 'record', 'full', 'owner', 'account', 'mode', 'tenant', 'db', 'liveOriginalAbsent']) {
   test(`Original ${loss} loss during the real ClientUpdate await preserves partial SDK ACK and prevents history/audit`, async () => {
@@ -234,12 +235,12 @@ test('Pending native mutation is never declared cancelled or replayed when the o
 });
 
 for (const action of ['delete', 'recovery']) {
-  const length = action === 'delete' ? 6 : 10;
+  const length=action==='delete'?6:5;
   for (let failed = 0; failed < length; failed++) test(`${action} checks returned native error at required step ${failed + 1} and never starts a later step`, async () => {
     const h = harness({ action }); h.control.intercept = (_, index) => index === failed ? { data: null, error: { code: '42501', message: 'permission denied' } } : undefined;
     const result = await (action === 'delete' ? h.controller.delete(h.capture()) : h.controller.recover(h.capture(), form()));
     assert.equal(h.calls.length, failed + 1); assert.equal(result.steps.at(-1).outcome, 'failed');
-    assert.equal(result.status, action === 'delete' && failed < 3 ? 'blocked' : 'uncertain'); assert.equal(result.currentAtReturn, false);
+    assert.equal(result.status,action==='delete'&&failed<3||action==='recovery'&&failed===0?'blocked':'uncertain'); assert.equal(result.currentAtReturn, false);
   });
 }
 for (const table of ['client_history_entries', 'client_audit_entries']) test(`Actual old ${table}.error was ignored; private chain now retains partial ACK and uncertainty`, async () => {
@@ -250,13 +251,13 @@ for (const table of ['client_history_entries', 'client_audit_entries']) test(`Ac
   assert.equal(result.status, 'uncertain'); assert.equal(result.steps.find(s => s.name === 'clients.softDelete').outcome, 'acknowledged');
   assert.equal(h.writes().length, table === 'client_history_entries' ? 2 : 3);
 });
-test('Actual ignored native document-event error no longer proceeds to signatures/consent/promotion', async () => {
+test('Current shared and private native document-event errors stop before consent or promotion', async () => {
   const failure = call => call.table === 'client_document_events' ? { error: { code: '42501', message: 'permission denied' } } : undefined;
   const legacy = harness({ action: 'recovery' }); legacy.control.intercept = failure;
-  assert.equal((await sharedRecovery(legacy)(id(1), id(4), form(), id(2))).ok, true); assert.equal(legacy.calls.length, 10);
+  assert.equal((await sharedRecovery(legacy)(id(1),id(4),form(),id(2))).ok,false);assert.equal(legacy.calls.length,4);
   const h = harness({ action: 'recovery' }); h.control.intercept = failure;
   const result = await h.controller.recover(h.capture(), form());
-  assert.equal(result.status, 'uncertain'); assert.deepEqual(h.calls.map(c => c.table), ['client_contract_selection', 'client_intake_documents', 'client_document_events']);
+  assert.equal(result.status, 'uncertain'); assert.deepEqual(h.calls.map(c=>c.table),['client_intake_documents','client_contract_selection','client_intake_documents','client_document_events']);assert.deepEqual(h.calls,legacy.calls);
 });
 for (const value of [undefined, null, {}, { error: undefined }, { error: false }, { error: 0 }, { error: '' }, { ok: true }]) test(`Malformed native mutation acknowledgement ${JSON.stringify(value)} cannot complete or release its owner`, async () => {
   const h = harness(); h.control.intercept = (call, index) => index === 3 ? Promise.resolve(value === undefined ? {} : value) : undefined;
@@ -270,19 +271,19 @@ test('Native error/data accessors are not executed as acknowledgement or identif
   assert.equal((await h.controller.delete(h.capture())).status, 'uncertain'); assert.equal(calls, 0);
   const r = harness({ action: 'recovery' }), data = {};
   Object.defineProperty(data, 'id', { enumerable: true, get() { calls++; return id(40); } });
-  r.control.intercept = (_, index) => index === 1 ? { error: null, data } : undefined;
-  assert.equal((await r.controller.recover(r.capture(), form())).status, 'uncertain'); assert.equal(calls, 0); assert.equal(r.calls.length, 2);
+  r.control.intercept=(_,index)=>index===2?{error:null,data}:undefined;
+  assert.equal((await r.controller.recover(r.capture(), form())).status, 'uncertain'); assert.equal(calls, 0); assert.equal(r.calls.length,3);
 });
-for (const code of ['23505', '08006']) test(`Promotion ${code} is an unconfirmed required step with no automatic insert/query fallback`, async () => {
-  const h = harness({ action: 'recovery' }); h.control.intercept = (call, index) => index === 9 ? { error: { code, message: 'native write error' } } : undefined;
-  assert.equal((await h.controller.recover(h.capture(), form())).status, 'uncertain'); assert.equal(h.calls.length, 10);
-  assert.equal((await h.controller.recover(h.capture(), form())).status, 'blocked'); assert.equal(h.calls.length, 10);
+for (const code of ['23505', '08006']) test(`Native document ${code} remains unconfirmed without automatic insert/query fallback`, async () => {
+  const h = harness({ action: 'recovery' }); h.control.intercept=(call,index)=>index===2? { error: { code, message: 'native write error' } } : undefined;
+  assert.equal((await h.controller.recover(h.capture(), form())).status, 'uncertain'); assert.equal(h.calls.length,3);
+  assert.equal((await h.controller.recover(h.capture(), form())).status, 'blocked'); assert.equal(h.calls.length,3);
 });
 for (const stage of ['clients', 'client_intake_documents', 'client_audit_entries']) test(`Thrown native ${stage} result preserves an honest before-write/after-ingress outcome`, async () => {
   const action = stage === 'client_intake_documents' ? 'recovery' : 'delete', h = harness({ action });
   h.control.intercept = call => { if (call.table === stage) throw Error('transport lost'); };
   const result = await (action === 'delete' ? h.controller.delete(h.capture()) : h.controller.recover(h.capture(), form()));
-  assert.equal(result.status, stage === 'clients' ? 'blocked' : 'uncertain'); assert.equal(result.steps.at(-1).outcome, 'unresolved');
+  assert.equal(result.status,stage==='clients'||stage==='client_intake_documents'?'blocked':'uncertain'); assert.equal(result.steps.at(-1).outcome, 'unresolved');
 });
 
 for (const value of [null, undefined, -1, 0.5, '0', NaN]) test(`Unconfirmed assignment count ${String(value)} cannot authorize a native Delete`, async () => {
@@ -319,19 +320,18 @@ test('Actual native offboarding presence and active assignments block with no mu
   }
 });
 for (const value of [null, {}, { id: 'invented' }, { id: id(40) + ' ' }]) test(`Required original native document identity ${JSON.stringify(value)} is not invented or skipped`, async () => {
-  const h = harness({ action: 'recovery' }); h.control.intercept = (_, index) => index === 1 ? { data: value, error: null } : undefined;
-  assert.equal((await h.controller.recover(h.capture(), form())).status, 'uncertain'); assert.equal(h.calls.length, 2);
+  const h = harness({ action: 'recovery' }); h.control.intercept=(_,index)=>index===2?{data:value,error:null}:undefined;
+  assert.equal((await h.controller.recover(h.capture(),form())).status,'uncertain');assert.equal(h.calls.length,3);
 });
-test('Promotion lookup error cannot silently skip an otherwise required native document', async () => {
-  const h = harness({ action: 'recovery' }); h.control.intercept = (_, index) => index === 6 ? { data: null, error: { code: '42501', message: 'denied' } } : undefined;
-  assert.equal((await h.controller.recover(h.capture(), form())).status, 'uncertain'); assert.equal(h.calls.length, 7);
+test('Original document lookup error stops native recovery before any mutation',async()=>{
+ const h=harness({action:'recovery'});h.control.intercept=(_,index)=>index===0?{data:null,error:{code:'42501',message:'denied'}}:undefined;
+ const result=await h.controller.recover(h.capture(),form());assert.equal(result.status,'blocked');assert.equal(result.writeStarted,false);assert.equal(h.calls.length,1);assert.equal(h.writes().length,0);
 });
-test('Multiple original documents retain order and every required promotion; intermediate last-write ACK cannot complete the chain', async () => {
-  const h = harness({ action: 'recovery' }), input = form(); input.intakeDocuments.push(doc({ templateKey: 'contract_assist', documentType: 'client_contract', title: 'Original Vertrag' }));
-  let promotionWrites = 0; h.control.intercept = call => { if (call.table === 'client_documents' && call.kind === 'write' && ++promotionWrites === 1) h.control.allowed = false; };
-  const result = await h.controller.recover(h.capture(), input);
-  assert.equal(result.status, 'uncertain'); assert.equal(promotionWrites, 1); assert.equal(result.steps.at(-1).outcome, 'acknowledged');
-  assert.deepEqual(h.writes().filter(c => c.table === 'client_intake_documents').map(c => c.payload.template_key), ['privacy_consent_default', 'contract_assist']);
+test('Multiple unsigned original documents retain order; an intermediate saved-document ACK cannot complete the chain',async()=>{
+ const h=harness({action:'recovery'}),input=form();input.intakeDocuments.push({...structuredClone(input.intakeDocuments[0]),templateKey:'contract_assist',documentType:'client_contract',title:'Original Vertrag'});
+ let events=0;h.control.intercept=call=>{if(call.table==='client_document_events'&&call.kind==='write'&&++events===1)h.control.allowed=false;};
+ const result=await h.controller.recover(h.capture(),input);assert.equal(result.status,'uncertain');assert.equal(events,1);assert.equal(result.steps.at(-1).outcome,'acknowledged');
+ assert.deepEqual(h.writes().filter(c=>c.table==='client_intake_documents').map(c=>c.payload.template_key),['privacy_consent_default']);assert.equal(h.writes().some(c=>c.table==='client_consent_status'),false);
 });
 
 for (const malformed of [f => f.extra = new Date(), f => f.extra = new Map(), f => f.extra = 1n, f => f.extra = Infinity,
@@ -353,7 +353,7 @@ test('Unknown/nonenumerable/symbol input accessors cannot disappear or execute d
 test('Own undefined/null optional signatures remain unchanged and never become invented native signatures', async () => {
   const h = harness({ action: 'recovery' }), f = form(); f.intakeDocuments[0].signatures.employee = undefined; f.intakeDocuments[0].signatures.legal_representative = null;
   assert.equal((await h.controller.recover(h.capture(), f)).status, 'acknowledged');
-  assert.deepEqual(h.writes().filter(c => c.table === 'client_document_signatures').map(c => c.payload.signer_role), ['client']);
+  assert.deepEqual(h.writes().filter(c=>c.table==='client_document_signatures'),[]);
 });
 test('Unknown mutation stays latched across fresh Reads, owner A→B→A and dispose/remount without automatic replay', async () => {
   const h = harness(); h.control.intercept = (_, index) => index === 3 ? { error: { code: '08006', message: 'unknown transport' } } : undefined;
@@ -398,7 +398,7 @@ test('Synchronous single flight blocks retained duplicate and cross-action calls
   const pending = h.controller.recover(lease, form()); while (!release) await Promise.resolve();
   assert.equal((await h.controller.recover(lease, form())).status, 'blocked'); h.control.action = 'delete'; h.control.actionTicket = {};
   assert.equal((await h.controller.delete(h.capture())).status, 'blocked'); assert.equal(h.calls.length, 1);
-  release({ error: null }); assert.equal((await pending).status, 'uncertain'); assert.equal(h.calls.length, 1);
+  release({data:[],error:null});assert.equal((await pending).status,'blocked');assert.equal(h.calls.length,1);
 });
 test('Private native archive preserves the actual live hardblock with zero native calls and no false mutation latch', async () => {
   const h = harness({ action: 'archive' }), result = await h.controller.archive(h.capture());
@@ -428,4 +428,37 @@ for(const kind of ['read','write'])for(const timing of ['synchronous','queued'])
 test('A mutation then-executor throw after invocation is uncertain even when it supplies no result or recorded ACK',async()=>{
  const h=harness(),lease=h.capture();let writeEntries=0;h.control.onNativeThen=request=>{if(request.kind==='write'){writeEntries++;throw Error('SDK then entry transport failure');}};
  const result=await h.controller.delete(lease);assert.equal(writeEntries,1);assert.equal(result.writeStarted,true);assert.equal(result.status,'uncertain');assert.equal(result.steps.at(-1).outcome,'unresolved');assert.equal(h.controller.isOwnUnstarted(lease,result),false);assert.equal(h.controller.mayFollowup(lease,result),false);
+});
+
+const retainedDocument=(changes={})=>({id:id(40),template_key:'privacy_consent_default',status:'preview_open',preview_html:'<p>retained original</p>',finalized_html:null,rendered_pdf_path:null,finalized_at:null,updated_at:'2026-10-11 10:00:00.123456+00:00',...changes});
+for(const status of ['finalized','signed','pending_signature'])for(const preserved of [false,true])test(`A fresh ${status} signature capture never bypasses the atomic shared completion, retained=${preserved}`,async()=>{
+ const existingDocuments=preserved?[retainedDocument({status:'finalized',finalized_html:'<p>signed original</p>',finalized_at:'2026-10-10T10:00:00.123456Z'})]:[];
+ const h=harness({action:'recovery',existingDocuments}),legacy=harness({action:'recovery',existingDocuments}),input=form();input.intakeDocuments=[doc({status})];const before=structuredClone(input);
+ const result=await h.controller.recover(h.capture(),input),shared=await sharedRecovery(legacy)(id(1),id(4),input,id(2));assert.equal(shared.ok,false);assert.equal(result.status,'blocked');assert.equal(result.writeStarted,false);assert.equal(h.writes().length,0);assert.deepEqual(h.calls,legacy.calls);assert.deepEqual(input,before);assert.match(result.error,/atomaren Serverabschluss/);
+});
+test('A retained finalized original is an acknowledged read-only no-op and does not reset consent',async()=>{
+ const existingDocuments=[retainedDocument({status:'finalized',finalized_html:'<p>signed original</p>',finalized_at:'2026-10-10 10:00:00.123456+00:00'})],h=harness({action:'recovery',existingDocuments}),legacy=harness({action:'recovery',existingDocuments}),input=form();input.intakeDocuments[0].status='finalized';
+ const result=await h.controller.recover(h.capture(),input);assert.equal((await sharedRecovery(legacy)(id(1),id(4),input,id(2))).ok,true);assert.equal(result.status,'acknowledged');assert.equal(result.writeStarted,false);assert.equal(result.currentAtReturn,true);assert.deepEqual(h.calls,legacy.calls);assert.equal(h.calls.length,1);assert.equal(h.writes().length,0);
+});
+test('Native unsigned recovery uses the same timestamp compare-and-swap and full payload as shared persistence',async()=>{
+ const existingDocuments=[retainedDocument()],h=harness({action:'recovery',existingDocuments}),legacy=harness({action:'recovery',existingDocuments}),input=form(),before=structuredClone(existingDocuments);
+ const result=await h.controller.recover(h.capture(),input);assert.equal((await sharedRecovery(legacy)(id(1),id(4),input,id(2))).ok,true);assert.equal(result.status,'acknowledged');assert.deepEqual(h.calls,legacy.calls);assert.deepEqual(h.control.existingDocuments,before);
+ const updated=h.writes().find(c=>c.table==='client_intake_documents');assert.equal(updated.operation,'update');assert.deepEqual(updated.filters,[['id',id(40)],['tenant_id',id(1)],['client_id',id(4)],['updated_at',existingDocuments[0].updated_at]]);assert.equal(updated.payload.updated_at,new Clock().toISOString());
+});
+test('A zero-row native document CAS cannot become an acknowledged recovery or continue into consent',async()=>{
+ const h=harness({action:'recovery',existingDocuments:[retainedDocument()]});h.control.intercept=call=>call.table==='client_intake_documents'&&call.kind==='write'?{data:null,error:null}:undefined;
+ const result=await h.controller.recover(h.capture(),form());assert.equal(result.status,'uncertain');assert.equal(result.writeStarted,true);assert.equal(h.calls.length,3);assert.equal(h.writes().some(c=>c.table==='client_consent_status'||c.table==='client_document_events'),false);
+});
+for(const status of ['revoked','replaced'])test(`A ${status} document retains every original content field while only its native status is changed`,async()=>{
+ const existingDocuments=[retainedDocument({status:'finalized',finalized_html:'<p>retained signed HTML</p>',rendered_pdf_path:'tenant/original.pdf',finalized_at:'2026-10-10T10:00:00.123456Z'})],h=harness({action:'recovery',existingDocuments}),legacy=harness({action:'recovery',existingDocuments}),input=form();input.intakeDocuments[0].status=status;input.intakeDocuments[0].previewHtml='<p>must not replace saved original</p>';
+ const before=structuredClone(input),result=await h.controller.recover(h.capture(),input);assert.equal((await sharedRecovery(legacy)(id(1),id(4),input,id(2))).ok,true);assert.equal(result.status,'acknowledged');assert.deepEqual(h.calls,legacy.calls);assert.deepEqual(input,before);
+ const saved=h.writes().find(c=>c.table==='client_intake_documents');assert.equal(saved.payload.status,status);for(const [key,column] of [['preview_html','preview_html'],['finalized_html','finalized_html'],['rendered_pdf_path','rendered_pdf_path'],['finalized_at','finalized_at']])assert.equal(saved.payload[key],existingDocuments[0][column]);
+});
+test('A preserved signed document keeps its effective consent while a separate unsigned document is saved',async()=>{
+ const existingDocuments=[retainedDocument({status:'finalized',finalized_html:'<p>existing final original</p>',finalized_at:'2026-10-10T10:00:00.123456Z'})],h=harness({action:'recovery',existingDocuments}),legacy=harness({action:'recovery',existingDocuments}),input=form();input.intakeDocuments.push({...structuredClone(input.intakeDocuments[0]),templateKey:'additional_info',documentType:'additional_consent'});
+ const result=await h.controller.recover(h.capture(),input);assert.equal((await sharedRecovery(legacy)(id(1),id(4),input,id(2))).ok,true);assert.equal(result.status,'acknowledged');assert.deepEqual(h.calls,legacy.calls);
+ assert.deepEqual(h.writes().filter(c=>c.table==='client_intake_documents').map(c=>c.payload.template_key),['additional_info']);const consent=h.writes().find(c=>c.table==='client_consent_status').payload;assert.equal(consent.privacy_status,'finalized');assert.equal(consent.privacy_finalized_at,existingDocuments[0].finalized_at);
+});
+for(const data of [null,{},[{id:id(40)}],[retainedDocument(),retainedDocument()]])test('Unconfirmed or duplicate original-document inventory never reaches a native mutation '+JSON.stringify(data),async()=>{
+ const h=harness({action:'recovery'});h.control.intercept=(_,index)=>index===0?{data,error:null}:undefined;const result=await h.controller.recover(h.capture(),form());assert.equal(result.status,'blocked');assert.equal(result.writeStarted,false);assert.equal(h.writes().length,0);assert.equal(h.calls.length,1);
 });

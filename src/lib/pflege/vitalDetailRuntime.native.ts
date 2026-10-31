@@ -1,4 +1,5 @@
 // Generated native presentation from src/lib/pflege/vitalDetailRuntime.web.ts. Update through scripts/port-native-workspaces.mjs.
+import { assertVitalSdkOwnerWeb } from "./vitalSdkOwner.native.ts";
 import { carePermissionOwner, carePermissionOwnerIsCurrent, sameCarePermissionOwner, type CarePermissionAuth, type CarePermissionOwner } from "../permissions/carePermissionOwner.native.ts";
 import { getSupabaseClient } from "../supabase/client.ts";
 import { getServiceMode } from '../services/mode';
@@ -35,6 +36,7 @@ type Lease = {
     permissionSource: PermissionSource;
     closed: boolean;
     checking: boolean;
+    rawAuthId: string | null;
 };
 const runtimes = new WeakMap<object, Runtime>(), leases = new WeakMap<object, Lease>();
 const failure = () => new Error('Der aktuelle native Lesezugriff auf diese Messung ist nicht bestätigt.');
@@ -151,7 +153,7 @@ export function captureVitalDetailReadWeb(runtime: VitalDetailRuntimeWeb): Vital
         const captured = scope(ownRuntime), client = getSupabaseClient();
         if (!client)
             return null;
-        const lease: Lease = { runtime: ownRuntime, ...captured, client, closed: false, checking: false };
+        const lease: Lease = { runtime: ownRuntime, ...captured, client, closed: false, checking: false, rawAuthId: null };
         current(lease);
         const token = Object.freeze({});
         leases.set(token, lease);
@@ -171,31 +173,17 @@ export function closeVitalDetailReadWeb(token: VitalDetailReadLeaseWeb): void { 
 /** Internal reader bridge: no AuthSession/token/profile or clinical RawOriginal is exposed. */
 export function vitalDetailReadContextWeb(token: VitalDetailReadLeaseWeb) { const lease = leases.get(token); if (!lease)
     throw failure(); current(lease); return Object.freeze({ client: lease.client, tenantId: lease.owner.tenantId, measurementId: lease.measurementId, expectedClientId: lease.expectedClientId }); }
-export async function assertVitalDetailSessionWeb(token: VitalDetailReadLeaseWeb): Promise<void> {
+export async function assertVitalDetailSessionWeb(token: VitalDetailReadLeaseWeb, pinnedAuthId: string | null = null): Promise<string> {
     const lease = leases.get(token);
     if (!lease)
         throw failure();
     try {
-        current(lease);
-        const auth = lease.client.auth, getSession = auth.getSession;
-        current(lease);
-        if (typeof getSession !== 'function')
+        if (lease.rawAuthId !== null && pinnedAuthId !== null && lease.rawAuthId !== pinnedAuthId)
             throw failure();
-        const result = await getSession.call(auth);
+        const rawAuthId = await assertVitalSdkOwnerWeb({ client: lease.client, owner: lease.owner, pinnedAuthId: lease.rawAuthId ?? pinnedAuthId, current: () => current(lease) });
         current(lease);
-        if (own(result, 'error') !== null)
-            throw failure();
-        const session = own(own(result, 'data'), 'session'), user = own(session, 'user');
-        if (own(user, 'id') !== lease.owner.profileId || own(session, 'access_token') !== lease.owner.accessToken)
-            throw failure();
-        const expiry = own(session, 'expires_at');
-        if (expiry == null) {
-            if (lease.owner.expiresAt !== null)
-                throw failure();
-        }
-        else if (typeof expiry !== 'number' || !Number.isSafeInteger(expiry) || !Number.isSafeInteger(expiry * 1000) || expiry * 1000 !== lease.owner.expiresAt || expiry * 1000 <= Date.now())
-            throw failure();
-        current(lease);
+        lease.rawAuthId = rawAuthId;
+        return rawAuthId;
     }
     catch (error) {
         lease.closed = true;

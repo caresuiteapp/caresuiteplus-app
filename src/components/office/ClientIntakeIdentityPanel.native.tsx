@@ -10,6 +10,7 @@ type Wizard = ReturnType<typeof useClientIntakeWizard>;
 const statusLabels: Record<string, string> = {
     lead: 'Entwurf', active: 'Aktiv', paused: 'Pausiert', inactive: 'Inaktiv', archived: 'Archiviert',
     deceased: 'Verstorben', blocked: 'Gesperrt', deleted: 'Gelöscht',
+    interessent: 'Interessent', aktiv: 'Aktiv', pausiert: 'Pausiert', archiviert: 'Archiviert', verstorben: 'Verstorben',
 };
 export function ClientIntakeIdentityPanel({ wizard, onOpenExisting }: {
     wizard: Wizard;

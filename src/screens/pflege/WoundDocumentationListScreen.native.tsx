@@ -12,7 +12,7 @@ import { CarePermissionStatus, type CarePermissionStatusState } from "./CarePerm
 import { useWoundRead, type WoundReadProps } from "../../hooks/pflege/useWoundRead.native.ts";
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { spacing, typography } from '@/theme';
-import { fetchAmbulatoryWoundList } from '@/lib/pflege/ambulatoryWoundService';
+import { fetchAmbulatoryWoundList } from "../../lib/pflege/ambulatoryWoundService.native.ts";
 import { captureWoundListOriginal, filterWoundList, woundListText, woundStatusLabels } from "../../lib/pflege/woundReadOriginal.native.ts";
 import { woundUuid } from '@/lib/pflege/woundCareDomain';
 export function WoundDocumentationListScreen() {

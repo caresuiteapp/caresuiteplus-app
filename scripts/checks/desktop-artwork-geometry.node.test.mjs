@@ -11,14 +11,14 @@ import {
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const sourceDirectory = resolve(root, 'src/liquid-command/components');
 const assetSources = new Map();
-const metadataSource = readFileSync(resolve(sourceDirectory, 'desktopArtworkAssets.web.ts'), 'utf8');
+const metadataSource = readFileSync(resolve(sourceDirectory, 'desktopArtworkAssets.shared.ts'), 'utf8');
 const metadataCode = stripTypeScriptTypes(metadataSource).replace(/\bexport /g, '');
 const assets = new Function('require', `${metadataCode}; return DESKTOP_ARTWORK_ASSETS;`)(path => {
   const uri = resolve(sourceDirectory, path);
   if (!assetSources.has(uri)) assetSources.set(uri, { uri });
   return assetSources.get(uri);
 });
-const selectorSource = readFileSync(resolve(sourceDirectory, 'desktopArtworkSource.web.ts'), 'utf8');
+const selectorSource = readFileSync(resolve(sourceDirectory, 'desktopArtworkSource.shared.ts'), 'utf8');
 const selectorCode = stripTypeScriptTypes(selectorSource)
   .replace(/^import .*?;\n/gm, '').replace(/\bexport /g, '');
 const selector = new Function('DESKTOP_ARTWORK_ASSETS', 'DESKTOP_ARTWORK_FILL', 'desktopArtworkResolution',

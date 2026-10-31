@@ -14,7 +14,7 @@ test('der reale ambulante Dokumentationsarbeitsplatz bindet den vollständigen E
 
 test('Repository, Journal und lokaler Entwurf trennen Schreiben von lesender Wiederaufnahme',()=>{
  const repository=read('src/lib/pflege/careDocumentationPathWorkspaceRepository.web.ts');
- for(const token of ['web_care_documentation_path_workspace_context','web_commit_care_documentation_path_event','web_confirm_care_documentation_path_event','rejected:true','uncertain:true'])assert.ok(repository.includes(token),token);
+ for(const token of ['web_care_documentation_path_workspace_context','requireCareWorkspaceAuthorityWeb','cloneClientNativeOriginal','rejected:true','uncertain:true'])assert.ok(repository.includes(token),token);
  const workflow=read('src/lib/pflege/careDocumentationPathWorkspaceWorkflow.web.ts');
  for(const token of ["phase:'prepared'","phase:'dispatched'","phase:'confirmed'",'navigator.locks','confirm()','releaseConfirmed'])assert.ok(workflow.includes(token),token);
  const draft=read('src/lib/pflege/careDocumentationPathWorkspaceDraft.web.ts');

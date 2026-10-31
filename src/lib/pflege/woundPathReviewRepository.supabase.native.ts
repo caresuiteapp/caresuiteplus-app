@@ -1,5 +1,6 @@
 // Generated native presentation from src/lib/pflege/woundPathReviewRepository.supabase.web.ts. Update through scripts/port-native-workspaces.mjs.
 import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { cloneClientNativeOriginal } from "../clients/clientRecordNativeOriginal.native.ts";
 import { getSupabaseClient } from "../supabase/client.ts";
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
@@ -62,39 +63,59 @@ async function authority(c: Context) { const db = dbClient(); if (!db || !c.isCu
     throw Error(unavailable); }; await check(); return { db, check }; }
 function decode(v: unknown, c: Pick<Context, 'tenantId' | 'clientId' | 'woundId'>): WoundPathReviewOriginal { const issue = woundPathReviewOriginalIssue(v, c); if (issue)
     throw Error(issue); return structuredClone(v as WoundPathReviewOriginal); }
-export async function readWoundPathReviewPage(c: Context): Promise<Result<WoundPathReviewOriginal[]>> { try {
-    const guard = await authority(c), rows: WoundPathReviewOriginal[] = [], cursors = new Set<string>();
-    let at: string | null = null, id: string | null = null;
-    for (let page = 0; page < 100; page++) {
-        await guard.check();
-        const response: {
-            data: unknown;
-            error: unknown;
-            status?: number;
-        } = await withServiceQueryTimeout(guard.db.rpc('web_read_wound_path_review_page', { p_tenant_id: c.tenantId, p_client_id: c.clientId, p_wound_id: c.woundId, p_actor_profile_id: c.actorId, p_cursor_recorded_at: at, p_cursor_id: id, p_page_size: 100 }), 'Wundfachprüfungen vollständig laden', 20000);
-        await guard.check();
-        if (response.error || !object(response.data) || !Array.isArray(response.data.rows) || response.data.rows.length > 100)
-            throw Error(unavailable);
-        if (response.data.rows.length === 0)
-            return { ok: true, data: rows };
-        const nextAt = response.data.nextCursorRecordedAt, nextId = response.data.nextCursorId;
-        if (woundPathReviewInstantMicros(nextAt) === null || !uuid(nextId) || cursors.has(`${nextAt}:${nextId}`) || at !== null && (woundPathReviewInstantMicros(nextAt)! > woundPathReviewInstantMicros(at)! || woundPathReviewInstantMicros(nextAt) === woundPathReviewInstantMicros(at) && nextId >= id!))
-            throw Error(unavailable);
-        for (const raw of response.data.rows) {
-            const row = decode(raw, c);
-            if (rows.some(o => o.rootId === row.rootId))
+/** A live decision on any older root invalidates the complete paginated read. */
+export async function readWoundPathReviewPage(c: Context): Promise<Result<WoundPathReviewOriginal[]>> {
+    try {
+        const guard = await authority(c), rows: WoundPathReviewOriginal[] = [], cursors = new Set<string>();
+        let at: string | null = null, id: string | null = null, stateFingerprint: string | null = null, firstPage: string | null = null;
+        const read = async (cursorAt: string | null, cursorId: string | null) => {
+            await guard.check();
+            const response: {
+                data: unknown;
+                error: unknown;
+                status?: number;
+            } = await withServiceQueryTimeout(guard.db.rpc('web_read_wound_path_review_page', { p_tenant_id: c.tenantId, p_client_id: c.clientId, p_wound_id: c.woundId, p_actor_profile_id: c.actorId, p_cursor_recorded_at: cursorAt, p_cursor_id: cursorId, p_page_size: 100 }), 'Wundfachprüfungen vollständig laden', 20000);
+            await guard.check();
+            const data = response.data;
+            if (response.error || !object(data) || !Array.isArray(data.rows) || data.rows.length > 100 || typeof data.stateFingerprint !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(data.stateFingerprint) || stateFingerprint !== null && data.stateFingerprint !== stateFingerprint)
                 throw Error(unavailable);
-            rows.push(row);
+            stateFingerprint = data.stateFingerprint;
+            if (data.rows.length === 0) {
+                if (data.nextCursorRecordedAt !== null || data.nextCursorId !== null)
+                    throw Error(unavailable);
+            }
+            else if (woundPathReviewInstantMicros(data.nextCursorRecordedAt) === null || !uuid(data.nextCursorId))
+                throw Error(unavailable);
+            return data;
+        };
+        for (let page = 0; page < 100; page++) {
+            const data = await read(at, id);
+            if (firstPage === null)
+                firstPage = woundPathReviewStable(data);
+            if ((data.rows as unknown[]).length === 0) {
+                if (woundPathReviewStable(await read(null, null)) !== firstPage)
+                    throw Error(unavailable);
+                return { ok: true, data: rows };
+            }
+            const nextAt = data.nextCursorRecordedAt as string, nextId = data.nextCursorId as string, key = `${nextAt}:${nextId}`;
+            if (cursors.has(key) || at !== null && (woundPathReviewInstantMicros(nextAt)! > woundPathReviewInstantMicros(at)! || woundPathReviewInstantMicros(nextAt) === woundPathReviewInstantMicros(at) && nextId >= id!))
+                throw Error(unavailable);
+            for (const raw of data.rows as unknown[]) {
+                const row = decode(raw, c);
+                if (rows.some(o => o.rootId === row.rootId))
+                    throw Error(unavailable);
+                rows.push(row);
+            }
+            cursors.add(key);
+            at = nextAt;
+            id = nextId;
         }
-        cursors.add(`${nextAt}:${nextId}`);
-        at = nextAt as string;
-        id = nextId;
+        throw Error('Der Wundfachprüfbestand überschreitet die sicher vollständig lesbare Grenze.');
     }
-    throw Error('Der Wundfachprüfbestand überschreitet die sicher vollständig lesbare Grenze.');
+    catch (cause) {
+        return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+    }
 }
-catch (cause) {
-    return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
-} }
 function receipt(v: unknown, p: WoundPathReviewPacket): WoundPathReviewOriginal | null { if (!object(v) || v.requestId !== p.requestId || woundPathReviewStable(v.packet) !== woundPathReviewStable(p))
     return null; try {
     const o = decode(v.original, p), e = o.history.at(-1)!;
@@ -115,7 +136,7 @@ async function operation(input: WoundPathReviewPacket, isCurrent: () => boolean,
         data: unknown;
         error: unknown;
         status?: number;
-    } = await withServiceQueryTimeout(guard.db.rpc(confirm ? 'web_confirm_wound_path_review' : 'web_commit_wound_path_review', confirm ? { p_tenant_id: p.tenantId, p_client_id: p.clientId, p_wound_id: p.woundId, p_actor_profile_id: p.actorId, p_request_id: p.requestId, p_packet: p } : { p_packet: p }), 'Wundfachprüfung transaktional sichern oder Quittung lesen', 20000);
+    } = cloneClientNativeOriginal(await withServiceQueryTimeout(guard.db.rpc(confirm ? 'web_confirm_wound_path_review' : 'web_commit_wound_path_review', confirm ? { p_tenant_id: p.tenantId, p_client_id: p.clientId, p_wound_id: p.woundId, p_actor_profile_id: p.actorId, p_request_id: p.requestId, p_packet: p } : { p_packet: p }), 'Wundfachprüfung transaktional sichern oder Quittung lesen', 20000));
     await guard.check();
     if (response.error) {
         const code = object(response.error) ? String(response.error.code ?? '') : '';

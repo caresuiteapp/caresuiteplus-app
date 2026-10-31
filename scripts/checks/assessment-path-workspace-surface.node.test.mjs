@@ -6,14 +6,15 @@ const read=path=>fs.readFileSync(new URL('../../'+path,import.meta.url),'utf8');
 
 test('der reale ambulante Assessment-Arbeitsplatz bindet den vollständigen C-Pfad ein',()=>{
  const screen=read('src/screens/careAssessment/CareAssessmentWorkspaceScreen.web.tsx');
- for(const token of ['AssessmentPathWorkspace','assessmentId={draftContext.assessmentId}','section === \'history\''])assert.ok(screen.includes(token),token);
+ for(const token of ['AssessmentPlanPaths','assessmentId={draftContext.assessmentId}','section === \'history\''])assert.ok(screen.includes(token),token);
+ const wrapper=read('src/components/careAssessment/AssessmentPlanPaths.web.tsx');assert.ok(wrapper.includes('AssessmentPathWorkspace'));assert.ok(wrapper.includes('selection.selected'));
  const surface=read('src/components/careAssessment/AssessmentPathWorkspace.web.tsx');
  for(const token of ['Beobachtung, Einschätzung, Risiko, Instrument, Planung','tatsächliche Durchführung','Wirkung','Neueinschätzung','append-only','Gesicherten Vorgang ausschließlich prüfen','Quittung mit Originalverlauf abgleichen','Aktuelle vollständige Assessmentpfadoriginale neu laden'])assert.ok(surface.includes(token),token);
 });
 
 test('Repository, Journal und lokaler Entwurf trennen Schreiben von lesender Wiederaufnahme',()=>{
  const repository=read('src/lib/careAssessment/assessmentPathWorkspaceRepository.web.ts');
- for(const token of ['web_assessment_path_workspace_context','web_commit_assessment_path_event','web_confirm_assessment_path_event','rejected:true','uncertain:true'])assert.ok(repository.includes(token),token);
+ for(const token of ['web_assessment_path_v2_context','web_commit_assessment_path_v2_event','web_confirm_assessment_path_v2_event','rejected:true','uncertain:true'])assert.ok(repository.includes(token),token);
  const workflow=read('src/lib/careAssessment/assessmentPathWorkspaceWorkflow.web.ts');
  for(const token of ["phase:'prepared'","phase:'dispatched'","phase:'confirmed'",'navigator.locks','confirm()','releaseConfirmed'])assert.ok(workflow.includes(token),token);
  const draft=read('src/lib/careAssessment/assessmentPathWorkspaceDraft.web.ts');

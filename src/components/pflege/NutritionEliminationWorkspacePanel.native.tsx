@@ -1,12 +1,17 @@
 // Generated native presentation from src/components/pflege/NutritionEliminationWorkspacePanel.web.tsx. Update through scripts/port-native-workspaces.mjs.
 import {nativeStructuredClone as structuredClone,nativeCrypto as crypto} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { View } from 'react-native';
 import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
 import { useUnsavedWebChanges } from "../../hooks/useUnsavedWebChanges.native.ts";
 import { blankNutritionEliminationEntry, makeNutritionEliminationPacket, nutritionEliminationEntryIssue, type NutritionEliminationEntry, type NutritionEliminationKind, type NutritionEliminationOriginal } from "../../lib/pflege/nutritionEliminationPacket.native.ts";
-import { readNutritionEliminationPage, readNutritionEliminationPrerequisites, type NutritionEliminationPrerequisites } from "../../lib/pflege/nutritionEliminationRepository.supabase.native.ts";
+import { readNutritionEliminationWorkspace, type NutritionEliminationWorkspace } from "../../lib/pflege/nutritionEliminationRepository.supabase.native.ts";
+import { nutritionHistoryFacts } from "../../lib/pflege/nutritionHistoryPresentation.native.ts";
+import { nutritionPlanningWriteIssue, nutritionPlanMatches, nutritionWorkspaceIssue } from "../../lib/pflege/nutritionWorkspaceActions.native.ts";
+import { sameClientNativeOriginal } from "../../lib/clients/clientRecordNativeOriginal.native.ts";
+import { NutritionPlanBindingCapturePanel } from "./NutritionPlanBindingCapturePanel.native.tsx";
 import { recoverNutritionElimination, saveNutritionEliminationDurably } from "../../lib/pflege/nutritionEliminationWorkflow.native.ts";
 import { NutritionReviewPanel } from "./NutritionReviewPanel.native.tsx";
 import { NutritionQuantitiesPanel } from "./NutritionQuantitiesPanel.native.tsx";
@@ -17,7 +22,7 @@ const split = (v: string) => v.split(/[;,\n]/).map(x => x.trim()).filter(Boolean
 const join = (v: readonly string[]) => v.join(', ');
 const patch = <K extends keyof NutritionEliminationEntry>(e: NutritionEliminationEntry, k: K, v: NutritionEliminationEntry[K]): NutritionEliminationEntry => ({ ...e, [k]: v });
 const amount = (value: string) => value.trim() || null;
-export function NutritionEliminationWorkspacePanel({ tenantId, clientId, actorId, actorName, canView, canCreate, canReview = false, onSaved }: {
+type Props = {
     tenantId: string;
     clientId: string;
     actorId: string;
@@ -25,133 +30,282 @@ export function NutritionEliminationWorkspacePanel({ tenantId, clientId, actorId
     canView: boolean;
     canCreate: boolean;
     canReview?: boolean;
+    canCaptureBinding?: boolean;
+    isOwnerCurrent?(): boolean;
+    isLeaving?(): boolean;
+    registerLeave?(guard: (() => Promise<boolean>) | null): void;
     onSaved?: (value: NutritionEliminationOriginal) => void;
-}) {
-    const identity = `${tenantId}:${clientId}:${actorId}:${canView}:${canCreate}:${canReview}`, live = useRef(identity), generation = useRef(0), alive = useRef(true), [loaded, setLoaded] = useState(false), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [success, setSuccess] = useState<string | null>(null), [uncertain, setUncertain] = useState(false), [prerequisites, setPrerequisites] = useState<NutritionEliminationPrerequisites | null>(null), [originals, setOriginals] = useState<NutritionEliminationOriginal[]>([]), [selectedPlan, setSelectedPlan] = useState(''), [selectedOriginal, setSelectedOriginal] = useState(''), [entry, setEntry] = useState<NutritionEliminationEntry>(() => blankNutritionEliminationEntry('nutrition_assessment')), [reason, setReason] = useState(''), initial = useRef('');
+};
+export function useNutritionEliminationWorkspaceController(props: Props) {
+    const { tenantId, clientId, actorId, canView, canCreate, canReview = false } = props;
+    const identity = `${tenantId}:${clientId}:${actorId}:${canView}:${canCreate}:${canReview}:${props.canCaptureBinding === true}`, live = useRef(identity), alive = useRef(true), generation = useRef(0), operationId = useRef(0), flight = useRef(false), selectionFlight = useRef(false), reviewLeave = useRef<(() => Promise<boolean>) | null>(null), reviewPhase = useRef({ busy: false, dirty: false, uncertain: false }), owner = useRef(props);
     live.current = identity;
-    const current = () => alive.current && canView && live.current === identity;
-    const load = async () => { const ticket = ++generation.current; setLoaded(false); setLoading(true); setError(null); const context = { tenantId, clientId, actorId, isCurrent: current }; const [plans, records] = await Promise.all([readNutritionEliminationPrerequisites(context), readNutritionEliminationPage(context)]); if (!current() || ticket !== generation.current)
-        return; if (!plans.ok || !records.ok) {
-        setError(!plans.ok ? plans.error : records.ok ? '' : records.error);
-        setLoading(false);
-        return;
-    } setPrerequisites(plans.data); setOriginals(records.data); setLoaded(true); setLoading(false); };
-    useEffect(() => { alive.current = true; let active = true; setLoading(true); void recoverNutritionElimination({ tenantId, clientId, actorId }, () => active && current()).then(result => { if (!active)
-        return; if (result?.ok) {
-        setSuccess('Der zuvor unklare Vorgang wurde anhand seiner vollständigen nativen Quittung bestätigt.');
-        onSaved?.(result.data);
+    owner.current = props;
+    const captureEditing = useRef(false), captureLeave = useRef<(() => Promise<boolean>) | null>(null), captureOwner = useRef<object | null>(null), [captureActive, setCaptureActive] = useState(false);
+    const [reviewStatus, setReviewStatus] = useState({ busy: false, dirty: false, uncertain: false });
+    const [loaded, setLoaded] = useState(false), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [success, setSuccess] = useState<string | null>(null), [uncertain, setUncertain] = useState(false), [workspace, setWorkspace] = useState<NutritionEliminationWorkspace | null>(null), [selectedPlan, setSelectedPlan] = useState(''), [selectedOriginal, setSelectedOriginal] = useState(''), [entry, setEntry] = useState<NutritionEliminationEntry>(() => blankNutritionEliminationEntry('nutrition_assessment', '')), [reason, setReason] = useState(''), [assistanceConfirmed, setAssistanceConfirmed] = useState(false), initial = useRef('');
+    const draft = useRef({ entry, reason, selectedPlan, selectedOriginal, assistanceConfirmed }), data = useRef(workspace), pending = useRef(uncertain);
+    draft.current = { entry, reason, selectedPlan, selectedOriginal, assistanceConfirmed };
+    data.current = workspace;
+    pending.current = uncertain;
+    const guardCurrent = (guard: Props['isOwnerCurrent']) => { try {
+        return guard ? guard() === true : true;
     }
-    else if (result) {
-        setError(result.error);
-        setUncertain(result.uncertain === true);
-    } return load(); }).catch(cause => { if (active && current()) {
-        setError(cause instanceof Error ? cause.message : 'Journal konnte nicht gelesen werden.');
-        setUncertain(true);
-        setLoading(false);
-    } }); return () => { active = false; alive.current = false; generation.current++; }; }, [identity, canView]);
-    const choosePlan = (key: string) => { if (busy || uncertain)
-        return; const plan = prerequisites?.plans.find(x => `${x.planVersionId}:${x.measureId}:${x.visitId}:${x.kind}` === key); if (!plan)
-        return; const next = { ...blankNutritionEliminationEntry(plan.kind, plan.plannedAt), title: plan.title, planVersionId: plan.planVersionId, measureId: plan.measureId, visitId: plan.visitId, assessmentId: plan.assessmentId, planSnapshotSha256: plan.planSnapshotSha256 }; setSelectedPlan(key); setSelectedOriginal(''); setEntry(next); initial.current = JSON.stringify(next); setReason(''); setError(null); setSuccess(null); };
-    const chooseOriginal = (id: string) => { if (busy || uncertain)
-        return; const original = originals.find(x => x.headId === id); if (!original)
-        return; const next = structuredClone(original.payload); setSelectedOriginal(id); setSelectedPlan(''); setEntry(next); initial.current = JSON.stringify(next); setReason(''); setError(null); setSuccess(null); };
-    const original = originals.find(x => x.headId === selectedOriginal) ?? null, dirty = JSON.stringify(entry) !== initial.current || !!reason.trim();
-    useUnsavedWebChanges(dirty || uncertain, busy || uncertain);
-    const issue = useMemo(() => nutritionEliminationEntryIssue(entry), [entry]);
-    const change = <K extends keyof NutritionEliminationEntry>(k: K, v: NutritionEliminationEntry[K]) => { if (!busy && !uncertain && canCreate)
-        setEntry(e => patch(e, k, v)); };
-    const save = async () => { if (busy || uncertain || !loaded || !canCreate || (!selectedPlan && !original))
-        return; setBusy(true); setError(null); setSuccess(null); try {
-        const plan = prerequisites?.plans.find(x => x.planVersionId === entry.planVersionId && x.measureId === entry.measureId && x.visitId === entry.visitId && x.kind === entry.kind);
-        if (!plan)
-            throw Error('Die vollständig gelesene Plan-/Assessmentbindung ist nicht mehr verfügbar.');
-        const packet = makeNutritionEliminationPacket({ action: original ? 'revise' : 'create', requestId: crypto.randomUUID(), tenantId, clientId, actorId, expectedHeadId: original?.headId ?? null, expectedRevision: original?.revision ?? 0, entry: structuredClone(entry), reason: original ? reason.trim() : '', original: original ? structuredClone(original) : null, sources: structuredClone(plan.sources) });
-        const result = await saveNutritionEliminationDurably(packet, () => current() && canCreate);
-        if (!current())
+    catch {
+        return false;
+    } };
+    const epoch = useRef({ identity, value: 0, guard: props.isOwnerCurrent, retired: false });
+    if (!guardCurrent(epoch.current.guard) || !guardCurrent(props.isOwnerCurrent))
+        epoch.current.retired = true;
+    if (epoch.current.identity !== identity || epoch.current.retired && guardCurrent(props.isOwnerCurrent))
+        epoch.current = { identity, value: epoch.current.value + 1, guard: props.isOwnerCurrent, retired: false };
+    const ownerToken = epoch.current;
+    const current = () => { if (!alive.current || !canView || live.current !== identity || epoch.current !== ownerToken || ownerToken.retired)
+        return false; if (!guardCurrent(ownerToken.guard) || !guardCurrent(owner.current.isOwnerCurrent)) {
+        ownerToken.retired = true;
+        return false;
+    } return true; };
+    const locked = () => !current() || flight.current || pending.current || selectionFlight.current || owner.current.isLeaving?.() === true || reviewPhase.current.busy || reviewPhase.current.uncertain || reviewPhase.current.dirty || captureEditing.current;
+    const selectionBlocked = () => !current() || flight.current || pending.current || selectionFlight.current || owner.current.isLeaving?.() === true || reviewPhase.current.busy || reviewPhase.current.uncertain || captureEditing.current;
+    const update = (value: NutritionEliminationEntry, plan = draft.current.selectedPlan, selected = draft.current.selectedOriginal, assistance = draft.current.assistanceConfirmed) => { draft.current = { ...draft.current, entry: value, selectedPlan: plan, selectedOriginal: selected, assistanceConfirmed: assistance }; setEntry(value); setSelectedPlan(plan); setSelectedOriginal(selected); setAssistanceConfirmed(assistance); };
+    const uncertainty = (value: boolean) => { pending.current = value; setUncertain(value); };
+    const load = async () => { const ticket = ++generation.current; data.current = null; setWorkspace(null); setLoaded(false); setLoading(true); setError(null); try {
+        const result = await readNutritionEliminationWorkspace({ tenantId, clientId, actorId, isCurrent: current });
+        if (!current() || ticket !== generation.current)
+            return;
+        if (!result.ok)
+            throw Error(result.error);
+        const issue = nutritionWorkspaceIssue(result.data, { tenantId, clientId });
+        if (issue)
+            throw Error(issue);
+        data.current = result.data;
+        setWorkspace(result.data);
+        setLoaded(true);
+    }
+    catch (cause) {
+        if (current() && ticket === generation.current)
+            setError(cause instanceof Error ? cause.message : 'Der gemeinsame Bestand konnte nicht geladen werden.');
+    }
+    finally {
+        if (current() && ticket === generation.current)
+            setLoading(false);
+    } };
+    useEffect(() => { alive.current = true; flight.current = false; setBusy(false); let active = true; void (async () => { try {
+        if (!canView) {
+            setLoading(false);
+            return;
+        }
+        const result = await recoverNutritionElimination({ tenantId, clientId, actorId }, () => active && current());
+        if (!active || !current())
+            return;
+        if (result?.ok) {
+            uncertainty(false);
+            setSuccess('Die ursprüngliche eigene Quittung wurde bestätigt.');
+            owner.current.onSaved?.(result.data);
+        }
+        else if (result) {
+            uncertainty(result.uncertain === true);
+            setError(result.error);
+        }
+        await load();
+    }
+    catch (cause) {
+        if (active && current()) {
+            uncertainty(true);
+            setError(cause instanceof Error ? cause.message : 'Das ursprüngliche Journal ist ungeklärt.');
+            setLoading(false);
+        }
+    } })(); return () => { active = false; alive.current = false; generation.current++; operationId.current++; flight.current = false; }; }, [ownerToken]);
+    const original = workspace?.careOriginals.find(o => o.headId === selectedOriginal) ?? null, prerequisites = workspace?.prerequisites ?? null, originals = workspace?.careOriginals ?? [], dirty = !!(selectedPlan || selectedOriginal) && (JSON.stringify(entry) !== initial.current || !!reason.trim());
+    const snapshot = () => ({ identity, draft: draft.current, initial: initial.current, proof: data.current?.stateFingerprint ?? null, uncertain: pending.current, review: reviewPhase.current });
+    const confirmLeave = useUnsavedWebChanges(dirty || uncertain, busy || uncertain, undefined, () => { const before = snapshot(); return () => current() && !flight.current && !pending.current && sameClientNativeOriginal(before, snapshot()); });
+    const requestSelection = useCallback(async (action?: () => void) => { if (selectionFlight.current || flight.current || pending.current)
+        return false; selectionFlight.current = true; const before = snapshot(), review = reviewLeave.current, capture = captureLeave.current; try {
+        if (captureEditing.current && !capture || capture && !await capture())
+            return false;
+        if (review && !await review())
+            return false;
+        if (!await confirmLeave() || !current() || flight.current || pending.current || reviewLeave.current !== review || captureLeave.current !== capture || !sameClientNativeOriginal(before, snapshot()))
+            return false;
+        action?.();
+        return true;
+    }
+    finally {
+        selectionFlight.current = false;
+    } }, [ownerToken, confirmLeave]);
+    useEffect(() => { props.registerLeave?.(requestSelection); return () => props.registerLeave?.(null); }, [props.registerLeave, requestSelection]);
+    const choosePlan = async (key: string) => { if (selectionBlocked())
+        return; await requestSelection(() => { const plan = data.current?.prerequisites.plans.find(x => `${x.planVersionId}:${x.measureId}:${x.visitId}:${x.kind}` === key); if (!plan)
+        return; const next = { ...blankNutritionEliminationEntry(plan.kind, plan.plannedAt), title: plan.title, planVersionId: plan.planVersionId, measureId: plan.measureId, visitId: plan.visitId, assessmentId: plan.assessmentId, planSnapshotSha256: plan.planSnapshotSha256 }; update(next, key, '', false); initial.current = JSON.stringify(next); draft.current.reason = ''; setReason(''); setError(null); setSuccess(null); }); };
+    const chooseOriginal = async (id: string) => { if (selectionBlocked())
+        return; await requestSelection(() => { const value = data.current?.careOriginals.find(o => o.headId === id); if (!value)
+        return; const next = structuredClone(value.payload); update(next, '', id, true); initial.current = JSON.stringify(next); draft.current.reason = ''; setReason(''); setError(null); setSuccess(null); }); };
+    const planningIssue = nutritionPlanningWriteIssue(entry), canEditPlanning = canCreate && loaded && !busy && !uncertain && !reviewStatus.dirty && !reviewStatus.busy && !reviewStatus.uncertain && !captureActive && !planningIssue;
+    const change = <K extends keyof NutritionEliminationEntry>(k: K, v: NutritionEliminationEntry[K]) => { if (locked() || !canCreate || !data.current || nutritionPlanningWriteIssue(draft.current.entry))
+        return; const next = patch(draft.current.entry, k, v); if (nutritionPlanningWriteIssue(next))
+        return; update(next); };
+    const changeAssistance = (level: NutritionEliminationEntry['assistance']['level']) => { if (locked() || !canCreate || !data.current || nutritionPlanningWriteIssue(draft.current.entry))
+        return; update({ ...draft.current.entry, assistance: { ...draft.current.entry.assistance, level } }, draft.current.selectedPlan, draft.current.selectedOriginal, true); };
+    const changeReason = (value: string) => { if (locked() || !canEditPlanning)
+        return; draft.current = { ...draft.current, reason: value }; setReason(value); };
+    const boundPlan = prerequisites?.plans.find(p => nutritionPlanMatches(entry, p));
+    const issue = useMemo(() => planningIssue ?? nutritionEliminationEntryIssue(entry) ?? (!assistanceConfirmed ? 'Geplanten Hilfeumfang ausdrücklich auswählen.' : null), [entry, assistanceConfirmed, planningIssue]);
+    const save = async () => { if (locked() || !canCreate || !data.current || (!draft.current.selectedPlan && !draft.current.selectedOriginal))
+        return; const source = data.current, now = draft.current, prior = source.careOriginals.find(o => o.headId === now.selectedOriginal) ?? null, plan = source.prerequisites.plans.find(p => nutritionPlanMatches(now.entry, p)); if (!plan || !now.assistanceConfirmed || nutritionPlanningWriteIssue(now.entry) || nutritionWorkspaceIssue(source, { tenantId, clientId }, prior ?? undefined))
+        return; const operation = ++operationId.current, ownCurrent = () => current() && operationId.current === operation; flight.current = true; setBusy(true); setError(null); setSuccess(null); try {
+        const packet = makeNutritionEliminationPacket({ action: prior ? 'revise' : 'create', requestId: crypto.randomUUID(), tenantId, clientId, actorId, expectedHeadId: prior?.headId ?? null, expectedRevision: prior?.revision ?? 0, entry: structuredClone(now.entry), reason: prior ? now.reason.trim() : '', original: prior ? structuredClone(prior) : null, sources: structuredClone(plan.sources) });
+        const result = await saveNutritionEliminationDurably(packet, () => ownCurrent() && canCreate && data.current === source);
+        if (!ownCurrent())
             return;
         if (!result.ok) {
             setError(result.error);
-            setUncertain(result.uncertain === true);
+            uncertainty(result.uncertain === true);
             return;
         }
-        setSuccess(original ? 'Neue Fassung append-only bestätigt; Originalhistorie und Quellen bleiben erhalten.' : 'Paket mit Plan, Assessment, Quellen, Ereignis und Ergebnis bestätigt gespeichert.');
-        setUncertain(false);
-        setOriginals(values => [result.data, ...values.filter(x => x.rootId !== result.data.rootId)]);
-        setSelectedOriginal(result.data.headId);
-        setSelectedPlan('');
-        setEntry(structuredClone(result.data.payload));
+        uncertainty(false);
+        update(structuredClone(result.data.payload), '', result.data.headId, true);
         initial.current = JSON.stringify(result.data.payload);
+        draft.current.reason = '';
         setReason('');
-        onSaved?.(result.data);
+        setSuccess('Die offene Planung wurde mit ihrer ursprünglichen eigenen Quittung bestätigt.');
+        owner.current.onSaved?.(result.data);
+        await load();
     }
     catch (cause) {
-        if (current())
-            setError(cause instanceof Error ? cause.message : 'Vorgang konnte nicht gespeichert werden.');
+        if (ownCurrent())
+            setError(cause instanceof Error ? cause.message : 'Planung konnte nicht gespeichert werden.');
     }
     finally {
-        if (alive.current)
-            setBusy(false);
-    } };
-    const retry = async () => { setBusy(true); setError(null); const result = await recoverNutritionElimination({ tenantId, clientId, actorId }, current); if (current()) {
-        setBusy(false);
-        if (result?.ok) {
-            setUncertain(false);
-            setSuccess('Die unveränderte ursprüngliche Anfrage wurde anhand ihrer nativen Quittung bestätigt.');
-            setOriginals(values => [result.data, ...values.filter(x => x.rootId !== result.data.rootId)]);
-            onSaved?.(result.data);
+        if (operationId.current === operation) {
+            flight.current = false;
+            if (current())
+                setBusy(false);
         }
-        else
-            setError(result?.error ?? 'Keine passende vollständige Quittung gefunden.');
     } };
+    const retry = async () => { if (!current() || flight.current || selectionFlight.current || owner.current.isLeaving?.() || captureEditing.current || reviewPhase.current.busy || reviewPhase.current.dirty || reviewPhase.current.uncertain)
+        return; const operation = ++operationId.current, ownCurrent = () => current() && operationId.current === operation; flight.current = true; setBusy(true); setError(null); try {
+        const result = await recoverNutritionElimination({ tenantId, clientId, actorId }, ownCurrent);
+        if (!ownCurrent())
+            return;
+        if (result?.ok) {
+            uncertainty(false);
+            setSuccess('Die ursprüngliche eigene Quittung wurde bestätigt.');
+            owner.current.onSaved?.(result.data);
+            await load();
+        }
+        else {
+            uncertainty(true);
+            setError(result?.error ?? 'Keine passende vollständige Quittung gefunden.');
+        }
+    }
+    catch (cause) {
+        if (ownCurrent()) {
+            uncertainty(true);
+            setError(cause instanceof Error ? cause.message : 'Die ursprüngliche eigene Quittung bleibt ungeklärt.');
+        }
+    }
+    finally {
+        if (operationId.current === operation) {
+            flight.current = false;
+            if (current())
+                setBusy(false);
+        }
+    } };
+    const registerReviewLeave = useCallback((guard: (() => Promise<boolean>) | null) => { reviewLeave.current = guard; }, []), reviewState = useCallback((state: {
+        busy: boolean;
+        dirty: boolean;
+        uncertain: boolean;
+    }) => { reviewPhase.current = state; setReviewStatus(before => sameClientNativeOriginal(before, state) ? before : state); }, []);
+    const captureEditingChange = useCallback((active: boolean) => { if (!active) {
+        if (captureOwner.current !== ownerToken)
+            return false;
+        captureOwner.current = null;
+        captureEditing.current = false;
+        setCaptureActive(false);
+        return true;
+    } const value = draft.current, hasDraft = !!(value.selectedPlan || value.selectedOriginal) && (JSON.stringify(value.entry) !== initial.current || !!value.reason.trim()); if (!current() || flight.current || pending.current || selectionFlight.current || owner.current.isLeaving?.() || reviewPhase.current.busy || reviewPhase.current.dirty || reviewPhase.current.uncertain || hasDraft || captureEditing.current)
+        return false; captureOwner.current = ownerToken; captureEditing.current = true; setCaptureActive(true); return true; }, [ownerToken]);
+    const registerCaptureLeave = useCallback((guard: (() => Promise<boolean>) | null) => { if (epoch.current === ownerToken)
+        captureLeave.current = guard; }, [ownerToken]);
+    const reloadAfterCapture = async () => { if (!current() || flight.current || pending.current || captureEditing.current || reviewPhase.current.busy || reviewPhase.current.dirty || reviewPhase.current.uncertain)
+        return; const operation = ++operationId.current; flight.current = true; setBusy(true); try {
+        await load();
+    }
+    finally {
+        if (operationId.current === operation) {
+            flight.current = false;
+            if (current())
+                setBusy(false);
+        }
+    } };
+    const reload = () => { if (selectionBlocked())
+        return; void requestSelection(() => { void load(); }); };
+    const reloadAfterReview = async () => { const value = draft.current, hasDraft = !!(value.selectedPlan || value.selectedOriginal) && (JSON.stringify(value.entry) !== initial.current || !!value.reason.trim()); if (!current() || flight.current || pending.current || hasDraft)
+        throw Error('Den offenen Planungsentwurf zuerst speichern oder ausdrücklich verwerfen; der gemeinsame Bestand wurde nicht ersetzt.'); await load(); };
+    return { loaded, loading, busy, error, success, uncertain, workspace, prerequisites, originals, selectedPlan, selectedOriginal, entry, reason, assistanceConfirmed, original, dirty, issue, planningIssue, canEditPlanning, boundPlan, current, change, changeReason, changeAssistance, choosePlan, chooseOriginal, save, retry, reload, load, reloadAfterReview, reloadAfterCapture, captureEditingChange, registerCaptureLeave, captureActive, ownerToken, reviewBlocked: reviewStatus.busy || reviewStatus.dirty || reviewStatus.uncertain, registerReviewLeave, reviewState, isLeaving: () => selectionFlight.current || captureEditing.current || owner.current.isLeaving?.() === true, isLeavingExternal: () => selectionFlight.current || owner.current.isLeaving?.() === true };
+}
+export function NutritionEliminationWorkspacePanel(props: Props) {
+    const { tenantId, clientId, actorId, actorName, canView, canCreate } = props;
+    const controller = useNutritionEliminationWorkspaceController(props);
+    const { loaded, loading, busy, error, success, uncertain, workspace, prerequisites, originals, selectedPlan, selectedOriginal, entry, reason, assistanceConfirmed, original, dirty, issue, planningIssue, canEditPlanning, boundPlan, current, change, changeReason, changeAssistance, choosePlan, chooseOriginal, save, retry, reload } = controller;
     if (!canView)
         return <ErrorState message="Das aktuelle Leserecht für Pflegeplanung und Ernährungs-/Ausscheidungsdokumentation fehlt."/>;
     if (loading)
-        return <SectionPanel title="Ernährung und Ausscheidung"><LoadingState message="Plan, Assessment, Quelloriginale und Versandjournal werden vollständig geladen…"/></SectionPanel>;
-    const boundPlan = prerequisites?.plans.find(p => p.planVersionId === entry.planVersionId && p.measureId === entry.measureId && p.visitId === entry.visitId && p.kind === entry.kind);
+        return <SectionPanel title="Ernährung und Ausscheidung"><LoadingState message="Planbindungen, Pflege- und Prüfverlauf werden mit gemeinsamem Bestandsnachweis geladen…"/></SectionPanel>;
     const selected = !!selectedPlan || !!original, isMeal = ['meal_support', 'drink_protocol'].includes(entry.kind), isSwallow = entry.kind === 'swallowing_support', isEnteral = entry.kind === 'enteral_nutrition', isBalance = entry.kind === 'fluid_balance', isElimination = ['continence_support', 'stool_protocol'].includes(entry.kind), isDevice = ['catheter_care', 'stoma_care', 'tube_observation'].includes(entry.kind), isWeight = ['nutrition_assessment', 'weight_followup'].includes(entry.kind);
-    return <SectionPanel title="Ernährung und Ausscheidung" subtitle="Plan, Assessment, tatsächliches Ereignis, Messung, Beobachtung, Folgeauftrag und Abschluss in einem Verlauf">
+    return <SectionPanel title="Ernährung und Ausscheidung" subtitle="Offene Planung und historische Originale im gemeinsamen Bestand">
   <InfoBanner variant="info" title="Plan, Ziel und tatsächliches Ereignis bleiben getrennt" message="Fehlende Werte sind keine Nullwerte. Originaleinheiten werden nicht umgerechnet; eine dokumentierte Differenz ist keine klinisch freigegebene Bilanz."/>
-  {prerequisites?.plans.length ? <><Text style={typography.label}>Aktuelle serverseitige Plan-/Assessmentbindung</Text><FilterChipGroup wrap options={prerequisites.plans.map(p => ({ key: `${p.planVersionId}:${p.measureId}:${p.visitId}:${p.kind}`, label: `${labels[p.kind]} · ${p.title}` }))} value={selectedPlan} onChange={choosePlan}/></> : <InfoBanner variant="warning" message="Keine vollständig lesbare passende Planbindung. Daraus folgt weder fehlender Bedarf noch eine Nichtdurchführung."/>}
+  {loaded ? <NutritionPlanBindingCapturePanel tenantId={tenantId} clientId={clientId} actorId={actorId} ownerToken={controller.ownerToken} canView={canView} canCapture={props.canCaptureBinding === true} blocked={busy || uncertain || dirty || controller.reviewBlocked} isCurrent={current} isLeaving={controller.isLeavingExternal} onEditingChange={controller.captureEditingChange} registerLeave={controller.registerCaptureLeave} onCaptured={controller.reloadAfterCapture}/> : null}
+  {prerequisites?.plans.length ? <><Text style={typography.label}>Aktuelle serverseitige Plan-/Assessmentbindung</Text><FilterChipGroup wrap options={prerequisites.plans.map(p => ({ key: `${p.planVersionId}:${p.measureId}:${p.visitId}:${p.kind}`, label: `${labels[p.kind]} · ${p.title}` }))} value={selectedPlan} onChange={key => void choosePlan(key)}/></> : <InfoBanner variant="warning" message="Keine vollständig lesbare passende Planbindung. Daraus folgt weder fehlender Bedarf noch eine Nichtdurchführung."/>}
+  {prerequisites?.blockedReasons.length ? <InfoBanner variant="warning" message={`${prerequisites.blockedReasons.length} gespeicherte Bindungen sind wegen fehlender ursprünglicher Erfassung oder geänderter nativer Grundlagen gesperrt.`}/> : null}
+  <InfoBanner variant="info" message="Neue Einträge sind auf offene Planung begrenzt. Tatsächliche Durchführung, Abschluss und neue fachliche Entscheidungen bleiben gesperrt. Vorhandene Originale bleiben lesbar."/>
   {loaded ? <NutritionQuantitiesPanel originals={originals} tenantId={tenantId} clientId={clientId}/> : null}
-  {originals.length ? <><Text style={typography.label}>Bestehende vollständige Fassung fortschreiben</Text><FilterChipGroup wrap options={originals.map(o => ({ key: o.headId, label: `${labels[o.kind]} · Rev. ${o.revision} · ${o.payload.lifecycle === 'completed' ? 'abgeschlossen' : 'offen'}` }))} value={selectedOriginal} onChange={chooseOriginal}/></> : null}
+  {originals.length ? <><Text style={typography.label}>Bestehende vollständige Fassung fortschreiben</Text><FilterChipGroup wrap options={originals.map(o => ({ key: o.headId, label: `${labels[o.kind]} · Rev. ${o.revision} · ${o.payload.lifecycle === 'completed' ? 'abgeschlossen' : 'offen'}` }))} value={selectedOriginal} onChange={id => void chooseOriginal(id)}/></> : null}
   {selected ? <View style={{ gap: spacing.sm }}>
    {boundPlan ? <SectionPanel title="Vollständig gelesene Quelloriginale">
     <Text style={typography.caption}>Assessment {boundPlan.sources.assessment.id} · Fassung {boundPlan.sources.assessment.revision} · {boundPlan.sources.assessment.fingerprint}</Text>
-    {isWeight && boundPlan.sources.weights.length ? <><Text style={typography.label}>Belegte Originalmessung ausdrücklich übernehmen</Text><FilterChipGroup wrap options={boundPlan.sources.weights.map(w => ({ key: w.id, label: `${w.measuredAt} · ${w.value ?? 'fehlend'} ${w.unit} · ${w.conditions}` }))} value={entry.weight.measurementId ?? ''} onChange={id => { if (busy || uncertain || !canCreate)
+    {isWeight && boundPlan.sources.weights.length ? <><Text style={typography.label}>Belegte Originalmessung ausdrücklich übernehmen</Text><FilterChipGroup wrap options={boundPlan.sources.weights.map(w => ({ key: w.id, label: `${w.measuredAt} · ${w.value ?? 'fehlend'} ${w.unit} · ${w.conditions}` }))} value={entry.weight.measurementId ?? ''} onChange={canEditPlanning ? (id => { if (busy || uncertain || !canCreate)
                 return; const w = boundPlan.sources.weights.find(v => v.id === id); if (w && w.unit === 'kg' && w.value !== null)
-                change('weight', { ...entry.weight, measurementId: w.id, value: w.value, unit: 'kg', conditions: w.conditions }); }}/></> : null}
-    {isDevice || isEnteral ? <><Text style={typography.label}>Passendes Geräteoriginal ausdrücklich wählen</Text><FilterChipGroup wrap options={boundPlan.sources.devices.filter(d => isEnteral ? ['peg', 'tube'].includes(d.type) : d.type === (entry.kind === 'catheter_care' ? 'catheter' : entry.kind === 'stoma_care' ? 'stoma' : 'tube')).map(d => ({ key: d.id, label: `${d.type} · ${d.status} · ${d.id}` }))} value={(isEnteral ? entry.enteral.deviceId : entry.device.deviceId) ?? ''} onChange={id => { const d = boundPlan.sources.devices.find(v => v.id === id); if (!d)
+                change('weight', { ...entry.weight, measurementId: w.id, value: w.value, unit: 'kg', conditions: w.conditions }); }) : undefined}/></> : null}
+    {isDevice || isEnteral ? <><Text style={typography.label}>Passendes Geräteoriginal ausdrücklich wählen</Text><FilterChipGroup wrap options={boundPlan.sources.devices.filter(d => isEnteral ? ['peg', 'tube'].includes(d.type) : d.type === (entry.kind === 'catheter_care' ? 'catheter' : entry.kind === 'stoma_care' ? 'stoma' : 'tube')).map(d => ({ key: d.id, label: `${d.type} · ${d.status} · ${d.id}` }))} value={(isEnteral ? entry.enteral.deviceId : entry.device.deviceId) ?? ''} onChange={canEditPlanning ? (id => { const d = boundPlan.sources.devices.find(v => v.id === id); if (!d)
                 return; if (isEnteral)
                 change('enteral', { ...entry.enteral, deviceId: d.id });
             else
-                change('device', { ...entry.device, deviceId: d.id, type: d.type as NutritionEliminationEntry['device']['type'] }); }}/></> : null}
-    {isEnteral || isDevice || entry.kind === 'continence_support' ? <><Text style={typography.label}>Gebundene fachliche Grundlage ausdrücklich wählen</Text><FilterChipGroup wrap options={boundPlan.sources.protocols.filter(p => p.kind === (isEnteral ? 'prescription' : isDevice ? 'device_change_basis' : 'continence_profile')).map(p => ({ key: p.id, label: `${p.kind} · ${p.id} · Fassung ${p.revision}` }))} value={(isEnteral ? entry.enteral.prescriptionId : isDevice ? entry.device.changeBasisId : entry.elimination.profileId) ?? ''} onChange={id => { if (isEnteral)
+                change('device', { ...entry.device, deviceId: d.id, type: d.type as NutritionEliminationEntry['device']['type'] }); }) : undefined}/></> : null}
+    {isEnteral || isDevice || entry.kind === 'continence_support' ? <><Text style={typography.label}>Gebundene fachliche Grundlage ausdrücklich wählen</Text><FilterChipGroup wrap options={boundPlan.sources.protocols.filter(p => p.kind === (isEnteral ? 'prescription' : isDevice ? 'device_change_basis' : 'continence_profile')).map(p => ({ key: p.id, label: `${p.kind} · ${p.id} · Fassung ${p.revision}` }))} value={(isEnteral ? entry.enteral.prescriptionId : isDevice ? entry.device.changeBasisId : entry.elimination.profileId) ?? ''} onChange={canEditPlanning ? (id => { if (isEnteral)
                 change('enteral', { ...entry.enteral, prescriptionId: id });
             else if (isDevice)
                 change('device', { ...entry.device, changeBasisId: id });
             else
-                change('elimination', { ...entry.elimination, profileId: id }); }}/></> : null}
-    {entry.followUp.required && boundPlan.sources.tasks.length ? <><Text style={typography.label}>Auftragsoriginal ausdrücklich verknüpfen</Text><FilterChipGroup wrap options={boundPlan.sources.tasks.map(t => ({ key: t.id, label: `${t.id} · ${t.state} · ${t.dueAt ?? 'Frist fehlt'}` }))} value={entry.followUp.taskId ?? ''} onChange={id => { const t = boundPlan.sources.tasks.find(v => v.id === id); if (t)
-                change('followUp', { ...entry.followUp, taskId: t.id, dueAt: t.dueAt }); }}/></> : null}
+                change('elimination', { ...entry.elimination, profileId: id }); }) : undefined}/></> : null}
+    {entry.followUp.required && boundPlan.sources.tasks.length ? <><Text style={typography.label}>Auftragsoriginal ausdrücklich verknüpfen</Text><FilterChipGroup wrap options={boundPlan.sources.tasks.map(t => ({ key: t.id, label: `${t.id} · ${t.state} · ${t.dueAt ?? 'Frist fehlt'}` }))} value={entry.followUp.taskId ?? ''} onChange={canEditPlanning ? (id => { const t = boundPlan.sources.tasks.find(v => v.id === id); if (t)
+                change('followUp', { ...entry.followUp, taskId: t.id, dueAt: t.dueAt }); }) : undefined}/></> : null}
     {boundPlan.sources.protocols.map(p => <Text key={p.id} style={typography.caption}>Protokoll {p.kind} · {p.id} · Fassung {p.revision} · {p.fingerprint}</Text>)}
     {boundPlan.sources.devices.map(d => <Text key={d.id} style={typography.caption}>Gerät {d.type} · {d.status} · {d.id} · Fassung {d.revision}</Text>)}
     {boundPlan.sources.tasks.map(t => <Text key={t.id} style={typography.caption}>Auftrag {t.id} · {t.state} · Frist {t.dueAt ?? 'nicht geliefert'} · Fassung {t.revision}</Text>)}
    </SectionPanel> : <InfoBanner variant="warning" message="Die Planbindung dieser Fassung fehlt im aktuellen Bestand. Eine neue Anfrage bleibt gesperrt; das gespeicherte Original bleibt sichtbar."/>}
-   <SectionPanel title={`${labels[entry.kind]} · Bindung`}><PremiumInput editable={!busy && !uncertain && canCreate} label="Titel" value={entry.title} onChangeText={v => change('title', v)}/><PremiumInput label="Plantermin" value={entry.plannedAt} editable={false}/><InfoBanner variant="info" message={`Plan ${entry.planVersionId} · Maßnahme ${entry.measureId} · Assessment ${entry.assessmentId} · Einsatz ${entry.visitId} · ${entry.planSnapshotSha256}`}/></SectionPanel>
-   <SectionPanel title="Personenentscheidung, Hilfe und tatsächliches Ereignis"><FilterChipGroup wrap options={[{ key: 'not_asked', label: 'Nicht erhoben' }, { key: 'consented', label: 'Zugestimmt' }, { key: 'refused', label: 'Abgelehnt' }, { key: 'withdrawn', label: 'Widerrufen' }]} value={entry.decision.state} onChange={v => change('decision', { ...entry.decision, state: v as NutritionEliminationEntry['decision']['state'], recordedAt: v === 'not_asked' ? null : new Date().toISOString() })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Tatsächlicher Ereigniszeitpunkt" value={entry.occurredAt ?? ''} onChangeText={v => change('occurredAt', v.trim() || null)}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Grund bei Ablehnung" value={entry.decision.reason} onChangeText={v => change('decision', { ...entry.decision, reason: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Tatsächlich erfolgte Beratung" value={entry.decision.consultation} onChangeText={v => change('decision', { ...entry.decision, consultation: v })}/><FilterChipGroup wrap options={[{ key: 'independent', label: 'Selbstständig' }, { key: 'prompting', label: 'Anleitung' }, { key: 'partial_assist', label: 'Teilhilfe' }, { key: 'full_assist', label: 'Vollhilfe' }]} value={entry.assistance.level} onChange={v => change('assistance', { ...entry.assistance, level: v as NutritionEliminationEntry['assistance']['level'] })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Helfer-Profil-IDs" value={join(entry.assistance.helpers)} onChangeText={v => change('assistance', { ...entry.assistance, helpers: split(v) })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Hilfsmittel" value={join(entry.assistance.aids)} onChangeText={v => change('assistance', { ...entry.assistance, aids: split(v) })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Konkrete Unterstützung" value={entry.assistance.details} onChangeText={v => change('assistance', { ...entry.assistance, details: v })} multiline/></SectionPanel>
-   {isMeal ? <SectionPanel title="Angebot, tatsächliche Aufnahme und Ziel"><PremiumInput editable={!busy && !uncertain && canCreate} label="Lebensmittel / Getränk" value={entry.intake.item} onChangeText={v => change('intake', { ...entry.intake, item: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Kostform" value={entry.intake.dietForm} onChangeText={v => change('intake', { ...entry.intake, dietForm: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Angebotene Menge (leer = nicht dokumentiert)" value={entry.intake.offered ?? ''} onChangeText={v => change('intake', { ...entry.intake, offered: amount(v) })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Tatsächlich aufgenommene Menge (leer = nicht dokumentiert)" value={entry.intake.actual ?? ''} onChangeText={v => change('intake', { ...entry.intake, actual: amount(v) })}/><FilterChipGroup wrap options={[{ key: 'g', label: 'g' }, { key: 'ml', label: 'ml' }, { key: 'percent', label: '%' }]} value={entry.intake.unit} onChange={v => change('intake', { ...entry.intake, unit: v as NutritionEliminationEntry['intake']['unit'] })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Individuelles Ziel" value={entry.intake.target ?? ''} onChangeText={v => change('intake', { ...entry.intake, target: amount(v), targetUnit: v.trim() ? (entry.intake.targetUnit === 'none' ? 'g' : entry.intake.targetUnit) : 'none' })}/><Text style={typography.label}>Originaleinheit des individuellen Ziels</Text><FilterChipGroup wrap options={[{ key: 'g', label: 'g' }, { key: 'ml', label: 'ml' }]} value={entry.intake.targetUnit} onChange={v => change('intake', { ...entry.intake, targetUnit: v as 'g' | 'ml' })}/></SectionPanel> : null}
-   {isSwallow ? <SectionPanel title="Schluckunterstützung"><PremiumInput editable={!busy && !uncertain && canCreate} label="Freigegebene Kostform" value={entry.swallowing.approvedDiet} onChangeText={v => change('swallowing', { ...entry.swallowing, approvedDiet: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Fachliche Anweisung" value={entry.swallowing.instruction} onChangeText={v => change('swallowing', { ...entry.swallowing, instruction: v })} multiline/><PremiumInput editable={!busy && !uncertain && canCreate} label="Tatsächliche Abweichung" value={entry.swallowing.deviation} onChangeText={v => change('swallowing', { ...entry.swallowing, deviation: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Sichtbare Eskalation" value={entry.swallowing.escalation} onChangeText={v => change('swallowing', { ...entry.swallowing, escalation: v })}/></SectionPanel> : null}
-   {isEnteral ? <SectionPanel title="Enterale Ernährung"><PremiumInput editable={!busy && !uncertain && canCreate} label="Zugangs-ID" value={entry.enteral.deviceId ?? ''} onChangeText={v => change('enteral', { ...entry.enteral, deviceId: v.trim() || null })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Ärztliche Grundlagen-ID" value={entry.enteral.prescriptionId ?? ''} onChangeText={v => change('enteral', { ...entry.enteral, prescriptionId: v.trim() || null })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Produkt" value={entry.enteral.product} onChangeText={v => change('enteral', { ...entry.enteral, product: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Menge" value={entry.enteral.amount ?? ''} onChangeText={v => change('enteral', { ...entry.enteral, amount: amount(v) })}/><FilterChipGroup wrap options={[{ key: 'ml', label: 'ml' }, { key: 'g', label: 'g' }]} value={entry.enteral.unit} onChange={v => change('enteral', { ...entry.enteral, unit: v as 'ml' | 'g' })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Laufzeit Minuten" value={entry.enteral.durationMinutes ?? ''} onChangeText={v => change('enteral', { ...entry.enteral, durationMinutes: amount(v) })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Spülung ml" value={entry.enteral.flushMl ?? ''} onChangeText={v => change('enteral', { ...entry.enteral, flushMl: amount(v) })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Lageprüfung nach freigegebenem Vorgehen" value={entry.enteral.positionCheck} onChangeText={v => change('enteral', { ...entry.enteral, positionCheck: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Haut" value={entry.enteral.skin} onChangeText={v => change('enteral', { ...entry.enteral, skin: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Verträglichkeit" value={entry.enteral.tolerance} onChangeText={v => change('enteral', { ...entry.enteral, tolerance: v })}/></SectionPanel> : null}
-   {isBalance || isElimination ? <SectionPanel title="Einfuhr, Ausfuhr und Kontinenz"><PremiumInput editable={!busy && !uncertain && canCreate} label="Einfuhr ml (leer = nicht dokumentiert)" value={entry.elimination.input ?? ''} onChangeText={v => change('elimination', { ...entry.elimination, input: amount(v), unit: 'ml' })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Ausfuhr ml (leer = nicht dokumentiert)" value={entry.elimination.output ?? ''} onChangeText={v => change('elimination', { ...entry.elimination, output: amount(v), unit: 'ml' })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Kontinenzprofil-ID" value={entry.elimination.profileId ?? ''} onChangeText={v => change('elimination', { ...entry.elimination, profileId: v.trim() || null })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Individuelle Unterstützung" value={entry.elimination.support} onChangeText={v => change('elimination', { ...entry.elimination, support: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Stuhlereignis / Beschaffenheit" value={entry.elimination.stool} onChangeText={v => change('elimination', { ...entry.elimination, stool: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Beobachtung" value={entry.elimination.observation} onChangeText={v => change('elimination', { ...entry.elimination, observation: v })} multiline/></SectionPanel> : null}
-   {isDevice ? <SectionPanel title="Gerät, Versorgung, Haut und Ausscheidung"><PremiumInput editable={!busy && !uncertain && canCreate} label="Geräte-ID" value={entry.device.deviceId ?? ''} onChangeText={v => change('device', { ...entry.device, deviceId: v.trim() || null, type: entry.kind === 'catheter_care' ? 'catheter' : entry.kind === 'stoma_care' ? 'stoma' : 'tube' })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Anlage-/Wechselgrundlagen-ID" value={entry.device.changeBasisId ?? ''} onChangeText={v => change('device', { ...entry.device, changeBasisId: v.trim() || null })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Materialwechsel" value={entry.device.materialChange} onChangeText={v => change('device', { ...entry.device, materialChange: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Hautzustand" value={entry.device.skin} onChangeText={v => change('device', { ...entry.device, skin: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Lageprüfung" value={entry.device.positionCheck} onChangeText={v => change('device', { ...entry.device, positionCheck: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Ausscheidung / Ausgabe" value={entry.device.output} onChangeText={v => change('device', { ...entry.device, output: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Komplikation" value={entry.device.complication} onChangeText={v => change('device', { ...entry.device, complication: v })}/>{entry.kind === 'tube_observation' ? <><PremiumInput editable={!busy && !uncertain && canCreate} label="Sondenumgebung / Haut" value={entry.enteral.skin} onChangeText={v => change('enteral', { ...entry.enteral, skin: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Verträglichkeit der Sondenversorgung" value={entry.enteral.tolerance} onChangeText={v => change('enteral', { ...entry.enteral, tolerance: v })}/></> : null}</SectionPanel> : null}
-   {isWeight ? <SectionPanel title="Gewicht, Messbedingungen und Bewertung"><PremiumInput editable={!busy && !uncertain && canCreate} label="Messwert kg (leer = fehlend)" value={entry.weight.value ?? ''} onChangeText={v => change('weight', { ...entry.weight, value: amount(v), unit: v.trim() ? 'kg' : 'none' })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Originalmessungs-ID" value={entry.weight.measurementId ?? ''} onChangeText={v => change('weight', { ...entry.weight, measurementId: v.trim() || null })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Instrumentenfassung" value={entry.weight.instrumentVersion} onChangeText={v => change('weight', { ...entry.weight, instrumentVersion: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Messbedingungen" value={entry.weight.conditions} onChangeText={v => change('weight', { ...entry.weight, conditions: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Fachliche Bewertung (keine automatische Diagnose)" value={entry.weight.professionalAssessment} onChangeText={v => change('weight', { ...entry.weight, professionalAssessment: v })} multiline/><PremiumInput editable={!busy && !uncertain && canCreate} label="Vereinbarte Reaktion" value={entry.weight.reaction} onChangeText={v => change('weight', { ...entry.weight, reaction: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Rückkontrolle" value={entry.weight.reviewAt ?? ''} onChangeText={v => change('weight', { ...entry.weight, reviewAt: v.trim() || null })}/></SectionPanel> : null}
-   <SectionPanel title="Tatsächliches Ergebnis, Folgeauftrag und Abschluss"><FilterChipGroup wrap options={outcomes} value={entry.execution.outcome} onChange={v => change('execution', { ...entry.execution, outcome: v as NutritionEliminationEntry['execution']['outcome'] })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Tatsächlich ausführende Profil-IDs" value={join(entry.execution.performedBy)} onChangeText={v => change('execution', { ...entry.execution, performedBy: split(v) })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Tatsächliches Ergebnis" value={entry.execution.result} onChangeText={v => change('execution', { ...entry.execution, result: v })} multiline/><PremiumInput editable={!busy && !uncertain && canCreate} label="Abweichung / Nichtdurchführungsgrund" value={entry.execution.deviation} onChangeText={v => change('execution', { ...entry.execution, deviation: v })}/><FilterChipGroup wrap options={[{ key: 'none', label: 'Kein Folgeauftrag' }, { key: 'open', label: 'Folgeauftrag offen' }, { key: 'closed', label: 'Folgeauftrag abgeschlossen' }]} value={entry.followUp.required ? entry.followUp.state : 'none'} onChange={v => change('followUp', v === 'none' ? { required: false, reason: '', responsibleProfileId: null, dueAt: null, taskId: null, state: 'not_required', closureEvidence: '' } : { ...entry.followUp, required: true, state: v as 'open' | 'closed' })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Anlass" value={entry.followUp.reason} onChangeText={v => change('followUp', { ...entry.followUp, reason: v })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Verantwortliches Profil" value={entry.followUp.responsibleProfileId ?? ''} onChangeText={v => change('followUp', { ...entry.followUp, responsibleProfileId: v.trim() || null })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Fälligkeit" value={entry.followUp.dueAt ?? ''} onChangeText={v => change('followUp', { ...entry.followUp, dueAt: v.trim() || null })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Auftrags-ID" value={entry.followUp.taskId ?? ''} onChangeText={v => change('followUp', { ...entry.followUp, taskId: v.trim() || null })}/><PremiumInput editable={!busy && !uncertain && canCreate} label="Unveränderter Abschlussbeleg" value={entry.followUp.closureEvidence} onChangeText={v => change('followUp', { ...entry.followUp, closureEvidence: v })}/><FilterChipGroup wrap options={[{ key: 'open', label: 'Vorgang offen' }, { key: 'completed', label: 'Vorgang abgeschlossen' }]} value={entry.lifecycle} onChange={v => change('lifecycle', v as 'open' | 'completed')}/></SectionPanel>
-   {original ? <PremiumInput editable={!busy && !uncertain && canCreate} label="Konkreter Grund der Fortschreibung" value={reason} onChangeText={v => { if (!busy && !uncertain && canCreate)
-            setReason(v); }} multiline/> : null}
+   <SectionPanel title={`${labels[entry.kind]} · Bindung`}><PremiumInput editable={false} label="Titel" value={entry.title} onChangeText={v => change('title', v)}/><PremiumInput label="Plantermin" value={entry.plannedAt} editable={false}/><InfoBanner variant="info" message={`Plan ${entry.planVersionId} · Maßnahme ${entry.measureId} · Assessment ${entry.assessmentId} · Einsatz ${entry.visitId} · ${entry.planSnapshotSha256}`}/></SectionPanel>
+   <SectionPanel title="Personenentscheidung, Hilfe und tatsächliches Ereignis"><FilterChipGroup wrap options={[{ key: 'not_asked', label: 'Nicht erhoben' }, { key: 'consented', label: 'Zugestimmt' }, { key: 'refused', label: 'Abgelehnt' }, { key: 'withdrawn', label: 'Widerrufen' }]} value={entry.decision.state} onChange={undefined}/><PremiumInput editable={false} label="Tatsächlicher Ereigniszeitpunkt" value={entry.occurredAt ?? ''} onChangeText={v => change('occurredAt', v.trim() || null)}/><PremiumInput editable={false} label="Grund bei Ablehnung" value={entry.decision.reason} onChangeText={v => change('decision', { ...entry.decision, reason: v })}/><PremiumInput editable={false} label="Tatsächlich erfolgte Beratung" value={entry.decision.consultation} onChangeText={v => change('decision', { ...entry.decision, consultation: v })}/><FilterChipGroup wrap options={[{ key: 'independent', label: 'Selbstständig' }, { key: 'prompting', label: 'Anleitung' }, { key: 'partial_assist', label: 'Teilhilfe' }, { key: 'full_assist', label: 'Vollhilfe' }]} value={assistanceConfirmed ? entry.assistance.level : ''} onChange={canEditPlanning ? (v => changeAssistance(v as NutritionEliminationEntry['assistance']['level'])) : undefined}/><PremiumInput editable={canEditPlanning} label="Helfer-Profil-IDs" value={join(entry.assistance.helpers)} onChangeText={v => change('assistance', { ...entry.assistance, helpers: split(v) })}/><PremiumInput editable={canEditPlanning} label="Hilfsmittel" value={join(entry.assistance.aids)} onChangeText={v => change('assistance', { ...entry.assistance, aids: split(v) })}/><PremiumInput editable={canEditPlanning} label="Konkrete Unterstützung" value={entry.assistance.details} onChangeText={v => change('assistance', { ...entry.assistance, details: v })} multiline/></SectionPanel>
+   {isMeal ? <SectionPanel title="Angebot, tatsächliche Aufnahme und Ziel"><PremiumInput editable={canEditPlanning} label="Lebensmittel / Getränk" value={entry.intake.item} onChangeText={v => change('intake', { ...entry.intake, item: v })}/><PremiumInput editable={canEditPlanning} label="Kostform" value={entry.intake.dietForm} onChangeText={v => change('intake', { ...entry.intake, dietForm: v })}/><PremiumInput editable={false} label="Angebotene Menge (leer = nicht dokumentiert)" value={entry.intake.offered ?? ''} onChangeText={v => change('intake', { ...entry.intake, offered: amount(v) })}/><PremiumInput editable={false} label="Tatsächlich aufgenommene Menge (leer = nicht dokumentiert)" value={entry.intake.actual ?? ''} onChangeText={v => change('intake', { ...entry.intake, actual: amount(v) })}/><FilterChipGroup wrap options={[{ key: 'g', label: 'g' }, { key: 'ml', label: 'ml' }, { key: 'percent', label: '%' }]} value={entry.intake.unit} onChange={undefined}/><PremiumInput editable={canEditPlanning} label="Individuelles Ziel" value={entry.intake.target ?? ''} onChangeText={v => change('intake', { ...entry.intake, target: amount(v), targetUnit: v.trim() ? entry.intake.targetUnit : 'none' })}/><Text style={typography.label}>Originaleinheit des individuellen Ziels</Text><FilterChipGroup wrap options={[{ key: 'g', label: 'g' }, { key: 'ml', label: 'ml' }]} value={entry.intake.targetUnit} onChange={canEditPlanning ? (v => change('intake', { ...entry.intake, targetUnit: v as 'g' | 'ml' })) : undefined}/></SectionPanel> : null}
+   {isSwallow ? <SectionPanel title="Schluckunterstützung"><PremiumInput editable={canEditPlanning} label="Freigegebene Kostform" value={entry.swallowing.approvedDiet} onChangeText={v => change('swallowing', { ...entry.swallowing, approvedDiet: v })}/><PremiumInput editable={canEditPlanning} label="Fachliche Anweisung" value={entry.swallowing.instruction} onChangeText={v => change('swallowing', { ...entry.swallowing, instruction: v })} multiline/><PremiumInput editable={canEditPlanning} label="Tatsächliche Abweichung" value={entry.swallowing.deviation} onChangeText={v => change('swallowing', { ...entry.swallowing, deviation: v })}/><PremiumInput editable={canEditPlanning} label="Sichtbare Eskalation" value={entry.swallowing.escalation} onChangeText={v => change('swallowing', { ...entry.swallowing, escalation: v })}/></SectionPanel> : null}
+   {isEnteral ? <SectionPanel title="Enterale Ernährung"><PremiumInput editable={canEditPlanning} label="Zugangs-ID" value={entry.enteral.deviceId ?? ''} onChangeText={v => change('enteral', { ...entry.enteral, deviceId: v.trim() || null })}/><PremiumInput editable={canEditPlanning} label="Ärztliche Grundlagen-ID" value={entry.enteral.prescriptionId ?? ''} onChangeText={v => change('enteral', { ...entry.enteral, prescriptionId: v.trim() || null })}/><PremiumInput editable={canEditPlanning} label="Produkt" value={entry.enteral.product} onChangeText={v => change('enteral', { ...entry.enteral, product: v })}/><PremiumInput editable={canEditPlanning} label="Menge" value={entry.enteral.amount ?? ''} onChangeText={v => change('enteral', { ...entry.enteral, amount: amount(v) })}/><FilterChipGroup wrap options={[{ key: 'ml', label: 'ml' }, { key: 'g', label: 'g' }]} value={entry.enteral.unit} onChange={canEditPlanning ? (v => change('enteral', { ...entry.enteral, unit: v as 'ml' | 'g' })) : undefined}/><PremiumInput editable={canEditPlanning} label="Laufzeit Minuten" value={entry.enteral.durationMinutes ?? ''} onChangeText={v => change('enteral', { ...entry.enteral, durationMinutes: amount(v) })}/><PremiumInput editable={canEditPlanning} label="Spülung ml" value={entry.enteral.flushMl ?? ''} onChangeText={v => change('enteral', { ...entry.enteral, flushMl: amount(v) })}/><PremiumInput editable={canEditPlanning} label="Lageprüfung nach freigegebenem Vorgehen" value={entry.enteral.positionCheck} onChangeText={v => change('enteral', { ...entry.enteral, positionCheck: v })}/><PremiumInput editable={canEditPlanning} label="Haut" value={entry.enteral.skin} onChangeText={v => change('enteral', { ...entry.enteral, skin: v })}/><PremiumInput editable={canEditPlanning} label="Verträglichkeit" value={entry.enteral.tolerance} onChangeText={v => change('enteral', { ...entry.enteral, tolerance: v })}/></SectionPanel> : null}
+   {isBalance || isElimination ? <SectionPanel title="Einfuhr, Ausfuhr und Kontinenz"><PremiumInput editable={false} label="Einfuhr ml (leer = nicht dokumentiert)" value={entry.elimination.input ?? ''} onChangeText={v => change('elimination', { ...entry.elimination, input: amount(v), unit: 'ml' })}/><PremiumInput editable={false} label="Ausfuhr ml (leer = nicht dokumentiert)" value={entry.elimination.output ?? ''} onChangeText={v => change('elimination', { ...entry.elimination, output: amount(v), unit: 'ml' })}/><PremiumInput editable={canEditPlanning} label="Kontinenzprofil-ID" value={entry.elimination.profileId ?? ''} onChangeText={v => change('elimination', { ...entry.elimination, profileId: v.trim() || null })}/><PremiumInput editable={canEditPlanning} label="Individuelle Unterstützung" value={entry.elimination.support} onChangeText={v => change('elimination', { ...entry.elimination, support: v })}/><PremiumInput editable={canEditPlanning} label="Stuhlereignis / Beschaffenheit" value={entry.elimination.stool} onChangeText={v => change('elimination', { ...entry.elimination, stool: v })}/><PremiumInput editable={canEditPlanning} label="Beobachtung" value={entry.elimination.observation} onChangeText={v => change('elimination', { ...entry.elimination, observation: v })} multiline/></SectionPanel> : null}
+   {isDevice ? <SectionPanel title="Gerät, Versorgung, Haut und Ausscheidung"><PremiumInput editable={canEditPlanning} label="Geräte-ID" value={entry.device.deviceId ?? ''} onChangeText={v => change('device', { ...entry.device, deviceId: v.trim() || null, type: entry.kind === 'catheter_care' ? 'catheter' : entry.kind === 'stoma_care' ? 'stoma' : 'tube' })}/><PremiumInput editable={canEditPlanning} label="Anlage-/Wechselgrundlagen-ID" value={entry.device.changeBasisId ?? ''} onChangeText={v => change('device', { ...entry.device, changeBasisId: v.trim() || null })}/><PremiumInput editable={canEditPlanning} label="Materialwechsel" value={entry.device.materialChange} onChangeText={v => change('device', { ...entry.device, materialChange: v })}/><PremiumInput editable={canEditPlanning} label="Hautzustand" value={entry.device.skin} onChangeText={v => change('device', { ...entry.device, skin: v })}/><PremiumInput editable={canEditPlanning} label="Lageprüfung" value={entry.device.positionCheck} onChangeText={v => change('device', { ...entry.device, positionCheck: v })}/><PremiumInput editable={canEditPlanning} label="Ausscheidung / Ausgabe" value={entry.device.output} onChangeText={v => change('device', { ...entry.device, output: v })}/><PremiumInput editable={canEditPlanning} label="Komplikation" value={entry.device.complication} onChangeText={v => change('device', { ...entry.device, complication: v })}/>{entry.kind === 'tube_observation' ? <><PremiumInput editable={canEditPlanning} label="Sondenumgebung / Haut" value={entry.enteral.skin} onChangeText={v => change('enteral', { ...entry.enteral, skin: v })}/><PremiumInput editable={canEditPlanning} label="Verträglichkeit der Sondenversorgung" value={entry.enteral.tolerance} onChangeText={v => change('enteral', { ...entry.enteral, tolerance: v })}/></> : null}</SectionPanel> : null}
+   {isWeight ? <SectionPanel title="Gewicht, Messbedingungen und Bewertung"><PremiumInput editable={false} label="Messwert kg (leer = fehlend)" value={entry.weight.value ?? ''} onChangeText={v => change('weight', { ...entry.weight, value: amount(v), unit: v.trim() ? 'kg' : 'none' })}/><PremiumInput editable={false} label="Originalmessungs-ID" value={entry.weight.measurementId ?? ''} onChangeText={v => change('weight', { ...entry.weight, measurementId: v.trim() || null })}/><PremiumInput editable={canEditPlanning} label="Instrumentenfassung" value={entry.weight.instrumentVersion} onChangeText={v => change('weight', { ...entry.weight, instrumentVersion: v })}/><PremiumInput editable={false} label="Messbedingungen" value={entry.weight.conditions} onChangeText={v => change('weight', { ...entry.weight, conditions: v })}/><PremiumInput editable={canEditPlanning} label="Fachliche Bewertung (keine automatische Diagnose)" value={entry.weight.professionalAssessment} onChangeText={v => change('weight', { ...entry.weight, professionalAssessment: v })} multiline/><PremiumInput editable={canEditPlanning} label="Vereinbarte Reaktion" value={entry.weight.reaction} onChangeText={v => change('weight', { ...entry.weight, reaction: v })}/><PremiumInput editable={canEditPlanning} label="Rückkontrolle" value={entry.weight.reviewAt ?? ''} onChangeText={v => change('weight', { ...entry.weight, reviewAt: v.trim() || null })}/></SectionPanel> : null}
+   <SectionPanel title="Tatsächliches Ergebnis, Folgeauftrag und Abschluss"><FilterChipGroup wrap options={canEditPlanning ? outcomes.filter(x => x.key === 'planned') : outcomes} value={entry.execution.outcome} onChange={undefined}/><PremiumInput editable={false} label="Tatsächlich ausführende Profil-IDs" value={join(entry.execution.performedBy)} onChangeText={v => change('execution', { ...entry.execution, performedBy: split(v) })}/><PremiumInput editable={false} label="Tatsächliches Ergebnis" value={entry.execution.result} onChangeText={v => change('execution', { ...entry.execution, result: v })} multiline/><PremiumInput editable={canEditPlanning} label="Abweichung / Nichtdurchführungsgrund" value={entry.execution.deviation} onChangeText={v => change('execution', { ...entry.execution, deviation: v })}/><FilterChipGroup wrap options={canEditPlanning ? [{ key: 'none', label: 'Kein Folgeauftrag' }, { key: 'open', label: 'Folgeauftrag geplant' }] : [{ key: 'none', label: 'Kein Folgeauftrag' }, { key: 'open', label: 'Folgeauftrag offen' }, { key: 'closed', label: 'Folgeauftrag abgeschlossen' }]} value={entry.followUp.required ? entry.followUp.state : 'none'} onChange={canEditPlanning ? (v => change('followUp', v === 'none' ? { required: false, reason: '', responsibleProfileId: null, dueAt: null, taskId: null, state: 'not_required', closureEvidence: '' } : { ...entry.followUp, required: true, state: v as 'open' | 'closed' })) : undefined}/><PremiumInput editable={canEditPlanning} label="Anlass" value={entry.followUp.reason} onChangeText={v => change('followUp', { ...entry.followUp, reason: v })}/><PremiumInput editable={canEditPlanning} label="Verantwortliches Profil" value={entry.followUp.responsibleProfileId ?? ''} onChangeText={v => change('followUp', { ...entry.followUp, responsibleProfileId: v.trim() || null })}/><PremiumInput editable={canEditPlanning} label="Fälligkeit" value={entry.followUp.dueAt ?? ''} onChangeText={v => change('followUp', { ...entry.followUp, dueAt: v.trim() || null })}/><PremiumInput editable={false} label="Auftrags-ID" value={entry.followUp.taskId ?? ''} onChangeText={v => change('followUp', { ...entry.followUp, taskId: v.trim() || null })}/><PremiumInput editable={false} label="Unveränderter Abschlussbeleg" value={entry.followUp.closureEvidence} onChangeText={v => change('followUp', { ...entry.followUp, closureEvidence: v })}/><FilterChipGroup wrap options={[{ key: 'open', label: 'Vorgang offen' }, { key: 'completed', label: 'Vorgang abgeschlossen' }]} value={entry.lifecycle} onChange={undefined}/></SectionPanel>
+   {original ? <PremiumInput editable={canEditPlanning} label="Konkreter Grund der Fortschreibung" value={reason} onChangeText={changeReason} multiline/> : null}
   </View> : null}
-  {original ? <NutritionReviewPanel key={`${identity}:${original.headId}`} tenantId={tenantId} clientId={clientId} actorId={actorId} canView={canView} canRequest={canCreate && loaded && !busy && !uncertain && !dirty} canReview={canReview && loaded && !busy && !uncertain && !dirty} careOriginal={original}/> : null}
-  {issue && selected ? <InfoBanner variant="danger" title="Noch nicht speicherbar" message={issue}/> : null}{error ? <ErrorState message={error}/> : null}{success ? <SuccessState message={success}/> : null}
-  {uncertain ? <><InfoBanner variant="warning" title="Speicherausgang ungeklärt" message="Die ursprüngliche Anfrage bleibt gesperrt; es wird weder ein Ersatzwrite noch ein neues Ereignis erzeugt."/><PremiumButton title="Genau diese native Quittung erneut prüfen" loading={busy} onPress={retry}/></> : <View style={{ gap: spacing.sm }}><PremiumButton title={original ? 'Verlauf append-only fortschreiben' : 'Gesamtpaket vollständig speichern'} fullWidth loading={busy} disabled={busy || !loaded || !canCreate || !selected || !!issue || !boundPlan} onPress={save}/><PremiumButton title="Plan, Assessment und Originale neu laden" variant="secondary" disabled={busy} onPress={load}/></View>}
+  {original ? <NutritionCareHistory original={original}/> : null}
+  {original ? <NutritionReviewPanel key={`${tenantId}:${clientId}:${actorId}:${original.headId}`} tenantId={tenantId} clientId={clientId} actorId={actorId} canView={canView} canRequest={canCreate && loaded && !busy && !uncertain && !dirty && !controller.captureActive} canReview={false} careOriginal={original} workspace={workspace!} onChanged={controller.reloadAfterReview} registerLeave={controller.registerReviewLeave} onStateChange={controller.reviewState} isLeaving={controller.isLeaving} isOwnerCurrent={current}/> : null}
+  {planningIssue && selected ? <InfoBanner variant="info" message={planningIssue}/> : null}
+  {issue && !planningIssue && selected ? <InfoBanner variant="danger" title="Noch nicht speicherbar" message={issue}/> : null}{error ? <ErrorState message={error}/> : null}{success ? <SuccessState message={success}/> : null}
+  {uncertain ? <><InfoBanner variant="warning" title="Speicherausgang ungeklärt" message="Die ursprüngliche Anfrage bleibt gesperrt; es wird weder ein Ersatzwrite noch ein neues Ereignis erzeugt."/><PremiumButton title="Genau diese native Quittung erneut prüfen" loading={busy} onPress={retry}/></> : <View style={{ gap: spacing.sm }}><PremiumButton title={original ? 'Offene Planung fortschreiben' : 'Offene Planung speichern'} fullWidth loading={busy} disabled={busy || !loaded || !canCreate || !selected || !!issue || !boundPlan || !canEditPlanning} onPress={save}/><PremiumButton title="Plan, Assessment und Originale neu laden" variant="secondary" disabled={busy} onPress={reload}/></View>}
   <InfoBanner variant="warning" message={`Aktueller Akteur: ${actorName}. Lokale Prüfungen bestätigen keine Durchführung, klinische Bilanz, Diagnose, pflegefachliche oder rechtliche Freigabe.`}/>
  </SectionPanel>;
+}
+function NutritionCareHistory({ original }: {
+    original: NutritionEliminationOriginal;
+}) {
+    const [limit, setLimit] = useState(10), history = original.history.toReversed();
+    return <SectionPanel title="Aufbewahrte Originalfassungen"><Text style={typography.caption}>Frühere Inhalte bleiben unverändert lesbar. Eine historische Durchführung oder Entscheidung schaltet keine neue Handlung frei.</Text>{history.slice(0, limit).map(item => <View key={item.id} style={{ gap: spacing.xs }}><Text style={typography.label}>Fassung {item.revision} · {item.payload.title}</Text><Text style={typography.caption}>{item.recordedAt} · {item.recordedByName} · {item.id}</Text>{item.reason ? <Text style={typography.body}>Fortschreibung: {item.reason}</Text> : null}{nutritionHistoryFacts(item.payload).map(([label, value]) => <Text key={label} selectable style={typography.caption}>{label}: {value}</Text>)}</View>)}{limit < history.length ? <PremiumButton title="Weitere unveränderte Fassungen anzeigen" variant="secondary" onPress={() => setLimit(value => value + 10)}/> : null}</SectionPanel>;
 }

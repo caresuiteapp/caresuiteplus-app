@@ -1,0 +1,14 @@
+{
+  "observedAt": "2026-10-22",
+  "project": "shwpweerzsfkqaivmaoc",
+  "purpose": "Read-only existing-object baseline before the new additive V2 installation; no clinical data, no DDL or grants executed.",
+  "candidateSourceSha256": "075d091fd6f6a0e78c74c05b40c3160e1e3c97a0f8448db6af5b6cb1794c3dcc",
+  "metadata": [
+    {
+      "new_schema_absent": true,
+      "conflicting_v2_public_names": "{}",
+      "existing_relation_metadata_sha256": "04d679db9caf94bef88224a3fadc1cf44b445316111d6e5b44f8d21ab5530913",
+      "existing_path_function_metadata_sha256": "89cf5513bf590c9b55be16f49f4a3fded2eb6c3517b47dd18863c8b9dc6f851f"
+    }
+  ]
+}

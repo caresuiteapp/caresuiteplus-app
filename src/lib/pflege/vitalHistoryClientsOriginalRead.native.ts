@@ -41,7 +41,7 @@ export async function fetchVitalHistoryClientsOriginalReadWeb(lease: VitalHistor
                 query = method(query, 'select', [selectors[table]]);
                 query = method(query, 'eq', ['tenant_id', tenantId]);
                 if (table === 'clients') {
-                    query = method(query, 'eq', ['status', 'active']);
+                    query = method(query, 'in', ['status', ['active', 'aktiv']]);
                     query = method(query, 'is', ['deleted_at', null]);
                 }
                 else {
@@ -69,7 +69,7 @@ export async function fetchVitalHistoryClientsOriginalReadWeb(lease: VitalHistor
                     if (!keys.every(k => Object.hasOwn(native, k)) || !uuid(native.id) || native.tenant_id !== tenantId || previous !== null && native.id.toLowerCase() <= previous)
                         throw error();
                     if (table === 'clients') {
-                        if (native.status !== 'active' || native.deleted_at !== null || typeof native.first_name !== 'string' || typeof native.last_name !== 'string')
+                        if (!['active', 'aktiv'].includes(native.status as string) || native.deleted_at !== null || typeof native.first_name !== 'string' || typeof native.last_name !== 'string')
                             throw error();
                     }
                     else if (!uuid(native.client_id) || native.module_key !== 'pflege' || native.is_active !== true || typeof native.status !== 'string')

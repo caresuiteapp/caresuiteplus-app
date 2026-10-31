@@ -1,6 +1,8 @@
 // Generated native presentation from src/lib/careAssessment/assessmentPathWorkspaceWorkflow.web.ts. Update through scripts/port-native-workspaces.mjs.
-import {nativeStructuredClone as structuredClone,nativeNavigator as navigator} from '@/lib/platform/nativeWorkflowEnvironment.native';
-import { assessmentPathVersion, decodeAssessmentPathReceipt, validateAssessmentPathCommand, type AssessmentPathCommand, type AssessmentPathReceipt } from "./assessmentPathWorkspaceDomain.native.ts";
+import {nativeNavigator as navigator} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { freezeClientNativeOriginal, sameClientNativeOriginal } from "../clients/clientRecordNativeOriginal.native.ts";
+import { captureAssessmentWorkspaceJson } from "./assessmentWorkspaceTransport.native.ts";
+import { assessmentPathVersion, assessmentPathSupportedWriteKinds, decodeAssessmentPathContext, decodeAssessmentPathReceipt, validateAssessmentPathCommand, validateAssessmentPathWriteCommand, type AssessmentPathCommand, type AssessmentPathContext, type AssessmentPathReceipt } from "./assessmentPathWorkspaceDomain.native.ts";
 import type { AssessmentPathResult } from "./assessmentPathWorkspaceRepository.native.ts";
 type Scope = {
     tenantId: string;
@@ -24,50 +26,73 @@ type Dependencies = {
     commit(command: AssessmentPathCommand): Promise<AssessmentPathResult<AssessmentPathReceipt>>;
     confirm(command: AssessmentPathCommand): Promise<AssessmentPathResult<AssessmentPathReceipt>>;
 };
-const key = (scope: Scope) => `caresuite.assessmentPath-workspace-journal.v1:${scope.tenantId}:${scope.assessmentId}:${scope.actorId}`;
-export function decodeAssessmentPathJournal(raw: string, scope: Scope) { const value: unknown = JSON.parse(raw); if (typeof value !== 'object' || value === null)
-    throw Error('Gesicherter Assessmentpfadvorgang ist beschädigt.'); const journal = value as AssessmentPathJournal; if (journal.version !== assessmentPathVersion || JSON.stringify(journal.scope) !== JSON.stringify(scope) || !['prepared', 'dispatched', 'confirmed', 'rejected'].includes(journal.phase))
-    throw Error('Gesicherter Assessmentpfadvorgang ist beschädigt.'); validateAssessmentPathCommand(journal.command); if (journal.phase === 'confirmed')
+const uuid = (v: unknown): v is string => typeof v === 'string' && v.length === 36 && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+const scopeCopy = (input: Scope) => { const scope = captureAssessmentWorkspaceJson(input); if (!scope || Object.keys(scope).sort().join(',') !== 'actorId,assessmentId,tenantId' || ![scope.tenantId, scope.assessmentId, scope.actorId].every(uuid))
+    throw Error('Eigener Assessmentpfadkontext ist unvollständig.'); return freezeClientNativeOriginal(scope); };
+export function assessmentPathJournalKey(input: Scope) { const scope = scopeCopy(input); return `caresuite.assessmentPath-workspace-journal.v2:${scope.tenantId}:${scope.assessmentId}:${scope.actorId}`; }
+export function assessmentPathLegacyJournalKey(input: Scope) { const scope = scopeCopy(input); return `caresuite.assessmentPath-workspace-journal.v1:${scope.tenantId}:${scope.assessmentId}:${scope.actorId}`; }
+export function decodeAssessmentPathJournal(raw: string, input: Scope) { const scope = scopeCopy(input), journal = captureAssessmentWorkspaceJson(JSON.parse(raw)) as AssessmentPathJournal; if (!journal || Object.keys(journal).sort().join(',') !== 'command,phase,receipt,rejection,scope,version' || journal.version !== assessmentPathVersion || !sameClientNativeOriginal(scopeCopy(journal.scope), scope) || !['prepared', 'dispatched', 'confirmed', 'rejected'].includes(journal.phase))
+    throw Error('Gesicherter Assessmentpfadvorgang ist beschädigt.'); validateAssessmentPathCommand(journal.command); if (journal.command.tenantId !== scope.tenantId || journal.command.assessmentId !== scope.assessmentId || journal.command.actorId !== scope.actorId)
+    throw Error('Die gesicherte Anfrage gehört zu einem anderen eigenen Assessmentpfadkontext.'); if (journal.phase === 'confirmed')
     decodeAssessmentPathReceipt(journal.receipt, journal.command);
 else if (journal.receipt !== null)
-    throw Error('Lokale Assessmentpfadbestätigung ist widersprüchlich.'); return structuredClone(journal); }
+    throw Error('Lokale Bestätigung ist widersprüchlich.'); if (journal.phase === 'rejected' ? (typeof journal.rejection !== 'string' || !journal.rejection.trim() || journal.rejection.length > 4000) : journal.rejection !== null)
+    throw Error('Lokaler Transaktionsausgang ist nicht bestätigt.'); return freezeClientNativeOriginal(journal); }
 export class AssessmentPathWorkflow {
     private busy = false;
     private journalKey: string;
     private scope: Scope;
     private deps: Dependencies;
-    constructor(scope: Scope, deps: Dependencies) { this.scope = scope; this.deps = deps; this.journalKey = key(scope); }
-    read() { const raw = this.deps.storage.getItem(this.journalKey); return raw === null ? null : decodeAssessmentPathJournal(raw, this.scope); }
-    private current() { if (!this.deps.isCurrent())
-        throw Error('Konto, Mandant oder Assessmentpfadrechte wurden geändert. Vorgang neu öffnen.'); }
-    private persist(value: AssessmentPathJournal) { const raw = JSON.stringify(value); this.deps.storage.setItem(this.journalKey, raw); if (this.deps.storage.getItem(this.journalKey) !== raw)
-        throw Error('Assessmentpfadvorgang konnte nicht zuverlässig gesichert werden.'); decodeAssessmentPathJournal(raw, this.scope); }
+    private observed: AssessmentPathCommand | null = null;
+    constructor(scope: Scope, deps: Dependencies) { this.scope = scopeCopy(scope); this.deps = deps; this.journalKey = assessmentPathJournalKey(this.scope); }
+    private current() { if (this.deps.storage.getItem(assessmentPathLegacyJournalKey(this.scope)) !== null)
+        throw Error('Ein früherer Pfadvorgang bleibt gesichert. Seine alte Serverquittung kann über diesen neuen Pfad nicht geprüft werden; neue Änderungen bleiben gesperrt.'); if (this.deps.isCurrent() !== true)
+        throw Error('Konto, Mandant oder Assessmentpfadrechte wurden geändert.'); }
+    read() { this.current(); const raw = this.deps.storage.getItem(this.journalKey); if (raw === null) {
+        if (this.observed)
+            throw Error('Das bereits beobachtete eigene Journal fehlt; der Ausgang bleibt ungeklärt.');
+        return null;
+    } const journal = decodeAssessmentPathJournal(raw, this.scope); if (this.observed && !sameClientNativeOriginal(this.observed, journal.command))
+        throw Error('Ein anderer Vorgang hat das eigene Journal ersetzt.'); this.observed ??= journal.command; return journal; }
+    private same(journal: AssessmentPathJournal) { this.current(); if (!sameClientNativeOriginal(this.read(), journal))
+        throw Error('Das eigene Journal wurde zwischenzeitlich verändert.'); }
+    private persist(value: AssessmentPathJournal) { this.current(); const raw = JSON.stringify(value); decodeAssessmentPathJournal(raw, this.scope); this.deps.storage.setItem(this.journalKey, raw); if (this.deps.storage.getItem(this.journalKey) !== raw)
+        throw Error('Der Vorgang konnte nicht dauerhaft und unverändert gesichert werden.'); this.observed = value.command; }
+    private clear(journal: AssessmentPathJournal) { this.same(journal); this.deps.storage.removeItem(this.journalKey); if (this.deps.storage.getItem(this.journalKey) !== null)
+        throw Error('Das bestätigte eigene Journal konnte nicht abgeschlossen werden.'); this.observed = null; }
     private async exclusive<T>(action: () => Promise<T>) { if (this.busy)
-        throw Error('Ein Assessmentpfadvorgang wird bereits geprüft.'); this.busy = true; try {
+        throw Error('Ein eigener Assessmentpfadvorgang wird bereits geprüft.'); this.busy = true; try {
         return await this.deps.lock(this.journalKey, async () => { this.current(); return action(); });
     }
     finally {
         this.busy = false;
     } }
-    async dispatch(command: AssessmentPathCommand) { const copy = structuredClone(command); validateAssessmentPathCommand(copy); return this.exclusive(async () => { if (this.read())
-        throw Error('Zuerst den gesicherten Assessmentpfadvorgang abgleichen.'); const prepared: AssessmentPathJournal = { version: assessmentPathVersion, scope: structuredClone(this.scope), phase: 'prepared', command: copy, receipt: null, rejection: null }; this.persist(prepared); const sent = { ...prepared, phase: 'dispatched' as const }; this.persist(sent); let result: AssessmentPathResult<AssessmentPathReceipt>; try {
-        result = await this.deps.commit(structuredClone(copy));
+    async dispatch(input: AssessmentPathCommand) { const command = freezeClientNativeOriginal(captureAssessmentWorkspaceJson(input)); validateAssessmentPathWriteCommand(command); if (!assessmentPathSupportedWriteKinds.some(kind => kind === command.kind))
+        throw Error('Diese neue fachliche Handlung ist noch gesperrt.'); if (command.tenantId !== this.scope.tenantId || command.assessmentId !== this.scope.assessmentId || command.actorId !== this.scope.actorId)
+        throw Error('Die neue Anfrage gehört zu einem anderen eigenen Assessmentpfadkontext.'); return this.exclusive(async () => { if (this.read())
+        throw Error('Zuerst den gesicherten Vorgang abgleichen.'); const prepared: AssessmentPathJournal = { version: assessmentPathVersion, scope: this.scope, phase: 'prepared', command, receipt: null, rejection: null }; this.persist(prepared); this.same(prepared); const sent = { ...prepared, phase: 'dispatched' as const }; this.persist(sent); this.same(sent); let result: AssessmentPathResult<AssessmentPathReceipt>; try {
+        result = captureAssessmentWorkspaceJson(await this.deps.commit(command));
     }
     catch {
-        result = { ok: false, uncertain: true, error: 'Speicherantwort fehlt. Nur native Quittung prüfen.' };
-    } this.current(); if (result.ok) {
-        this.persist({ ...sent, phase: 'confirmed', receipt: decodeAssessmentPathReceipt(result.data, copy) });
-        return result;
+        result = { ok: false, uncertain: true, error: 'Speicherantwort fehlt. Nur die ursprüngliche native Quittung prüfen.' };
+    } this.same(sent); if (result.ok) {
+        const receipt = decodeAssessmentPathReceipt(result.data, command);
+        this.persist({ ...sent, phase: 'confirmed', receipt });
+        return { ok: true as const, data: receipt };
     } if (result.rejected === true && result.uncertain !== true)
         this.persist({ ...sent, phase: 'rejected', rejection: result.error }); return result; }); }
     async confirm() { return this.exclusive(async () => { const saved = this.read(); if (!saved || saved.phase !== 'dispatched')
-        throw Error('Kein unklar versandter Vorgang vorhanden.'); const result = await this.deps.confirm(structuredClone(saved.command)); this.current(); if (result.ok)
-        this.persist({ ...saved, phase: 'confirmed', receipt: decodeAssessmentPathReceipt(result.data, saved.command) }); return result; }); }
-    async releaseConfirmed(events: unknown[]) { return this.exclusive(async () => { const saved = this.read(); if (!saved || saved.phase !== 'confirmed' || !events.some(event => JSON.stringify(event) === JSON.stringify(saved.receipt?.event)))
-        throw Error('Bestätigter Originalbeleg fehlt im vollständig neu geladenen Verlauf.'); this.deps.storage.removeItem(this.journalKey); }); }
+        throw Error('Kein unklar versandter Vorgang vorhanden.'); const result = captureAssessmentWorkspaceJson(await this.deps.confirm(saved.command)); this.same(saved); if (result.ok) {
+        const receipt = decodeAssessmentPathReceipt(result.data, saved.command);
+        this.persist({ ...saved, phase: 'confirmed', receipt });
+        return { ok: true as const, data: receipt };
+    } return result; }); }
+    async releaseConfirmed(input: AssessmentPathContext) { const context = decodeAssessmentPathContext(input, this.scope); return this.exclusive(async () => { const saved = this.read(); if (!saved || saved.phase !== 'confirmed' || !context.history.events.some(event => sameClientNativeOriginal(event, saved.receipt?.event)))
+        throw Error('Der bestätigte eigene Originalbeleg fehlt im vollständigen neu geladenen Verlauf.'); const result = captureAssessmentWorkspaceJson(await this.deps.confirm(saved.command)); this.same(saved); if (!result.ok || !sameClientNativeOriginal(decodeAssessmentPathReceipt(result.data, saved.command), saved.receipt))
+        throw Error('Die ursprüngliche eigene Quittung konnte nicht unabhängig bestätigt werden.'); this.clear(saved); }); }
     async discardUnsentOrRejected() { return this.exclusive(async () => { const saved = this.read(); if (!saved || !['prepared', 'rejected'].includes(saved.phase))
-        throw Error('Möglicherweise gespeicherter Vorgang darf nicht verworfen werden.'); this.deps.storage.removeItem(this.journalKey); }); }
+        throw Error('Ein möglicherweise gespeicherter Vorgang darf nicht verworfen werden.'); this.clear(saved); }); }
 }
 export const browserAssessmentPathLock: Lock = async (keyName, action) => { if (typeof navigator === 'undefined' || !navigator.locks)
-    throw Error('Dieser Browser kann gleichzeitige Assessmentpfadvorgänge nicht sicher sperren.'); return navigator.locks.request(keyName, { mode: 'exclusive', ifAvailable: true }, async (lock) => { if (!lock)
-    throw Error('Assessmentpfadvorgang wird in einem anderen Fenster bearbeitet.'); return action(); }); };
+    throw Error('Dieser Browser kann gleichzeitige eigene Assessmentpfadvorgänge nicht sicher sperren.'); return navigator.locks.request(keyName, { mode: 'exclusive', ifAvailable: true }, async (lock) => { if (!lock)
+    throw Error('Dieser Vorgang wird in einem anderen Fenster bearbeitet.'); return action(); }); };

@@ -6,9 +6,10 @@ import { fetchCurrentCarePermissions } from "./currentCarePermissions.native.ts"
 import { getSupabaseClient } from "../supabase/client.ts";
 import { NATIVE_SERVICE_QUERY_TIMEOUT_MS, withServiceQueryTimeout } from '@/lib/services/queryTimeout';
 const failure = () => new Error('Die aktuellen Berechtigungen konnten nicht bestätigt werden.');
+const field = (value: Record<string, unknown>, key: string): unknown => Object.getOwnPropertyDescriptor(value, key)?.value;
+const uuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 const ownerKeys = ['tenantId', 'profileId', 'roleKey', 'accessToken', 'expiresAt', 'demo'] as const;
 const roles = new Set(['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor', 'akademie_admin']);
-const uuid = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
 function object(value: unknown, keys?: readonly string[]): Record<string, unknown> {
     if (!value || typeof value !== 'object' || ![Object.prototype, null].includes(Object.getPrototypeOf(value)))
         throw failure();
@@ -41,38 +42,67 @@ export async function fetchConfirmedCarePermissions(owner: CarePermissionOwner, 
     let closed = false;
     const current = () => {
         const latest = object(owner, ownerKeys);
-        if (closed || !readIsCurrent() || !carePermissionOwnerIsCurrent(captured) || ownerKeys.some(key => latest[key] !== captured[key]))
+        if (closed || getSupabaseClient() !== client || !readIsCurrent() || !carePermissionOwnerIsCurrent(captured) || ownerKeys.some(key => latest[key] !== captured[key]))
             throw failure();
     };
-    const session = async () => {
+    let authUserId: string | null = null;
+    const assertSession = async () => {
+        const readSession = async () => {
+            current();
+            const auth = client.auth, getSession = auth.getSession;
+            current();
+            if (typeof getSession !== 'function')
+                throw failure();
+            const response = object(await getSession.call(auth));
+            current();
+            if (field(response, 'error') !== null)
+                throw failure();
+            const native = object(field(object(field(response, 'data')), 'session')), user = object(field(native, 'user'));
+            const userId = field(user, 'id');
+            if (!uuid(userId) || authUserId !== null && userId !== authUserId || field(native, 'access_token') !== captured.accessToken)
+                throw failure();
+            const expires = field(native, 'expires_at');
+            if (expires === undefined || expires === null) {
+                if (captured.expiresAt !== null)
+                    throw failure();
+            }
+            else {
+                const milliseconds = typeof expires === 'number' ? expires * 1000 : NaN;
+                if (!Number.isSafeInteger(expires) || !Number.isSafeInteger(milliseconds) || milliseconds <= Date.now() || milliseconds !== captured.expiresAt)
+                    throw failure();
+            }
+            authUserId = userId;
+            current();
+        };
+        await readSession();
         current();
-        const response = object(await client.auth.getSession());
+        const auth = client.auth, getUser = auth.getUser;
         current();
-        if (response.error !== null)
+        if (typeof getUser !== 'function')
             throw failure();
-        const native = object(object(response.data).session), user = object(native.user);
-        if (native.access_token !== captured.accessToken || user.id !== captured.profileId)
+        const verified = object(await getUser.call(auth, captured.accessToken!));
+        current();
+        if (field(verified, 'error') !== null)
             throw failure();
-        const expires = native.expires_at;
-        if (expires === undefined || expires === null) {
-            if (captured.expiresAt !== null)
+        const user = object(field(object(field(verified, 'data')), 'user'));
+        if (field(user, 'id') !== authUserId || field(user, 'is_anonymous') === true)
+            throw failure();
+        for (const [name, expected] of [['resolve_current_profile_id', captured.profileId], ['current_tenant_id', captured.tenantId]] as const) {
+            current();
+            const rpc = client.rpc<typeof name>;
+            current();
+            if (typeof rpc !== 'function')
+                throw failure();
+            const response = object(await rpc.call(client, name));
+            current();
+            if (field(response, 'error') !== null || field(response, 'data') !== expected)
                 throw failure();
         }
-        else if (!Number.isSafeInteger(expires) || !Number.isSafeInteger((expires as number) * 1000) || (expires as number) * 1000 !== captured.expiresAt || (expires as number) * 1000 <= Date.now())
-            throw failure();
+        await readSession();
+        current();
     };
     const confirmation = async () => {
-        await session();
-        current();
-        // Read the authentic user for this exact token; user_metadata supplies no role or tenant.
-        const auth = object(await client.auth.getUser(captured.accessToken!));
-        current();
-        if (auth.error !== null)
-            throw failure();
-        const user = object(object(auth.data).user);
-        if (user.id !== captured.profileId || user.is_anonymous === true)
-            throw failure();
-        await session();
+        await assertSession();
         current();
         const query = client.from('profiles').select('id,tenant_id,role_id,is_active,status,auth_user_id,roles(id,key)').eq('id', captured.profileId).maybeSingle();
         const raw = await new Promise<unknown>((resolve, reject) => { current(); query.then(resolve, reject); });
@@ -82,10 +112,10 @@ export async function fetchConfirmedCarePermissions(owner: CarePermissionOwner, 
             throw failure();
         const profile = object(response.data, ['id', 'tenant_id', 'role_id', 'is_active', 'status', 'auth_user_id', 'roles']);
         const role = object(profile.roles, ['id', 'key']);
-        if (profile.id !== captured.profileId || profile.tenant_id !== captured.tenantId || profile.is_active !== true || profile.status !== 'active' || (profile.auth_user_id !== null && profile.auth_user_id !== captured.profileId) || !uuid(profile.role_id) || role.id !== profile.role_id || role.key !== captured.roleKey)
+        if (profile.id !== captured.profileId || profile.tenant_id !== captured.tenantId || profile.is_active !== true || profile.status !== 'active' || (profile.auth_user_id === null ? profile.id !== authUserId : profile.auth_user_id !== authUserId) || !uuid(profile.role_id) || role.id !== profile.role_id || role.key !== captured.roleKey)
             throw failure();
         const roleId = profile.role_id;
-        await session();
+        await assertSession();
         current();
         return roleId;
     };

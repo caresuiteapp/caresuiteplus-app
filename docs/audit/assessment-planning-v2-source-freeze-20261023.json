@@ -1,0 +1,274 @@
+{
+  "schemaVersion": 1,
+  "createdOn": "2026-10-23",
+  "baseRevision": "722d33a6368af5f1351bf350bb227bec2f7ee2b0",
+  "scope": "Additive Assessment/SIS and care planning V2 source freeze; SQL candidate not yet installed or runtime-confirmed.",
+  "verification": {
+    "focusedNodePass": 772,
+    "fullNodePass": 14894,
+    "failed": 0,
+    "skipped": 0,
+    "overlappingSelections": true,
+    "sqlRuntimeConfirmed": false,
+    "typescriptExpoConfirmed": false,
+    "browserConfirmed": false,
+    "productionActivated": false
+  },
+  "files": [
+    {
+      "path": "scripts/checks/ambulatory-plan-lifecycle-web.node.test.mjs",
+      "bytes": 12084,
+      "sha256": "054b740908ee4fd29749981742e38941cc778a705e8f24ee2e2581926b745989"
+    },
+    {
+      "path": "scripts/checks/assessment-native-draft-controller-web.node.test.mjs",
+      "bytes": 6171,
+      "sha256": "998459ebc7e83b2f45f407eee71271b7e0428b56ec53e61e10e0d722fb1f5daf"
+    },
+    {
+      "path": "scripts/checks/assessment-native-packet-boundary-web.node.test.mjs",
+      "bytes": 8230,
+      "sha256": "e18ed0248330b5e2f81441a570836d68204212925eb040c8016316868570a933"
+    },
+    {
+      "path": "scripts/checks/assessment-native-section-navigation-web.node.test.mjs",
+      "bytes": 3760,
+      "sha256": "1570ac107f189612d40337d09cec4b00dca586af861e6907f094b1f0eef8eb5f"
+    },
+    {
+      "path": "scripts/checks/assessment-path-draft-form-boundary-web.node.test.mjs",
+      "bytes": 5380,
+      "sha256": "5fea827dec9c5a6dc301f3575c52b4ef54dc19056bb69b64b2b7ca6c4c1abf9a"
+    },
+    {
+      "path": "scripts/checks/assessment-path-journal-boundary-web.node.test.mjs",
+      "bytes": 8522,
+      "sha256": "393cc80afab04d8834376c46a81ea3ac0c87063488ed7b438f823c5facf872b9"
+    },
+    {
+      "path": "scripts/checks/assessment-path-transport-boundary-web.node.test.mjs",
+      "bytes": 7438,
+      "sha256": "7869679d1c41c6f62ee2afb7e9847674f7ce2a40aba913cee3f76e168b471fac"
+    },
+    {
+      "path": "scripts/checks/assessment-path-transport-fixtures.mjs",
+      "bytes": 3192,
+      "sha256": "1829e47ee74609d93db4541a727128b1ddd26305aa8c613c492d76a7d7053f4f"
+    },
+    {
+      "path": "scripts/checks/assessment-path-ui-controllers-web.node.test.mjs",
+      "bytes": 20390,
+      "sha256": "b1059b9d8663dc05f62fab2da2e2374fe27afc5ab7b30d50e49e7758047c487a"
+    },
+    {
+      "path": "scripts/checks/assessment-path-workspace-surface.node.test.mjs",
+      "bytes": 3518,
+      "sha256": "f6725411cdd80db4211ed36caea6e8aef91343f58f98a964271d88e244b616b3"
+    },
+    {
+      "path": "scripts/checks/assessment-path-workspace.node.test.mjs",
+      "bytes": 14997,
+      "sha256": "11327422131534203caa1bc1e885aa166c3f501e947c13c4f5ae707f5ecf8db1"
+    },
+    {
+      "path": "scripts/checks/assessment-plan-path-boundary-fixtures.mjs",
+      "bytes": 5386,
+      "sha256": "f84c18c5f0888649513bc39258fb74c09b21064697c73b0e5a10d64e0c9e5364"
+    },
+    {
+      "path": "scripts/checks/assessment-plan-path-domain-boundary-web.node.test.mjs",
+      "bytes": 14748,
+      "sha256": "c8ea920e463a781c1aa4d87902139647ed3d213a34b6fff12258591a1c1b1e3c"
+    },
+    {
+      "path": "scripts/checks/assessment-plan-path-write-relations-web.node.test.mjs",
+      "bytes": 5457,
+      "sha256": "f142be63a13bcf96d367ba1e0aaf85cea232810f9fbf0ecec0791f1afa8d2782"
+    },
+    {
+      "path": "scripts/checks/care-assessment-instrument-packet-web.node.test.mjs",
+      "bytes": 11154,
+      "sha256": "3bad087dd41d04c66abefca49392eada1d24935afac5e54e433126b09dce5e18"
+    },
+    {
+      "path": "scripts/checks/care-plan-path-workspace-surface.node.test.mjs",
+      "bytes": 3475,
+      "sha256": "fe81c938c507ddbfab5674d620e915cf7d6e802b1fe7e8026626b0ae645508d1"
+    },
+    {
+      "path": "scripts/checks/care-plan-path-workspace.node.test.mjs",
+      "bytes": 15754,
+      "sha256": "3290813a04430d461f2e441541a5379d7594192f18d67aba0140869df08a661e"
+    },
+    {
+      "path": "src/components/careAssessment/AssessmentPathWorkspace.web.tsx",
+      "bytes": 19734,
+      "sha256": "ca322c84a70eef4a1960469a9b845e28e860f0adc3297392ade2531cd5f62d2a"
+    },
+    {
+      "path": "src/components/careAssessment/AssessmentPlanPaths.web.tsx",
+      "bytes": 1421,
+      "sha256": "cafe35334a7c3aaab99756d7d4016d20f92c903a58f9b608cb7a9812104fb4b8"
+    },
+    {
+      "path": "src/components/careAssessment/CarePlanPathWorkspace.web.tsx",
+      "bytes": 19505,
+      "sha256": "e8ae267efdb0b031824b2f54ad5737791c2394fe9528071874ed51631155d4eb"
+    },
+    {
+      "path": "src/lib/careAssessment/assessmentInstrumentPacket.web.ts",
+      "bytes": 13037,
+      "sha256": "ab43b0cef00d3bf233b3d436a694ca232438b16cfcbb73f111d6cf386bfca996"
+    },
+    {
+      "path": "src/lib/careAssessment/assessmentInstrumentRepository.supabase.web.ts",
+      "bytes": 3394,
+      "sha256": "0d1a5e4c87bb55f98e07b59db4b4d85bf92a39e77725a735078537b2856314c0"
+    },
+    {
+      "path": "src/lib/careAssessment/assessmentPathWorkspaceDomain.web.ts",
+      "bytes": 28808,
+      "sha256": "9a9e86f5afa00383ec33859a0b4e5f35e285a2513c10129ad8d7a329ba544b36"
+    },
+    {
+      "path": "src/lib/careAssessment/assessmentPathWorkspaceDraft.web.ts",
+      "bytes": 4110,
+      "sha256": "c78c360d2d9660e0e8bc5970a16c3cc0c92054632026355514a0491e693be02d"
+    },
+    {
+      "path": "src/lib/careAssessment/assessmentPathWorkspaceForm.web.ts",
+      "bytes": 3231,
+      "sha256": "e6c70dcd951530355fc8099155a68b09ea2da17197d2aecd738b92086c46fe9c"
+    },
+    {
+      "path": "src/lib/careAssessment/assessmentPathWorkspaceRepository.web.ts",
+      "bytes": 4559,
+      "sha256": "a07f61178ab4593c2c5e08a91ebaa0496e4c9eb7640081a52a1716add8c4ca76"
+    },
+    {
+      "path": "src/lib/careAssessment/assessmentPathWorkspaceWorkflow.web.ts",
+      "bytes": 8925,
+      "sha256": "5f5c06de6fc89ac0783b663c3051cdc8920fb0bd9db0323d92034bf15c378f4d"
+    },
+    {
+      "path": "src/lib/careAssessment/assessmentWorkspaceTransport.web.ts",
+      "bytes": 5639,
+      "sha256": "bd9046a3f2af10b9189d8bba085a2c0f585a12998a930780a35281815ed78a91"
+    },
+    {
+      "path": "src/lib/careAssessment/carePlanPathWorkspaceDomain.web.ts",
+      "bytes": 30560,
+      "sha256": "f77f7f8fa214a252600ce8439e275c414e3b042d0df193a373abf9f264a6706b"
+    },
+    {
+      "path": "src/lib/careAssessment/carePlanPathWorkspaceDraft.web.ts",
+      "bytes": 4063,
+      "sha256": "84945686ac697cd4e0abc64b5a8419e4fd094e88c7bf7196ad7ba40804c44a7b"
+    },
+    {
+      "path": "src/lib/careAssessment/carePlanPathWorkspaceForm.web.ts",
+      "bytes": 3151,
+      "sha256": "bd6bc8674606b057e37fce808f19fb1107e4d07a10a123ed801306b67e78545a"
+    },
+    {
+      "path": "src/lib/careAssessment/carePlanPathWorkspaceRepository.web.ts",
+      "bytes": 4494,
+      "sha256": "caf6f9ffd518533be2cf712d96ab2e7078da704d771f016951c62f51c2fceb5d"
+    },
+    {
+      "path": "src/lib/careAssessment/carePlanPathWorkspaceWorkflow.web.ts",
+      "bytes": 8819,
+      "sha256": "df92d67f27a4c92aa92b0225278c7da5b24e0883511720e2a9527a1466b8ad73"
+    },
+    {
+      "path": "src/lib/careAssessment/planLifecyclePacket.web.ts",
+      "bytes": 13177,
+      "sha256": "1e1bb0a3aff2e2ac58e44ea1c9935167fd94b1ed9493dbb88d3f7372b18d6a4e"
+    },
+    {
+      "path": "src/lib/careAssessment/planLifecycleRepository.supabase.web.ts",
+      "bytes": 3281,
+      "sha256": "9f79b4d9b97bc6198e5c52fbe0ebb7c193d70bd5f301662ef275a5ccaa8106ea"
+    },
+    {
+      "path": "src/lib/careAssessment/useAssessmentNativeDraft.web.ts",
+      "bytes": 5448,
+      "sha256": "c8cdf28220966f5e45dafff46171a05c8bd89932cbeadfae3beaa5f1c250e619"
+    },
+    {
+      "path": "src/lib/careAssessment/useAssessmentPathDraft.web.ts",
+      "bytes": 3315,
+      "sha256": "c5fd538b8e01fba3156e5dbbe8d4c93cddf0cbeb03e81b6f51f23768e18328a2"
+    },
+    {
+      "path": "src/lib/careAssessment/useAssessmentPathJournals.web.ts",
+      "bytes": 2173,
+      "sha256": "d84fb62cf3488e106456a0763fcce640506f05c606277e0ccf64090b6f758262"
+    },
+    {
+      "path": "src/lib/careAssessment/useAssessmentPathOwnership.web.ts",
+      "bytes": 3856,
+      "sha256": "6966a8b51cad1d1672403c924b32a472c8750a56601947dee102df92672ae578"
+    },
+    {
+      "path": "src/lib/careAssessment/useAssessmentPathSelection.web.ts",
+      "bytes": 2908,
+      "sha256": "6a133f1105b1c84e896777e0d63d64562fc9c3c55897c13407fe421dc57cd70e"
+    },
+    {
+      "path": "src/screens/careAssessment/AssessmentInstrumentPanel.web.tsx",
+      "bytes": 6919,
+      "sha256": "29879c2eec660e409e6f6af4451397ba9bf2b808ac37fdc364ffa004d39edecb"
+    },
+    {
+      "path": "src/screens/careAssessment/CareAssessmentWorkspaceScreen.web.tsx",
+      "bytes": 84024,
+      "sha256": "ba05f4af5c2f309652b4dc5176d94edd22bf87bfff21de7b7056788cefd212ea"
+    },
+    {
+      "path": "src/screens/careAssessment/PlanLifecyclePanel.web.tsx",
+      "bytes": 12679,
+      "sha256": "da272f3fa41131890699875d24f7ff5f5cd1951a91f7a39cbdffe0073c21d389"
+    },
+    {
+      "path": "supabase/patches/ambulatory_assessment_planning_v2_quarantined.sql",
+      "bytes": 51662,
+      "sha256": "075d091fd6f6a0e78c74c05b40c3160e1e3c97a0f8448db6af5b6cb1794c3dcc"
+    },
+    {
+      "path": "supabase/tests/pflege_assessment_planning_v2_unit_staging.sql",
+      "bytes": 14947,
+      "sha256": "74f8c92dd52083f8cabf6f8490fbeed05b78f70ec41501dea19cad8ee09e1033"
+    },
+    {
+      "path": "supabase/tests/pflege_assessment_planning_v2_authority_unit_staging.sql",
+      "bytes": 12214,
+      "sha256": "b4ba6c491812e22b8add2d30df88aca10089a6927de46824d4ec6e5834faf4d8"
+    },
+    {
+      "path": "scripts/checks/validate-assessment-planning-v2-postgres-evidence.mjs",
+      "bytes": 8230,
+      "sha256": "7ecbfaf4746fdf9885e13efa849ab56f8900021b6dd97ff4f11e7c486648953c"
+    },
+    {
+      "path": "scripts/checks/assessment-planning-v2-evidence-validator-web.node.test.mjs",
+      "bytes": 5573,
+      "sha256": "46d6f8764d05408b65322322b7d8a39e80f03b806bf7ac170ac694520ad3a9ba"
+    },
+    {
+      "path": "docs/audit/assessment-planning-v2-existing-objects-before-20261022.json",
+      "bytes": 637,
+      "sha256": "8ca8bc3ac88a4fa505d69df66056e948cfcacf3da58c25f312ffb166443f7a5e"
+    },
+    {
+      "path": "docs/audit/assessment-planning-v2-safety-change-20261022.md",
+      "bytes": 1892,
+      "sha256": "0569a3ad3f2a2b7890fd2377d95682f05d3e71605f73deb89488c3441c07af8d"
+    },
+    {
+      "path": "docs/releases/pflege-cp365/assessment-planning-v2-20261023.md",
+      "bytes": 4608,
+      "sha256": "bf2d3dd7851f140e9f61dda58e831d5a5c5dcea220bcf9895db36e1a6675ba33"
+    }
+  ]
+}

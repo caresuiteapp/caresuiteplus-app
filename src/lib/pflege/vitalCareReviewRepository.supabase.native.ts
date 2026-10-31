@@ -1,9 +1,11 @@
 // Generated native presentation from src/lib/pflege/vitalCareReviewRepository.supabase.web.ts. Update through scripts/port-native-workspaces.mjs.
 import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { cloneClientNativeOriginal } from "../clients/clientRecordNativeOriginal.native.ts";
+import { readCompleteVitalHistoryWeb } from "./vitalWorkspaceReadProof.native.ts";
 import { getSupabaseClient } from "../supabase/client.ts";
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
-import { vitalCareReviewInstantMicros, vitalCareReviewStable, vitalCareReviewOriginalIssue, vitalCareReviewPacketIssue, type VitalCareReviewOriginal, type VitalCareReviewPacket } from "./vitalCareReview.native.ts";
+import { vitalCareReviewStable, vitalCareReviewOriginalIssue, vitalCareReviewPacketIssue, type VitalCareReviewOriginal, type VitalCareReviewPacket } from "./vitalCareReview.native.ts";
 type Row = Record<string, unknown>;
 type Context = {
     tenantId: string;
@@ -69,46 +71,35 @@ async function authority(c: Context) {
 }
 function decode(v: unknown, c: Pick<Context, 'tenantId' | 'clientId' | 'measurementId'>): VitalCareReviewOriginal { const issue = vitalCareReviewOriginalIssue(v, c); if (issue)
     throw Error(issue); return structuredClone(v as VitalCareReviewOriginal); }
-export async function readVitalCareReviewPage(c: Context): Promise<Result<VitalCareReviewOriginal[]>> {
+export async function readVitalCareReviewPage(input: Context): Promise<Result<VitalCareReviewOriginal[]>> {
+    const c = { ...input };
     try {
-        const guard = await authority(c), rows: VitalCareReviewOriginal[] = [], cursors = new Set<string>();
-        let at: string | null = null, id: string | null = null;
-        for (let page = 0; page < 100; page++) {
+        const guard = await authority(c), data = await readCompleteVitalHistoryWeb(c, async (at, id) => {
             await guard.check();
-            const response: {
-                data: unknown;
-                error: unknown;
-                status?: number;
-            } = await withServiceQueryTimeout(guard.db.rpc('web_read_vital_care_review_page', { p_tenant_id: c.tenantId, p_client_id: c.clientId, p_measurement_id: c.measurementId, p_actor_profile_id: c.actorId, p_cursor_recorded_at: at, p_cursor_id: id, p_page_size: 100 }), 'Vitalfachpruefungen vollstaendig laden', 20000);
+            const response = cloneClientNativeOriginal(await withServiceQueryTimeout(guard.db.rpc('web_read_vital_care_review_page', { p_tenant_id: c.tenantId, p_client_id: c.clientId, p_measurement_id: c.measurementId, p_actor_profile_id: c.actorId, p_cursor_recorded_at: at, p_cursor_id: id, p_page_size: 100 }), 'Vitalfachprüfungen vollständig laden', 20000));
             await guard.check();
-            if (response.error || !object(response.data) || !Array.isArray(response.data.rows) || response.data.rows.length > 100)
+            if (response.error)
                 throw Error(unavailable);
-            if (response.data.rows.length === 0)
-                return { ok: true, data: rows };
-            const nextAt = response.data.nextCursorRecordedAt, nextId = response.data.nextCursorId;
-            if (vitalCareReviewInstantMicros(nextAt) === null || !uuid(nextId) || cursors.has(`${nextAt}:${nextId}`) || at !== null && (vitalCareReviewInstantMicros(nextAt)! > vitalCareReviewInstantMicros(at)! || vitalCareReviewInstantMicros(nextAt) === vitalCareReviewInstantMicros(at) && nextId >= id!))
-                throw Error(unavailable);
-            for (const raw of response.data.rows) {
-                const row = decode(raw, c);
-                if (rows.some(o => o.rootId === row.rootId))
-                    throw Error(unavailable);
-                rows.push(row);
-            }
-            cursors.add(`${nextAt}:${nextId}`);
-            at = nextAt as string;
-            id = nextId;
-        }
-        throw Error('Der Vitalfachpruefbestand ueberschreitet die sicher vollstaendig lesbare Grenze.');
+            return response.data;
+        }, v => decode(v, c), row => ({ at: row.history[0].recordedAt, id: row.rootId }), row => row.rootId);
+        return { ok: true, data };
     }
     catch (cause) {
         return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
     }
 }
-function receipt(v: unknown, p: VitalCareReviewPacket): VitalCareReviewOriginal | null {
+function receipt(value: unknown, p: VitalCareReviewPacket): VitalCareReviewOriginal | null {
+    let v: unknown;
+    try {
+        v = cloneClientNativeOriginal(value);
+    }
+    catch {
+        return null;
+    }
     if (!object(v) || v.requestId !== p.requestId || vitalCareReviewStable(v.packet) !== vitalCareReviewStable(p))
         return null;
     try {
-        const o = decode(v, p), e = o.history.at(-1)!;
+        const o = decode(v.original, p), e = o.history.at(-1)!;
         return o.revision === p.expectedRevision + 1 && o.careRootId === p.careOriginal.rootId && o.careHeadId === p.careOriginal.headId && o.careFingerprint === p.careOriginal.contentFingerprint && o.careKind === p.careOriginal.kind && e.requestId === p.requestId && e.actorId === p.actorId && e.action === p.action && e.reason === p.reason && e.requiredChange === p.requiredChange && e.rationale === p.rationale && (p.reviewOriginal === null || o.rootId === p.reviewOriginal.rootId && vitalCareReviewStable(o.history.slice(0, -1)) === vitalCareReviewStable(p.reviewOriginal.history)) ? o : null;
     }
     catch {
@@ -131,7 +122,7 @@ async function operation(input: VitalCareReviewPacket, isCurrent: () => boolean,
             data: unknown;
             error: unknown;
             status?: number;
-        } = await withServiceQueryTimeout(guard.db.rpc(confirm ? 'web_confirm_vital_care_review' : 'web_commit_vital_care_review', confirm ? { p_tenant_id: p.tenantId, p_client_id: p.clientId, p_measurement_id: p.measurementId, p_actor_profile_id: p.actorId, p_request_id: p.requestId, p_packet: p } : { p_packet: p }), 'Vitalfachpruefung transaktional sichern oder Quittung lesen', 20000);
+        } = cloneClientNativeOriginal(await withServiceQueryTimeout(guard.db.rpc(confirm ? 'web_confirm_vital_care_review' : 'web_commit_vital_care_review', confirm ? { p_tenant_id: p.tenantId, p_client_id: p.clientId, p_measurement_id: p.measurementId, p_actor_profile_id: p.actorId, p_request_id: p.requestId, p_packet: p } : { p_packet: p }), 'Vitalfachpruefung transaktional sichern oder Quittung lesen', 20000));
         await guard.check();
         if (response.error) {
             const code = object(response.error) ? String(response.error.code ?? '') : '';

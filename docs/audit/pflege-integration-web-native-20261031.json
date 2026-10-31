@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-10-31T04:21:31.891896+00:00",
+  "scope": "local_automated_integration_checks",
+  "parents": {
+    "pflege": "2a02af6412c65db1d480fbf668e87a9d8addabfb",
+    "main": "15bcc75ce56a481816ee178267c1fdda0729120a",
+    "commonBase": "c70921f2cb521e301fdc175c3ab235faa96617aa"
+  },
+  "native": {
+    "baselineModules": 1111,
+    "modules": 1154,
+    "baselineRoutes": 269,
+    "routes": 271,
+    "initialChangedOutputs": 114,
+    "blockedUnchanged": true,
+    "dedicatedFallbacks": [
+      {
+        "web": "src/components/inputs/CareSignatureCanvas.web.tsx",
+        "nativeFallback": "src/components/inputs/CareSignatureCanvas.tsx",
+        "tags": [
+          "canvas"
+        ],
+        "globals": [
+          "window"
+        ],
+        "unsupported": [
+          "window.devicePixelRatio"
+        ],
+        "svgTags": []
+      },
+      {
+        "web": "src/components/pflege/MedicationSourceFileButton.web.tsx",
+        "nativeFallback": "src/components/pflege/MedicationSourceFileButton.native.tsx",
+        "tags": [],
+        "globals": [
+          "URL",
+          "document"
+        ],
+        "unsupported": [
+          "document.createElement",
+          "document.body"
+        ],
+        "svgTags": []
+      },
+      {
+        "web": "src/components/pflege/bodyMap3d/BodyMap3DViewer.web.tsx",
+        "nativeFallback": "src/components/pflege/bodyMap3d/BodyMap3DViewer.native.tsx",
+        "tags": [
+          "color",
+          "ambientLight",
+          "hemisphereLight",
+          "directionalLight"
+        ],
+        "globals": [],
+        "unsupported": [],
+        "svgTags": []
+      },
+      {
+        "web": "src/components/pflege/bodyMap3d/ClinicalBodyModel.web.tsx",
+        "nativeFallback": "src/components/pflege/bodyMap3d/ClinicalBodyModel.native.tsx",
+        "tags": [
+          "group",
+          "primitive"
+        ],
+        "globals": [],
+        "unsupported": [],
+        "svgTags": []
+      }
+    ],
+    "sourceMapSha256": "a3aca0acd18ca2346823b38f07c8de2aedff8d434d6308505cae054be21392de"
+  },
+  "validation": {
+    "fullNodeBeforeFinalOwnerReferenceDisambiguation": {
+      "tests": 15071,
+      "pass": 15071,
+      "fail": 0,
+      "skipped": 0,
+      "logSha256": "fb19a52ec4819ba5d1c2abc2696fbb355f2c1abff61aa07bd2df52f034749384",
+      "summaryLines": [
+        "ℹ tests 15071",
+        "ℹ suites 0",
+        "ℹ pass 15071",
+        "ℹ fail 0",
+        "ℹ cancelled 0",
+        "ℹ skipped 0",
+        "ℹ todo 0",
+        "ℹ duration_ms 317228.308078"
+      ]
+    },
+    "affectedControllersAfterFinalFix": {
+      "tests": 138,
+      "pass": 138,
+      "fail": 0,
+      "skipped": 0,
+      "logSha256": "0e1a120521f61fbb2dcce0dc808539d38453d4b89042111616bf51731408d128",
+      "summaryLines": [
+        "ℹ tests 138",
+        "ℹ suites 0",
+        "ℹ pass 138",
+        "ℹ fail 0",
+        "ℹ cancelled 0",
+        "ℹ skipped 0",
+        "ℹ todo 0",
+        "ℹ duration_ms 859.253963"
+      ]
+    },
+    "clinicalAndPlatformVitest": {
+      "testFiles": 9,
+      "testsPassed": 167,
+      "newOriginalReceiptInteractionsIncluded": 24,
+      "logSha256": "cd6f8ac922e4f2ab09b4da3c4ad967d61d704b9b67ee7c7f3ff5341ecf1a39d9"
+    },
+    "webParentRoutePatterns": 686,
+    "productionWebBuild": {
+      "status": "passed",
+      "command": "CARESUITE_TYPESCRIPT_HEAP_MIB=6144 npm run build:web:production",
+      "logName": "pflege-production-build-verified-20261031.log",
+      "exitCode": 0,
+      "logSha256": "0af882663ebdcb311829eedfc06190ac80e5d0021999b5f235269d5d95c9cbd4",
+      "summary": "Full TypeScript, all release verifiers, Expo static Web export, Neo, calendar and initial React root audits, and public branding generation passed."
+    }
+  },
+  "sourceHashes": {
+    "src/hooks/useUnsavedWebChanges.native.ts": "242b7803c99968397b4c10d2cd4cc9302beefd7a896af7d714d37e02805f4655",
+    "src/lib/careAssessment/useAssessmentPathDraft.web.ts": "0ec9b9321233f1cef82ee34e924acdd809b4aecdeb8770b0a97ce3cb45adff06",
+    "src/lib/careAssessment/useAssessmentPathDraft.native.ts": "120f914c7417a1779963d645a9cf565a9d0d4faec818f03ba2d8e824eb565787",
+    "src/components/pflege/CareWriteReconciliationNotice.web.tsx": "64834257403d0960a4561862d981ff58edd9fa05b81ebe9f37d584f8950038db",
+    "src/components/pflege/CareWriteReconciliationNotice.native.tsx": "613a6b3b43cc4d3f1b20cd706f21dd2b23e194b27118671fc0d72051d7f5f2f6",
+    "scripts/resolve-typescript-heap.mjs": "3e57fd597850d793375df1e7239ff5628eab0efd3e708af9c77e3c10da51bcd1",
+    "scripts/verify-client-intake-release.mjs": "4c3b2c8529c6a4cc4cc6885eaedfb2b8ebfff6b7d9426882bdb7ff978929d012"
+  },
+  "unchangedFromMain": {
+    "src/lib/modules/constants.ts": true,
+    "package.json": true,
+    "package-lock.json": true
+  },
+  "boundaries": {
+    "externalDatabaseMutation": false,
+    "externalApplicationGrantChange": false,
+    "mainRefUpdated": false,
+    "clinicalActivation": false,
+    "signedAppPackageCreated": false,
+    "realBrowserLayoutAcceptance": false,
+    "realDeviceAcceptance": false,
+    "edgeDenoTypecheck": "not_run"
+  }
+}

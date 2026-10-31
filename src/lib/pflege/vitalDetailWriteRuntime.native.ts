@@ -10,6 +10,7 @@ import { validateVitalInvalidation, type VitalInvalidationPayload } from './vita
 import { woundInstant } from './woundCareDomain.ts';
 import { vitalFollowUpChronologyError, validVitalActualTimeField } from "./vitalTimeDisplay.native.ts";
 import { executeVitalDetailNativeWriteWeb, isOwnVitalDetailWriteOutcomeWeb, isSettledVitalDetailWriteOutcomeWeb, vitalDetailOwnWriteOriginalWeb } from "./vitalDetailNativeWrite.native.ts";
+import type { VitalNativeReceiptScopeWeb } from "./vitalNativeWriteReceipt.native.ts";
 type SDK = NonNullable<ReturnType<typeof getSupabaseClient>>;
 type Can = (key: 'pflege.vitals.view' | 'pflege.vitals.manage') => unknown;
 type Row = Readonly<Record<string, unknown>>;
@@ -50,7 +51,7 @@ type Pending = {
 };
 type Acknowledged = {
     id: string;
-    source: 'rpc_uuid' | 'stored_original';
+    source: 'confirmed_original' | 'stored_original';
     request: Pending;
     original: unknown;
 };
@@ -76,6 +77,7 @@ type Stores = {
 };
 export type VitalDetailWriteCaptureWeb = Readonly<Record<never, never>>;
 type NativeBridge = {
+    receiptScope: (kind: VitalDetailOperationWeb, id: string) => VitalNativeReceiptScopeWeb;
     beginRequest: (kind: VitalDetailOperationWeb, id: string, value: unknown, replay: boolean, frame: unknown) => VitalDetailPayloadWeb;
     assertRequest: (kind: VitalDetailOperationWeb, id: string, value: unknown, frame: unknown) => SDK;
     assertSession: (kind: VitalDetailOperationWeb, id: string, value: VitalDetailPayloadWeb, frame: unknown) => Promise<void>;
@@ -153,6 +155,7 @@ function storedRequestFields(kind: VitalDetailOperationWeb, row: Row, payload: V
 function flagsBlocked(value: unknown) { const flags = clone(value) as Row; return !flags || ['loading', 'refreshing', 'error', 'refreshError', 'previewData', 'tableMissing', 'fromCache', 'partialDetail', 'usedDemoFallback'].some(key => !Object.hasOwn(flags, key) || flags[key] !== false); }
 /** Private own sender/journal authority; the borrowed read token gives no actor or write grant. */
 export class VitalDetailWriteRuntimeWeb {
+    #rawAuthId: string | null = null;
     readonly #owner: CarePermissionOwner;
     readonly #sdk: SDK;
     readonly #live: () => VitalDetailWriteLiveWeb;
@@ -192,7 +195,8 @@ export class VitalDetailWriteRuntimeWeb {
         }
         this.#stores = own;
         ownedRuntimes.add(this);
-        nativeAuthorities.set(this, Object.freeze({ beginRequest: (kind, id, value, replay, frame) => this.#beginRequest(kind, id, value, replay, frame), assertRequest: (kind, id, value, frame) => this.#assertRequest(kind, id, value, frame), assertSession: (kind, id, value, frame) => this.#assertSession(kind, id, value, frame), flightToken: (kind, id) => this.#flightToken(kind, id), settle: (kind, id, result, replay, token) => this.#settle(kind, id, result, replay, token) }));
+        nativeAuthorities.set(this, Object.freeze({ receiptScope: (kind, id) => { const pending = this.#stores[kind].pending; if (!pending || pending.id !== id)
+                throw failure(); return freeze({ tenantId: this.#owner.tenantId, actorId: this.#owner.profileId, clientId: pending.clientId, measurementId: this.#measurementId, measurement: clone(pending.source.measurement) }); }, beginRequest: (kind, id, value, replay, frame) => this.#beginRequest(kind, id, value, replay, frame), assertRequest: (kind, id, value, frame) => this.#assertRequest(kind, id, value, frame), assertSession: (kind, id, value, frame) => this.#assertSession(kind, id, value, frame), flightToken: (kind, id) => this.#flightToken(kind, id), settle: (kind, id, result, replay, token) => this.#settle(kind, id, result, replay, token) }));
         uiAuthorities.set(this, Object.freeze({ tenantId: this.#tenantId, role: this.#role, id: this.#id, draftVersion: () => this.#draftVersion,
             canRead: () => this.#canRead(), canManage: () => this.#canManage(), captureReadOrigin: () => this.#captureReadOrigin(), readVersion: () => this.#readVersion,
             fetch: (origin: VitalDetailReadOriginWeb | null) => this.#fetch(origin), present: (value: unknown, flags: unknown) => this.#present(value, flags), view: (value?: unknown) => this.#view(value),
@@ -416,7 +420,7 @@ export class VitalDetailWriteRuntimeWeb {
         throw failure(); const current = this.#current(true); if (target.pending !== pending || !this.#alive || this.#closed || target.flight && (target.flight.runtime !== this || target.flight.frame !== frame))
         throw failure(); return current.sdk; }
     async #assertSession(kind: VitalDetailOperationWeb, id: string, payload: VitalDetailPayloadWeb, frame: unknown) { const target = this.#stores[kind], pending = target.pending; this.#assertRequest(kind, id, payload, frame); const current = this.#current(true), origin = { token: Object.freeze({}), can: current.can, owner: current.owner, id: this.#ticket }; const ticket = this.#ticket; const runtime = createVitalDetailRuntimeWeb({ auth: () => this.#access().auth, tenantId: () => this.#owner.tenantId, measurementId: () => this.#measurementId, expectedClientId: () => pending!.clientId, permissions: () => ({ tenantId: this.#owner.tenantId, roleKey: this.#owner.roleKey, can: key => grant(origin.can(key)) }), alive: () => this.#alive && !this.#closed && ticket === this.#ticket && target.pending === pending }); const lease = captureVitalDetailReadWeb(runtime); if (!lease)
-        throw failure(); await assertVitalDetailSessionWeb(lease); this.#assertRequest(kind, id, payload, frame); closeVitalDetailReadWeb(lease); }
+        throw failure(); const rawAuthId = await assertVitalDetailSessionWeb(lease, this.#rawAuthId); this.#assertRequest(kind, id, payload, frame); this.#rawAuthId = rawAuthId; closeVitalDetailReadWeb(lease); }
     #flightToken(kind: VitalDetailOperationWeb, id: string) { const target = this.#stores[kind]; return target.pending?.id === id && target.flight?.runtime === this ? target.flight.token : null; }
     #settle(kind: VitalDetailOperationWeb, id: string, result: {
         ok: boolean;
@@ -430,7 +434,7 @@ export class VitalDetailWriteRuntimeWeb {
         notify(this.#stores);
         return;
     } if (result.ok && uuid(result.data?.id)) {
-        const fact = freeze({ id: result.data!.id, source: 'rpc_uuid' as const, request: target.pending, original: vitalDetailOwnWriteOriginalWeb(result, this, kind, id, replay, token) });
+        const fact = freeze({ id: result.data!.id, source: 'confirmed_original' as const, request: target.pending, original: vitalDetailOwnWriteOriginalWeb(result, this, kind, id, replay, token) });
         if (target.ack) {
             target.archive = Object.freeze([...target.archive, fact]);
             if (!equalId(target.ack.id, fact.id))
@@ -625,7 +629,7 @@ export function vitalDetailWriteActionsWeb(token: VitalDetailWriteCaptureWeb) {
         execute(kind: VitalDetailOperationWeb, id: string, payload: VitalDetailPayloadWeb, replay: boolean, frame: unknown): ReturnType<typeof executeVitalDetailNativeWriteWeb>;
         known(kind: VitalDetailOperationWeb): Readonly<{
             id: string;
-            source: 'rpc_uuid' | 'stored_original';
+            source: 'confirmed_original' | 'stored_original';
         }> | null;
         reconcile(kind: VitalDetailOperationWeb): boolean;
         captureRetry(kind: VitalDetailOperationWeb): object | null;

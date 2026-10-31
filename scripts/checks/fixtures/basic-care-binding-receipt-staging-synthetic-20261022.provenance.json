@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "capturedOn": "2026-10-22",
+  "environment": "isolated Supabase Staging",
+  "source": "Actual final SELECT of the supplementary privileged synthetic runtime unit after asserted nested rollback cleanup and before explicit outer ROLLBACK.",
+  "sqlFixture": "supabase/tests/pflege_basic_care_binding_receipt_unit_staging.sql",
+  "sqlFixtureSha256": "1117db3437fa1f6779a9a21bfe6afd6c127355a1615612f71001a9d77a4ad664",
+  "appliedMigrationVersions": [
+    "20261022081906",
+    "20261022082127"
+  ],
+  "appliedPatchSha256": {
+    "ambulatory_basic_care_quarantined.sql": "fb8b0d44ff5205c684f30c45436ec92c4ea64c8e108b007fc62dbcdfa3206b21",
+    "ambulatory_basic_care_dto_limits.sql": "69f710e185696dda4b04b886151bce940870d9219c2771a453fe313316b2c7a0"
+  },
+  "evidenceFile": "basic-care-binding-receipt-staging-synthetic-20261022.json",
+  "evidenceBytes": 30965,
+  "evidenceSha256": "9a6d08a37ff9f2165a2e483466b3833c19854cfeabbc36633ae3e898fc4ed493",
+  "supplementaryRuntimeUnit": true,
+  "sqlRollbackAndCleanupVerified": true,
+  "claims": [
+    "Exact unchanged actual SQL DTO bytes; no handwritten receipt substitution.",
+    "The native plan/version/item/tour/stop were seeded under an actual synthetic own Auth session and current own tenant/profile permissions.",
+    "The unit passed exact native binding, planned-care creation, own retries, exact own confirmation, unknown-receipt P0F02, no-duplicate/native-preservation and complete rollback checks.",
+    "Planning remains open with no actual occurrence, performed person, intervention, consent or clinical review."
+  ],
+  "limitations": [
+    "This supplementary unit does not replace or establish a pass for the five larger reconstructed baseline/intent/authorship fixtures.",
+    "Binding-intent and native-authorship followups were not applied for this unit.",
+    "No authenticated HTTP, browser, real clinical qualification/acceptance, Storage bytes or concurrent transaction evidence is claimed."
+  ],
+  "retentionReview": [
+    "Recursive credential/Auth-claim/session/JWT/secret key and JWT-value scan found none.",
+    "All retained native names, narrative, source fields and identifiers originate from the wholly synthetic rollback seed.",
+    "Source JSON was copied byte-for-byte without redaction or normalization because no sensitive fields were present."
+  ]
+}

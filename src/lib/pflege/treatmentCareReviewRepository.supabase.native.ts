@@ -4,6 +4,8 @@ import { getSupabaseClient } from "../supabase/client.ts";
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
 import { treatmentReviewInstantMicros, treatmentReviewStable, treatmentCareReviewOriginalIssue, treatmentCareReviewPacketIssue, type TreatmentCareReviewOriginal, type TreatmentCareReviewPacket } from "./treatmentCareReview.native.ts";
+import { cloneClientNativeOriginal } from "../clients/clientRecordNativeOriginal.native.ts";
+import { requireCareWorkspaceAuthorityWeb } from "./careWorkspaceAuthority.native.ts";
 type Row = Record<string, unknown>;
 type Context = {
     tenantId: string;
@@ -55,46 +57,82 @@ const dbClient = () => getSupabaseClient() as unknown as {
 } | null;
 async function authority(c: Context) { const db = dbClient(); if (!db || !c.isCurrent())
     throw Error(unavailable); let token: string | null = null, authUserId: string | null = null; const check = async () => { if (!c.isCurrent() || dbClient() !== db)
-    throw Error(unavailable); const session = await db.auth.getSession(), s = session.data.session; if (!c.isCurrent() || dbClient() !== db || session.error || !s || !uuid(s.user.id) || authUserId !== null && s.user.id !== authUserId || !s.access_token || s.expires_at !== undefined && s.expires_at * 1000 <= Date.now() || token !== null && s.access_token !== token)
-    throw Error(unavailable); token = s.access_token; authUserId = s.user.id; const user = await db.auth.getUser(token); if (!c.isCurrent() || dbClient() !== db || user.error || user.data.user?.id !== authUserId)
-    throw Error(unavailable); const profile = await withServiceQueryTimeout(db.rpc('resolve_current_profile_id', {}), 'Aktuelles internes Profil bestätigen', 20000); if (!c.isCurrent() || dbClient() !== db || profile.error || profile.data !== c.actorId)
-    throw Error(unavailable); const after = await db.auth.getSession(); if (!c.isCurrent() || dbClient() !== db || after.error || after.data.session?.access_token !== token || after.data.session?.user.id !== authUserId || after.data.session.expires_at !== undefined && after.data.session.expires_at * 1000 <= Date.now())
+    throw Error(unavailable); const session = cloneClientNativeOriginal(await db.auth.getSession()), s = session.data.session; if (!c.isCurrent() || dbClient() !== db || session.error || !s || !uuid(s.user.id) || authUserId !== null && s.user.id !== authUserId || !s.access_token || s.expires_at !== undefined && s.expires_at * 1000 <= Date.now() || token !== null && s.access_token !== token)
+    throw Error(unavailable); token = s.access_token; authUserId = s.user.id; const user = cloneClientNativeOriginal(await db.auth.getUser(token)); if (!c.isCurrent() || dbClient() !== db || user.error || user.data.user?.id !== authUserId)
+    throw Error(unavailable); const profile = cloneClientNativeOriginal(await withServiceQueryTimeout(db.rpc('resolve_current_profile_id', {}), 'Aktuelles internes Profil bestätigen', 20000)); if (!c.isCurrent() || dbClient() !== db || profile.error || profile.data !== c.actorId)
+    throw Error(unavailable); const after = cloneClientNativeOriginal(await db.auth.getSession()); if (!c.isCurrent() || dbClient() !== db || after.error || after.data.session?.access_token !== token || after.data.session?.user.id !== authUserId || after.data.session.expires_at !== undefined && after.data.session.expires_at * 1000 <= Date.now())
     throw Error(unavailable); }; await check(); return { db, check }; }
+async function readAuthority(context: Context) {
+    const db = dbClient(), owner = { tenantId: context.tenantId, clientId: context.clientId, orderId: context.orderId, actorId: context.actorId, current: context.isCurrent };
+    let sessionOwner: string | null = null;
+    if (!db)
+        throw Error(unavailable);
+    const current = () => { if (context.tenantId !== owner.tenantId || context.clientId !== owner.clientId || context.orderId !== owner.orderId || context.actorId !== owner.actorId || context.isCurrent !== owner.current || owner.current() !== true || dbClient() !== db)
+        throw Error(unavailable); };
+    const scope = { tenantId: owner.tenantId, clientId: owner.clientId, orderId: owner.orderId, actorId: owner.actorId, isCurrent: () => { try {
+            current();
+            return true;
+        }
+        catch {
+            return false;
+        } } };
+    const session = async () => { const result = cloneClientNativeOriginal(await db.auth.getSession()); current(); const value = result.data.session; if (result.error || !value || !uuid(value.user.id) || !value.access_token || typeof value.expires_at !== 'number' || !Number.isFinite(value.expires_at) || value.expires_at * 1000 <= Date.now())
+        throw Error(unavailable); return JSON.stringify([value.user.id, value.access_token, value.expires_at]); };
+    const check = async () => { current(); const before = await session(); if (sessionOwner !== null && before !== sessionOwner)
+        throw Error(unavailable); const verified = await requireCareWorkspaceAuthorityWeb(scope, dbClient, (request, operation) => withServiceQueryTimeout(Promise.resolve(request), operation, 20000), unavailable); if (verified !== db)
+        throw Error(unavailable); current(); if (await session() !== before)
+        throw Error(unavailable); sessionOwner = before; };
+    await check();
+    return { db, scope, check };
+}
+function historyPage(value: unknown) { if (!object(value) || Object.keys(value).length !== 4 || !Array.isArray(value.rows) || value.rows.length > 100 || !Object.hasOwn(value, 'nextCursorRecordedAt') || !Object.hasOwn(value, 'nextCursorId') || typeof value.stateFingerprint !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(value.stateFingerprint))
+    throw Error(unavailable); return value as Row & {
+    rows: unknown[];
+    stateFingerprint: string;
+}; }
 function decode(v: unknown, c: Pick<Context, 'tenantId' | 'clientId' | 'orderId'>): TreatmentCareReviewOriginal { const issue = treatmentCareReviewOriginalIssue(v, c); if (issue)
     throw Error(issue); return structuredClone(v as TreatmentCareReviewOriginal); }
-export async function readTreatmentCareReviewPage(c: Context): Promise<Result<TreatmentCareReviewOriginal[]>> { try {
-    const guard = await authority(c), rows: TreatmentCareReviewOriginal[] = [], cursors = new Set<string>();
-    let at: string | null = null, id: string | null = null;
-    for (let page = 0; page < 100; page++) {
-        await guard.check();
-        const response: {
-            data: unknown;
-            error: unknown;
-            status?: number;
-        } = await withServiceQueryTimeout(guard.db.rpc('web_read_treatment_care_review_page', { p_tenant_id: c.tenantId, p_client_id: c.clientId, p_order_id: c.orderId, p_actor_profile_id: c.actorId, p_cursor_recorded_at: at, p_cursor_id: id, p_page_size: 100 }), 'Behandlungspflegefachprüfungen vollständig laden', 20000);
-        await guard.check();
-        if (response.error || !object(response.data) || !Array.isArray(response.data.rows) || response.data.rows.length > 100)
-            throw Error(unavailable);
-        if (response.data.rows.length === 0)
-            return { ok: true, data: rows };
-        const nextAt = response.data.nextCursorRecordedAt, nextId = response.data.nextCursorId;
-        if (treatmentReviewInstantMicros(nextAt) === null || !uuid(nextId) || cursors.has(`${nextAt}:${nextId}`) || at !== null && (treatmentReviewInstantMicros(nextAt)! > treatmentReviewInstantMicros(at)! || treatmentReviewInstantMicros(nextAt) === treatmentReviewInstantMicros(at) && nextId >= id!))
-            throw Error(unavailable);
-        for (const raw of response.data.rows) {
-            const row = decode(raw, c);
-            if (rows.some(o => o.rootId === row.rootId))
+export async function readTreatmentCareReviewPage(c: Context): Promise<Result<TreatmentCareReviewOriginal[]>> {
+    try {
+        const guard = await readAuthority(c), rows: TreatmentCareReviewOriginal[] = [], roots = new Set<string>();
+        let at: string | null = null, id: string | null = null, stateFingerprint = '', head: unknown = null;
+        const read = async (recorded: string | null, cursor: string | null) => { await guard.check(); const response = cloneClientNativeOriginal(await withServiceQueryTimeout(guard.db.rpc('web_read_treatment_care_review_page', { p_tenant_id: guard.scope.tenantId, p_client_id: guard.scope.clientId, p_order_id: guard.scope.orderId, p_actor_profile_id: guard.scope.actorId, p_cursor_recorded_at: recorded, p_cursor_id: cursor, p_page_size: 100 }), 'Behandlungspflegefachprüfungen vollständig laden', 20000)); await guard.check(); if (response.error)
+            throw Error(unavailable); return historyPage(response.data); };
+        for (let page = 0; page < 100; page++) {
+            const data = await read(at, id);
+            if (stateFingerprint && data.stateFingerprint !== stateFingerprint)
+                throw Error('Ein älterer Behandlungspflegeprüfstand oder native Quellen wurden während des Ladens geändert. Neu laden.');
+            stateFingerprint = data.stateFingerprint;
+            if (head === null)
+                head = structuredClone(data);
+            if (data.rows.length === 0) {
+                if (data.nextCursorRecordedAt !== null || data.nextCursorId !== null)
+                    throw Error(unavailable);
+                const latest = await read(null, null);
+                if (treatmentReviewStable(latest) !== treatmentReviewStable(head))
+                    throw Error('Der vollständige Behandlungspflegeprüfstand wurde während des Ladens geändert. Neu laden.');
+                return { ok: true, data: rows };
+            }
+            let previous = at === null ? null : { at: treatmentReviewInstantMicros(at)!, id: id!.toLowerCase() };
+            for (const raw of data.rows) {
+                const row = decode(raw, guard.scope), position = { at: treatmentReviewInstantMicros(row.history[0].recordedAt)!, id: row.rootId.toLowerCase() };
+                if (roots.has(position.id) || previous && (position.at > previous.at || position.at === previous.at && position.id >= previous.id))
+                    throw Error(unavailable);
+                roots.add(position.id);
+                rows.push(row);
+                previous = position;
+            }
+            if (!previous || !uuid(data.nextCursorId) || typeof data.nextCursorRecordedAt !== 'string' || treatmentReviewInstantMicros(data.nextCursorRecordedAt) !== previous.at || data.nextCursorId.toLowerCase() !== previous.id)
                 throw Error(unavailable);
-            rows.push(row);
+            at = data.nextCursorRecordedAt;
+            id = data.nextCursorId;
         }
-        cursors.add(`${nextAt}:${nextId}`);
-        at = nextAt as string;
-        id = nextId;
+        throw Error('Der Behandlungspflegeprüfbestand überschreitet die sicher vollständig lesbare Grenze.');
     }
-    throw Error('Der Behandlungspflegeprüfbestand überschreitet die sicher vollständig lesbare Grenze.');
+    catch (cause) {
+        return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+    }
 }
-catch (cause) {
-    return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
-} }
 function receipt(v: unknown, p: TreatmentCareReviewPacket): TreatmentCareReviewOriginal | null { if (!object(v) || v.requestId !== p.requestId || treatmentReviewStable(v.packet) !== treatmentReviewStable(p))
     return null; try {
     const o = decode(v.original, p), e = o.history.at(-1)!;
@@ -115,7 +153,7 @@ async function operation(input: TreatmentCareReviewPacket, isCurrent: () => bool
         data: unknown;
         error: unknown;
         status?: number;
-    } = await withServiceQueryTimeout(guard.db.rpc(confirm ? 'web_confirm_treatment_care_review' : 'web_commit_treatment_care_review', confirm ? { p_tenant_id: p.tenantId, p_client_id: p.clientId, p_order_id: p.orderId, p_actor_profile_id: p.actorId, p_request_id: p.requestId, p_packet: p } : { p_packet: p }), 'Behandlungspflegefachprüfung transaktional sichern oder Quittung lesen', 20000);
+    } = cloneClientNativeOriginal(await withServiceQueryTimeout(guard.db.rpc(confirm ? 'web_confirm_treatment_care_review' : 'web_commit_treatment_care_review', confirm ? { p_tenant_id: p.tenantId, p_client_id: p.clientId, p_order_id: p.orderId, p_actor_profile_id: p.actorId, p_request_id: p.requestId, p_packet: p } : { p_packet: p }), 'Behandlungspflegefachprüfung transaktional sichern oder Quittung lesen', 20000));
     await guard.check();
     if (response.error) {
         const code = object(response.error) ? String(response.error.code ?? '') : '';

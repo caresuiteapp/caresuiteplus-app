@@ -1,4 +1,5 @@
 // Generated native presentation from src/lib/pflege/vitalCreateRuntime.web.ts. Update through scripts/port-native-workspaces.mjs.
+import { assertVitalSdkOwnerWeb } from "./vitalSdkOwner.native.ts";
 import { cloneClientNativeOriginal as clone, freezeClientNativeOriginal as freeze, sameClientNativeOriginal as same } from "../clients/clientRecordNativeOriginal.native.ts";
 import { carePermissionOwnerIsCurrent, type CarePermissionOwner } from "../permissions/carePermissionOwner.native.ts";
 import { getSupabaseClient } from "../supabase/client.ts";
@@ -8,6 +9,7 @@ import { validateVitalMeasurement, type VitalMeasurementPayload } from './vitalM
 import { executeVitalCreateNativeWeb, isOwnVitalCreateWriteResultWeb, isSettledVitalCreateWriteResultWeb } from "./vitalCreateNativeWrite.native.ts";
 import { isOwnVitalCreateDeliveryWeb } from "./vitalCreateOriginalRead.native.ts";
 import type { VitalClient, VitalChoice } from './vitalDocumentationService';
+import type { VitalNativeReceiptScopeWeb } from "./vitalNativeWriteReceipt.native.ts";
 type SDK = NonNullable<ReturnType<typeof getSupabaseClient>>;
 type Can = (key: 'pflege.vitals.view' | 'pflege.vitals.manage') => unknown;
 type Kind = 'clients' | 'choices';
@@ -66,6 +68,11 @@ type OriginalStore = {
     listeners: Set<() => void>;
 };
 const originalStores = new Map<string, OriginalStore>();
+const receiptScopes = new WeakMap<object, {
+    owner: CarePermissionOwner;
+    store: OriginalStore;
+    rawAuthId: string | null;
+}>();
 const newDraftTokens = new WeakMap<object, {
     runtime: VitalCreateRuntimeWeb;
     store: OriginalStore;
@@ -129,7 +136,7 @@ export class VitalCreateRuntimeWeb {
         this.closed = true; const key = identity(this.owner); let store = originalStores.get(key); if (!store) {
         store = { journal: null, acknowledged: null, flight: null, draftEpoch: 0, uncertain: false, version: 0, listeners: new Set() };
         originalStores.set(key, store);
-    } this.originalStore = store; }
+    } this.originalStore = store; receiptScopes.set(this, { owner: this.owner, store, rawAuthId: null }); }
     get originalDraftVersion() { return this.originalStore.draftEpoch; }
     get tenantId() { return this.owner.tenantId; }
     get role() { return this.owner.roleKey; }
@@ -426,4 +433,23 @@ export class VitalCreateRuntimeWeb {
     catch {
         return false;
     } }
+}
+/** Constructor-owned profile scope cannot be replaced by UI-supplied receipt metadata. */
+export function captureVitalCreateReceiptScopeWeb(runtime: VitalCreateRuntimeWeb, id: string, payload: VitalMeasurementPayload): VitalNativeReceiptScopeWeb {
+    const own = receiptScopes.get(runtime);
+    if (!own || own.store.journal?.id !== id || !same(own.store.journal.payload, payload))
+        throw Error('Eigener ursprünglicher Messquittungsbezug fehlt.');
+    return freeze({ tenantId: own.owner.tenantId, actorId: own.owner.profileId, clientId: payload.clientId });
+}
+export async function assertVitalCreateRequestSessionWeb(runtime: VitalCreateRuntimeWeb, id: string, payload: VitalMeasurementPayload): Promise<void> {
+    const own = receiptScopes.get(runtime);
+    if (!own)
+        throw Error('Eigener ursprünglicher Sitzungsbezug fehlt.');
+    captureVitalCreateReceiptScopeWeb(runtime, id, payload);
+    const sdk = runtime.assertRequest(id, payload);
+    const rawAuthId = await assertVitalSdkOwnerWeb({ client: sdk, owner: own.owner, pinnedAuthId: own.rawAuthId, current: () => { if (runtime.assertRequest(id, payload) !== sdk)
+            throw Error('Eigener ursprünglicher Sitzungsbezug fehlt.'); } });
+    if (runtime.assertRequest(id, payload) !== sdk)
+        throw Error('Eigener ursprünglicher Sitzungsbezug fehlt.');
+    own.rawAuthId = rawAuthId;
 }

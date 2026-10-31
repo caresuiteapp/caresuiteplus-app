@@ -14,7 +14,7 @@ import { MedicationEventTimeInput, currentMedicationEventTime, medicationEventIn
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { spacing, typography } from '@/theme';
 import { emptyWoundCase, emptyWoundAssessment, validateWoundRequest, type WoundRequest } from '@/lib/pflege/woundDocumentationDomain';
-import { fetchWoundClients, fetchAmbulatoryWound, writeAmbulatoryWound } from '@/lib/pflege/ambulatoryWoundService';
+import { fetchWoundClients, fetchAmbulatoryWound, writeAmbulatoryWound } from "../../lib/pflege/ambulatoryWoundService.native.ts";
 export function WoundCreateScreen() { return <WoundFormBoundary mode="create"/>; }
 export function WoundAssessmentCreateScreen() { return <WoundFormBoundary mode="assessment"/>; }
 function WoundFormBoundary({ mode }: {

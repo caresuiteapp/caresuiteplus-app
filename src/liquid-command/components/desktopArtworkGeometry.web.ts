@@ -1,1 +1,1 @@
-export * from './desktopArtworkGeometry.shared';
+export * from './desktopArtworkGeometry.shared.ts';

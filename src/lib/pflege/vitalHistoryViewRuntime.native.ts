@@ -1,4 +1,5 @@
 // Generated native presentation from src/lib/pflege/vitalHistoryViewRuntime.web.ts. Update through scripts/port-native-workspaces.mjs.
+import { assertVitalSdkOwnerWeb } from "./vitalSdkOwner.native.ts";
 import { getVitalDefinition } from './vitalCatalog.ts';
 import { vitalHistoryClientChoiceOriginalsWeb } from "./vitalHistoryClientsOriginalRead.native.ts";
 import { createVitalHistoryRuntimeWeb, captureVitalHistoryReadWeb, closeVitalHistoryReadWeb, closeVitalHistoryRuntimeWeb, type VitalHistoryReadLeaseWeb } from "./vitalHistoryRuntime.native.ts";
@@ -38,6 +39,7 @@ type Lease = {
     runtime: Runtime;
     owner: CarePermissionOwner;
     client: SDK;
+    authUserId: string | null;
     permissionSource: PermissionSource;
     can: Can;
     closed: boolean;
@@ -137,7 +139,7 @@ export function captureVitalHistoryViewReadWeb(token: VitalHistoryViewRuntimeWeb
     const captured = scope(runtime), client = getSupabaseClient();
     if (!client || getServiceMode() !== 'supabase')
         throw failure();
-    const token = Object.freeze({}), lease: Lease = { runtime, ...captured, client, token, closed: false, checking: false };
+    const token = Object.freeze({}), lease: Lease = { runtime, ...captured, client, token, authUserId: null, closed: false, checking: false };
     runtime.active = lease;
     current(lease);
     leases.set(token, lease);
@@ -172,24 +174,10 @@ export function closeVitalHistoryViewFetchWeb(frame: VitalHistoryViewFetchWeb) {
 export function vitalHistoryViewReadContextWeb(frame: VitalHistoryViewFetchWeb, token: VitalHistoryViewReadLeaseWeb) { assertVitalHistoryViewFetchWeb(frame, token); const fetch = fetches.get(frame)!; return Object.freeze({ client: fetch.lease.client, tenantId: fetch.lease.owner.tenantId }); }
 export async function assertVitalHistoryViewSessionWeb(frame: VitalHistoryViewFetchWeb, token: VitalHistoryViewReadLeaseWeb): Promise<void> { const fetch = fetches.get(frame); if (!fetch)
     throw failure(); const lease = fetch.lease; try {
-    assertVitalHistoryViewFetchWeb(frame, token);
-    const nativeAuth = lease.client.auth, getSession = nativeAuth.getSession, second = nativeAuth.getSession;
-    if (typeof getSession !== 'function' || getSession !== second)
-        throw failure();
-    assertVitalHistoryViewFetchWeb(frame, token);
-    const response = await Reflect.apply(getSession, nativeAuth, []);
-    assertVitalHistoryViewFetchWeb(frame, token);
-    const captured = clone(response);
-    assertVitalHistoryViewFetchWeb(frame, token);
-    if (field(captured, 'error') !== null)
-        throw failure();
-    const session = field(field(captured, 'data'), 'session'), user = field(session, 'user');
-    if (field(user, 'id') !== lease.owner.profileId || field(session, 'access_token') !== lease.owner.accessToken)
-        throw failure();
-    const expires = field(session, 'expires_at');
-    if (typeof expires !== 'number' || !Number.isSafeInteger(expires) || expires * 1000 !== lease.owner.expiresAt || expires * 1000 <= Date.now())
-        throw failure();
-    assertVitalHistoryViewFetchWeb(frame, token);
+    const current = () => assertVitalHistoryViewFetchWeb(frame, token);
+    current();
+    lease.authUserId = await assertVitalSdkOwnerWeb({ client: lease.client, owner: lease.owner, current, pinnedAuthId: lease.authUserId });
+    current();
 }
 catch (error) {
     if (!fetch.closed && fetch.generation === lease.runtime.generation && lease.runtime.active === lease)

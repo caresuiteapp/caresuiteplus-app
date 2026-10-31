@@ -52,7 +52,7 @@ function harness(initial={}){
    }).then(resolve,reject);
   }
  }
- const sdk={auth:{getSession:async()=>({error:null,data:{session:{user:state.user,access_token:state.token,expires_at:state.expiresAt/1000}}})},from:table=>new Query(table),rpc(){writes.push('rpc');throw Error('Forbidden native RPC');}};
+ const sdk={auth:{getSession:async()=>({error:null,data:{session:{user:state.user,access_token:state.token,expires_at:state.expiresAt/1000}}}),getUser:async()=>({error:null,data:{user:{id:state.user?.id,is_anonymous:false}}})},from:table=>new Query(table),rpc(name){if(name==='resolve_current_profile_id')return Promise.resolve({error:null,data:state.profile?.id});if(name==='current_tenant_id')return Promise.resolve({error:null,data:state.tenant});writes.push('rpc');throw Error('Forbidden native RPC');}};
  const loader=compose('src/lib/permissions/currentCarePermissions.web.ts',{...ownerDomain,getPermissionsForRole:()=>{throw Error('No static fallback');},getSupabaseClient:()=>sdk},['fetchCurrentCarePermissions']);
  const resolver=compose('src/lib/auth/sessionTarget.ts',{BUSINESS_HOME_ROUTE:'/home'},['resolveEffectiveRoleKey']);
  const permissionHook=compose('src/hooks/pflege/useCareRuntimePermissions.web.ts',{...ownerDomain,...loader,useEffect,useRef,useState,ROLE_LABELS:{business_admin:'Admin'},checkPermissionWithList:(_role,rights,key)=>({allowed:rights.includes(key)}),hasEffectiveModuleGateAccess:()=>true,isDemoMode:()=>false,useAuth,resolveEffectiveRoleKey:resolver.resolveEffectiveRoleKey,useServiceTenantId:()=>state.tenant},['useCareRuntimePermissions']);
