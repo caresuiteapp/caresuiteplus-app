@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
@@ -58,6 +59,7 @@ function NavRow({
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={item.label}
       accessibilityState={{ disabled, selected: active }}
       disabled={disabled}
       onPress={() => {
@@ -66,7 +68,7 @@ function NavRow({
       style={styles.row}
       testID={`healthos-sidebar-item-${item.key}`}
     >
-      <Text style={styles.icon}>{item.icon}</Text>
+      <SemanticArtwork webSize={24} webColor={active ? accentColor : styles.label.color} style={styles.icon}>{item.icon}</SemanticArtwork>
       {!collapsed ? <Text style={styles.label}>{item.label}</Text> : null}
     </Pressable>
   );

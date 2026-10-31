@@ -20,6 +20,8 @@ vi.mock('react-native', async () => {
   return { View: Container, Text: Container, KeyboardAvoidingView: Container, ScrollView: Scroll,
     Pressable: Container, Platform: { OS: 'android' }, StyleSheet: { create: (s: any) => s }, BackHandler: { addEventListener: () => ({ remove: vi.fn() }) } };
 });
+vi.mock('@/lib/supabase/tenantService', () => ({ fetchTenantProfile: vi.fn() }));
+vi.mock('@/lib/auth/accountSecurityService', () => ({ readPendingMfaBootstrap: vi.fn() }));
 vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0 }) }));
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: { getItem: vi.fn(), setItem: vi.fn(), removeItem: vi.fn() } }));
 vi.mock('expo-router', () => ({ Link: () => null, useRouter: () => ({ replace: h.replace }) }));

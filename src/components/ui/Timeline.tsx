@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -10,6 +11,7 @@ import { PremiumBadge } from './PremiumBadge';
 type TimelineProps = {
   items: DashboardActivity[];
   maxItems?: number;
+  expandEntries?: boolean;
   emptyTitle?: string;
   emptyMessage?: string;
 };
@@ -28,6 +30,7 @@ function timeAgo(iso: string): string {
 export function Timeline({
   items,
   maxItems = 6,
+  expandEntries = false,
   emptyTitle = 'Keine Aktivitäten',
   emptyMessage = 'Hier erscheinen die letzten Vorgänge.',
 }: TimelineProps) {
@@ -142,14 +145,15 @@ export function Timeline({
           </View>
           <View style={styles.content}>
             <View style={styles.titleRow}>
-              <Text style={styles.icon}>{item.icon}</Text>
-              <Text style={styles.title} numberOfLines={1}>
+              <SemanticArtwork style={styles.icon} webSize={16}>{item.icon}</SemanticArtwork>
+              <Text style={styles.title} numberOfLines={expandEntries ? undefined : 1}>
                 {item.title}
               </Text>
-              <Text style={styles.time}>{timeAgo(item.timestamp)}</Text>
+              {!expandEntries ? <Text style={styles.time}>{timeAgo(item.timestamp)}</Text> : null}
             </View>
+            {expandEntries ? <Text style={styles.time}>{timeAgo(item.timestamp)}</Text> : null}
             {item.subtitle ? (
-              <Text style={styles.subtitle} numberOfLines={2}>
+              <Text style={styles.subtitle} numberOfLines={expandEntries ? undefined : 2}>
                 {item.subtitle}
               </Text>
             ) : null}

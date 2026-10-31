@@ -24,9 +24,13 @@ Design, Layout, Texte und Funktionen sind gleichwertige Bestandteile der Umsetzu
 - Umfang und Tiefe der Verifikation am konkreten Risiko ausrichten. Vorhandene passende Prüfungen nutzen; reine Text- oder Stiländerungen erfordern keine zusätzlichen Tests, die nur die Implementierung wiederholen.
 - Offensichtliche Gestaltungsmängel nicht an den Nutzer zur Entdeckung auslagern. Rückmeldungen auf ihre gemeinsame Ursache prüfen und innerhalb des beauftragten Umfangs konsistent beheben.
 
-## Aktueller Arbeitsumfang
-Die laufende Überarbeitung betrifft Desktop und Web. Die fertiggestellte Android-App wird dabei nicht verändert. Firmenregistrierung kostenlos und ohne Modulauswahl; keine Modulwerbung im Registrierungsablauf. Spätere ausdrückliche Nutzeraufträge bestimmen den jeweiligen weiteren Umfang.
-
+## Gemeinsamer Web- und App-Stand ab 28.10.2026
+- Jede fachliche Änderung gilt gleichzeitig für Web/Desktop und die native App. Gemeinsame Dienste, Rechte, Datenverträge, Navigation und Funktionen aus derselben Quelle pflegen; plattformspezifische Darstellung und Geräteintegration dürfen abweichen.
+- Generierte Native-Dateien niemals einzeln fortschreiben: Web-Quelle beziehungsweise den vorhandenen Adapter ändern, `node scripts/port-native-workspaces.mjs --write` und danach `--check` ausführen. Bewusst eigene native Implementierungen funktional abgleichen.
+- Fertige Webänderungen werden nach bestandenen Releaseprüfungen umgehend veröffentlicht. Diese ausdrückliche Dauervorgabe ersetzt frühere Regeln gegen automatische Webdeployments.
+- Appänderungen werden im selben Hauptzweig gesammelt. Ein signiertes App-Paket erst auf ausdrückliche Nutzeranweisung erzeugen. Weder normale Pushes noch Webdeployments starten einen Android-Releasebuild. Ein angefordertes Paket verwendet denselben geprüften Hauptzweig wie das Web.
+- Der aktuelle Auftrag autorisiert den gemeinsamen Abgleich, den Webdeploy und die Erzeugung des Android-Updates; eine Google-Play-Einreichung ist ein eigener Schritt.
+- Firmenregistrierung kostenlos und ohne Modulauswahl; keine Modulwerbung im Registrierungsablauf. Vorhandene fachliche Freigaben und Schutzsperren gelten auf beiden Plattformen unverändert.
 
 ## Bestehende Arbeitsumgebung verwenden
 Der Nutzer möchte für diesen Auftrag keine zusätzliche Software oder neue Testinfrastruktur. Die Einrichtung über Docker wird nicht weiterverfolgt. Mit dem vorhandenen Projekt, vorhandenen Verbindungen und bestehenden Prüfwerkzeugen arbeiten; keine weiteren Installations- oder Infrastrukturaufgaben an den Nutzer auslagern. Fehlende Ende-zu-Ende-Nachweise präzise offenhalten. Diese Einschränkung ist keine Freigabe für Teständerungen an produktiven Daten oder für eine Veröffentlichung.

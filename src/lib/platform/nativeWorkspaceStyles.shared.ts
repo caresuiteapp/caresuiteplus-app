@@ -1,0 +1,151 @@
+import type {CSSProperties} from 'react';
+import type {TextStyle,ViewStyle} from 'react-native';
+import {resolveWorkspaceColorMixes} from './nativeWorkspaceColors.shared';
+export type WorkspaceNode={tag:string;props:Record<string,any>;index?:number;count?:number;typeIndex?:number;pseudo?:'before'|'after'};
+type Rule={selector:string;declarations:[string,string][];condition:string;specificity:number;order:number};
+export type WorkspaceSheet=readonly Rule[];
+export type WorkspacePresentation={box:ViewStyle;text:TextStyle;variables:Record<string,string>;grid:string|null;scroll:'horizontal'|'vertical'|null;declarations:Record<string,string>};
+const cache=new Map<string,WorkspaceSheet>();
+export function splitWorkspaceCss(value:string,delimiter=','):string[]{let depth=0,quote='',part='';const result:string[]=[];for(const char of value){if(quote){part+=char;if(char===quote)quote='';continue;}if(char==='"'||char==="'"){quote=char;part+=char;continue;}if('(['.includes(char))depth++;if(')]'.includes(char))depth--;if(char===delimiter&&depth===0){if(part.trim())result.push(part.trim());part='';}else part+=char;}if(part.trim())result.push(part.trim());return result;}
+export function compileWorkspaceCss(css:string):WorkspaceSheet{const cached=cache.get(css);if(cached)return cached;const rules:Rule[]=[];
+  function read(source:string,condition=''){const pattern=/([^{}]+)\{/g;let match:RegExpExecArray|null;while((match=pattern.exec(source))){const selector=match[1].trim(),start=pattern.lastIndex;let end=start,depth=1;while(end<source.length&&depth){if(source[end]==='{')depth++;if(source[end]==='}')depth--;end++;}pattern.lastIndex=end;const body=source.slice(start,end-1);if(/^@(?:media|container)/.test(selector)){read(body,condition+' '+selector);continue;}if(selector.startsWith('@'))continue;const declarations=splitWorkspaceCss(body,';').flatMap(pair=>{const colon=pair.indexOf(':');return colon<0?[]:[[pair.slice(0,colon).trim(),pair.slice(colon+1).trim()] as [string,string]];});for(const entry of splitWorkspaceCss(selector))rules.push({selector:entry,declarations,condition,order:rules.length,specificity:(entry.match(/#/g)?.length??0)*100+(entry.match(/[.[:]/g)?.length??0)*10+(entry.match(/(?:^|[ >+~])\w/g)?.length??0)});}}
+  read(css.replace(/\/\*[\s\S]*?\*\//g,''));if(cache.size>=120)cache.delete(cache.keys().next().value!);cache.set(css,rules);return rules;
+}
+function simple(selector:string,node:WorkspaceNode):boolean{const pseudo=selector.match(/::?(before|after)/)?.[1];if((pseudo??'')!==(node.pseudo??''))return false;selector=selector.replace(/::?(before|after)/g,'');if(/:(?:hover|focus|focus-visible|active)/.test(selector))return false;let excluded=false;selector=selector.replace(/:not\(([^)]+)\)/g,(_,part:string)=>{if(simple(part,{...node,pseudo:undefined}))excluded=true;return '';});if(excluded)return false;if(selector.includes(':disabled')&&!node.props.disabled||selector.includes(':checked')&&!node.props.checked)return false;if(selector.includes(':first-child')&&node.index!==0||selector.includes(':last-child')&&node.index!==(node.count??0)-1)return false;if(selector.includes(':first-of-type')&&node.typeIndex!==0)return false;const nth=selector.match(/:nth-child\((\d+)\)/);if(nth&&node.index!==Number(nth[1])-1)return false;selector=selector.replace(/:(?:disabled|checked|first-child|last-child|first-of-type)/g,'').replace(/:nth-child\([^)]*\)/g,'');if(selector.includes(':'))return false;
+  for(const attr of selector.matchAll(/\[([\w-]+)(?:\s*([~|^$*]?=)\s*["']?([^\]"']*)["']?)?\]/g)){const actual=node.props[attr[1]],expected=attr[3];if(!attr[2]?actual===undefined||actual===null||actual===false:String(actual)!==expected)return false;}
+  selector=selector.replace(/\[[^\]]*\]/g,'');const tag=selector.match(/^[\w-]+/);if(tag&&tag[0]!==node.tag)return false;const classes=String(node.props.className??'').split(/\s+/);for(const name of selector.matchAll(/\.([\w-]+)/g))if(!classes.includes(name[1]))return false;const id=selector.match(/#([\w-]+)/);return !id||node.props.id===id[1];
+}
+export function matchesWorkspaceSelector(selector:string,node:WorkspaceNode,ancestors:readonly WorkspaceNode[]):boolean{const parts=selector.replace(/\s*([>+~])\s*/g,'$1').match(/(?:\[[^\]]*\]|\([^)]*\)|[^ >+~])+(?:\([^)]*\))?|[ >+~]/g)?.filter(Boolean)??[];let cursor=parts.length-1,index=ancestors.length-1,current=node;if(!simple(parts[cursor--]??'*',current))return false;while(cursor>=0){let combinator=parts[cursor--];if(![' ','>','+','~'].includes(combinator)){cursor++;combinator=' ';}const target=parts[cursor--];if(!target)return false;if(combinator==='+'||combinator==='~')return (current.index??0)>0;if(combinator==='>'){current=ancestors[index--];if(!current||!simple(target,current))return false;}else{let found=false;while(index>=0){current=ancestors[index--];if(simple(target,current)){found=true;break;}}if(!found)return false;}}return true;}
+function conditionMatches(condition:string,width:number,viewportWidth:number,viewportHeight:number){if(/prefers-reduced-motion|hover:|pointer:|forced-colors\s*:\s*active/.test(condition)||/@media\s+(?:only\s+)?print\b/.test(condition))return false;for(const part of condition.match(/@(?:media|container)[^@]*/g)??[condition]){const available=part.startsWith('@media')?viewportWidth:width;for(const match of part.matchAll(/(min|max)-(width|height)\s*:\s*(\d+(?:\.\d+)?)px/g)){const dimension=match[2]==='height'?viewportHeight:available;if(match[1]==='min'?dimension<Number(match[3]):dimension>Number(match[3]))return false;}}return true;}
+
+function variablesIn(value:string,variables:Record<string,string>){for(let n=0;n<8&&value.includes('var(');n++)value=value.replace(/var\((--[\w-]+)(?:,\s*([^()]*))?\)/g,(_,name:string,fallback:string)=>variables[name]??fallback??'transparent');return value.replace(/!important/g,'').trim();}
+function length(value:string|number|undefined,font:number,width:number,percentageBase=width):number|string|undefined{if(typeof value==='number'||value===undefined)return value;value=value.trim();if(/^-?\d*\.?\d+(?:px)?$/.test(value))return parseFloat(value);if(/^-?\d*\.?\d+rem$/.test(value))return parseFloat(value)*16;if(/^-?\d*\.?\d+em$/.test(value))return parseFloat(value)*font;if(/^-?\d*\.?\d+ch$/.test(value))return parseFloat(value)*font*.55;if(/^-?\d*\.?\d+cq[wi]$/.test(value))return parseFloat(value)*width/100;if(/^-?\d*\.?\d+%$/.test(value))return value;if(value==='auto')return value;const number=(v:number|string|undefined)=>typeof v==='string'&&v.endsWith('%')?parseFloat(v)*percentageBase/100:v;
+  const calc=value.match(/^calc\((.+?)\s*([*+-])\s*(.+)\)$/);if(calc){const a=number(length(calc[1],font,width,percentageBase)),b=number(length(calc[3],font,width,percentageBase));if(typeof a==='number'&&typeof b==='number')return calc[2]==='*'?a*b:calc[2]==='+'?a+b:a-b;}
+  const bounded=value.match(/^(min|max|clamp)\((.*)\)$/);if(bounded){const values=splitWorkspaceCss(bounded[2]).map(part=>number(length(part,font,width,percentageBase))).filter((v):v is number=>typeof v==='number');if(values.length)return bounded[1]==='min'?Math.min(...values):bounded[1]==='max'?Math.max(...values):Math.min(values[2],Math.max(values[0],values[1]));}return undefined;
+}
+const camel=(value:string)=>value.replace(/-([a-z])/g,(_,char:string)=>char.toUpperCase());
+const textKeys=new Set(['color','fontSize','fontWeight','fontStyle','letterSpacing','lineHeight','textAlign','textTransform','textDecorationLine','fontFamily']);
+const boxKeys=new Set(['width','height','minWidth','maxWidth','minHeight','maxHeight','top','right','bottom','left','flex','flexGrow','flexShrink','flexBasis','flexDirection','flexWrap','alignItems','alignSelf','alignContent','justifyContent','gap','rowGap','columnGap','borderRadius','borderWidth','borderColor','borderStyle','backgroundColor','position','zIndex','opacity','overflow','display','boxShadow','aspectRatio',...['padding','margin'].flatMap(p=>['','Top','Right','Bottom','Left'].map(side=>p+side)),...['Top','Right','Bottom','Left'].flatMap(side=>['border'+side+'Width','border'+side+'Color']),...['TopLeft','TopRight','BottomLeft','BottomRight','TopStart','TopEnd','BottomStart','BottomEnd','StartStart','StartEnd','EndStart','EndEnd'].map(corner=>'border'+corner+'Radius')]);
+const nativeNumberStyles=new Set(['fontSize','letterSpacing','lineHeight','textShadowRadius','opacity','zIndex','elevation','shadowOpacity','shadowRadius','outlineWidth','outlineOffset','flex','flexGrow','flexShrink','aspectRatio',...['','Top','Right','Bottom','Left','Start','End','Block','BlockStart','BlockEnd'].map(side=>'border'+side+'Width')]);
+const radiusProperty=/^border(?:TopLeft|TopRight|BottomLeft|BottomRight|TopStart|TopEnd|BottomStart|BottomEnd|StartStart|StartEnd|EndStart|EndEnd)?Radius$/;
+function percentage(value:unknown):number|undefined{if(typeof value!=='string'||!/^-?\d*\.?\d+%$/.test(value.trim()))return undefined;const ratio=parseFloat(value)/100;return Number.isFinite(ratio)?ratio:undefined;}
+function finiteMetric(value:unknown):number|undefined{const metric=typeof value==='number'?value:typeof value==='string'&&/^-?\d*\.?\d+(?:px)?$/.test(value.trim())?parseFloat(value):undefined;return typeof metric==='number'&&Number.isFinite(metric)?metric:undefined;}
+function nativeNumberValues<T extends Record<string,unknown>>(style:T):T{
+  const result={...style};
+  for(const [key,value] of Object.entries(style))if(nativeNumberStyles.has(key)&&value!==null&&value!==undefined){
+    const metric=(key==='opacity'||key==='shadowOpacity'?percentage(value):undefined)??finiteMetric(value);
+    if(metric===undefined)delete result[key];else (result as Record<string,unknown>)[key]=metric;
+  }
+  return result;
+}
+export type NativeTextBounds={width:number;height:number};
+export function nativeTextNeedsRadiusLayout(style:TextStyle):boolean{
+  return Object.entries(style).some(([key,value])=>radiusProperty.test(key)&&percentage(value)!==undefined)
+    &&(finiteMetric(style.width)===undefined||finiteMetric(style.height)===undefined);
+}
+/** Android 0.86 Text and TextInput radius setters accept Float, unlike View.
+ * Keep percentage View layout intact; only the text primitive resolves its own
+ * corner radius from its bounds before values cross the native bridge.
+ * https://github.com/react/react-native/blob/v0.86.3/packages/react-native/ReactAndroid/src/main/java/com/facebook/react/views/text/ReactTextViewManager.kt
+ */
+export function normalizeNativeTextStyle(style:TextStyle,bounds?:NativeTextBounds):TextStyle{
+  const result=nativeNumberValues(style as Record<string,unknown>);
+  const width=finiteMetric(style.width)??finiteMetric(bounds?.width)??0,height=finiteMetric(style.height)??finiteMetric(bounds?.height)??0;
+  for(const [key,value] of Object.entries(style))if(radiusProperty.test(key)&&value!==null&&value!==undefined){
+    const ratio=percentage(value),metric=ratio===undefined?finiteMetric(value):Math.max(0,Math.min(width,height))*Math.max(0,ratio);
+    if(metric===undefined||!Number.isFinite(metric))delete result[key];else result[key]=Math.max(0,metric);
+  }
+  return result as TextStyle;
+}
+export function resolveWorkspacePresentation(sheets:readonly WorkspaceSheet[],node:WorkspaceNode,ancestors:readonly WorkspaceNode[],width:number,inherited:TextStyle={},inheritedVariables:Record<string,string>={},elementDefaults:TextStyle={}):WorkspacePresentation{
+  // Shorthands must be applied after lower-priority or earlier longhands,
+  // even when their property key first appeared near the start of the sheet.
+  const winners=new Map<string,{value:string;priority:number;order:number}>();
+  let declarationOrder=0;
+  const offer=(key:string,value:string,priority:number)=>{
+    if((winners.get(key)?.priority??-1)>priority)return;
+    winners.set(key,{value,priority,order:declarationOrder++});
+    if(key!=='font')return;
+    const raw=value.replace(/\s*!important\s*$/i,'').trim();
+    let fontFields:Record<string,string>;
+    if(raw==='inherit')fontFields={'font-size':String(typeof inherited.fontSize==='number'?inherited.fontSize:14)+'px','font-weight':String(inherited.fontWeight??'normal'),'font-style':String(inherited.fontStyle??'normal'),'line-height':inheritedVariables['--cs-native-line-ratio']??(typeof inherited.lineHeight==='number'?String(inherited.lineHeight)+'px':'normal')};
+    else{
+      // Expand explicit supported size/line-height shorthands at their own
+      // declaration position. Unsupported font syntax keeps the existing path.
+      const parts=raw.match(/^(?:(.*?)\s+)?(\d*\.?\d+(?:px|rem|em|%))(?:\s*\/\s*([^\s]+))?\s+(.+)$/);
+      if(!parts)return;
+      const prefix=(parts[1]??'').split(/\s+/).filter(Boolean);
+      if(prefix.some(part=>!/^(?:normal|italic|bold|[1-9]00)$/.test(part)))return;
+      fontFields={'font-size':parts[2],'font-weight':prefix.find(part=>/^(?:bold|[1-9]00)$/.test(part))??'normal','font-style':prefix.includes('italic')?'italic':'normal','line-height':parts[3]??'normal'};
+    }
+    for(const [property,fontValue] of Object.entries(fontFields))if((winners.get(property)?.priority??-1)<=priority)winners.set(property,{value:fontValue,priority,order:declarationOrder++});
+  };
+  // Element defaults are a lower cascade layer. Relative authored sizes and
+  // font:inherit must still resolve against the actual parent's text metrics.
+  for(const [key,value] of Object.entries(elementDefaults))if(value!==undefined){
+    const property=key==='textDecorationLine'?'text-decoration':key.replace(/[A-Z]/g,char=>'-'+char.toLowerCase());
+    offer(property,typeof value==='number'&&['fontSize','lineHeight','letterSpacing'].includes(key)?String(value)+'px':String(value),-1);
+  }
+  for(let sheet=0;sheet<sheets.length;sheet++)for(const rule of sheets[sheet]){if(!conditionMatches(rule.condition,width,Number(inheritedVariables['--cs-native-viewport-width']??width),Number(inheritedVariables['--cs-native-viewport-height']??width))||!matchesWorkspaceSelector(rule.selector,node,ancestors))continue;for(const [key,value] of rule.declarations){const priority=(value.includes('!important')?3e9:0)+rule.specificity*1e5+sheet*10000+rule.order;offer(key,value,priority);}}
+  for(const [key,value] of Object.entries(node.props.style as CSSProperties??{}))if(value!==undefined&&value!==null)offer(key.replace(/[A-Z]/g,char=>'-'+char.toLowerCase()),String(value),2e9);const variables={...inheritedVariables};for(const [key,{value}] of winners)if(key.startsWith('--'))variables[key]=variablesIn(value,variables);const declarations=Object.fromEntries([...winners].filter(([key])=>!key.startsWith('--')).sort(([,a],[,b])=>a.priority-b.priority||a.order-b.order).map(([key,entry])=>[key,variablesIn(entry.value,variables).replace(/(-?\d*\.?\d+)(?:[ds]?v)([wh])/g,(_,n:string,axis:string)=>String(Number(n)*Number(variables['--cs-native-viewport-'+(axis==='w'?'width':'height')]??width)/100)+'px')]));
+  const box:Record<string,unknown>={},text:Record<string,unknown>={...inherited};const inheritedFont=typeof inherited.fontSize==='number'?inherited.fontSize:14,ownFont=length(declarations['font-size'],inheritedFont,width,inheritedFont),font=typeof ownFont==='number'?ownFont:percentage(ownFont)!==undefined?inheritedFont*percentage(ownFont)!:inheritedFont;text.fontSize=font;if(variables['--cs-native-line-ratio']&&!declarations['line-height'])text.lineHeight=font*Number(variables['--cs-native-line-ratio']);let grid:string|null=null,scroll:WorkspacePresentation['scroll']=null;
+  for(const [property,original] of Object.entries(declarations)){const raw=resolveWorkspaceColorMixes(original.replaceAll('currentColor',String(declarations.color==='currentColor'?inherited.color??'#173b57':declarations.color??inherited.color??'#173b57')));let key=camel(property),value:unknown=raw;if(property==='font'||raw==='inherit')continue;
+    if(property==='gap'){const parts=raw.split(/\s+/).map(part=>length(part,font,width));box.rowGap=parts[0];box.columnGap=parts[1]??parts[0];continue;}if(property==='display'){box.display=raw==='none'?'none':'flex';box.flexDirection=raw==='grid'?'column':['flex','inline-flex'].includes(raw)?'row':'column';continue;}if(property==='grid-template-columns'){grid=raw;continue;}if(property==='place-items'){box.alignItems='center';box.justifyContent='center';continue;}if(property==='overflow-x'&&['auto','scroll'].includes(raw)){scroll='horizontal';continue;}if((property==='overflow'||property==='overflow-y')&&['auto','scroll'].includes(raw)){scroll='vertical';continue;}if(property==='background'||property==='background-image'){if(/gradient\(/.test(raw)){const layers=splitWorkspaceCss(raw);box.experimental_backgroundImage=layers.filter(layer=>/gradient\(/.test(layer)).join(',');const color=layers.find(layer=>!layer.includes('('))??raw.match(/#[0-9a-f]{6}(?![0-9a-f])/i)?.[0];if(color)box.backgroundColor=color;}else if(!/url\(/.test(raw))box.backgroundColor=raw==='none'?'transparent':raw;continue;}if(property==='text-decoration'){text.textDecorationLine=raw.includes('underline')?'underline':'none';continue;}
+    if(property==='font-size'){text.fontSize=font;continue;}if(property==='line-height'){if(raw==='normal'){delete text.lineHeight;delete variables['--cs-native-line-ratio'];continue;}const parsed=length(raw,font,width,font),metric=percentage(parsed)!==undefined?font*percentage(parsed)!:parsed;if(typeof metric==='number'){const ratio=/^[\d.]+$/.test(raw);text.lineHeight=ratio?metric*font:metric;if(ratio)variables['--cs-native-line-ratio']=String(metric);else delete variables['--cs-native-line-ratio'];}continue;}if(property==='letter-spacing'&&raw==='normal'){text.letterSpacing=0;continue;}if(property==='font-weight'){text.fontWeight=['normal','bold'].includes(raw)?raw:String(Math.max(100,Math.min(900,Math.round(Number(raw)/100)*100)));continue;}if(property==='font-family')continue;if(property==='position'){box.position=raw==='fixed'?'absolute':raw==='sticky'?'relative':raw;continue;}
+    if(property==='flex'){const parts=raw.match(/^(\S+)(?:\s+(\S+))?(?:\s+(.+))?$/)?.slice(1).filter(value=>value!==undefined)??[];if(raw==='none'){box.flexGrow=0;box.flexShrink=0;}else if(parts.length===1)box.flex=Number(raw);else{box.flexGrow=Number(parts[0]);box.flexShrink=Number(parts[1]);const basis=length(parts[2],font,width);if(basis!==undefined)box.flexBasis=typeof basis==='number'&&/px$/.test(parts[2]??'')?basis*Number(variables['--cs-native-font-scale']??1):basis;}continue;}if(property==='aspect-ratio'){const parts=raw.split('/').map(Number);box.aspectRatio=parts.length===2?parts[0]/parts[1]:parts[0];continue;}
+    if(property==='inset'||/^(padding|margin)(?:-block|-inline)?$/.test(property)){const parts=raw.split(/\s+/).map(part=>length(part,font,width));if(property==='inset')['top','right','bottom','left'].forEach((side,i)=>{box[side]=parts[i]??parts[i%2]??parts[0];});else if(property.endsWith('-inline')){box[camel(property.split('-')[0]+'-left')]=parts[0];box[camel(property.split('-')[0]+'-right')]=parts[1]??parts[0];}else if(property.endsWith('-block')){box[camel(property.split('-')[0]+'-top')]=parts[0];box[camel(property.split('-')[0]+'-bottom')]=parts[1]??parts[0];}else ['Top','Right','Bottom','Left'].forEach((side,i)=>{box[key+side]=parts[i]??parts[i%2]??parts[0];});continue;}
+    if(property==='border-radius'){const parts=raw.split(/\s+/).map(part=>length(part,font,width));if(parts.length>1&&parts.length<=4&&parts.every(value=>value!==undefined)){['TopLeft','TopRight','BottomRight','BottomLeft'].forEach((corner,index)=>{box['border'+corner+'Radius']=parts[index]??parts[index%2]??parts[0];});continue;}}if(/^border(?:-(top|right|bottom|left))?$/.test(property)){const side=property==='border'?'':camel('-'+property.slice(7));if(raw==='0'||raw==='none')box['border'+side+'Width']=0;else{const parts=raw.match(/^(\S+)\s+(solid|dashed|dotted)\s+(.+)$/);if(parts){box['border'+side+'Width']=length(parts[1],font,width);box['border'+side+'Color']=parts[3];box.borderStyle=parts[2];}}continue;}if(!textKeys.has(key)&&!boxKeys.has(key))continue;if(['start','end'].includes(raw)&&['alignItems','alignSelf','alignContent','justifyContent'].includes(key))value='flex-'+raw;else if(!/(?:Color|color|Shadow|Family)$/.test(key)&&!['flexDirection','flexWrap','alignItems','alignSelf','alignContent','justifyContent','textAlign','textTransform','fontStyle','textDecorationLine','borderStyle','overflow'].includes(key))value=length(raw,font,width);if(value!==undefined&&!(typeof value==='number'&&!Number.isFinite(value)))(textKeys.has(key)?text:box)[key]=value;
+  }
+  if(typeof box.flexBasis==='number'&&/^-?[\d.]+(?:px)?$/.test(declarations['flex-basis']??''))box.flexBasis*=Number(variables['--cs-native-font-scale']??1);
+  if(!['grid','inline-grid'].includes(declarations.display)||grid==='none')grid=null;
+  if(grid){box.flexDirection='row';box.flexWrap='wrap';box.alignItems??='stretch';}return {box:nativeNumberValues(box) as ViewStyle,text:nativeNumberValues(text) as TextStyle,variables,grid,scroll,declarations};
+}
+function workspaceGridTracks(template: string): string[] {
+  const tracks: string[] = [];
+  let depth = 0, token = '';
+  for (const character of template.trim()) {
+    if (character === '(') depth++;
+    if (character === ')') depth--;
+    if (/\s/.test(character) && depth === 0) {
+      if (token) tracks.push(token);
+      token = '';
+    } else token += character;
+  }
+  if (token) tracks.push(token);
+  return tracks;
+}
+
+export function workspaceGridWidths(template: string, available: number, gap: number, fontScale = 1, itemCount?: number): number[] {
+  if (!template || template === 'none') return [];
+  const sourceTracks = workspaceGridTracks(template);
+  const scale = Math.max(1, fontScale);
+  const tracks = sourceTracks.flatMap(track => {
+    const repeat = track.match(/^repeat\(\s*(\d+|auto-fit|auto-fill)\s*,\s*([\s\S]+)\)$/);
+    if (!repeat) return [track];
+    // Card minimums may contain min()/calc() after CSS variables are resolved.
+    // Falling back to 180px changes the track count after native measurement.
+    const bounds = repeat[2].match(/^minmax\(([\s\S]*)\)$/);
+    const lower = bounds ? splitWorkspaceCss(bounds[1])[0] : repeat[2];
+    const measuredMinimum = length(lower, 14, available);
+    const minimum = typeof measuredMinimum === 'number' ? Math.max(1, measuredMinimum)
+      : typeof measuredMinimum === 'string' && measuredMinimum.endsWith('%') ? Math.max(1, available * parseFloat(measuredMinimum) / 100) : 180;
+    // A mixed template has explicitly positioned tracks, such as a calendar's
+    // time gutter plus seven days. Preserve that count when text is enlarged.
+    let count = /^\d+$/.test(repeat[1])
+      ? Math.max(1, Math.floor(Number(repeat[1]) / (sourceTracks.length === 1 ? scale : 1)))
+      : Math.max(1, Math.floor((available + gap) / (minimum * scale + gap)));
+    if (repeat[1] === 'auto-fit' && itemCount !== undefined) count = Math.min(count, Math.max(1, itemCount));
+    return Array.from({ length: count }, () => workspaceGridTracks(repeat[2])).flat();
+  });
+  const weights = tracks.map(track => Number(track.match(/([\d.]+)fr/)?.[1] ?? 0));
+  const fixed = tracks.map((track, index) => {
+    if (weights[index]) return 0;
+    const bounds = track.match(/^minmax\(\s*([\d.]+)(?:px)?\s*,\s*([\d.]+)px\s*\)$/);
+    return bounds ? Math.max(Number(bounds[1]), Number(bounds[2])) : Number(track.match(/([\d.]+)px/)?.[1] ?? available);
+  });
+  const free = Math.max(0, available - gap * (tracks.length - 1) - fixed.reduce((sum, width) => sum + width, 0));
+  const total = weights.reduce((sum, weight) => sum + weight, 0);
+  return tracks.map((_, index) => weights[index] ? free * weights[index] / total : Math.min(available, fixed[index]));
+}
+
+export function workspaceContentWidth(available:number,box:ViewStyle):number{const pixels=(value:unknown)=>typeof value==='string'&&value.endsWith('%')?parseFloat(value)*available/100:Number(value??0);return Math.max(0,available-pixels(box.paddingLeft??box.paddingHorizontal??box.padding)-pixels(box.paddingRight??box.paddingHorizontal??box.padding)-pixels(box.borderLeftWidth??box.borderWidth)-pixels(box.borderRightWidth??box.borderWidth));}

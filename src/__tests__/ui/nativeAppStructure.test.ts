@@ -63,8 +63,8 @@ describe('Native app structure (Prompt 110)', () => {
     platform.os = 'web';
     vi.resetModules();
     const webRouting = await import('@/lib/navigation/sessionRouting');
-    expect(webRouting.resolveSessionHomeRoute('business_admin')).toBe('/');
-    expect(webRouting.resolveSessionHomeRoute('business_manager')).toBe('/');
+    expect(webRouting.resolveSessionHomeRoute('business_admin')).toBe('/Desktop');
+    expect(webRouting.resolveSessionHomeRoute('business_manager')).toBe('/Desktop');
     expect(webRouting.resolveSessionHomeRoute('employee_portal')).toBe('/portal/employee');
     expect(webRouting.resolveSessionHomeRoute('client_portal')).toBe('/portal/client');
   });

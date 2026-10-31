@@ -40,8 +40,10 @@ export const liquidPortalNavigation: Record<
     { id: 'documents', label: 'Dokumente', glyph: '▤', route: '/portal/employee/documents', group: 'communication' },
     { id: 'uploads', label: 'Uploads', glyph: '↑', route: '/portal/employee/uploads', group: 'communication' },
     { id: 'messages', label: 'Nachrichten', glyph: '▱', route: '/portal/employee/messages', compact: true, group: 'communication' },
+    { id: 'announcements', label: 'Mitteilungen', glyph: '!', route: '/portal/employee/announcements', group: 'communication' },
     { id: 'payroll', label: 'Gehaltsstatistik', glyph: '€', route: '/portal/employee/payroll', group: 'account' },
     { id: 'academy', label: 'Meine Akademie', glyph: '△', route: '/portal/employee/akademie', group: 'work' },
+    { id: 'help', label: 'Hilfe', glyph: '?', route: '/portal/employee/help', group: 'account' },
     { id: 'profile', label: 'Profil', glyph: '♙', route: '/portal/employee/profile', group: 'account' },
   ],
   client: [

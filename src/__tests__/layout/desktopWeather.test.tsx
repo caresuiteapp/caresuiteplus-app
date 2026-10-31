@@ -2,12 +2,118 @@
 import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildSync } from 'esbuild';
+import { resolveWorkspacePresentation } from '@/lib/platform/nativeWorkspaceStyles.shared';
 import { parseDesktopWeather, useDesktopWeather } from '@/hooks/useDesktopWeather';
 let result: ReturnType<typeof useDesktopWeather>;
 let root: Root, host: HTMLDivElement;
 const observation = (temperature: unknown = 0, timestamp = new Date().toISOString()) => ({
   weather: { temperature, timestamp, icon: 'clear-night', source_ids: { temperature: 1 } },
   sources: [{ id: 1, station_name: 'Teststation' }],
+});
+
+// Exercise the generated native view; Android file/location storage remains at
+// the onChoose boundary. This verifies interactions, not Android layout.
+const flattenNativeStyle = (style: any): any => Array.isArray(style) ? Object.assign({}, ...style.map(flattenNativeStyle)) : style ?? {};
+const NativeBox = (p: any) => <div data-scroll={p.keyboardShouldPersistTaps} style={flattenNativeStyle(p.style)}>{p.children}</div>;
+const NativeText = (p: any) => <span role={p.accessibilityRole} aria-live={p.accessibilityLiveRegion}>{p.children}</span>;
+const NativePressable = (p: any) => {
+  const Host = p.accessibilityRole === 'button' ? 'button' : 'div';
+  return <Host aria-label={p.accessibilityLabel} aria-selected={p.accessibilityState?.selected} {...(Host === 'button' ? { type: 'button' as const, disabled: p.disabled } : {})} onClick={p.disabled ? undefined : p.onPress} style={flattenNativeStyle(typeof p.style === 'function' ? p.style({ pressed: false }) : p.style)}>{p.children}</Host>;
+};
+const nativeWeatherHost = {
+  View: NativeBox, ScrollView: NativeBox, Pressable: NativePressable,
+  Modal: (p: any) => p.visible ? <div role="dialog">{p.children}</div> : null,
+  StyleSheet: { create: (styles: any) => styles },
+  useWindowDimensions: () => ({ width: 360, height: 640, scale: 1, fontScale: 2 }),
+};
+let nativeWeatherDetailsStyle: Record<string, unknown> = {};
+const nativeWeatherDependencies: Record<string, unknown> = {
+  react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': nativeWeatherHost,
+  '@expo/vector-icons/Feather': (p: any) => <span aria-hidden="true" data-weather-icon={p.name} />,
+  '@/components/ui/CareSuiteNativeText': {
+    CareSuiteNativeText: NativeText,
+    CareSuiteNativeTextInput: (p: any) => <input aria-label={p.accessibilityLabel} value={p.value} onInput={event => p.onChangeText(event.currentTarget.value)} />,
+  },
+  '@/components/layout/NativeWorkspaceElements.native': {
+    NativeDetails: (p: any) => { nativeWeatherDetailsStyle = p.style; return <details>{p.children}</details>; }, NativeSummary: (p: any) => <summary>{p.children}</summary>,
+    NativeP: (p: any) => <p>{p.children}</p>, NativeA: (p: any) => <a href={p.href}>{p.children}</a>,
+  },
+};
+const nativeWeatherCompiled = buildSync({ entryPoints: ['src/liquid-command/screens/DesktopWeatherLocationDialog.native.tsx'], bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic', external: Object.keys(nativeWeatherDependencies) }).outputFiles[0].text;
+const nativeWeatherModule = { exports: {} as any };
+new Function('require', 'module', 'exports', nativeWeatherCompiled)((id: string) => {
+  if (!(id in nativeWeatherDependencies)) throw new Error(`Unexpected native weather dependency: ${id}`);
+  return nativeWeatherDependencies[id];
+}, nativeWeatherModule, nativeWeatherModule.exports);
+const NativeWeatherDialog = nativeWeatherModule.exports.DesktopWeatherLocationDialog;
+
+describe('native desktop weather selection', () => {
+  const choose = vi.fn(), close = vi.fn();
+  const show = async (visible = true, preferenceError: string | null = null) => {
+    await act(async () => root.render(<NativeWeatherDialog visible={visible} place={null} preferenceError={preferenceError} onChoose={choose} onClose={close} />));
+  };
+  const search = async (query: string) => {
+    const input = host.querySelector('input')!;
+    await act(async () => { input.value = query; input.dispatchEvent(new Event('input', { bubbles: true })); });
+  };
+  const select = (text: string) => [...host.querySelectorAll<HTMLButtonElement>('button')].find(button => button.textContent?.includes(text))!;
+  beforeEach(() => { choose.mockReset().mockResolvedValue(true); close.mockReset(); });
+
+  it('resolves the actual generated information style as a CSS line ratio', async () => {
+    await show();
+    expect(nativeWeatherDetailsStyle.lineHeight).toBe(1.5);
+    const details = { tag: 'details', props: { style: nativeWeatherDetailsStyle } };
+    const presentation = resolveWorkspacePresentation([], details, [], 360);
+    expect(presentation.text).toMatchObject({ fontSize: 12, lineHeight: 18 });
+    expect(resolveWorkspacePresentation([], { tag: 'p', props: {} }, [details], 360, presentation.text, presentation.variables).text.lineHeight).toBe(18);
+  });
+
+  it('uses the current weather view and local postcode search without network or a location prompt', async () => {
+    await show();
+    expect(host.textContent).toContain('IHR DESKTOP');
+    expect(host.textContent).toContain('Aktuelle Auswahl');
+    expect(host.textContent).toContain('auf diesem Gerät gespeichert');
+    expect(host.textContent).toContain('Mindestens zwei Zeichen eingeben und anschließend einen Treffer auswählen.');
+    expect(host.querySelector('[data-scroll="handled"]')).toBeTruthy();
+    await search('44628');
+    expect(host.textContent).toContain('1 passender Ort');
+    expect(select('Aktuellen Standort verwenden').getAttribute('aria-label')).toBe('Aktuellen Standort verwenden');
+    expect(select('Aktuellen Standort verwenden').querySelector('[data-weather-icon="crosshair"]')).toBeTruthy();
+    const hit = select('44628 Herne'); expect(hit).toBeTruthy();
+    await act(async () => hit.click());
+    expect(choose).toHaveBeenCalledWith(expect.objectContaining({ name: 'Herne', postcode: '44628', latitude: expect.any(Number), longitude: expect.any(Number) }));
+    expect(Object.keys(choose.mock.calls[0][0]).sort()).toEqual(['district', 'latitude', 'longitude', 'name', 'postcode', 'region']);
+    expect(close).toHaveBeenCalledOnce(); expect(fetch).not.toHaveBeenCalled();
+    expect(navigator.geolocation.getCurrentPosition).not.toHaveBeenCalled();
+    expect(host.querySelectorAll('details a')).toHaveLength(3);
+  });
+
+  it('waits for native storage, prevents duplicate choices and leaves failed storage open for retry', async () => {
+    let resolve!: (value: boolean) => void;
+    choose.mockImplementationOnce(() => new Promise<boolean>(done => { resolve = done; }));
+    await show(); await search('44628');
+    await act(async () => select('44628 Herne').click());
+    expect(host.textContent).toContain('Wetterort wird gespeichert'); expect(close).not.toHaveBeenCalled();
+    expect(select('Aktuellen Standort verwenden').disabled).toBe(true);
+    await act(async () => select('Aktuellen Standort verwenden').click()); expect(choose).toHaveBeenCalledOnce();
+    await act(async () => resolve(false));
+    await show(true, 'Speichern fehlgeschlagen'); expect(host.querySelector('[role="alert"]')?.textContent).toBe('Speichern fehlgeschlagen');
+    await act(async () => select('Aktuellen Standort verwenden').click());
+    expect(choose).toHaveBeenLastCalledWith(null); expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('reports thrown storage errors and ignores a late result after the dialog was closed and reopened', async () => {
+    choose.mockRejectedValueOnce(new Error('storage unavailable')); await show();
+    await act(async () => select('Aktuellen Standort verwenden').click());
+    expect(host.querySelector('[role="alert"]')?.textContent).toContain('konnte nicht gespeichert werden'); expect(close).not.toHaveBeenCalled();
+    let resolve!: (value: boolean) => void;
+    choose.mockImplementationOnce(() => new Promise<boolean>(done => { resolve = done; }));
+    await search('Herne'); await act(async () => select('Aktuellen Standort verwenden').click());
+    await show(false); await show(); expect(host.querySelector('input')?.value).toBe('');
+    await act(async () => resolve(true)); expect(close).not.toHaveBeenCalled();
+    await search('no-such-german-place-xyz'); expect(host.textContent).toContain('Kein passender Ort. Versuchen Sie einen anderen Ortsnamen oder die Postleitzahl.');
+  });
 });
 function Probe({ owner = 'test' }) { const weather = useDesktopWeather(owner); React.useLayoutEffect(() => { result = weather; }); return <span>{weather.message}</span>; }
 const render = async (owner = 'test') => { await act(async () => root.render(<Probe owner={owner} />)); };

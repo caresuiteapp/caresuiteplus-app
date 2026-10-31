@@ -28,6 +28,22 @@ const CSS = `
 .cs-calendar-dialog .cd-field small{font-size:13px;font-weight:400;color:var(--calendar-muted)}
 .cs-calendar-dialog .cd-field :is(input,select,textarea),.cs-calendar-dialog .cd-search{width:100%;min-width:0;min-height:48px;background:#fff!important;color:#173452!important;border:1px solid #b9cfe5;border-radius:12px;padding:11px 13px;font-weight:400}
 .cs-calendar-dialog .cd-field textarea{min-height:105px;resize:vertical}
+.cs-calendar-dialog .cd-people{margin:0;padding:18px;border:1px solid #c9ddef;border-radius:16px;background:#f8fbff;gap:12px}
+.cs-calendar-dialog .cd-people legend{padding:0 6px;font-size:16px}
+.cs-calendar-dialog .cd-people p{font-size:13px;font-weight:400}
+.cs-calendar-dialog .cd-people-toolbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+.cs-calendar-dialog .cd-people-search{flex:1 1 220px}
+.cs-calendar-dialog .cd-people-options{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,250px),1fr));gap:8px;max-height:240px;overflow-y:auto;overscroll-behavior:contain;padding:5px}
+.cs-calendar-dialog .cd-person-option{display:flex;align-items:center;gap:10px;min-width:0;min-height:46px;padding:10px 12px;border:1px solid #d4e3f2;border-radius:10px;background:#fff;cursor:pointer;font-weight:500}
+.cs-calendar-dialog .cd-person-option:has(input:checked){background:#edf6ff;border-color:#368ee9}
+.cs-calendar-dialog .cd-person-option input{width:20px;min-height:20px;height:20px;flex:0 0 20px;padding:0;margin:0;accent-color:#096fda}
+.cs-calendar-dialog .cd-person-option span{overflow-wrap:anywhere;min-width:0}
+.cs-calendar-dialog .cd-people-selected{display:flex;flex-wrap:wrap;gap:7px;list-style:none;padding:0;margin:0}
+.cs-calendar-dialog .cd-people-selected li{display:flex;align-items:center;gap:4px;max-width:100%;padding:3px 3px 3px 11px;border:1px solid #b9d9f5;border-radius:18px;background:#e9f3ff;font-size:13px;font-weight:500}
+.cs-calendar-dialog .cd-people-selected span{min-width:0;overflow-wrap:anywhere}
+.cs-calendar-dialog .cd-people-selected button{flex:0 0 32px;width:32px;min-height:32px;border:0;border-radius:50%;color:#145b9b;background:transparent;font-size:21px;line-height:1}
+.cs-calendar-dialog .cd-people-selected button:hover:not(:disabled){background:#cfe5fb}
+.cs-calendar-dialog .cd-sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
 .cs-calendar-dialog .cd-panel{border:1px solid #d4e3f2;border-radius:18px;padding:20px;background:linear-gradient(145deg,#fff,#f5f9ff);box-shadow:0 5px 18px #24629308;min-width:0}
 .cs-calendar-dialog .cd-choice{display:flex;flex-direction:column;gap:9px;width:100%;min-width:0;text-align:left;padding:18px;border:1px solid #c9ddef;border-radius:16px;color:var(--calendar-ink);background:#fff}
 .cs-calendar-dialog .cd-choice:hover:not(:disabled){border-color:#368ee9;background:#f1f8ff;box-shadow:0 7px 20px #0d6bd314;transform:translateY(-1px)}

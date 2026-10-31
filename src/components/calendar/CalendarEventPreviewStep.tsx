@@ -44,7 +44,7 @@ export function CalendarEventPreviewStep({ form, template, moduleKey, clientLabe
       <PreviewRow label="Raum" value={form.room} muted={text.muted} />
       <PreviewRow label="Beschreibung" value={form.description} muted={text.muted} />
       <PreviewRow label="Klient" value={clientLabel ?? (form.relatedClientId ? 'Zuordnung prüfen' : '')} muted={text.muted} />
-      <PreviewRow label="Mitarbeiter" value={employeeLabel ?? (form.relatedEmployeeId ? 'Zuordnung prüfen' : '')} muted={text.muted} />
+      <PreviewRow label="Mitarbeitende" value={employeeLabel ?? (form.relatedEmployeeId ? 'Zuordnung prüfen' : '')} muted={text.muted} />
       <PreviewRow label="Wohnbereich" value={form.relatedWardId} muted={text.muted} />
 
       <Text style={[styles.section, { color: text.muted }]}>Sichtbarkeit</Text>

@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '@/theme';
 
@@ -23,12 +24,12 @@ export function ClientDetailLinkTile({
       accessibilityRole="button"
       accessibilityLabel={`${label}, ${count}`}
     >
-      <Text style={styles.icon}>{icon}</Text>
+      <SemanticArtwork style={styles.icon} webSize={24} webColor={accentColor}>{icon}</SemanticArtwork>
       <View style={styles.textCol}>
         <Text style={styles.label}>{label}</Text>
         <Text style={[styles.count, { color: accentColor }]}>{count}</Text>
       </View>
-      <Text style={styles.arrow}>→</Text>
+      <SemanticArtwork style={styles.arrow} webSize={20}>→</SemanticArtwork>
     </Pressable>
   );
 }

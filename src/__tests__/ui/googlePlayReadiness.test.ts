@@ -37,8 +37,8 @@ describe('Google Play readiness — AppStart & session (Prompt 111)', () => {
   });
 
   it('resolveSessionHomeRoute routes business roles to the unified desktop', () => {
-    expect(resolveSessionHomeRoute('business_admin')).toBe('/');
-    expect(resolveSessionHomeRoute('business_manager')).toBe('/');
+    expect(resolveSessionHomeRoute('business_admin')).toBe('/Desktop');
+    expect(resolveSessionHomeRoute('business_manager')).toBe('/Desktop');
   });
 
   it('resolveSessionHomeRoute routes employee roles to employee portal', () => {

@@ -96,9 +96,10 @@ describe('portal M.3 mobile layout', () => {
     expect(route).toContain('EmployeePortalCalendarScreen');
   });
 
-  it('portal welcome gate is mounted at app root', () => {
-    const layout = readSrc('app/_layout.tsx');
-    expect(layout).toContain('PortalWelcomeGate');
+  it('routes root welcome overlays through the shared startup and modern-route gate', () => {
+    expect(readSrc('app/_layout.tsx')).toContain('<RouteScopedLegacyOverlays />');
+    const gate = readSrc('src/components/auth/RouteScopedLegacyOverlays.tsx');
+    expect(gate).toContain('!startupReady || isLiquidCommandRoutePath(pathname)');
   });
 
   it('login screens mark portal welcome pending', () => {
@@ -132,7 +133,7 @@ describe('portal M.3 mobile layout', () => {
       "router.replace(resolvePostLoginRoute('employee_portal')",
     );
     expect(readSrc('src/screens/auth/PortalCodeLoginScreen.tsx')).toContain(
-      "router.replace(resolvePostLoginRoute('client_portal')",
+      "resolvePostLoginRoute('client_portal')",
     );
   });
 

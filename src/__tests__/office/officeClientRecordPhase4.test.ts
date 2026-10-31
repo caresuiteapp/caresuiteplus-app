@@ -40,10 +40,12 @@ describe('Office ClientRecord rebuild', () => {
     expect(source).toContain('ClientRecordShiftsPanel');
   });
 
-  it('business office dashboard route has no Redirect', () => {
+  it('business office dashboard delegates to the shared saved-area resolver', () => {
     const source = readFileSync(path.join(root, 'app/business/office/dashboard.tsx'), 'utf8');
-    expect(source).not.toContain('Redirect');
-    expect(source).toContain('OfficeIndexScreen');
+    expect(source).toContain('canonicalDesktopCatalogRoute');
+    expect(source).toContain('useLocalSearchParams');
+    expect(source).toContain('query.append(key, item)');
+    expect(source).not.toContain('OfficeIndexScreen');
   });
 });
 

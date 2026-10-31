@@ -1,0 +1,28 @@
+{
+  "sourceBefore": "9e82143c86fa23263256cf5a5aa8f226096fed44",
+  "finding": "Native element defaults were merged into inherited text before CSS resolution. A relative h1 size was therefore multiplied by the native 28px fallback, rather than the 14px parent. The styled 360px/1.6 invoice title broke inside Rechnungen.",
+  "evidence": {
+    "run": 40419405234,
+    "source": "c478e8249278467b9d3aaafc7a25c3a96385cb72",
+    "artifact": 12696752568,
+    "archiveSha256": "da4880a290c139bf62c6eb15a0241e2047a83d1b73a7a44172b69bbdc1970ec6",
+    "image": "admin-audit-invoices-default-ready-360x800-scale-1.6.png",
+    "imageSha256": "5f6dc96d9405df1bef25680172275e7243f331f53b1a502da7b1466c6a0595ec"
+  },
+  "correction": "Pass actual inherited text separately; offer element defaults below all authored declarations. Explicit relative sizes and font:inherit use parent metrics, while unstyled elements keep their native fallback.",
+  "newExecutingCases": 7,
+  "browserCheck": "The invoice page heading must keep its complete word at every existing audit viewport, including 360px/1.6.",
+  "releaseAcceptance": false,
+  "validation": "Pending full CI and fresh original images.",
+  "beforeFontCorrectionCi176": {
+    "run": 40420286876,
+    "source": "9e82143c86fa23263256cf5a5aa8f226096fed44",
+    "completed": [
+      "source synchronization",
+      "pre-image executing test groups",
+      "TypeScript after JSX fixture typing correction",
+      "administration portal including horizontal invoice tabs"
+    ],
+    "fullResult": "Still in progress at font correction; not a completed acceptance."
+  }
+}

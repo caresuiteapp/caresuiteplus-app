@@ -18,6 +18,12 @@ beforeAll(async()=>{
  create function public.current_tenant_id() returns uuid language sql as $$select nullif(current_setting('test.tenant',true),'')::uuid$$;
  create function public.has_permission(p text) returns boolean language sql as $$select p=any(string_to_array(current_setting('test.permissions',true),','))$$;
  create function public.is_active_pfleger_client(p uuid) returns boolean language sql security definer as $$select exists(select 1 from public.clients where id=p and tenant_id=public.current_tenant_id() and active)$$;
+ -- Local fixture prerequisite for the source ledger's invoker-side own-profile predicate.
+ -- The application profile directory is not part of these medication patches.
+ alter table public.profiles enable row level security;
+ create policy fixture_own_profile_read on public.profiles for select to authenticated
+ using(id=auth.uid() and tenant_id=public.current_tenant_id());
+ grant select on public.profiles to authenticated;
  insert into tenants values('${tenant}'); insert into clients values('${client}','${tenant}',true);
  insert into profiles values('${actor}','${tenant}',true,'Test Pflegekraft','test@example.invalid'),('${witness}','${tenant}',true,'Test Kontrolle','witness@example.invalid');
  insert into medications values('${med}','${tenant}','${client}','Testpräparat','1 Tablette',now());
@@ -38,6 +44,10 @@ const event=async(request:string,extra={})=>(await db.query<{id:string}>('select
 it('belässt historische Daten ohne erfundenen Ereigniszeitpunkt',async()=>{
  const row=(await db.query<{occurred_at:unknown;order_snapshot:unknown;administered_at:unknown}>('select occurred_at,order_snapshot,administered_at from medication_administrations limit 1')).rows[0];
  expect(row.occurred_at).toBeNull();expect(row.order_snapshot).toBeNull();expect(row.administered_at).not.toBeNull();
+});
+it('begrenzt den lokalen Profil-Lesebestand auf das eigene Konto im eigenen Mandanten',async()=>{
+ expect((await db.query<{id:string}>('select id from public.profiles')).rows).toEqual([{id:actor}]);
+ expect((await db.query('select id from public.profiles where id=$1',[witness])).rows).toEqual([]);
 });
 it('speichert tatsächliche Gaben atomar, mit eingefrorener Verordnung und idempotent',async()=>{
  const key=crypto.randomUUID(),id=await event(key,{painScoreBefore:0});expect(await event(key,{painScoreBefore:0})).toBe(id);
@@ -95,7 +105,9 @@ it('protokolliert Pausierung und erlaubt exakt gleiche Wiederholungen trotz ver�
  const request=crypto.randomUUID(), p={status:'paused',reason:'Ärztliche Rücksprache dokumentiert',expectedUpdatedAt:await orderVersion()};
  const id=await changeStatus(request,p);expect(await changeStatus(request,p)).toBe(id);
  expect(await event(eventRequest)).toBe(given);
- await expect(event(crypto.randomUUID())).rejects.toThrow(/aktive/);
+ const countBefore=(await db.query<{count:number}>('select count(*)::int as count from medication_administrations')).rows[0].count;
+ await expect(event(crypto.randomUUID(),{expectedUpdatedAt:await orderVersion()})).rejects.toThrow(/aktive/);
+ expect((await db.query<{count:number}>('select count(*)::int as count from medication_administrations')).rows[0].count).toBe(countBefore);
  const row=(await db.query<{previous_status:string;next_status:string;before_data:{status:string};after_data:{status:string};recorded_by_name:string}>('select * from medication_order_status_events where id=$1',[id])).rows[0];
  expect(row.previous_status).toBe('active');expect(row.next_status).toBe('paused');expect(row.before_data.status).toBe('active');expect(row.after_data.status).toBe('paused');expect(row.recorded_by_name).toBe('Test Pflegekraft');
  await expect(changeStatus(request,{...p,reason:'Andere Begründung'})).rejects.toThrow(/anderen Daten/);

@@ -310,6 +310,8 @@ export function EmployeeAccessScreen() {
         {error ? <LiquidState kind="error" title="Anmeldung fehlgeschlagen" message={error} /> : null}
         <LiquidField
           label="Benutzername"
+          autoComplete="username"
+          textContentType="username"
           value={username}
           onChangeText={setUsername}
           autoCapitalize="none"
@@ -390,6 +392,8 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
         {error ? <LiquidState kind="error" title="Zugang nicht möglich" message={error} /> : null}
         <LiquidField
           label="Benutzername"
+          autoComplete="username"
+          textContentType="username"
           value={username}
           onChangeText={(value) => setUsername(sanitizePortalUsernameInput(value))}
           autoCapitalize="none"
@@ -398,6 +402,9 @@ export function PortalAccessScreen({ portal: _portal }: { portal: 'client' }) {
         />
         <LiquidField
           label="Portal-Code"
+          autoComplete="current-password"
+          textContentType="password"
+          secureTextEntry
           value={code}
           onChangeText={(value) => setCode(normalizePortalCodeInput(value))}
           autoCapitalize="characters"

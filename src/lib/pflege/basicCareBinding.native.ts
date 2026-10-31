@@ -1,0 +1,151 @@
+// Generated native presentation from src/lib/pflege/basicCareBinding.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeCrypto as crypto} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { cloneClientNativeOriginal, freezeClientNativeOriginal } from "../clients/clientRecordNativeOriginal.native.ts";
+import { basicCareInstantMicros, type BasicCareKind } from "./basicCarePacket.native.ts";
+export type BasicCareBindingScope = Readonly<{
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+}>;
+export type BasicCareBindingSources = Readonly<Record<'planVersion' | 'plan' | 'measure' | 'visit' | 'tour', Record<string, unknown>>>;
+export type BasicCareBindingCandidate = Readonly<{
+    planVersionId: string;
+    measureId: string;
+    visitId: string;
+    kind: BasicCareKind;
+    title: string;
+    localDate: string;
+    localStart: string;
+    timeZone: 'Europe/Berlin';
+    plannedInstants: readonly string[];
+    sources: BasicCareBindingSources;
+}>;
+export type BasicCareBindingContext = BasicCareBindingScope & Readonly<{
+    schemaVersion: '1';
+    stateFingerprint: string;
+    candidates: readonly BasicCareBindingCandidate[];
+}>;
+export type BasicCareBindingSelection = Readonly<{
+    planVersionId: string;
+    measureId: string;
+    visitId: string;
+    kind: BasicCareKind;
+    plannedAt: string;
+    secondPersonRequired: boolean;
+}>;
+export type BasicCareBindingSelectionIds = Pick<BasicCareBindingSelection, 'planVersionId' | 'measureId' | 'visitId'>;
+export type BasicCareBindingExpectedSelection = BasicCareBindingSelectionIds & Partial<BasicCareBindingSelection> & Readonly<{
+    title?: string;
+}>;
+export type BasicCareBindingPacket = BasicCareBindingScope & BasicCareBindingSelection & Readonly<{
+    schemaVersion: '1';
+    requestId: string;
+    timeZone: 'Europe/Berlin';
+    reason: string;
+    sources: BasicCareBindingSources;
+}>;
+export type BasicCareBindingReference = BasicCareBindingScope & Readonly<{
+    requestId: string;
+    packetHash: string;
+}>;
+export type BasicCareBindingPlan = BasicCareBindingSelection & Readonly<{
+    planSnapshotSha256: string;
+    title: string;
+    pressureOriginals: null;
+    fallOriginals: null;
+}>;
+export type BasicCareBindingStatus = BasicCareBindingReference & Readonly<{
+    schemaVersion: '1';
+    state: 'absent' | 'prepared' | 'committed' | 'cancelled';
+    bindingId: string | null;
+    plan: BasicCareBindingPlan | null;
+}>;
+const uuid = (v: unknown): v is string => typeof v === 'string' && v.length === 36 && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
+const sha = (v: unknown): v is string => typeof v === 'string' && v.length === 71 && /^sha256:[0-9a-f]{64}$/.test(v);
+const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+const exact = (v: Record<string, unknown>, keys: string) => Object.keys(v).sort().join(',') === keys.split(',').sort().join(',');
+const kinds = new Set(['body_care', 'oral_care', 'dressing', 'transfer_positioning', 'contracture_prevention', 'individual_prevention']);
+const fail = () => new Error('Die ausdrückliche native Grundpflege-Planbindung ist nicht vollständig bestätigt.');
+function capture<T>(value: T): T { const v = cloneClientNativeOriginal(value); function visit(x: unknown) { if (x === undefined)
+    throw fail(); if (x && typeof x === 'object')
+    for (const y of Object.values(x))
+        visit(y); } visit(v); return v; }
+function captureScope(value: BasicCareBindingScope): BasicCareBindingScope { if (!object(value) || ![Object.prototype, null].includes(Object.getPrototypeOf(value)))
+    throw fail(); const selected: Record<string, unknown> = {}; for (const key of ['tenantId', 'clientId', 'actorId']) {
+    const d = Object.getOwnPropertyDescriptor(value, key);
+    if (!d || !('value' in d) || !d.enumerable)
+        throw fail();
+    selected[key] = d.value;
+} return capture(selected) as BasicCareBindingScope; }
+export function assertBasicCareBindingScope(v: BasicCareBindingScope): void { const scope = captureScope(v); if (![scope.tenantId, scope.clientId, scope.actorId].every(uuid))
+    throw fail(); }
+export function assertBasicCareBindingReference(v: BasicCareBindingReference): void { assertBasicCareBindingScope(v); if (!uuid(v.requestId) || !sha(v.packetHash))
+    throw fail(); }
+export function assertBasicCareBindingSelection(v: BasicCareBindingSelection): void { assertBasicCareBindingExpectedSelection(v); if (!kinds.has(v.kind) || basicCareInstantMicros(v.plannedAt) === null || typeof v.secondPersonRequired !== 'boolean')
+    throw fail(); }
+export function assertBasicCareBindingExpectedSelection(v: BasicCareBindingExpectedSelection): void { if (!v || ![v.planVersionId, v.measureId, v.visitId].every(uuid) || v.kind !== undefined && !kinds.has(v.kind) || v.plannedAt !== undefined && basicCareInstantMicros(v.plannedAt) === null || v.secondPersonRequired !== undefined && typeof v.secondPersonRequired !== 'boolean' || v.title !== undefined && (typeof v.title !== 'string' || v.title.trim().length < 3 || v.title.length > 300))
+    throw fail(); }
+function localTime(v: unknown): string | null { if (typeof v !== 'string')
+    return null; const m = v.match(/^([01][0-9]|2[0-3]):([0-5][0-9]):([0-5][0-9])(?:\.([0-9]{1,6}))?$/); return m && m[0] === v ? `${m[1]}:${m[2]}:${m[3]}.${(m[4] ?? '').padEnd(6, '0')}` : null; }
+function validDay(v: unknown): v is string { if (typeof v !== 'string' || v.length !== 10 || !/^\d{4}-\d{2}-\d{2}$/.test(v))
+    return false; const d = new Date(`${v}T12:00:00Z`); return Number.isFinite(d.getTime()) && d.toISOString().slice(0, 10) === v; }
+function berlin(instant: string) { const m = basicCareInstantMicros(instant); if (m === null)
+    throw fail(); const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(Number(m / 1000n))), p = Object.fromEntries(parts.map(x => [x.type, x.value])); return { day: `${p.year}-${p.month}-${p.day}`, time: `${p.hour}:${p.minute}:${p.second}.${String((m % 1000000n + 1000000n) % 1000000n).padStart(6, '0')}` }; }
+function candidateIssue(c: BasicCareBindingCandidate, scope: BasicCareBindingScope) {
+    if (!object(c) || !exact(c, 'planVersionId,measureId,visitId,kind,title,localDate,localStart,timeZone,plannedInstants,sources') || ![c.planVersionId, c.measureId, c.visitId].every(uuid) || !kinds.has(c.kind) || typeof c.title !== 'string' || c.title.trim().length < 3 || c.title.length > 300 || !validDay(c.localDate) || !localTime(c.localStart) || c.timeZone !== 'Europe/Berlin' || !Array.isArray(c.plannedInstants) || c.plannedInstants.length > 2 || !object(c.sources) || !exact(c.sources, 'planVersion,plan,measure,visit,tour'))
+        throw fail();
+    const s = c.sources;
+    for (const x of Object.values(s))
+        if (!object(x) || !uuid(x.id) || x.tenant_id !== scope.tenantId)
+            throw fail();
+    if (s.planVersion.id !== c.planVersionId || s.measure.id !== c.measureId || s.visit.id !== c.visitId || s.planVersion.care_plan_id !== s.plan.id || s.measure.care_plan_id !== s.plan.id || s.plan.client_id !== scope.clientId || s.visit.client_id !== scope.clientId || s.visit.tour_id !== s.tour.id || s.measure.category !== c.kind || s.measure.title !== c.title || s.tour.tour_date !== c.localDate || localTime(s.visit.planned_start) !== localTime(c.localStart))
+        throw fail();
+    let previous: bigint | null = null;
+    for (const instant of c.plannedInstants) {
+        if (typeof instant !== 'string' || instant.length !== 27 || !/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{6}Z$/.test(instant))
+            throw fail();
+        const at = basicCareInstantMicros(instant), local = berlin(instant);
+        if (at === null || previous !== null && at <= previous || local.day !== c.localDate || local.time !== localTime(c.localStart))
+            throw fail();
+        previous = at;
+    }
+}
+export function decodeBasicCareBindingContext(input: unknown, scope: BasicCareBindingScope): BasicCareBindingContext { assertBasicCareBindingScope(scope); const v = capture(input) as BasicCareBindingContext; if (!object(v) || !exact(v, 'schemaVersion,tenantId,clientId,actorId,stateFingerprint,candidates') || v.schemaVersion !== '1' || v.tenantId !== scope.tenantId || v.clientId !== scope.clientId || v.actorId !== scope.actorId || !sha(v.stateFingerprint) || !Array.isArray(v.candidates) || v.candidates.length > 500)
+    throw fail(); const ids = new Set<string>(); for (const c of v.candidates) {
+    candidateIssue(c, scope);
+    const k = [c.planVersionId, c.measureId, c.visitId].join(':');
+    if (ids.has(k))
+        throw fail();
+    ids.add(k);
+} return freezeClientNativeOriginal(v); }
+export function makeBasicCareBindingPacket(scope: BasicCareBindingScope, candidate: BasicCareBindingCandidate, decision: {
+    plannedAt: string;
+    secondPersonRequired: boolean;
+    reason: string;
+}, requestId: string): BasicCareBindingPacket { const s = captureScope(scope), d = capture(decision); assertBasicCareBindingScope(s); const c = capture(candidate); candidateIssue(c, s); if (!uuid(requestId) || !c.plannedInstants.includes(d.plannedAt) || typeof d.secondPersonRequired !== 'boolean' || typeof d.reason !== 'string' || d.reason.trim().length < 10 || d.reason.trim().length > 2000)
+    throw fail(); return freezeClientNativeOriginal({ ...s, schemaVersion: '1', requestId, planVersionId: c.planVersionId, measureId: c.measureId, visitId: c.visitId, kind: c.kind, plannedAt: d.plannedAt, secondPersonRequired: d.secondPersonRequired, timeZone: 'Europe/Berlin', reason: d.reason.trim(), sources: c.sources }); }
+export function basicCareBindingSelection(packet: BasicCareBindingPacket): BasicCareBindingSelection & {
+    title: string;
+} { return freezeClientNativeOriginal({ planVersionId: packet.planVersionId, measureId: packet.measureId, visitId: packet.visitId, kind: packet.kind, plannedAt: packet.plannedAt, secondPersonRequired: packet.secondPersonRequired, title: String(packet.sources.measure.title) }); }
+export function basicCareBindingPacketText(packet: BasicCareBindingPacket): string { const p = capture(packet); assertBasicCareBindingScope(p); assertBasicCareBindingSelection(p); if (!uuid(p.requestId) || p.timeZone !== 'Europe/Berlin' || typeof p.reason !== 'string' || p.reason.trim().length < 10)
+    throw fail(); const { kind: _kind, ...wire } = p, text = JSON.stringify(wire); if (new TextEncoder().encode(text).length > 2097152)
+    throw fail(); return text; }
+export async function basicCareBindingPacketHash(text: string): Promise<string> { if (typeof text !== 'string' || !text.length || new TextEncoder().encode(text).length > 2097152)
+    throw fail(); const bytes = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(text)); return 'sha256:' + Array.from(new Uint8Array(bytes), x => x.toString(16).padStart(2, '0')).join(''); }
+export function decodeBasicCareBindingStatus(input: unknown, reference: BasicCareBindingReference, expected?: BasicCareBindingExpectedSelection): BasicCareBindingStatus { assertBasicCareBindingReference(reference); if (expected)
+    assertBasicCareBindingExpectedSelection(expected); const s = capture(input) as BasicCareBindingStatus; if (!object(s) || !exact(s, 'schemaVersion,tenantId,clientId,actorId,requestId,packetHash,state,bindingId,plan') || s.schemaVersion !== '1' || s.tenantId !== reference.tenantId || s.clientId !== reference.clientId || s.actorId !== reference.actorId || s.requestId !== reference.requestId || s.packetHash !== reference.packetHash || !['absent', 'prepared', 'committed', 'cancelled'].includes(s.state))
+    throw fail(); if (s.state !== 'committed') {
+    if (s.bindingId !== null || s.plan !== null)
+        throw fail();
+}
+else {
+    if (!uuid(s.bindingId) || !object(s.plan) || !exact(s.plan, 'planVersionId,measureId,visitId,kind,plannedAt,secondPersonRequired,planSnapshotSha256,title,pressureOriginals,fallOriginals'))
+        throw fail();
+    assertBasicCareBindingSelection(s.plan);
+    if (!sha(s.plan.planSnapshotSha256) || typeof s.plan.title !== 'string' || s.plan.title.trim().length < 3 || s.plan.title.length > 300 || s.plan.pressureOriginals !== null || s.plan.fallOriginals !== null)
+        throw fail();
+    if (expected)
+        for (const k of Object.keys(expected) as (keyof BasicCareBindingExpectedSelection)[])
+            if (expected[k] !== s.plan[k as keyof BasicCareBindingPlan])
+                throw fail();
+} return freezeClientNativeOriginal(s); }

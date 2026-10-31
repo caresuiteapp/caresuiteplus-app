@@ -89,10 +89,11 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(scroll).toContain('touchAction');
   });
 
-  it('ScreenHeader balances side insets for centered titles', () => {
+  it('ScreenHeader wraps its Web-matching title and moves phone actions to a full row', () => {
     const header = readSrc('src/components/layout/ScreenHeader.tsx');
-    expect(header).toContain('sideInsetWidth');
-    expect(header).toContain('width: sideInsetWidth');
+    expect(header).toContain("flexWrap: 'wrap'");
+    expect(header).toContain("phoneActions: { flexBasis: '100%' }");
+    expect(header).toContain('minHeight: 44');
   });
 
   it('signature modal uses fullscreen mobile capture with orientation gate and dismiss scope', () => {

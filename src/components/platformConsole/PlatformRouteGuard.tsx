@@ -1,5 +1,5 @@
 import { ReactNode, useEffect, useRef, useState } from 'react';
-import { usePathname, useRouter } from 'expo-router';
+import { useIsFocused, usePathname, useRouter } from 'expo-router';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
 import { buildPlatformLoginPath, resolvePlatformAuthRedirectPath } from '@/lib/platformConsole/platformLoginPath';
@@ -34,6 +34,7 @@ function usePlatformSessionReady() {
 export function PlatformSessionGate({ children }: PlatformRouteGuardProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const focused = useIsFocused();
   const { ready, hasSession } = usePlatformSessionReady();
   const redirectPathRef = useRef<string | null>(null);
   if (redirectPathRef.current === null) {
@@ -41,9 +42,11 @@ export function PlatformSessionGate({ children }: PlatformRouteGuardProps) {
   }
 
   useEffect(() => {
-    if (!ready || hasSession) return;
+    if (!focused || !ready || hasSession) return;
     router.replace(buildPlatformLoginPath(redirectPathRef.current ?? '/platform/dashboard') as never);
-  }, [ready, hasSession, router]);
+  }, [focused, ready, hasSession, router]);
+
+  if (!focused && (!ready || !hasSession)) return null;
 
   if (!ready) {
     return <LoadingState message="Sitzung wird geprüft…" />;
@@ -58,14 +61,17 @@ export function PlatformSessionGate({ children }: PlatformRouteGuardProps) {
 
 export function PlatformRouteGuard({ children }: PlatformRouteGuardProps) {
   const router = useRouter();
+  const focused = useIsFocused();
   const { platformUser, loading, error, isActivePlatformUser, refresh } = usePlatformAuth();
 
   useEffect(() => {
-    if (loading) return;
+    if (!focused || loading) return;
     if (!platformUser || !isActivePlatformUser) {
       router.replace('/platform/forbidden' as never);
     }
-  }, [loading, platformUser, isActivePlatformUser, router]);
+  }, [focused, loading, platformUser, isActivePlatformUser, router]);
+
+  if (!focused && (loading || error || !platformUser || !isActivePlatformUser)) return null;
 
   if (loading) {
     return <LoadingState message="Platform-Zugriff wird geprüft…" />;

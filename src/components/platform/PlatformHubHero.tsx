@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
@@ -56,7 +57,7 @@ export function PlatformHubHero({ roleKey, ocrJobCount = 0, aiJobCount = 0 }: Pl
           <Text style={styles.meta}>Dokumentenerkennung und KI-Assistenz — Demo-Jobs</Text>
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>🤖</Text>
+          <SemanticArtwork style={styles.iconText}>🤖</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

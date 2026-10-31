@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { CARESUITE_FONT_STACK } from '@/design/tokens/fontFamily';
 import { memo, useEffect, useMemo, useRef, useState, type Ref } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
@@ -227,7 +228,7 @@ function GoogleMapsLiveMapInner({
   if (resolvedMarkers.length === 0) {
     return (
       <View style={[styles.fallback, { minHeight: height }]}>
-        <Text style={styles.fallbackIcon}>🗺️</Text>
+        <SemanticArtwork style={styles.fallbackIcon} webSize={40}>🗺️</SemanticArtwork>
         <Text style={styles.fallbackText}>{fallbackMessage}</Text>
       </View>
     );

@@ -20,13 +20,16 @@ export {
 
 type Options = {
   enabled?: boolean;
+  /** Separate drafts for the exact tenant, person, role and assignment. */
+  scopeKey?: string | null;
 };
 
 /**
  * Persists visit execution UI state across rotation / soft reload within the same tab session.
  * Syncs workflow step to URL ?step= for deep-link restore.
  */
-export function useWorkflowPersistence(visitId: string | undefined, options: Options = {}) {
+export function useWorkflowPersistence(rawVisitId: string | undefined, options: Options = {}) {
+  const visitId = options.scopeKey === undefined ? rawVisitId : options.scopeKey && rawVisitId ? `${options.scopeKey}:visit:${rawVisitId}` : undefined;
   const { enabled = true } = options;
   const pathname = usePathname();
   const router = useRouter();

@@ -941,7 +941,7 @@ export async function updateLiveEmployeePortalTask(
       taskId,
       toPersistedTaskStatus(status),
       completionNote,
-      { actorProfileId: employeeId, actorEmployeeId: employeeId },
+      { actorEmployeeId: employeeId },
     );
     if (!updatedAssignment.ok) return updatedAssignment;
     updatedDetail = updatedAssignment.data;
@@ -1043,7 +1043,7 @@ export async function updateLiveEmployeePortalTasksBatch(
       tenantId,
       resolved.data.assignmentId,
       mapped,
-      { actorProfileId: employeeId, actorEmployeeId: employeeId },
+      { actorEmployeeId: employeeId },
     );
     if (!updated.ok) return updated;
     updatedDetail = updated.data;

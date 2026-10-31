@@ -1,0 +1,191 @@
+// Generated native presentation from src/screens/pflege/TreatmentCareWorkspaceScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone,nativeCrypto as crypto} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { useEffect, useRef, useState } from 'react';
+import { ScrollView, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { ScreenShell } from '@/components/layout';
+import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
+import { useAuth } from '@/lib/auth/context';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useCareRuntimePermissions as usePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { fetchTreatmentClients } from '@/lib/pflege/treatmentExecutionService';
+import { SourcePicker } from "./TreatmentSourcePicker.native.tsx";
+import { useTreatmentCorrectionStyles } from "./TreatmentCorrectionScreen.native.tsx";
+import { blankTreatmentCareEntry, makeTreatmentCarePacket, treatmentCareEntryIssue, type TreatmentCareEntry, type TreatmentCareKind, type TreatmentCareOriginal, type TreatmentCareSources } from "../../lib/pflege/treatmentCarePacket.native.ts";
+import { readTreatmentCarePage, readTreatmentCareSources } from "../../lib/pflege/treatmentCareRepository.supabase.native.ts";
+import { recoverTreatmentCare, saveTreatmentCareDurably } from "../../lib/pflege/treatmentCareWorkflow.native.ts";
+import { clearTreatmentCareDraft, readTreatmentCareDraft, saveTreatmentCareDraft } from "../../lib/pflege/treatmentCareDraft.native.ts";
+import { TreatmentCareReviewPanel } from "../../components/pflege/TreatmentCareReviewPanel.native.tsx";
+type Role = ReturnType<typeof usePermissions>['roleKey'];
+type Row = Record<string, unknown>;
+const kinds: {
+    key: TreatmentCareKind;
+    label: string;
+}[] = [{ key: 'order_review', label: 'Verordnung prüfen' }, { key: 'payer_review', label: 'Kostenträgerentscheidung' }, { key: 'injection', label: 'Injektion' }, { key: 'insulin', label: 'Insulin / Diabetes' }, { key: 'infusion', label: 'Infusion' }, { key: 'pump', label: 'Pumpe / Perfusor' }, { key: 'inhalation', label: 'Inhalation' }, { key: 'instillation', label: 'Instillation' }, { key: 'compression', label: 'Kompression' }, { key: 'access_drain', label: 'Zugang / Drainage' }, { key: 'other_hkp', label: 'Andere HKP' }, { key: 'order_revision', label: 'Verordnung ändern' }, { key: 'measurement_link', label: 'Messwert verknüpfen' }, { key: 'completion_review', label: 'Gesamtabschluss prüfen' }, { key: 'correction', label: 'Versioniert korrigieren' }];
+const actual = new Set<TreatmentCareKind>(['injection', 'insulin', 'infusion', 'pump', 'inhalation', 'instillation', 'compression', 'access_drain', 'other_hkp']);
+const admin = new Set<TreatmentCareKind>(['order_review', 'payer_review', 'order_revision', 'completion_review', 'correction']);
+const value = (row: Row, key: string) => typeof row[key] === 'string' ? String(row[key]) : '';
+const nullable = (v: string) => v.trim() || null;
+const amount = (v: string) => v.trim() || null;
+export function TreatmentCareWorkspaceScreen() { const tenant = useServiceTenantId(), { profile } = useAuth(), p = usePermissions(); return <TreatmentCareClientSelection key={`${tenant}:${profile?.id}:${p.roleKey}:${p.permissions.join(',')}`} tenantId={tenant ?? ''} actorId={profile?.id ?? ''} role={p.roleKey} canView={p.can('pflege.treatment.view') && p.can('pflege.orders.view')} canTreat={p.can('pflege.treatment.manage')} canAdmin={p.can('pflege.orders.manage')} canReview={p.can('pflege.documentation.sign')}/>; }
+function TreatmentCareClientSelection({ tenantId, actorId, role, canView, canTreat, canAdmin, canReview }: {
+    tenantId: string;
+    actorId: string;
+    role: Role;
+    canView: boolean;
+    canTreat: boolean;
+    canAdmin: boolean;
+    canReview: boolean;
+}) { const [clientId, setClientId] = useState(''), styles = useTreatmentCorrectionStyles(), router = useRouter(), q = useAsyncQuery(() => fetchTreatmentClients(tenantId, role), [tenantId, role], { enabled: !!tenantId && !!actorId && canView, queryKey: `${tenantId}:${actorId}:${role}:treatment-care-clients` }); if (!canView)
+    return <ScreenShell title="Behandlungspflege-Gesamtweg"><ErrorState message="Aktuelles Behandlungspflege- und Anordnungsleserecht erforderlich."/></ScreenShell>; if (clientId)
+    return <TreatmentCareEditor key={clientId} tenantId={tenantId} clientId={clientId} actorId={actorId} canTreat={canTreat} canAdmin={canAdmin} canReview={canReview} onClientChange={() => setClientId('')}/>; return <ScreenShell title="Behandlungspflege-Gesamtweg" subtitle="Pflegefall für Verordnung, Durchführung, Mess-/Infusionsbezug, Korrektur und Abschluss wählen"><ScrollView contentContainerStyle={styles.content}>{q.loading && !q.data ? <LoadingState message="Zugängliche aktive Pflegefälle werden vollständig geladen…"/> : !q.data ? <ErrorState message={q.error ?? 'Pflegefälle nicht verfügbar.'} onRetry={q.refresh}/> : <SourcePicker label="Pflegefall" rows={q.data.map(x => ({ id: x.id, label: x.name }))} value="" disabled={q.loading || !!q.refreshError} onChange={setClientId}/>} {q.refreshError ? <ErrorState message={q.refreshError} onRetry={q.refresh}/> : null}<PremiumButton title="Zur Behandlungspflegeliste" variant="secondary" onPress={() => router.replace('/pflege/behandlungspflege' as never)}/></ScrollView></ScreenShell>; }
+function TreatmentCareEditor({ tenantId, clientId, actorId, canTreat, canAdmin, canReview, onClientChange }: {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    canTreat: boolean;
+    canAdmin: boolean;
+    canReview: boolean;
+    onClientChange: () => void;
+}) {
+    const styles = useTreatmentCorrectionStyles(), router = useRouter(), alive = useRef(true), generation = useRef(0), [selectedKind, setSelectedKind] = useState<TreatmentCareKind | null>(null), [selectedOrder, setSelectedOrder] = useState(''), [selectedOriginal, setSelectedOriginal] = useState(''), [entry, setEntry] = useState<TreatmentCareEntry | null>(null), [reason, setReason] = useState(''), [draftAvailable, setDraftAvailable] = useState(false), [busy, setBusy] = useState(false), [uncertain, setUncertain] = useState(false), [error, setError] = useState<string | null>(null), [success, setSuccess] = useState<string | null>(null);
+    const current = () => alive.current;
+    const q = useAsyncQuery(async () => { const token = ++generation.current; const isCurrent = () => current() && generation.current === token; const [sources, history] = await Promise.all([readTreatmentCareSources({ tenantId, clientId, actorId, isCurrent }), readTreatmentCarePage({ tenantId, clientId, actorId, isCurrent })]); if (!isCurrent())
+        throw Error('Pflegefall oder Rechtekontext hat gewechselt.'); if (!sources.ok)
+        throw Error(sources.error); if (!history.ok)
+        throw Error(history.error); return { ok: true as const, data: { sources: sources.data, history: history.data } }; }, [tenantId, clientId, actorId], { enabled: !!tenantId && !!clientId && !!actorId, queryKey: `${tenantId}:${clientId}:${actorId}:treatment-care-workspace` });
+    useEffect(() => () => { alive.current = false; generation.current++; }, []);
+    const sources = q.data?.sources, history = q.data?.history ?? [], order = sources?.orders.find(x => x.id === selectedOrder) ?? null, original = history.find(x => x.headId === selectedOriginal) ?? null, mayWrite = selectedKind ? (admin.has(selectedKind) ? canAdmin : canTreat) : false, issue = entry ? treatmentCareEntryIssue(entry) : null;
+    const set = <K extends keyof TreatmentCareEntry>(key: K, next: TreatmentCareEntry[K]) => { if (!busy && !uncertain)
+        setEntry(old => old ? ({ ...old, [key]: next }) : old); };
+    const begin = (kind: TreatmentCareKind) => { if (!sources || busy || uncertain)
+        return; setSelectedKind(kind); setSelectedOriginal(''); setError(null); setSuccess(null); if (selectedOrder) {
+        const o = sources.orders.find(x => x.id === selectedOrder);
+        if (o)
+            setEntry(seed(kind, o));
+        else
+            setEntry(null);
+    }
+    else
+        setEntry(null); };
+    const chooseOrder = (id: string) => { if (!sources || busy || uncertain)
+        return; const o = sources.orders.find(x => x.id === id), context = { tenantId, clientId, orderId: id, actorId }; setSelectedOrder(id); setSelectedOriginal(''); setEntry(selectedKind && o ? seed(selectedKind, o) : null); setDraftAvailable(!!readTreatmentCareDraft(context)); setError(null); };
+    const chooseOriginal = (head: string) => { if (busy || uncertain)
+        return; const o = history.find(x => x.headId === head); if (!o)
+        return; setSelectedOriginal(head); setSelectedOrder(o.orderId); setSelectedKind(o.kind); if (!o.payload.material) {
+        setEntry(null);
+        setReason('');
+        setError('Diese historische Fassung bleibt im Verlauf exakt lesbar. Vor einer append-only Fortschreibung muss sie über die aktuelle Erfassungsmaske mit ausdrücklicher Materialentscheidung neu aufgenommen werden.');
+        return;
+    } setEntry(structuredClone(o.payload)); setReason(''); setError(null); };
+    const save = async () => { if (!entry || !sources || !selectedKind || busy)
+        return; const entryError = treatmentCareEntryIssue(entry); if (entryError) {
+        setError(entryError);
+        return;
+    } setBusy(true); setError(null); setSuccess(null); try {
+        const requestId = crypto.randomUUID();
+        let finalized = structuredClone(entry);
+        if (finalized.qualification.state === 'independently_confirmed')
+            finalized = { ...finalized, qualification: { ...finalized.qualification, reviewedBy: actorId } };
+        if (finalized.kind === 'correction')
+            finalized = { ...finalized, correction: { ...finalized.correction, approvedBy: actorId, approvedAt: new Date().toISOString(), replacementId: requestId } };
+        const packet = makeTreatmentCarePacket({ schemaVersion: '1', action: original ? 'revise' : 'create', requestId, tenantId, clientId, orderId: finalized.orderId, actorId, expectedHeadId: original?.headId ?? null, expectedRevision: original?.revision ?? 0, entry: finalized, reason: original ? reason : '', original: original ?? null, sources });
+        const result = await saveTreatmentCareDurably(packet, current);
+        if (result.ok) {
+            clearTreatmentCareDraft({ tenantId, clientId, orderId: finalized.orderId, actorId });
+            setDraftAvailable(false);
+            setSuccess('Der zusammenhängende Behandlungspflegevorgang wurde mit vollständiger nativer Quittung gespeichert.');
+            setUncertain(false);
+            setSelectedOriginal(result.data.headId);
+            setEntry(structuredClone(result.data.payload));
+            setReason('');
+            await q.refresh();
+        }
+        else {
+            setError(result.error);
+            setUncertain(result.uncertain === true);
+        }
+    }
+    catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Behandlungspflegevorgang konnte nicht gespeichert werden.');
+    }
+    finally {
+        if (current())
+            setBusy(false);
+    } };
+    const keepDraft = () => { if (!entry || !selectedOrder)
+        return; try {
+        saveTreatmentCareDraft({ tenantId, clientId, orderId: selectedOrder, actorId }, entry, original?.headId ?? null, reason);
+        setDraftAvailable(true);
+        setSuccess('Der unvollständige Entwurf wurde ausschließlich für dieses Profil, diesen Pflegefall und diese Verordnungsfassung lokal gesichert.');
+        setError(null);
+    }
+    catch (cause) {
+        setError(cause instanceof Error ? cause.message : 'Entwurf konnte nicht lokal gesichert werden.');
+    } };
+    const resumeDraft = () => { if (!selectedOrder)
+        return; const draft = readTreatmentCareDraft({ tenantId, clientId, orderId: selectedOrder, actorId }); if (!draft) {
+        setDraftAvailable(false);
+        setError('Kein passender lokaler Entwurf für diesen aktuellen Kontext gefunden.');
+        return;
+    } if (draft.originalHeadId && !history.some(x => x.headId === draft.originalHeadId)) {
+        setError('Historischer Verlaufskopf des lokalen Entwurfs ist nicht mehr aktuell vollständig lesbar.');
+        return;
+    } if (!draft.entry.material) {
+        setError('Dieser ältere lokale Entwurf enthält noch keine ausdrückliche Materialentscheidung und wird deshalb nicht schreibbar wiederaufgenommen.');
+        return;
+    } setEntry(structuredClone(draft.entry)); setSelectedKind(draft.entry.kind); setSelectedOriginal(draft.originalHeadId ?? ''); setReason(draft.reason); setSuccess(`Lokaler Entwurf vom ${draft.updatedAt} wiederaufgenommen; aktuelle Quellen werden beim Speichern erneut vollständig geprüft.`); setError(null); };
+    const recover = async () => { if (!entry || !selectedOrder)
+        return; setBusy(true); setError(null); const result = await recoverTreatmentCare({ tenantId, clientId, orderId: selectedOrder, actorId }, current); if (current()) {
+        setBusy(false);
+        if (result?.ok) {
+            setUncertain(false);
+            setSuccess('Die unveränderte ursprüngliche Behandlungspflegeanfrage wurde anhand ihrer nativen Quittung bestätigt.');
+            setEntry(structuredClone(result.data.payload));
+            setSelectedOriginal(result.data.headId);
+            await q.refresh();
+        }
+        else
+            setError(result?.error ?? 'Keine passende vollständige Behandlungspflegequittung gefunden.');
+    } };
+    if (q.loading && !q.data)
+        return <ScreenShell title="Behandlungspflege-Gesamtweg"><LoadingState message="Verordnungen, Kostenträgerentscheidungen, Durchführungen, Infusionen, Messwerte, Personen und Korrekturen werden vollständig geladen…"/></ScreenShell>;
+    if (!q.data || !sources)
+        return <ScreenShell title="Behandlungspflege-Gesamtweg"><ErrorState message={q.error ?? 'Gesamtweg nicht verfügbar.'} onRetry={q.refresh}/></ScreenShell>;
+    const x = entry?.execution, m = entry?.measurement, i = entry?.infusion, f = entry?.followUp;
+    return <ScreenShell title="Behandlungspflege-Gesamtweg" subtitle="Verordnung, Kostenträger, tatsächliche Behandlung, Messwert, Infusion, Rechtewechsel, Wiederaufnahme, Korrektur und Abschluss"><ScrollView contentContainerStyle={styles.content}>
+  <InfoBanner variant="info" title="Plan, Kostenträgerentscheid und tatsächliches Ereignis bleiben getrennt" message="Eine gültige Verordnung oder Genehmigung erzeugt keine Durchführung. Ein Messwert erzeugt keine Insulindosis. Historische Verordnungen, Durchführungen und Korrekturen bleiben append-only erhalten."/>
+  <SectionPanel title="Pflegefall, Verordnung und Vorgangsart"><SourcePicker label="Aktuelle vollständige Verordnungsfassung" rows={q.data.sources.orders.map(o => ({ id: o.id, label: `${value(o.payload, 'title') || 'Verordnung'} · ${value(o.payload, 'status') || 'Status offen'} · Revision ${o.revision} · ${o.recordedAt}` }))} value={selectedOrder} disabled={busy || uncertain} onChange={chooseOrder}/><Text style={styles.body}>Neuen verbundenen Vorgang beginnen</Text><FilterChipGroup wrap options={kinds} value={selectedKind ?? undefined} onChange={begin}/>{history.length ? <><Text style={styles.body}>Bestehenden vollständigen Verlauf append-only fortschreiben</Text><FilterChipGroup wrap options={history.map(o => ({ key: o.headId, label: `${kinds.find(k => k.key === o.kind)?.label ?? o.kind} · Rev. ${o.revision} · ${o.payload.lifecycle === 'completed' ? 'abgeschlossen' : 'offen'}` }))} value={selectedOriginal} onChange={chooseOriginal}/></> : null}</SectionPanel>
+  {entry && order ? <><SectionPanel title="Gebundene Verordnungsfassung"><PremiumInput label="Vorgangstitel" value={entry.title} onChangeText={v => set('title', v)}/><PremiumInput label="Plantermin" value={entry.plannedAt} onChangeText={v => set('plannedAt', v)}/><PremiumInput label="Verordnungsrevision" value={entry.orderVersion} editable={false}/><FilterChipGroup wrap options={['draft', 'active', 'paused', 'stopped', 'expired'].map(key => ({ key, label: key }))} value={entry.order.status} onChange={v => set('order', { ...entry.order, status: v as TreatmentCareEntry['order']['status'] })}/><PremiumInput label="Gültig ab" value={entry.order.validFrom} onChangeText={v => set('order', { ...entry.order, validFrom: v })}/><PremiumInput label="Gültig bis" value={entry.order.validUntil ?? ''} onChangeText={v => set('order', { ...entry.order, validUntil: nullable(v) })}/><PremiumInput label="Verordnende Person / Originalquelle" value={entry.order.prescriber} onChangeText={v => set('order', { ...entry.order, prescriber: v })}/><PremiumInput label="Behandlungsumfang" value={entry.order.scope} onChangeText={v => set('order', { ...entry.order, scope: v })} multiline/><PremiumInput label="Originalanweisung" value={entry.order.instructions} onChangeText={v => set('order', { ...entry.order, instructions: v })} multiline/>{entry.kind === 'order_revision' ? <><PremiumInput label="Historische Vorgängerverordnung" value={entry.order.previousOrderId ?? ''} onChangeText={v => set('order', { ...entry.order, previousOrderId: nullable(v) })}/><PremiumInput label="Konkreter Änderungsgrund und Wirksamkeit" value={entry.order.revisionReason} onChangeText={v => set('order', { ...entry.order, revisionReason: v })} multiline/></> : null}</SectionPanel>
+  <SectionPanel title="Kostenträgerentscheidung – eigener Status"><FilterChipGroup wrap options={['not_required', 'pending', 'approved', 'partially_approved', 'rejected', 'unknown'].map(key => ({ key, label: key }))} value={entry.payer.state} onChange={v => set('payer', { ...entry.payer, state: v as TreatmentCareEntry['payer']['state'] })}/>{entry.payer.state === 'approved' ? <SourcePicker label="Vollständig gelesene Kostenträgerentscheidung" rows={sources.approvals.filter(a => a.orderId === entry.orderId).map(a => ({ id: a.id, label: `${value(a.payload, 'state') || 'Entscheidung'} · ${value(a.payload, 'reference') || 'ohne Referenz'} · ${a.recordedAt}` }))} value={entry.payer.approvalId ?? ''} disabled={busy || uncertain} onChange={id => { const a = sources.approvals.find(x => x.id === id); if (a)
+            set('payer', { ...entry.payer, approvalId: id, reference: value(a.payload, 'reference'), validFrom: nullable(value(a.payload, 'valid_from')), validUntil: nullable(value(a.payload, 'valid_until')) }); }}/> : <PremiumInput label="Genehmigungsoriginal-ID" value={entry.payer.approvalId ?? ''} editable={false}/>}<PremiumInput label="Referenz" value={entry.payer.reference} onChangeText={v => set('payer', { ...entry.payer, reference: v })}/><PremiumInput label="Gültig ab" value={entry.payer.validFrom ?? ''} onChangeText={v => set('payer', { ...entry.payer, validFrom: nullable(v) })}/><PremiumInput label="Gültig bis" value={entry.payer.validUntil ?? ''} onChangeText={v => set('payer', { ...entry.payer, validUntil: nullable(v) })}/><PremiumInput label="Entscheidung, Teilumfang oder Klärungsbedarf" value={entry.payer.decisionNote} onChangeText={v => set('payer', { ...entry.payer, decisionNote: v })} multiline/></SectionPanel>
+  {actual.has(entry.kind) && x ? <SectionPanel title="Tatsächliche Durchführung oder Nichtdurchführung"><PremiumInput label="Tatsächlicher Ereigniszeitpunkt" value={entry.occurredAt ?? ''} onChangeText={v => set('occurredAt', nullable(v))}/><FilterChipGroup wrap options={['performed', 'partial', 'omitted', 'refused', 'failed'].map(key => ({ key, label: key }))} value={x.outcome} onChange={v => set('execution', { ...x, outcome: v as TreatmentCareEntry['execution']['outcome'] })}/><PremiumInput label="Tatsächliche Handlung" value={x.action} onChangeText={v => set('execution', { ...x, action: v })} multiline/><PremiumInput label="Substanz / Lösung" value={x.substance} onChangeText={v => set('execution', { ...x, substance: v })}/><PremiumInput label="Tatsächliche Menge" value={x.amount ?? ''} onChangeText={v => set('execution', { ...x, amount: amount(v) })}/><PremiumInput label="Originaleinheit" value={x.unit} onChangeText={v => set('execution', { ...x, unit: v })}/><PremiumInput label="Applikationsweg" value={x.route} onChangeText={v => set('execution', { ...x, route: v })}/><PremiumInput label="Lokalisation / Seite" value={x.site} onChangeText={v => set('execution', { ...x, site: v })}/><PremiumInput label="Gerät / Hilfsmittel" value={x.device} onChangeText={v => set('execution', { ...x, device: v })}/><PremiumInput label="Tatsächliche Beobachtung / Verträglichkeit" value={x.observation} onChangeText={v => set('execution', { ...x, observation: v })} multiline/><PremiumInput label="Abweichung / Nichtdurchführungsgrund" value={x.deviation} onChangeText={v => set('execution', { ...x, deviation: v })} multiline/></SectionPanel> : null}
+  <SectionPanel title="Materialoriginal und tatsächlicher Verbrauch"><FilterChipGroup wrap options={[{ key: 'not_required', label: 'Nicht erforderlich' }, { key: 'selected', label: 'Original ausgewählt, nicht verbraucht' }, { key: 'used', label: 'Tatsächlich verbraucht' }, { key: 'unavailable', label: 'Nicht verfügbar' }]} value={entry.material.state} onChange={v => set('material', { ...entry.material, state: v as TreatmentCareEntry['material']['state'], ...(v === 'not_required' || v === 'unavailable' ? { originalId: null, name: '', batch: '', expiresOn: null, quantity: null, unit: '', purpose: '' } : {}) })}/>{['selected', 'used'].includes(entry.material.state) ? <SourcePicker label="Vollständig gelesenes Materialoriginal" rows={sources.executions.filter(row => row.orderId === entry.orderId && (value(row.payload, 'material_name') || value(row.payload, 'material'))).map(row => ({ id: row.id, label: `${value(row.payload, 'material_name') || value(row.payload, 'material')} · Charge ${value(row.payload, 'material_batch') || value(row.payload, 'batch') || 'nicht angegeben'} · ${value(row.payload, 'material_quantity') || value(row.payload, 'quantity') || 'Menge offen'} ${value(row.payload, 'material_unit') || value(row.payload, 'unit')}` }))} value={entry.material.originalId ?? ''} disabled={busy || uncertain} onChange={id => { const row = sources.executions.find(x => x.id === id); if (row)
+            set('material', { ...entry.material, originalId: id, name: value(row.payload, 'material_name') || value(row.payload, 'material'), batch: value(row.payload, 'material_batch') || value(row.payload, 'batch'), expiresOn: nullable(value(row.payload, 'material_expiry') || value(row.payload, 'expires_on')), quantity: amount(value(row.payload, 'material_quantity') || value(row.payload, 'quantity')), unit: value(row.payload, 'material_unit') || value(row.payload, 'unit') }); }}/> : null}<PremiumInput label="Materialbezeichnung" value={entry.material.name} editable={false}/><PremiumInput label="Charge" value={entry.material.batch} editable={false}/><PremiumInput label="Ablaufdatum" value={entry.material.expiresOn ?? ''} editable={false}/><PremiumInput label="Tatsächliche Menge" value={entry.material.quantity ?? ''} editable={false}/><PremiumInput label="Originaleinheit" value={entry.material.unit} editable={false}/><PremiumInput label="Tatsächlicher Verwendungszweck" value={entry.material.purpose} onChangeText={v => set('material', { ...entry.material, purpose: v })} multiline/><PremiumInput label="Materialentscheidung oder Grenze" value={entry.material.reason} onChangeText={v => set('material', { ...entry.material, reason: v })} multiline/><InfoBanner variant="info" message="Die Materialauswahl dokumentiert nur den gebundenen Beleg. Sie erzeugt weder Bestellung noch Bestandsbuchung oder tatsächliche Behandlung."/></SectionPanel>
+  <SectionPanel title="Qualifikation und Delegation"><FilterChipGroup wrap options={[{ key: 'unconfirmed', label: 'Ungeklärt' }, { key: 'documented', label: 'Dokumentiert' }, { key: 'independently_confirmed', label: 'Unabhängig gegengeprüft' }]} value={entry.qualification.state} onChange={v => set('qualification', { ...entry.qualification, state: v as TreatmentCareEntry['qualification']['state'] })}/><SourcePicker label="Aktuelle ausführende Person" rows={sources.people.filter(person => person.payload.active === true).map(person => ({ id: person.id, label: `${value(person.payload, 'display_name') || value(person.payload, 'full_name') || person.id} · ${value(person.payload, 'qualification_state') || 'Qualifikation nicht bestätigt'}` }))} value={entry.qualification.performedBy ?? ''} disabled={busy || uncertain} onChange={id => { const person = sources.people.find(x => x.id === id); set('qualification', { ...entry.qualification, performedBy: id, evidence: person ? value(person.payload, 'qualification_state') : '' }); }}/><PremiumInput label="Aktuell authentifizierte Prüfperson" value={entry.qualification.state === 'independently_confirmed' ? actorId : entry.qualification.reviewedBy ?? ''} editable={false}/><PremiumInput label="Aktueller Qualifikationsbeleg" value={entry.qualification.evidence} editable={false}/><PremiumInput label="Delegationsumfang und Grenze" value={entry.qualification.delegation} onChangeText={v => set('qualification', { ...entry.qualification, delegation: v })} multiline/></SectionPanel>
+  {m ? <SectionPanel title="Messwertbezug ohne automatische Dosierung"><FilterChipGroup wrap options={[{ key: 'not_required', label: 'Nicht erforderlich – begründen' }, { key: 'unconfirmed', label: 'Erforderlich, aber ungeklärt' }, { key: 'linked', label: 'Tatsächliches Messoriginal verknüpft' }]} value={m.state} onChange={v => set('measurement', { ...m, state: v as TreatmentCareEntry['measurement']['state'] })}/>{m.state === 'linked' ? <SourcePicker label="Vollständig gelesenes Messoriginal" rows={sources.measurements.map(row => ({ id: row.id, label: `${value(row.payload, 'vital_key') || 'Messwert'} · ${value(row.payload, 'display_value') || value(row.payload, 'value')} ${value(row.payload, 'unit')} · ${row.recordedAt}${sources.invalidations.some(x => x.payload.measurement_id === row.id) ? ' · UNGÜLTIG' : ''}` }))} value={m.measurementId ?? ''} disabled={busy || uncertain} onChange={id => { const row = sources.measurements.find(x => x.id === id); if (row)
+            set('measurement', { ...m, measurementId: id, kind: value(row.payload, 'vital_key'), value: value(row.payload, 'display_value') || value(row.payload, 'value'), unit: value(row.payload, 'unit'), occurredAt: row.recordedAt }); }}/> : null}<PremiumInput label="Messwertart" value={m.kind} editable={false}/><PremiumInput label="Tatsächlicher Wert" value={m.value} editable={false}/><PremiumInput label="Originaleinheit" value={m.unit} editable={false}/><PremiumInput label="Messzeitpunkt" value={m.occurredAt ?? ''} editable={false}/><PremiumInput label="Begründete maximale Altersgrenze in Minuten" value={m.maximumAgeMinutes ?? ''} onChangeText={v => set('measurement', { ...m, maximumAgeMinutes: amount(v) })}/><PremiumInput label="Entscheidungsbezug oder Klärungsgrund" value={m.reason} onChangeText={v => set('measurement', { ...m, reason: v })} multiline/></SectionPanel> : null}
+  {i && (['infusion', 'pump'].includes(entry.kind) || i.state === 'linked') ? <SectionPanel title="Vollständiger Infusions-/Pumpenverlauf"><FilterChipGroup wrap options={[{ key: 'unconfirmed', label: 'Verlauf ungeklärt' }, { key: 'linked', label: 'Vollständiger Verlauf verknüpft' }]} value={i.state} onChange={v => set('infusion', { ...i, state: v as TreatmentCareEntry['infusion']['state'] })}/>{i.state === 'linked' ? <SourcePicker label="Vollständig gelesener aktueller Verlaufskopf" rows={sources.infusions.filter(row => row.orderId === entry.orderId).map(row => ({ id: row.id, label: `Infusionsfall ${value(row.payload, 'course_id')} · Sequenz ${value(row.payload, 'sequence')} · ${row.recordedAt}` }))} value={i.headId ?? ''} disabled={busy || uncertain} onChange={id => { const row = sources.infusions.find(x => x.id === id); if (row)
+            set('infusion', { ...i, headId: id, courseId: nullable(value(row.payload, 'course_id')), sequence: Number(row.payload.sequence) }); }}/> : null}<PremiumInput label="Infusionsfall-ID" value={i.courseId ?? ''} editable={false}/><PremiumInput label="Aktueller Verlaufskopf" value={i.headId ?? ''} editable={false}/><PremiumInput label="Vollständige Sequenznummer" value={i.sequence == null ? '' : String(i.sequence)} editable={false}/><FilterChipGroup wrap options={[{ key: 'gravity', label: 'Schwerkraft' }, { key: 'pump', label: 'Pumpe / Perfusor' }]} value={i.deviceMode} onChange={v => set('infusion', { ...i, deviceMode: v as 'gravity' | 'pump' })}/><PremiumInput label="Tatsächliche Rate ml/h" value={i.rateMlHour ?? ''} onChangeText={v => set('infusion', { ...i, rateMlHour: amount(v) })}/><PremiumInput label="Tatsächlich dokumentierte Gesamtmenge ml" value={i.deliveredMl ?? ''} onChangeText={v => set('infusion', { ...i, deliveredMl: amount(v) })}/><PremiumInput label="Tatsächlich dokumentierter Behälterrest ml" value={i.remainingMl ?? ''} onChangeText={v => set('infusion', { ...i, remainingMl: amount(v) })}/><PremiumInput label="Quell- und Geräteprüfung" value={i.sourceNote} onChangeText={v => set('infusion', { ...i, sourceNote: v })} multiline/></SectionPanel> : null}
+  {entry.kind === 'correction' ? <SectionPanel title="Versionierte Korrektur ohne Originaländerung"><SourcePicker label="Historisches Originalereignis" rows={sources.executions.map(row => ({ id: row.id, label: `${value(row.payload, 'title') || 'Durchführung'} · ${value(row.payload, 'outcome') || 'Ergebnis offen'} · ${row.recordedAt}` }))} value={entry.correction.targetId ?? ''} disabled={busy || uncertain} onChange={id => set('correction', { ...entry.correction, targetId: id })}/><PremiumInput label="Begründeter Nachtrag" value={entry.correction.reason} onChangeText={v => set('correction', { ...entry.correction, reason: v })} multiline/><PremiumInput label="Neue Ereignis-ID und Freigabe werden beim Versand gebunden" value="Wird aus Anfrage und aktueller Sitzung erzeugt" editable={false}/></SectionPanel> : null}
+  {f ? <SectionPanel title="Rücksprache, Personenentscheidung, Wiederaufnahme und Abschluss"><FilterChipGroup wrap options={[{ key: 'not_required', label: 'Nicht erforderlich – begründen' }, { key: 'pending', label: 'Offen' }, { key: 'scheduled', label: 'Vereinbart' }, { key: 'completed', label: 'Tatsächlich abgeschlossen' }]} value={f.state} onChange={v => set('followUp', { ...f, state: v as TreatmentCareEntry['followUp']['state'] })}/><PremiumInput label="Vereinbarter Kontrollzeitpunkt" value={f.scheduledAt ?? ''} onChangeText={v => set('followUp', { ...f, scheduledAt: nullable(v) })}/><PremiumInput label="Tatsächlicher Abschlusszeitpunkt" value={f.completedAt ?? ''} onChangeText={v => set('followUp', { ...f, completedAt: nullable(v) })}/><PremiumInput label="Verantwortliche Profil-ID" value={f.responsibleBy ?? ''} onChangeText={v => set('followUp', { ...f, responsibleBy: nullable(v) })}/><PremiumInput label="Rücksprache / Übergabe" value={f.communication} onChangeText={v => set('followUp', { ...f, communication: v })} multiline/><PremiumInput label="Tatsächliche Personenentscheidung / Grenze" value={f.personDecision} onChangeText={v => set('followUp', { ...f, personDecision: v })} multiline/><PremiumInput label="Tatsächliches Prüfergebnis" value={f.result} onChangeText={v => set('followUp', { ...f, result: v })} multiline/><FilterChipGroup wrap options={[{ key: 'open', label: 'Vorgang offen' }, { key: 'completed', label: 'Vorgang abgeschlossen' }]} value={entry.lifecycle} onChange={v => set('lifecycle', v as TreatmentCareEntry['lifecycle'])}/>{original ? <PremiumInput label="Konkreter Grund der append-only Fortschreibung" value={reason} onChangeText={setReason} multiline/> : null}</SectionPanel> : null}
+  {original ? <TreatmentCareReviewPanel tenantId={tenantId} clientId={clientId} orderId={original.orderId} actorId={actorId} canView canRequest={canTreat || canAdmin} canReview={canReview} treatmentOriginal={original}/> : null}
+  </> : null}
+  {issue && entry ? <InfoBanner variant="danger" title="Noch nicht speicherbar" message={issue}/> : null}{entry && !mayWrite ? <InfoBanner variant="warning" message={admin.has(entry.kind) ? 'Für diesen Verordnungs-/Freigabeweg fehlt das aktuelle Anordnungsverwaltungsrecht.' : 'Für diesen Durchführungsweg fehlt das aktuelle Behandlungspflege-Schreibrecht.'}/> : null}{q.refreshError ? <ErrorState message={q.refreshError} onRetry={q.refresh}/> : null}{error ? <ErrorState message={error}/> : null}{success ? <SuccessState message={success}/> : null}
+  {uncertain ? <><InfoBanner variant="warning" title="Speicherausgang ungeklärt" message="Die ursprüngliche Anfrage bleibt gesperrt. Es wird kein Ersatzwrite und keine zweite Durchführung erzeugt."/><PremiumButton title="Genau diese native Quittung erneut prüfen" loading={busy} onPress={recover}/></> : <View style={styles.actions}><PremiumButton title={original ? 'Gesamtverlauf append-only fortschreiben' : 'Behandlungspflegepaket vollständig speichern'} disabled={busy || !entry || !!issue || !mayWrite || !!q.refreshError} loading={busy} onPress={save}/>{entry ? <PremiumButton title="Unvollständigen Entwurf lokal sichern" variant="secondary" disabled={busy} onPress={keepDraft}/> : null}{draftAvailable ? <PremiumButton title="Gesicherten Entwurf im aktuellen Kontext fortsetzen" variant="secondary" disabled={busy} onPress={resumeDraft}/> : null}<PremiumButton title="Alle Quellen und Rechte neu laden" variant="secondary" disabled={busy} onPress={q.refresh}/><PremiumButton title="Pflegefall wechseln" variant="secondary" disabled={busy} onPress={onClientChange}/><PremiumButton title="Zur Behandlungspflegeliste" variant="secondary" disabled={busy} onPress={() => router.replace('/pflege/behandlungspflege' as never)}/></View>}
+  <InfoBanner variant="warning" message="Lokale Prüfungen bestätigen weder tatsächliche Durchführung noch ärztliche, pflegefachliche, Kostenträger-, Datenschutz-, Design- oder Rechtsfreigabe."/>
+ </ScrollView></ScreenShell>;
+}
+function seed(kind: TreatmentCareKind, source: TreatmentCareSources['orders'][number]): TreatmentCareEntry {
+    const p = source.payload, entry = blankTreatmentCareEntry(kind, source.clientId, source.id, source.recordedAt), treatmentType = actual.has(kind) ? (kind === 'pump' ? 'infusion' : kind) : 'none', payerState = value(p, 'insurer_approval_status');
+    return { ...entry,
+        order: { ...entry.order, status: value(p, 'status') as TreatmentCareEntry['order']['status'], validFrom: value(p, 'valid_from'), validUntil: nullable(value(p, 'valid_until')), prescriber: value(p, 'ordering_physician'), scope: value(p, 'title'), instructions: value(p, 'execution_instructions') },
+        payer: { ...entry.payer, state: payerState as TreatmentCareEntry['payer']['state'], approvalId: payerState === 'approved' ? source.id : null, reference: value(p, 'insurer_approval_reference'), validFrom: payerState === 'approved' ? nullable(value(p, 'valid_from')) : null, validUntil: payerState === 'approved' ? nullable(value(p, 'valid_until')) : null, decisionNote: 'Aktuelle Kostenträgerentscheidung und Behandlungsumfang getrennt prüfen.' },
+        execution: { ...entry.execution, treatmentType: treatmentType as TreatmentCareEntry['execution']['treatmentType'] },
+        measurement: { ...entry.measurement, state: kind === 'insulin' ? 'unconfirmed' : 'not_required', reason: kind === 'insulin' ? 'Erforderlichen Blutzuckerbezug ausdrücklich auswählen.' : 'Für diesen Vorgang wurde noch kein Messwertbezug als erforderlich bestätigt.' },
+        infusion: { ...entry.infusion, state: ['infusion', 'pump'].includes(kind) ? 'unconfirmed' : 'not_applicable' },
+        followUp: { ...entry.followUp, communication: 'Rücksprache und Übergabe tatsächlich dokumentieren.', personDecision: 'Einbeziehung und Entscheidung der betroffenen Person tatsächlich dokumentieren.' },
+    };
+}

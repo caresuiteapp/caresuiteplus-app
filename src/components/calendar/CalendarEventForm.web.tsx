@@ -3,6 +3,7 @@ import type { CalendarEventTemplate, CalendarModuleKey } from '@/types/calendar'
 import type { CalendarEventFormState, CalendarFormStep } from '@/types/calendar/calendarEventForm';
 import type { CareEntityOption } from '@/components/inputs/CareEntitySelect';
 import { berlinTimestamp } from '@/lib/calendar/employeeMonthPlanning';
+import { calendarEmployeeIds } from '@/lib/calendar/calendarParticipants';
 import { CalendarEventTemplatePicker } from './CalendarEventTemplatePicker.web';
 import { CalendarEventPreviewStep } from './CalendarEventPreviewStep.web';
 
@@ -36,12 +37,42 @@ function PersonSelect({ label, value, options, onChange, disabled, loading }: {
   const [search, setSearch] = useState('');
   const inputId = useId();
   const filtered = options.filter(person => person.value === value || person.label.toLocaleLowerCase('de-DE').includes(search.toLocaleLowerCase('de-DE')));
-  return <div className="cd-field"><label htmlFor={inputId}>{label}</label>
+  return <div className="cd-field cd-full"><label htmlFor={inputId}>{label}</label>
     {options.length > 8 ? <input type="search" aria-label={`${label} suchen`} placeholder="Name suchen…" value={search} onChange={e => setSearch(e.target.value)} disabled={disabled || loading} /> : null}
     <select id={inputId} value={value} onChange={e => onChange(e.target.value)} disabled={disabled || loading}>
       <option value="">{loading ? 'Wird geladen…' : 'Keine Zuordnung'}</option>{filtered.map(person => <option key={person.value} value={person.value}>{person.label}</option>)}
     </select>{search && !filtered.length ? <small>Keine passende Person gefunden.</small> : null}
   </div>;
+}
+function EmployeeMultiSelect({ values, options, onChange, disabled, loading }: {
+  values: string[]; options: CareEntityOption[]; onChange: (values: string[]) => void; disabled: boolean; loading: boolean;
+}) {
+  const [search, setSearch] = useState('');
+  const hintId = useId();
+  const query = search.trim().toLocaleLowerCase('de-DE');
+  const filtered = options.filter(person => person.label.toLocaleLowerCase('de-DE').includes(query));
+  const peopleById = new Map(options.map(person => [person.value, person]));
+  const selected = new Set(values);
+  const locked = disabled || loading;
+  return <fieldset className="cd-field cd-people cd-full" disabled={locked} aria-describedby={hintId}>
+    <legend>Mitarbeitende</legend>
+    <p id={hintId} className="cd-muted">Mehrere Personen auswählen oder das gesamte Team hinzufügen.</p>
+    <div className="cd-people-toolbar">
+      <label className="cd-field cd-people-search"><span className="cd-sr-only">Mitarbeitende suchen</span><input type="search" placeholder="Mitarbeitende suchen…" value={search} onChange={event => setSearch(event.target.value)} /></label>
+      <button type="button" className="cd-link" disabled={locked || !options.some(person => !selected.has(person.value))} onClick={() => onChange([...new Set([...values, ...options.map(person => person.value)])])}>Alle auswählen</button>
+      <button type="button" className="cd-link" disabled={locked || !values.length} onClick={() => onChange([])}>Auswahl aufheben</button>
+    </div>
+    <p role="status" className="cd-muted">{loading ? 'Mitarbeitende werden geladen…' : `${values.length} ${values.length === 1 ? 'Person ausgewählt' : 'Personen ausgewählt'}`}</p>
+    {values.length ? <ul className="cd-people-selected" aria-label="Ausgewählte Mitarbeitende">{values.map(id => {
+      const person = peopleById.get(id);
+      const name = person?.label ?? 'Nicht mehr verfügbare Person';
+      return <li key={id}><span>{name}</span><button type="button" disabled={locked} aria-label={`${name} aus Auswahl entfernen`} onClick={() => onChange(values.filter(value => value !== id))}>×</button></li>;
+    })}</ul> : null}
+    <div className="cd-people-options">{filtered.map(person => <label key={person.value} className="cd-person-option">
+      <input type="checkbox" checked={selected.has(person.value)} onChange={event => onChange(event.target.checked ? [...values, person.value] : values.filter(id => id !== person.value))} />
+      <span>{person.label}</span>
+    </label>)}{!loading && !filtered.length ? <p className="cd-muted">{query ? 'Keine passenden Mitarbeitenden gefunden.' : 'Keine Mitarbeitenden verfügbar.'}</p> : null}</div>
+  </fieldset>;
 }
 function partsFor(value: string, allDay: boolean) {
   const date = new Date(value);
@@ -86,7 +117,7 @@ export function CalendarEventForm({ step, moduleKey, form, template, onChange, o
     <Field label="Titel *" value={form.title} onChange={title => onChange({ title })} placeholder="z. B. Teamgespräch" full disabled={disabled} />
     <Field label="Beschreibung" value={form.description} onChange={description => onChange({ description })} placeholder="Was ist geplant?" multiline full disabled={disabled} />
     <PersonSelect label="Klient:in / Bewohner:in" value={form.relatedClientId} options={clients} onChange={relatedClientId => onChange({ relatedClientId, ...(!relatedClientId ? { isClientPortalVisible: false } : {}) })} disabled={disabled || form.sourceType === 'intake_appointment'} loading={peopleLoading} />
-    <PersonSelect label="Mitarbeitende" value={form.relatedEmployeeId} options={employees} onChange={relatedEmployeeId => onChange({ relatedEmployeeId, ...(!relatedEmployeeId ? { isEmployeePortalVisible: false } : {}) })} disabled={disabled} loading={peopleLoading} />
+    <EmployeeMultiSelect values={calendarEmployeeIds(form)} options={employees} onChange={participantEmployeeIds => onChange({ participantEmployeeIds, relatedEmployeeId: participantEmployeeIds[0] ?? '', ...(!participantEmployeeIds.length ? { isEmployeePortalVisible: false } : {}) })} disabled={disabled} loading={peopleLoading} />
   </div></>;
   if (step === 'datetime') return <><Heading title="Zeitraum und Treffpunkt">Uhrzeiten gelten für Deutschland. Bei ganztägigen Terminen zählt das Enddatum mit.</Heading><div className="cd-stack">
     <Toggle title="Ganztägiger Termin" description="Ein oder mehrere vollständige Kalendertage." value={form.allDay} disabled={disabled} onChange={allDay => {
@@ -103,10 +134,10 @@ export function CalendarEventForm({ step, moduleKey, form, template, onChange, o
     <Toggle title="Zentraler Kalender" description="In der Übersicht aller Bereiche anzeigen." value={form.isOfficeVisible} onChange={isOfficeVisible => onChange({ isOfficeVisible })} disabled={disabled} />
     <Toggle title="Kalender des Bereichs" description="Im zugehörigen Bereich anzeigen." value={form.isModuleVisible} onChange={isModuleVisible => onChange({ isModuleVisible })} disabled={disabled} />
     <Toggle title="Klientenportal" description={form.relatedClientId ? 'Für die zugeordnete Person freigeben.' : 'Zuerst eine Klientin oder einen Klienten zuordnen.'} value={form.isClientPortalVisible} onChange={isClientPortalVisible => onChange({ isClientPortalVisible })} disabled={disabled || !form.relatedClientId || form.sourceType === 'intake_appointment'} />
-    <Toggle title="Mitarbeiterportal" description={form.relatedEmployeeId ? 'Für die zugeordnete Person freigeben.' : 'Zuerst eine mitarbeitende Person zuordnen.'} value={form.isEmployeePortalVisible} onChange={isEmployeePortalVisible => onChange({ isEmployeePortalVisible })} disabled={disabled || !form.relatedEmployeeId || form.sourceType === 'intake_appointment'} />
+    <Toggle title="Mitarbeiterportal" description={calendarEmployeeIds(form).length ? 'Im Portal anzeigen und allen ausgewählten Mitarbeitenden zuordnen.' : 'Zuerst Mitarbeitende auswählen.'} value={form.isEmployeePortalVisible} onChange={isEmployeePortalVisible => onChange({ isEmployeePortalVisible })} disabled={disabled || !calendarEmployeeIds(form).length || form.sourceType === 'intake_appointment'} />
     <Field label="Interne Notiz" value={form.internalNote} onChange={internalNote => onChange({ internalNote })} placeholder="Nur für die Verwaltung" multiline disabled={disabled} />
     <Field label="Hinweis für die Portale" value={form.publicNote} onChange={publicNote => onChange({ publicNote })} placeholder="Für Personen mit freigegebenem Portal" multiline disabled={disabled} />
   </div></div></>;
-  if (step === 'preview') return <><Heading title="Prüfen und speichern">Kontrolliere Zeitraum, Zuordnung und Freigaben.</Heading><CalendarEventPreviewStep form={form} template={template} moduleKey={moduleKey} clientLabel={clients.find(person => person.value === form.relatedClientId)?.label} employeeLabel={employees.find(person => person.value === form.relatedEmployeeId)?.label} /></>;
+  if (step === 'preview') return <><Heading title="Prüfen und speichern">Kontrolliere Zeitraum, Zuordnung und Freigaben.</Heading><CalendarEventPreviewStep form={form} template={template} moduleKey={moduleKey} clientLabel={clients.find(person => person.value === form.relatedClientId)?.label} employeeLabel={calendarEmployeeIds(form).map(id => employees.find(person => person.value === id)?.label ?? 'Nicht mehr verfügbare Person').join('\n')} /></>;
   return null;
 }

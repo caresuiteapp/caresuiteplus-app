@@ -15,6 +15,7 @@ import { visitSupabaseRepository } from '@/lib/assist/repositories/visitReposito
 import { mergeExpandedAssistVisitCalendarEvents } from './assistVisitCalendarRecurrence';
 import { buildAbsenceEvents, buildBirthdayEvents, buildPublicHolidayEvents } from './assistCalendarOperationalEvents';
 import { toTimezoneDateKey } from '@/lib/office/calendarDateUtils';
+import { calendarEventEmployeeIds } from './calendarParticipants';
 
 type WorkspaceResult = ServiceResult<CalendarEvent[]> & { refreshError?: string };
 type BirthdayRow = Parameters<typeof buildBirthdayEvents>[0][number];
@@ -117,10 +118,14 @@ export async function getWorkspaceCalendarEvents(params: GetCalendarEventsParams
     if (absencesResult.status === 'rejected') warnings.push('Abwesenheiten konnten nicht sicher geprüft werden.');
     const names = (rows: BirthdayRow[]) => new Map(rows.map((row) => [row.id, `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim()]));
     const employeeNames = names(employees), clientNames = names(clients);
-    events = events.map((event) => ({ ...event,
-      employeeName: event.employeeName?.trim() || employeeNames.get(event.employeeId ?? event.record?.relatedEmployeeId ?? ''),
-      clientName: event.clientName?.trim() || clientNames.get(event.record?.relatedClientId ?? ''),
-    }));
+    events = events.map((event) => {
+      const ids = calendarEventEmployeeIds(event);
+      const selectedNames = ids.map(id => employeeNames.get(id)).filter(Boolean).join(', ');
+      return { ...event,
+        employeeName: (ids.length > 1 ? selectedNames : event.employeeName?.trim()) || selectedNames || event.employeeName?.trim(),
+        clientName: event.clientName?.trim() || clientNames.get(event.record?.relatedClientId ?? ''),
+      };
+    });
     // Birthday/holiday builders expect floating dates. Convert true range instants first.
     const dayStart = params.rangeStart ? `${toTimezoneDateKey(params.rangeStart)}T00:00:00.000Z` : undefined;
     const dayEnd = params.rangeEnd ? `${toTimezoneDateKey(params.rangeEnd)}T23:59:59.999Z` : undefined;

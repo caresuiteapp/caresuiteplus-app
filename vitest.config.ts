@@ -16,7 +16,15 @@ export default defineConfig({
     // silently switch all subsequently executed service tests to live mode.
     unstubEnvs: true,
     env: {
+      // Unit fixtures must not inherit a deployment's full/live edition or
+      // backend credentials. Production exports do not load this config;
+      // suites that cover production paths stub their own environment.
+      APP_ENV: 'test',
+      EXPO_PUBLIC_APP_EDITION: '',
       EXPO_PUBLIC_DEMO_MODE: 'true',
+      EXPO_PUBLIC_SUPABASE_URL: '',
+      EXPO_PUBLIC_SUPABASE_ANON_KEY: '',
+      EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY: '',
     },
   },
   resolve: {

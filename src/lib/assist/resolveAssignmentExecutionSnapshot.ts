@@ -441,8 +441,10 @@ function buildSnapshotFromRows(input: {
   );
 
   const dims = assignmentStatusToDimensions(assignmentStatus);
+  // Planned and ongoing tasks are expected work, not missing visit results.
+  // Keep the raw count for completion guards; flag it once service has ended.
   const isIncomplete =
-    openRequiredTasks > 0 ||
+    (dims.execution === 'completed' && openRequiredTasks > 0) ||
     documentationMissing ||
     signatureMissing ||
     isVisitIncomplete({

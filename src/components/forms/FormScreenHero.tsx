@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
@@ -74,7 +75,7 @@ export function FormScreenHero({
           {meta ? <Text style={styles.meta}>{meta}</Text> : null}
         </View>
         <View style={[styles.iconBadge, { borderColor: `${accent}59` }]}>
-          <Text style={styles.iconText}>{icon}</Text>
+          <SemanticArtwork style={styles.iconText}>{icon}</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

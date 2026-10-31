@@ -46,6 +46,13 @@ const click = async (label: string) => { await act(async () => [...host.querySel
 const edit = async () => { await act(async () => { input().value = 'unsaved'; input().dispatchEvent(new Event('input', { bubbles: true })); }); };
 
 describe('budget drafts inside the Web client record', () => {
+  it('reconsiders the requested destination when asynchronously available tabs change', async () => {
+    state.requested = 'dokumente'; state.tabs = ['uebersicht']; await render();
+    expect(host.querySelector('[data-other-tab=uebersicht]')).toBeTruthy();
+    state.tabs = ['uebersicht', 'dokumente']; await render();
+    expect(host.querySelector('[data-other-tab=dokumente]')).toBeTruthy();
+    expect(state.setParams).toHaveBeenLastCalledWith({ tab: 'dokumente', csPage_ClientRecordScreen_activeTab: 'dokumente' });
+  });
   it('forwards the real Web panel guard and retains its draft when discarding is rejected', async () => {
     await render(); await edit(); const previous = input(); await click('dokumente');
     expect(state.confirm).toHaveBeenCalledOnce(); expect(input()).toBe(previous); expect(input().value).toBe('unsaved'); expect(state.setParams).not.toHaveBeenCalled();

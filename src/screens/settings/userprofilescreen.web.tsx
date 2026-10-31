@@ -1,3 +1,4 @@
+import { AccountSecurityCenter } from '@/components/auth/AccountSecurityCenter';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { SettingsScreenFrame } from '@/components/settings/settingsscreenframe';
@@ -261,6 +262,7 @@ function UserProfileAccountEditor({ auth, profile, user }: {
   return <>
     {signOutError ? <div className="cs-profile-controller-error" role="alert">{signOutError}</div> : null}
     <UserProfileWorkspace
+      securityContent={<AccountSecurityCenter />}
       profile={{ ...toDraft(profile), email: safeEmail, roleLabel: role ? ROLE_LABELS[role] : 'Noch nicht zugeordnet',
         displayName: [profile.firstName, profile.lastName].filter(Boolean).join(' ').trim() || profile.displayName || 'Ihr Profil',
         avatarUrl: storedAvatar?.url }}

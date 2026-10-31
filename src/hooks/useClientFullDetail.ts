@@ -7,10 +7,14 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useAsyncQuery } from './core';
 
 export function useClientFullDetail(clientId: string | undefined) {
-  const { profile } = useAuth();
+  const { profile, user, portalSession } = useAuth();
   const tenantId = useServiceTenantId();
   const { can } = usePermissions();
+  const canViewRecord = can('office.clients.view');
   const canViewSensitive = can('office.clients.view_sensitive');
+  const actorId = user?.id ?? profile?.id ?? null;
+  const scope = JSON.stringify([tenantId, clientId, actorId, profile?.id, profile?.roleKey, portalSession?.accountId, canViewRecord, canViewSensitive]);
+  const enabled = Boolean(tenantId && clientId && actorId && canViewRecord);
 
   const query = useAsyncQuery(
     () => {
@@ -22,16 +26,16 @@ export function useClientFullDetail(clientId: string | undefined) {
         canViewSensitive,
       });
     },
-    [tenantId, clientId, canViewSensitive, profile?.roleKey],
-    { enabled: Boolean(tenantId && clientId) },
+    [scope],
+    { enabled, queryKey: scope },
   );
 
   const refresh = useCallback(() => query.refresh(), [query]);
 
   return {
     data: query.data as ClientFullDetail | null,
-    loading: query.loading,
-    error: query.error,
+    loading: enabled && query.loading,
+    error: !canViewRecord ? 'Für diese Akte fehlen die erforderlichen Leserechte.' : query.error,
     refresh,
     notFound: !query.loading && !query.error && !query.data,
     canViewSensitive,

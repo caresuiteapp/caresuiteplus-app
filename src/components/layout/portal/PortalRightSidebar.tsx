@@ -1,3 +1,5 @@
+import { SemanticIconLabel } from '@/components/navigation/SemanticIconLabel';
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useState } from 'react';
 import {
   Linking,
@@ -136,7 +138,7 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
                 style={[styles.actionBtn, webCursor]}
                 accessibilityRole="button"
               >
-                <Text style={styles.actionIcon}>{action.icon}</Text>
+                <SemanticArtwork webSize={20} webColor={panelText.primary} style={styles.actionIcon}>{action.icon}</SemanticArtwork>
                 <Text style={[type.caption, { color: panelText.primary, fontWeight: '600' }]}>
                   {action.label}
                 </Text>
@@ -150,19 +152,13 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
             SUPPORT & HILFE
           </Text>
           <Pressable onPress={() => setHelpOpen(true)} style={styles.supportLink}>
-            <Text style={[type.caption, { color: panelText.secondary, fontWeight: '600' }]}>
-              ❓ Hilfe & Kontakt
-            </Text>
+            <SemanticIconLabel symbol="❓" label="Hilfe & Kontakt" style={[type.caption, { color: panelText.secondary, fontWeight: '600' }]} />
           </Pressable>
           <Pressable onPress={() => openExternal(SUPPORT_LINKS.privacy)} style={styles.supportLink}>
-            <Text style={[type.caption, { color: panelText.secondary, fontWeight: '600' }]}>
-              🔒 Datenschutz
-            </Text>
+            <SemanticIconLabel symbol="🔒" label="Datenschutz" style={[type.caption, { color: panelText.secondary, fontWeight: '600' }]} />
           </Pressable>
           <Pressable onPress={() => router.push('/portal/client/help' as never)} style={styles.supportLink}>
-            <Text style={[type.caption, { color: panelText.secondary, fontWeight: '600' }]}>
-              📋 Betroffenenrechte
-            </Text>
+            <SemanticIconLabel symbol="📋" label="Betroffenenrechte" style={[type.caption, { color: panelText.secondary, fontWeight: '600' }]} />
           </Pressable>
         </View>
       </ScrollView>

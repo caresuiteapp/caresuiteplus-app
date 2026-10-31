@@ -32,7 +32,8 @@ describe('client operational data R15', () => {
   it('changes status and generates care-level dependent document successors', () => {
     const repository = read('src/lib/clients/repositories/clientIntakeRepository.supabase.ts');
     const service = read('src/lib/clients/clientCareLevelDocumentSync.ts');
-    expect(repository).toContain('workflowStatusToRemote');
+    expect(repository).toContain('intakeStatusToRemote');
+    expect(repository).not.toContain('workflowStatusToRemote');
     expect(service).toContain('CARE_LEVEL_DOCUMENT_TYPES');
     expect(service).toContain('pending_signature');
     expect(service).toContain('care_level_successor_generated');

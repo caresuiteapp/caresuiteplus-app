@@ -1,0 +1,159 @@
+// Generated native presentation from src/lib/pflege/visitExecutionWorkspaceReview.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { decodeVisitContext, decodeVisitHistory, visitId, visitJson, visitExecutionVersion, type VisitContext, type VisitHistory, type VisitRow } from "./visitExecutionWorkspaceDomain.native.ts";
+export type VisitExecutionReviewSource = Readonly<{
+    version: typeof visitExecutionVersion;
+    tenantId: string;
+    stopId: string;
+    stop: VisitRow;
+    sources: VisitContext['sources'];
+    people: VisitContext['people'];
+    history: VisitHistory;
+}>;
+export type VisitExecutionReviewQualification = Readonly<{
+    id: string;
+    employeeId: string;
+    profileId: string;
+    qualificationType: string;
+    title: string;
+    status: 'valid' | 'expires_soon';
+    issuedAt: string | null;
+    validUntil: string | null;
+    verifiedAt: string;
+    updatedAt: string;
+    documentId: string;
+    documentFingerprint: string;
+    sourceFingerprint: string;
+    employmentStart: string;
+    employmentEnd: string | null;
+    employeeFingerprint: string;
+    scopeId: string;
+    scopeKind: 'visit_execution_review';
+    scopeFingerprint: string;
+}>;
+export type VisitExecutionReviewEvent = Readonly<{
+    id: string;
+    revision: number;
+    previousId: string | null;
+    requestId: string;
+    action: 'request' | 'return' | 'accept';
+    recordedAt: string;
+    actorId: string;
+    actorName: string;
+    reason: string;
+    requiredChange: string;
+    rationale: string;
+    visitHeadId: string;
+    visitFingerprint: string;
+    qualification: VisitExecutionReviewQualification | null;
+    fingerprint: string;
+}>;
+export type VisitExecutionReviewOriginal = Readonly<{
+    id: string;
+    tenantId: string;
+    stopId: string;
+    rootId: string;
+    headId: string;
+    revision: number;
+    visitHeadId: string;
+    visitFingerprint: string;
+    status: 'requested' | 'returned' | 'accepted';
+    history: readonly VisitExecutionReviewEvent[];
+}>;
+export type VisitExecutionReviewPacket = Readonly<{
+    schemaVersion: '1';
+    action: 'request' | 'return' | 'accept';
+    requestId: string;
+    tenantId: string;
+    stopId: string;
+    actorId: string;
+    expectedHeadId: string | null;
+    expectedRevision: number;
+    visitOriginal: VisitExecutionReviewSource;
+    reviewOriginal: VisitExecutionReviewOriginal | null;
+    reason: string;
+    requiredChange: string;
+    rationale: string;
+}>;
+const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+const uuid = (v: unknown): v is string => visitId(v);
+const sha = (v: unknown): v is string => typeof v === 'string' && /^sha256:[0-9a-f]{64}$/.test(v);
+const text = (v: unknown, min = 0, max = 8000): v is string => typeof v === 'string' && v.trim().length >= min && v.length <= max;
+const clone = <T>(v: T): T => structuredClone(v);
+const freeze = <T>(v: T): T => { if (v && typeof v === 'object' && !Object.isFrozen(v)) {
+    Object.freeze(v);
+    for (const child of Object.values(v as Record<string, unknown>))
+        freeze(child);
+} return v; };
+export const visitExecutionReviewStable = (v: unknown): string => JSON.stringify(v, (_key, item: unknown) => object(item) ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
+export function visitExecutionReviewInstantMicros(v: unknown): bigint | null { if (typeof v !== 'string')
+    return null; const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}:?\d{2})$/.exec(v); if (!m || Number(m[1]) < 1000 || Number(m[4]) > 23 || Number(m[5]) > 59 || Number(m[6]) > 59)
+    return null; const day = `${m[1]}-${m[2]}-${m[3]}`, parsed = Date.parse(`${day}T00:00:00Z`); if (!Number.isFinite(parsed) || new Date(parsed).toISOString().slice(0, 10) !== day)
+    return null; if (m[8] !== 'Z') {
+    const z = m[8].replace(':', '');
+    if (Number(z.slice(1, 3)) > 14 || Number(z.slice(3)) > 59 || Number(z.slice(1, 3)) === 14 && Number(z.slice(3)) !== 0)
+        return null;
+} const whole = Date.parse(`${day}T${m[4]}:${m[5]}:${m[6]}${m[8]}`); return Number.isFinite(whole) ? BigInt(whole) * 1000n + BigInt((m[7] ?? '').padEnd(6, '0')) : null; }
+const calendarDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && visitExecutionReviewInstantMicros(`${v}T00:00:00Z`) !== null;
+const berlinDay = (at: string) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(at));
+function qualificationIssue(q: VisitExecutionReviewQualification | null, actor: string, at: string): string | null { if (!q || ![q.id, q.employeeId, q.profileId, q.documentId, q.scopeId].every(uuid) || q.profileId !== actor || q.scopeKind !== 'visit_execution_review' || !text(q.qualificationType, 1, 200) || !text(q.title, 1, 500) || !['valid', 'expires_soon'].includes(q.status) || ![q.documentFingerprint, q.sourceFingerprint, q.employeeFingerprint, q.scopeFingerprint].every(sha) || !calendarDate(q.employmentStart) || q.employmentEnd !== null && !calendarDate(q.employmentEnd) || q.issuedAt !== null && !calendarDate(q.issuedAt) || q.validUntil !== null && !calendarDate(q.validUntil))
+    return 'Vollständige Beschäftigungs-, Qualifikations-, Dokument- und Einsatzprüfbereichsoriginale fehlen.'; const verified = visitExecutionReviewInstantMicros(q.verifiedAt), updated = visitExecutionReviewInstantMicros(q.updatedAt), recorded = visitExecutionReviewInstantMicros(at); if (verified === null || updated === null || recorded === null || verified > recorded || updated > recorded)
+    return 'Qualifikation war zum Prüfzeitpunkt nicht verifiziert.'; const day = berlinDay(at); return q.employmentStart > day || q.employmentEnd !== null && q.employmentEnd < day || q.issuedAt !== null && q.issuedAt > day || q.validUntil !== null && q.validUntil < day ? 'Beschäftigung oder Qualifikation gilt am Prüftag nicht.' : null; }
+export function makeVisitExecutionReviewSource(context: VisitContext): VisitExecutionReviewSource { decodeVisitContext(context, { tenantId: context.tenantId, stopId: context.stopId, actorId: context.actorId }); return clone({ version: context.version, tenantId: context.tenantId, stopId: context.stopId, stop: context.stop, sources: context.sources, people: context.people, history: context.history }); }
+function sourceIssue(v: unknown, actorId: string): string | null { try {
+    const s = v as VisitExecutionReviewSource;
+    if (!s || s.version !== visitExecutionVersion || !uuid(s.tenantId) || !uuid(s.stopId) || !s.history?.events?.length || !uuid(s.history.headId))
+        return 'Ein vollständiger aktueller Einsatzbestand mit Kopf fehlt.';
+    const loadedAt = s.history.events.at(-1)!.recordedAt, scope = { tenantId: s.tenantId, stopId: s.stopId, actorId }, now = Number(visitExecutionReviewInstantMicros(loadedAt)! / 1000n) + 1;
+    const context = decodeVisitContext({ ...clone(s), actorId, loadedAt }, scope, now), folded = decodeVisitHistory(context.history, scope, now);
+    if (folded.state.events.at(-1)?.command.kind !== 'complete')
+        return 'Nur ein vollständig abgeschlossener Einsatz kann fachlich geprüft werden.';
+    visitJson(s, 20000000);
+    return null;
+}
+catch (cause) {
+    return cause instanceof Error ? cause.message : 'Der vollständige Einsatzbestand ist widersprüchlich.';
+} }
+export function visitExecutionReviewOriginalIssue(v: unknown, c: {
+    tenantId: string;
+    stopId: string;
+}): string | null { const o = v as VisitExecutionReviewOriginal; if (!o || ![o.id, o.rootId, o.headId, o.visitHeadId].every(uuid) || o.tenantId !== c.tenantId || o.stopId !== c.stopId || !sha(o.visitFingerprint) || ![1, 2].includes(o.revision) || !Array.isArray(o.history) || o.history.length !== o.revision)
+    return 'Vollständiges Einsatzfachprüforiginal fehlt.'; const ids = new Set<string>(), requests = new Set<string>(); for (let i = 0; i < o.history.length; i++) {
+    const e = o.history[i], prior = i ? o.history[i - 1] : null;
+    if (!e || ![e.id, e.requestId, e.actorId, e.visitHeadId].every(uuid) || ids.has(e.id) || requests.has(e.requestId) || e.revision !== i + 1 || e.previousId !== (prior?.id ?? null) || e.visitHeadId !== o.visitHeadId || e.visitFingerprint !== o.visitFingerprint || visitExecutionReviewInstantMicros(e.recordedAt) === null || !text(e.actorName, 1, 500) || !sha(e.fingerprint))
+        return 'Einsatzprüfhistorie ist abgeschnitten, doppelt oder an eine andere Fassung gebunden.';
+    if (!i) {
+        if (e.action !== 'request' || !text(e.reason, 10, 2000) || e.requiredChange !== '' || e.rationale !== '' || e.qualification !== null)
+            return 'Prüfanfrage enthält eine unzulässige Entscheidung.';
+    }
+    else {
+        if (prior!.action !== 'request' || e.actorId === prior!.actorId || visitExecutionReviewInstantMicros(e.recordedAt)! < visitExecutionReviewInstantMicros(prior!.recordedAt)!)
+            return 'Prüfentscheidung benötigt eine zeitlich nachfolgende getrennte Person.';
+        const issue = qualificationIssue(e.qualification, e.actorId, e.recordedAt);
+        if (issue)
+            return issue;
+        if (e.action === 'return') {
+            if (!text(e.reason, 10, 2000) || !text(e.requiredChange, 10, 4000) || e.rationale !== '')
+                return 'Begründete Rückgabe ist unvollständig.';
+        }
+        else if (e.action !== 'accept' || e.reason !== '' || e.requiredChange !== '' || !text(e.rationale, 10, 4000))
+            return 'Qualifizierte Annahme ist unvollständig.';
+    }
+    ids.add(e.id);
+    requests.add(e.requestId);
+} const first = o.history[0], last = o.history.at(-1)!; return first.id !== o.rootId || o.id !== o.headId || last.id !== o.headId || o.status !== (last.action === 'request' ? 'requested' : last.action === 'return' ? 'returned' : last.action === 'accept' ? 'accepted' : null) ? 'Prüfkopf stimmt nicht mit der vollständigen Einsatzprüfhistorie überein.' : null; }
+function involvedProfiles(source: VisitExecutionReviewSource): Set<string> { const ids = new Set<string>(source.history.events.map(event => event.actorId)); const visit = (value: unknown): void => { if (Array.isArray(value)) {
+    value.forEach(visit);
+    return;
+} if (!object(value))
+    return; if (uuid(value.profileId))
+    ids.add(value.profileId); Object.values(value).forEach(visit); }; source.history.events.forEach(event => visit(event.command.payload)); return ids; }
+export function visitExecutionReviewPacketIssue(v: unknown): string | null { const p = v as VisitExecutionReviewPacket; if (!p || p.schemaVersion !== '1' || !['request', 'return', 'accept'].includes(p.action) || ![p.requestId, p.tenantId, p.stopId, p.actorId].every(uuid) || !Number.isSafeInteger(p.expectedRevision) || p.expectedRevision < 0)
+    return 'Einsatzprüfanfrage ist nicht vollständig gebunden.'; const issue = sourceIssue(p.visitOriginal, p.actorId); if (issue || p.visitOriginal.tenantId !== p.tenantId || p.visitOriginal.stopId !== p.stopId)
+    return issue ?? 'Prüfquelle gehört nicht zu diesem Einsatz.'; if (p.action === 'request')
+    return p.expectedHeadId !== null || p.expectedRevision !== 0 || p.reviewOriginal !== null || !text(p.reason, 10, 2000) || p.requiredChange !== '' || p.rationale !== '' ? 'Prüfanfrage darf keine Entscheidung vorwegnehmen.' : null; const review = p.reviewOriginal; if (!review || visitExecutionReviewOriginalIssue(review, p) || review.visitHeadId !== p.visitOriginal.history.headId || review.status !== 'requested' || p.expectedHeadId !== review.headId || p.expectedRevision !== review.revision)
+    return 'Aktuelle unveränderte Prüfanfrage und Einsatzfassung stimmen nicht überein.'; const involved = involvedProfiles(p.visitOriginal); involved.add(review.history[0].actorId); if (involved.has(p.actorId))
+    return 'Anfragende, öffnende, dokumentierende, ausführende, bestätigende, im Notfall handelnde oder abschließende Personen dürfen dieselbe Fassung nicht selbst entscheiden.'; if (p.action === 'return')
+    return !text(p.reason, 10, 2000) || !text(p.requiredChange, 10, 4000) || p.rationale !== '' ? 'Rückgabe benötigt Grund und konkrete Änderung.' : null; return p.reason !== '' || p.requiredChange !== '' || !text(p.rationale, 10, 4000) ? 'Annahme benötigt unveränderte vollständige Originale und eine eigene fachliche Begründung.' : null; }
+export function makeVisitExecutionReviewPacket(input: Omit<VisitExecutionReviewPacket, 'schemaVersion'>): VisitExecutionReviewPacket { const p = clone({ schemaVersion: '1' as const, ...input }); const issue = visitExecutionReviewPacketIssue(p); if (issue)
+    throw Error(issue); return freeze(p); }

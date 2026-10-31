@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
@@ -36,6 +36,7 @@ import {
 } from '@/types/modules/wfm';
 import { parseWfmAbsenceDateRange } from '@/lib/formatters/dateTimeFormatters';
 import { typography } from '@/theme';
+import type { RoleKey } from '@/types';
 
 const VACATION_TYPES: WfmAbsenceType[] = ['vacation'];
 const GENERAL_ABSENCE_TYPES: WfmAbsenceType[] = [
@@ -72,16 +73,21 @@ type WfmAbsencePortalScreenProps = {
   title?: string;
 };
 
-export function WfmAbsencePortalScreen({
-  defaultType = 'vacation',
-  title = 'Abwesenheiten',
-}: WfmAbsencePortalScreenProps) {
-  const router = useRouter();
+export function WfmAbsencePortalScreen(props: WfmAbsencePortalScreenProps) {
   const { profile, user } = useAuth();
   const { employeeId: portalEmployeeId, actorId, roleKey } = usePortalActor();
   const tenantId = useServiceTenantId();
   const userId = actorId ?? user?.id ?? profile?.id ?? '';
   const employeeId = portalEmployeeId ?? profile?.employeeId ?? null;
+  const scope = JSON.stringify([tenantId, userId, employeeId, roleKey, props.defaultType ?? 'vacation']);
+  return <WfmAbsencePortalContent key={scope} {...props} tenantId={tenantId} userId={userId} employeeId={employeeId} roleKey={roleKey} />;
+}
+
+function WfmAbsencePortalContent({ defaultType = 'vacation', title = 'Abwesenheiten', tenantId, userId, employeeId, roleKey }:
+  WfmAbsencePortalScreenProps & { tenantId: string | null; userId: string; employeeId: string | null; roleKey: RoleKey | null }) {
+  const router = useRouter();
+  const active = useRef(true);
+  useEffect(() => { active.current = true; return () => { active.current = false; }; }, []);
   const { can, check, roleLabel } = usePermissions();
   const text = portalText;
 
@@ -128,14 +134,16 @@ export function WfmAbsencePortalScreen({
         absenceType: selectedType, startsAt: parsed.startsAt, endsAt: parsed.endsAt,
         employeeNote: note, employeeId,
       });
+      if (!active.current) return;
       if (!result.ok) { setError(result.error); return; }
       setStartsAt(''); setEndsAt(''); setNote('');
       const refreshed = await listQuery.refreshWithResult();
+      if (!active.current) return;
       setMessage(refreshed === false
         ? 'Antrag wurde eingereicht. Die Übersicht konnte noch nicht aktualisiert werden.'
         : 'Antrag wurde eingereicht und zur Genehmigung weitergeleitet.');
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Antrag konnte nicht eingereicht werden. Bitte erneut versuchen.'); }
-    finally { mutationLock.current = false; setSubmitting(false); }
+    } catch (cause) { if (!active.current) return; setError(cause instanceof Error ? cause.message : 'Antrag konnte nicht eingereicht werden. Bitte erneut versuchen.'); }
+    finally { if (active.current) { mutationLock.current = false; setSubmitting(false); } }
   };
 
   const handleWithdraw = async (absenceId: string) => {
@@ -143,11 +151,13 @@ export function WfmAbsencePortalScreen({
     mutationLock.current = true; setWithdrawingId(absenceId); setError(null); setMessage(null);
     try {
       const result = await withdrawWfmAbsenceRequest(tenantId, userId, roleKey, absenceId, employeeId);
+      if (!active.current) return;
       if (!result.ok) { setError(result.error); return; }
       const refreshed = await listQuery.refreshWithResult();
+      if (!active.current) return;
       setMessage(refreshed === false ? 'Antrag wurde zurückgezogen. Die Übersicht konnte noch nicht aktualisiert werden.' : 'Antrag wurde zurückgezogen.');
-    } catch (cause) { setError(cause instanceof Error ? cause.message : 'Antrag konnte nicht zurückgezogen werden. Bitte erneut versuchen.'); }
-    finally { mutationLock.current = false; setWithdrawingId(null); }
+    } catch (cause) { if (!active.current) return; setError(cause instanceof Error ? cause.message : 'Antrag konnte nicht zurückgezogen werden. Bitte erneut versuchen.'); }
+    finally { if (active.current) { mutationLock.current = false; setWithdrawingId(null); } }
   };
 
   if (!canView) {

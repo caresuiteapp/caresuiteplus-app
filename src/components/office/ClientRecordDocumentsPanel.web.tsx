@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
@@ -30,7 +31,7 @@ type PickedFile = { name: string; mimeType: string; sizeBytes: number; contentBa
 type WorkspaceProps = Props & { tenantId: string | null; actorId?: string; actorName: string | null; roleKey?: string | null; isReadOnly: boolean };
 
 function Icon({ name }: { name: 'file' | 'upload' | 'search' | 'arrow' | 'refresh' | 'close' }) {
-  return <svg viewBox="0 0 24 24" aria-hidden="true">{name === 'file' ? <><path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8m-8 4h5" /></> : name === 'upload' ? <><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6" /></> : name === 'search' ? <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></> : name === 'refresh' ? <><path d="M20 7a9 9 0 1 0 1 8M20 2v6h-6" /></> : name === 'close' ? <path d="m6 6 12 12M6 18 18 6" /> : <path d="m9 5 7 7-7 7" />}</svg>;
+  return <WebActionIcon>{name === 'file' ? <><path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8m-8 4h5" /></> : name === 'upload' ? <><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6" /></> : name === 'search' ? <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></> : name === 'refresh' ? <><path d="M20 7a9 9 0 1 0 1 8M20 2v6h-6" /></> : name === 'close' ? <path d="m6 6 12 12M6 18 18 6" /> : <path d="m9 5 7 7-7 7" />}</WebActionIcon>;
 }
 
 function documentStatus(doc: ClientDocumentRecord) {

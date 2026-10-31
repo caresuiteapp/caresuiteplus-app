@@ -71,24 +71,6 @@ type LiquidCommandShellProps = {
   showContextBar?: boolean;
 };
 
-function RotateDeviceScreen() {
-  return (
-    <LiquidBackdrop>
-      <View style={styles.rotate}>
-        <LiquidSurface active contentStyle={styles.rotateCard}>
-          <LiquidGlyph glyph="↻" size={34} />
-          <LiquidText variant="title" accessibilityRole="header">Smartphone drehen</LiquidText>
-          <LiquidText variant="body" style={styles.centerText}>
-            CareSuite HealthOS wird auf Smartphones im Hochformat bedient. Für Unterschrift,
-            Kamera, Dokumentenscan und Medien kann Querformat gezielt freigegeben werden.
-          </LiquidText>
-        </LiquidSurface>
-      </View>
-    </LiquidBackdrop>
-  );
-}
-
-
 function WorkAreaNavigation({
   moduleKey,
   activeArea,
@@ -571,7 +553,6 @@ export function LiquidCommandShell({
   asideWidth = 336,
   primaryActionLabel,
   onPrimaryAction,
-  allowPhoneLandscape = false,
   contentMode = 'scroll',
   showPageHeader = true,
   showContextBar = true,
@@ -640,9 +621,6 @@ export function LiquidCommandShell({
     return () => document.removeEventListener('wheel', handleDocumentWheel, { capture: true });
   }, [isDesktopHome, pathname]);
 
-  if (Platform.OS !== 'web' && layout.formFactor === 'phone-landscape-blocked' && !allowPhoneLandscape) {
-    return <RotateDeviceScreen />;
-  }
 
   const showAreaNavigation =
     activeModule !== 'home' && liquidWorkAreas[activeModule].length > 0;
@@ -730,7 +708,7 @@ export function LiquidCommandShell({
   if (!isDesktopHome) {
     return (
       <View
-        accessibilityViewIsModal
+        accessibilityViewIsModal={Platform.OS === 'web'}
         style={styles.centralPopupContent}
         {...(Platform.OS === 'web'
           ? ({ dataSet: { csCentralPopupWorkspace: 'true' } } as object)
@@ -824,13 +802,13 @@ const styles = StyleSheet.create({
   centralPopupContent: {
     flex: 1,
     ...(Platform.OS === 'web' ? { minHeight: 0, minWidth: 0 } : {}),
-    backgroundColor: Platform.OS === 'web' ? 'rgba(4, 17, 37, 0.96)' : '#F6FAFF',
+    backgroundColor: 'rgba(4, 17, 37, 0.96)',
     overflow: 'hidden',
-    borderRadius: Platform.OS === 'web' ? 28 : 18,
+    borderRadius: 28,
     borderWidth: 1,
     borderColor: 'rgba(132, 213, 255, 0.5)',
     shadowColor: '#071A37',
-    shadowOpacity: 0.46,
+    shadowOpacity: Platform.OS === 'web' ? 0.46 : 0,
     shadowRadius: 32,
     shadowOffset: { width: 0, height: 18 },
   },

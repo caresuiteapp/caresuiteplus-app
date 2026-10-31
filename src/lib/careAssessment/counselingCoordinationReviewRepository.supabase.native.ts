@@ -1,0 +1,131 @@
+// Generated native presentation from src/lib/careAssessment/counselingCoordinationReviewRepository.supabase.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { getSupabaseClient } from "../supabase/client.ts";
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
+import { counselingCoordinationReviewInstantMicros, counselingCoordinationReviewOriginalIssue, counselingCoordinationReviewPacketIssue, counselingCoordinationReviewStable, type CounselingCoordinationReviewOriginal, type CounselingCoordinationReviewPacket } from "./counselingCoordinationReview.native.ts";
+type Row = Record<string, unknown>;
+type Context = {
+    tenantId: string;
+    clientId: string;
+    assessmentId: string;
+    actorId: string;
+    isCurrent(): boolean;
+};
+type Result<T> = {
+    ok: true;
+    data: T;
+} | {
+    ok: false;
+    error: string;
+    uncertain?: boolean;
+    rejected?: boolean;
+};
+const unavailable = 'Der vollständige Beratungsfachprüfbestand konnte nicht bestätigt werden.';
+const object = (v: unknown): v is Row => !!v && typeof v === 'object' && !Array.isArray(v);
+const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+const dbClient = () => getSupabaseClient() as unknown as {
+    auth: {
+        getSession(): Promise<{
+            data: {
+                session: null | {
+                    user: {
+                        id: string;
+                    };
+                    access_token: string;
+                    expires_at?: number;
+                };
+            };
+            error: unknown;
+        }>;
+        getUser(token?: string): Promise<{
+            data: {
+                user: null | {
+                    id: string;
+                };
+            };
+            error: unknown;
+        }>;
+    };
+    rpc(name: string, args: Row): Promise<{
+        data: unknown;
+        error: unknown;
+        status?: number;
+    }>;
+} | null;
+async function authority(c: Context) { const db = dbClient(); if (!db || !c.isCurrent())
+    throw Error(unavailable); let token: string | null = null, userId: string | null = null; const check = async () => { if (!c.isCurrent() || dbClient() !== db)
+    throw Error(unavailable); const session = await db.auth.getSession(), s = session.data.session; if (session.error || !s || !uuid(s.user.id) || !s.access_token || s.expires_at !== undefined && s.expires_at * 1000 <= Date.now() || userId !== null && userId !== s.user.id || token !== null && token !== s.access_token)
+    throw Error(unavailable); userId = s.user.id; token = s.access_token; const user = await db.auth.getUser(token); if (!c.isCurrent() || dbClient() !== db || user.error || user.data.user?.id !== userId)
+    throw Error(unavailable); const profile = await withServiceQueryTimeout(db.rpc('resolve_current_profile_id', {}), 'Aktuelles internes Profil bestätigen', 20000); if (profile.error || profile.data !== c.actorId)
+    throw Error(unavailable); const after = await db.auth.getSession(); if (!c.isCurrent() || after.error || after.data.session?.access_token !== token || after.data.session?.user.id !== userId)
+    throw Error(unavailable); }; await check(); return { db, check }; }
+const decode = (v: unknown, c: Pick<Context, 'tenantId' | 'clientId' | 'assessmentId'>) => { const issue = counselingCoordinationReviewOriginalIssue(v, c); if (issue)
+    throw Error(issue); return structuredClone(v as CounselingCoordinationReviewOriginal); };
+export async function readCounselingCoordinationReviewPage(c: Context): Promise<Result<CounselingCoordinationReviewOriginal[]>> { try {
+    const guard = await authority(c), rows: CounselingCoordinationReviewOriginal[] = [], cursors = new Set<string>();
+    let at: string | null = null, id: string | null = null;
+    for (let page = 0; page < 100; page++) {
+        await guard.check();
+        const response: {
+            data: unknown;
+            error: unknown;
+            status?: number;
+        } = await withServiceQueryTimeout(guard.db.rpc('web_read_counseling_coordination_review_page', { p_tenant_id: c.tenantId, p_client_id: c.clientId, p_assessment_id: c.assessmentId, p_actor_profile_id: c.actorId, p_cursor_recorded_at: at, p_cursor_id: id, p_page_size: 100 }), 'Beratungsfachprüfungen vollständig laden', 20000);
+        await guard.check();
+        if (response.error || !object(response.data) || !Array.isArray(response.data.rows) || response.data.rows.length > 100)
+            throw Error(unavailable);
+        if (response.data.rows.length === 0)
+            return { ok: true, data: rows };
+        const nextAt = response.data.nextCursorRecordedAt, nextId = response.data.nextCursorId;
+        if (counselingCoordinationReviewInstantMicros(nextAt) === null || !uuid(nextId) || cursors.has(`${nextAt}:${nextId}`) || at !== null && (counselingCoordinationReviewInstantMicros(nextAt)! > counselingCoordinationReviewInstantMicros(at)! || counselingCoordinationReviewInstantMicros(nextAt) === counselingCoordinationReviewInstantMicros(at) && nextId >= id!))
+            throw Error(unavailable);
+        for (const raw of response.data.rows) {
+            const row = decode(raw, c);
+            if (rows.some(o => o.rootId === row.rootId))
+                throw Error(unavailable);
+            rows.push(row);
+        }
+        cursors.add(`${nextAt}:${nextId}`);
+        at = nextAt as string;
+        id = nextId;
+    }
+    throw Error('Der Beratungsfachprüfbestand überschreitet die sicher lesbare Grenze.');
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+} }
+function receipt(v: unknown, p: CounselingCoordinationReviewPacket) { if (!object(v) || v.requestId !== p.requestId || counselingCoordinationReviewStable(v.packet) !== counselingCoordinationReviewStable(p))
+    return null; try {
+    const o = decode(v, p), e = o.history.at(-1)!;
+    return o.revision === p.expectedRevision + 1 && o.careRootId === p.careOriginal.rootId && o.careHeadId === p.careOriginal.headId && o.careFingerprint === p.careOriginal.history.at(-1)!.fingerprint && e.requestId === p.requestId && e.actorId === p.actorId && e.action === p.action && e.reason === p.reason && e.requiredChange === p.requiredChange && e.rationale === p.rationale && (p.reviewOriginal === null || o.rootId === p.reviewOriginal.rootId && counselingCoordinationReviewStable(o.history.slice(0, -1)) === counselingCoordinationReviewStable(p.reviewOriginal.history)) ? o : null;
+}
+catch {
+    return null;
+} }
+async function operation(input: CounselingCoordinationReviewPacket, isCurrent: () => boolean, confirm: boolean): Promise<Result<CounselingCoordinationReviewOriginal>> { const p = structuredClone(input); if (!confirm) {
+    const issue = counselingCoordinationReviewPacketIssue(p);
+    if (issue)
+        return { ok: false, error: issue, rejected: true };
+} let dispatched = false; try {
+    const guard = await authority({ ...p, isCurrent });
+    await guard.check();
+    dispatched = !confirm;
+    const response: {
+        data: unknown;
+        error: unknown;
+        status?: number;
+    } = await withServiceQueryTimeout(guard.db.rpc(confirm ? 'web_confirm_counseling_coordination_review' : 'web_commit_counseling_coordination_review', confirm ? { p_tenant_id: p.tenantId, p_client_id: p.clientId, p_assessment_id: p.assessmentId, p_actor_profile_id: p.actorId, p_request_id: p.requestId, p_packet: p } : { p_packet: p }), 'Beratungsfachprüfung transaktional sichern oder Quittung lesen', 20000);
+    await guard.check();
+    if (response.error) {
+        const code = object(response.error) ? String(response.error.code ?? '') : '';
+        return { ok: false, error: toGermanSupabaseError(response.error as Parameters<typeof toGermanSupabaseError>[0]), ...(!confirm && response.data === null && ['22007', '22008', '22023', '22P02', '23514', '40001', '42501'].includes(code) ? { rejected: true } : { uncertain: true }) };
+    }
+    const saved = receipt(response.data, p);
+    return saved ? { ok: true, data: saved } : { ok: false, error: unavailable, uncertain: true };
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable, ...(dispatched || confirm ? { uncertain: true } : { rejected: true }) };
+} }
+export const commitCounselingCoordinationReview = (p: CounselingCoordinationReviewPacket, isCurrent: () => boolean) => operation(p, isCurrent, false);
+export const confirmCounselingCoordinationReview = (p: CounselingCoordinationReviewPacket, isCurrent: () => boolean) => operation(p, isCurrent, true);

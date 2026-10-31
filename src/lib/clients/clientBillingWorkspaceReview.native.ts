@@ -1,0 +1,156 @@
+// Generated native presentation from src/lib/clients/clientBillingWorkspaceReview.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { clientBillingWorkspaceVersion, decodeClientBillingContext, type ClientBillingContext, type ClientBillingHistory } from "./clientBillingWorkspaceDomain.native.ts";
+export type ClientBillingReviewSource = Readonly<{
+    version: typeof clientBillingWorkspaceVersion;
+    tenantId: string;
+    clientId: string;
+    client: Record<string, unknown>;
+    sources: ClientBillingContext['sources'];
+    history: ClientBillingHistory;
+}>;
+export type ClientBillingReviewQualification = Readonly<{
+    id: string;
+    employeeId: string;
+    profileId: string;
+    qualificationType: string;
+    title: string;
+    status: 'valid' | 'expires_soon';
+    issuedAt: string | null;
+    validUntil: string | null;
+    verifiedAt: string;
+    updatedAt: string;
+    documentId: string;
+    documentFingerprint: string;
+    sourceFingerprint: string;
+    employmentStart: string;
+    employmentEnd: string | null;
+    employeeFingerprint: string;
+    scopeId: string;
+    scopeKind: 'billing_accounting_review';
+    scopeFingerprint: string;
+}>;
+export type ClientBillingReviewEvent = Readonly<{
+    id: string;
+    revision: number;
+    previousId: string | null;
+    requestId: string;
+    action: 'request' | 'return' | 'accept';
+    recordedAt: string;
+    actorId: string;
+    actorName: string;
+    reason: string;
+    requiredChange: string;
+    rationale: string;
+    billingHeadId: string;
+    billingKind: string;
+    billingFingerprint: string;
+    qualification: ClientBillingReviewQualification | null;
+    fingerprint: string;
+}>;
+export type ClientBillingReviewOriginal = Readonly<{
+    id: string;
+    tenantId: string;
+    clientId: string;
+    rootId: string;
+    headId: string;
+    revision: number;
+    billingHeadId: string;
+    billingKind: string;
+    billingFingerprint: string;
+    status: 'requested' | 'returned' | 'accepted';
+    history: readonly ClientBillingReviewEvent[];
+}>;
+export type ClientBillingReviewPacket = Readonly<{
+    schemaVersion: '1';
+    action: 'request' | 'return' | 'accept';
+    requestId: string;
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    expectedHeadId: string | null;
+    expectedRevision: number;
+    billingOriginal: ClientBillingReviewSource;
+    reviewOriginal: ClientBillingReviewOriginal | null;
+    reason: string;
+    requiredChange: string;
+    rationale: string;
+}>;
+const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
+const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+const sha = (v: unknown): v is string => typeof v === 'string' && /^sha256:[0-9a-f]{64}$/.test(v);
+const text = (v: unknown, min = 0, max = 8000): v is string => typeof v === 'string' && v.trim().length >= min && v.length <= max;
+const clone = <T>(v: T): T => structuredClone(v);
+const freeze = <T>(v: T): T => { if (v && typeof v === 'object' && !Object.isFrozen(v)) {
+    Object.freeze(v);
+    for (const child of Object.values(v as Record<string, unknown>))
+        freeze(child);
+} return v; };
+export const clientBillingReviewStable = (v: unknown): string => JSON.stringify(v, (_key, item: unknown) => object(item) ? Object.fromEntries(Object.keys(item).sort().map(key => [key, item[key]])) : item);
+export function clientBillingReviewInstantMicros(v: unknown): bigint | null { if (typeof v !== 'string')
+    return null; const m = /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}:?\d{2})$/.exec(v); if (!m || Number(m[1]) < 1000 || Number(m[4]) > 23 || Number(m[5]) > 59 || Number(m[6]) > 59)
+    return null; const day = `${m[1]}-${m[2]}-${m[3]}`, parsed = Date.parse(`${day}T00:00:00Z`); if (!Number.isFinite(parsed) || new Date(parsed).toISOString().slice(0, 10) !== day)
+    return null; if (m[8] !== 'Z') {
+    const z = m[8].replace(':', '');
+    if (Number(z.slice(1, 3)) > 14 || Number(z.slice(3)) > 59 || Number(z.slice(1, 3)) === 14 && Number(z.slice(3)) !== 0)
+        return null;
+} const whole = Date.parse(`${day}T${m[4]}:${m[5]}:${m[6]}${m[8]}`); return Number.isFinite(whole) ? BigInt(whole) * 1000n + BigInt((m[7] ?? '').padEnd(6, '0')) : null; }
+const calendarDate = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && clientBillingReviewInstantMicros(`${v}T00:00:00Z`) !== null;
+const berlinDay = (at: string) => new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(at));
+function qualificationIssue(q: ClientBillingReviewQualification | null, actor: string, at: string): string | null { if (!q || ![q.id, q.employeeId, q.profileId, q.documentId, q.scopeId].every(uuid) || q.profileId !== actor || q.scopeKind !== 'billing_accounting_review' || !text(q.qualificationType, 1, 200) || !text(q.title, 1, 500) || !['valid', 'expires_soon'].includes(q.status) || ![q.documentFingerprint, q.sourceFingerprint, q.employeeFingerprint, q.scopeFingerprint].every(sha) || !calendarDate(q.employmentStart) || q.employmentEnd !== null && !calendarDate(q.employmentEnd) || q.issuedAt !== null && !calendarDate(q.issuedAt) || q.validUntil !== null && !calendarDate(q.validUntil))
+    return 'Vollständige Beschäftigungs-, Qualifikations-, Dokument- und Abrechnungsprüfbereichsoriginale fehlen.'; const verified = clientBillingReviewInstantMicros(q.verifiedAt), updated = clientBillingReviewInstantMicros(q.updatedAt), recorded = clientBillingReviewInstantMicros(at); if (verified === null || updated === null || recorded === null || verified > recorded || updated > recorded)
+    return 'Qualifikation war zum Prüfzeitpunkt nicht verifiziert.'; const day = berlinDay(at); return q.employmentStart > day || q.employmentEnd !== null && q.employmentEnd < day || q.issuedAt !== null && q.issuedAt > day || q.validUntil !== null && q.validUntil < day ? 'Beschäftigung oder Qualifikation gilt am Prüftag nicht.' : null; }
+export function makeClientBillingReviewSource(context: ClientBillingContext): ClientBillingReviewSource { decodeClientBillingContext(context, { tenantId: context.tenantId, clientId: context.clientId, actorId: context.actorId }); return clone({ version: context.version, tenantId: context.tenantId, clientId: context.clientId, client: context.client, sources: context.sources, history: context.history }); }
+function sourceIssue(v: unknown, actorId: string): string | null { try {
+    const s = v as ClientBillingReviewSource;
+    if (!s || s.version !== clientBillingWorkspaceVersion || !uuid(s.tenantId) || !uuid(s.clientId) || !s.history?.events?.length || !uuid(s.history.headId))
+        return 'Ein vollständiger aktueller Abrechnungs- und Forderungsbestand mit Kopf fehlt.';
+    const last = s.history.events.at(-1)!;
+    if (last.id !== s.history.headId || !text(last.command.kind, 1, 100))
+        return 'Der aktuelle Forderungsverlaufskopf ist nicht eindeutig.';
+    const loadedAt = last.recordedAt;
+    decodeClientBillingContext({ ...clone(s), actorId, loadedAt }, { tenantId: s.tenantId, clientId: s.clientId, actorId });
+    if (JSON.stringify(s).length > 20000000)
+        return 'Der vollständige Forderungsbestand überschreitet die sichere Prüfgröße.';
+    return null;
+}
+catch (cause) {
+    return cause instanceof Error ? cause.message : 'Der vollständige Abrechnungs- und Forderungsbestand ist widersprüchlich.';
+} }
+export function clientBillingReviewOriginalIssue(v: unknown, c: {
+    tenantId: string;
+    clientId: string;
+}): string | null { const o = v as ClientBillingReviewOriginal; if (!o || ![o.id, o.rootId, o.headId, o.billingHeadId].every(uuid) || o.tenantId !== c.tenantId || o.clientId !== c.clientId || !text(o.billingKind, 1, 100) || !sha(o.billingFingerprint) || ![1, 2].includes(o.revision) || !Array.isArray(o.history) || o.history.length !== o.revision)
+    return 'Vollständiges Abrechnungs- und Forderungsfachprüforiginal fehlt.'; const ids = new Set<string>(), requests = new Set<string>(); for (let i = 0; i < o.history.length; i++) {
+    const e = o.history[i], prior = i ? o.history[i - 1] : null;
+    if (!e || ![e.id, e.requestId, e.actorId, e.billingHeadId].every(uuid) || ids.has(e.id) || requests.has(e.requestId) || e.revision !== i + 1 || e.previousId !== (prior?.id ?? null) || e.billingHeadId !== o.billingHeadId || e.billingKind !== o.billingKind || e.billingFingerprint !== o.billingFingerprint || clientBillingReviewInstantMicros(e.recordedAt) === null || !text(e.actorName, 1, 500) || !sha(e.fingerprint))
+        return 'Abrechnungsprüfhistorie ist abgeschnitten, doppelt oder an eine andere Fassung gebunden.';
+    if (!i) {
+        if (e.action !== 'request' || !text(e.reason, 10, 2000) || e.requiredChange !== '' || e.rationale !== '' || e.qualification !== null)
+            return 'Prüfanfrage enthält eine unzulässige Entscheidung.';
+    }
+    else {
+        if (prior!.action !== 'request' || e.actorId === prior!.actorId || clientBillingReviewInstantMicros(e.recordedAt)! < clientBillingReviewInstantMicros(prior!.recordedAt)!)
+            return 'Prüfentscheidung benötigt eine zeitlich nachfolgende getrennte Person.';
+        const issue = qualificationIssue(e.qualification, e.actorId, e.recordedAt);
+        if (issue)
+            return issue;
+        if (e.action === 'return') {
+            if (!text(e.reason, 10, 2000) || !text(e.requiredChange, 10, 4000) || e.rationale !== '')
+                return 'Begründete Rückgabe ist unvollständig.';
+        }
+        else if (e.action !== 'accept' || e.reason !== '' || e.requiredChange !== '' || !text(e.rationale, 10, 4000))
+            return 'Qualifizierte Annahme ist unvollständig.';
+    }
+    ids.add(e.id);
+    requests.add(e.requestId);
+} const first = o.history[0], last = o.history.at(-1)!; return first.id !== o.rootId || o.id !== o.headId || last.id !== o.headId || o.status !== (last.action === 'request' ? 'requested' : last.action === 'return' ? 'returned' : last.action === 'accept' ? 'accepted' : null) ? 'Prüfkopf stimmt nicht mit der vollständigen Abrechnungsprüfhistorie überein.' : null; }
+export function clientBillingReviewPacketIssue(v: unknown): string | null { const p = v as ClientBillingReviewPacket; if (!p || p.schemaVersion !== '1' || !['request', 'return', 'accept'].includes(p.action) || ![p.requestId, p.tenantId, p.clientId, p.actorId].every(uuid) || !Number.isSafeInteger(p.expectedRevision) || p.expectedRevision < 0)
+    return 'Abrechnungsprüfanfrage ist nicht vollständig gebunden.'; const issue = sourceIssue(p.billingOriginal, p.actorId); if (issue || p.billingOriginal.tenantId !== p.tenantId || p.billingOriginal.clientId !== p.clientId)
+    return issue ?? 'Prüfquelle gehört nicht zu diesem Pflegefall.'; if (p.action === 'request')
+    return p.expectedHeadId !== null || p.expectedRevision !== 0 || p.reviewOriginal !== null || !text(p.reason, 10, 2000) || p.requiredChange !== '' || p.rationale !== '' ? 'Prüfanfrage darf keine Entscheidung vorwegnehmen.' : null; const review = p.reviewOriginal; if (!review || clientBillingReviewOriginalIssue(review, p) || review.billingHeadId !== p.billingOriginal.history.headId || review.billingKind !== p.billingOriginal.history.events.at(-1)!.command.kind || review.status !== 'requested' || p.expectedHeadId !== review.headId || p.expectedRevision !== review.revision)
+    return 'Aktuelle unveränderte Prüfanfrage und Abrechnungs-/Forderungsfassung stimmen nicht überein.'; const involved = new Set<string>([review.history[0].actorId, ...p.billingOriginal.history.events.map(e => e.actorId)]); if (involved.has(p.actorId))
+    return 'Anfragende oder am Abrechnungs-/Forderungsbestand beteiligte Personen dürfen dieselbe Fassung nicht selbst entscheiden.'; if (p.action === 'return')
+    return !text(p.reason, 10, 2000) || !text(p.requiredChange, 10, 4000) || p.rationale !== '' ? 'Rückgabe benötigt Grund und konkrete Änderung.' : null; return p.reason !== '' || p.requiredChange !== '' || !text(p.rationale, 10, 4000) ? 'Annahme benötigt unveränderte vollständige Originale und eine eigene fachliche Begründung.' : null; }
+export function makeClientBillingReviewPacket(input: Omit<ClientBillingReviewPacket, 'schemaVersion'>): ClientBillingReviewPacket { const p = clone({ schemaVersion: '1' as const, ...input }); const issue = clientBillingReviewPacketIssue(p); if (issue)
+    throw Error(issue); return freeze(p); }

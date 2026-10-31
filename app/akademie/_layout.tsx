@@ -1,1 +1,5 @@
-export { LiquidModuleRouteLayout as default } from '@/liquid-command/shell/LiquidModuleRouteLayout';
+import { LiquidModuleRouteLayout } from '@/liquid-command/shell/LiquidModuleRouteLayout';
+
+export default function AkademieLayout() {
+  return <LiquidModuleRouteLayout nativeRoleOwnerPath="/akademie" />;
+}

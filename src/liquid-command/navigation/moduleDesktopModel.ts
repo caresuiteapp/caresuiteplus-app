@@ -3,6 +3,8 @@ import { canonicalCompanyInventoryHref } from '@/lib/navigation/companyInventory
 import { canonicalDocumentsWorkspaceHref } from '@/lib/navigation/documentsWorkspaceRoutes';
 import type { DesktopApp } from './desktopAppCatalogModel';
 import type { ProductKey } from '@/types';
+import type { DesktopAreaKey } from './desktopAreas';
+import { desktopCatalogAreaForRoute } from './appsWidgetsCatalogModel.shared';
 
 export const DESKTOP_MODULES: readonly { key: ProductKey; label: string }[] = [
   { key: 'office', label: 'Office' }, { key: 'assist', label: 'Assist' },
@@ -19,7 +21,7 @@ export function desktopModuleForRoute(route: string): ProductKey | null {
   if (path === '/business/office' || path.startsWith('/business/office/') ||
       path === '/business/messages' || path.startsWith('/business/messages/') ||
       path.startsWith('/business/connect/') || path === '/business/integrations' ||
-      path === '/business/templates' || (Platform.OS === 'web' && path.startsWith('/business/templates/'))) return 'office';
+      path === '/business/templates' || path.startsWith('/business/templates/')) return 'office';
   return null;
 }
 
@@ -67,16 +69,16 @@ const TASK_AREAS = ['Übersicht', 'Klient:innen', 'Planung', 'Einsätze & Durchf
 /** Known aliases share a menu entry; full apps and saved widget IDs stay intact. */
 export function normalizeNavigationApp(app: DesktopApp): DesktopApp {
   let route = app.route;
-  if (Platform.OS === 'web') route = canonicalCompanyInventoryHref(route) ?? route;
-  if (Platform.OS === 'web') route = canonicalDocumentsWorkspaceHref(route) ?? route;
-  if (Platform.OS === 'web' && ['/office', '/office?area=company', '/business/office/dashboard'].includes(route)) route = '/unternehmen';
+  route = canonicalCompanyInventoryHref(route) ?? route;
+  route = canonicalDocumentsWorkspaceHref(route) ?? route;
+  if (['/office', '/office?area=company', '/business/office/dashboard'].includes(route)) route = '/unternehmen';
   if (route === '/assist/einsaetze') route = '/assist/assignments';
   if (route === '/assist/kalender') route = '/assist/calendar';
   if (route === '/business/office/portals') route = '/business/office/access';
   if (route === '/office/messages' || route.startsWith('/office/messages?')) route = route.replace('/office/messages', '/business/messages');
   const labels: Record<string, string> = {
     '/office': 'Office-Arbeitsbereiche',
-    ...(Platform.OS === 'web' ? { '/unternehmen': 'Unternehmen', '/unternehmen/inventar': 'Inventar', '/business/office/document-catalog': 'Dokumentenkatalog', '/business/office/documents': 'Dokumentenablage', '/business/office/documents/signatures': 'Unterschriften', '/business/templates/documents-hub': 'Vorlageneinstellungen' } : {}),
+    ...{ '/unternehmen': 'Unternehmen', '/unternehmen/inventar': 'Inventar', '/business/office/document-catalog': 'Dokumentenkatalog', '/business/office/documents': 'Dokumentenablage', '/business/office/documents/signatures': 'Unterschriften', '/business/templates/documents-hub': 'Vorlageneinstellungen' },
     '/assist/assignments': 'Einsätze',
     '/assist/calendar': 'Kalender & Einsatzplanung',
     '/assist/zugeordnete-klienten': 'Zugeordnete Klient:innen',
@@ -129,4 +131,20 @@ export function buildDesktopNavigationGroups(apps: readonly DesktopApp[], module
     .flatMap(module => buildModuleDesktopNavigation(apps, module.key, query));
   return TASK_AREAS.map(title => ({ title, items: groups.filter(group => group.title === title).flatMap(group => group.items) }))
     .filter(group => group.items.length);
+}
+
+/** One navigation grouping for every desktop, independent of its renderer. */
+export function buildDesktopAreaNavigation(apps: readonly DesktopApp[], area: DesktopAreaKey, query = '') {
+  const needle = query.trim().toLocaleLowerCase('de-DE');
+  const matches = (app: DesktopApp) => !needle || `${app.label} ${app.description}`.toLocaleLowerCase('de-DE').includes(needle);
+  if (DESKTOP_MODULES.some(module => module.key === area)) {
+    return [
+      ...buildDesktopNavigationGroups(apps, area === 'office' ? ['office'] : ['office', area as ProductKey], query),
+      { title: 'Office', items: apps.filter(app => desktopCatalogAreaForRoute(app.route) === 'office' && !desktopModuleForRoute(app.route) && matches(app)) },
+    ].filter(group => group.items.length);
+  }
+  return [
+    { title: area === 'settings' ? 'Einstellungen' : area === 'premium' ? 'Premium' : 'Roboter', items: apps.filter(app => desktopCatalogAreaForRoute(app.route) === area && matches(app)) },
+    { title: 'Office', items: apps.filter(app => desktopCatalogAreaForRoute(app.route) === 'office' && matches(app)) },
+  ].filter(group => group.items.length);
 }

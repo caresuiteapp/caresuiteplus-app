@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { CareSuiteLogo, CareSuiteWordmark } from '@/components/brand';
@@ -59,7 +60,7 @@ export function AuthHeroHeader({ eyebrow, title, subtitle, icon = '🔐', footer
             {subtitle}
           </Text>
         </View>
-        <Text style={styles.authIcon}>{icon}</Text>
+        <SemanticArtwork webSize={40} webColor={type.h2.color} style={styles.authIcon}>{icon}</SemanticArtwork>
       </View>
       {footer}
     </View>

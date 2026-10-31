@@ -1,0 +1,101 @@
+// Generated native presentation from src/lib/pflege/basicCareWorkflow.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeNavigator as navigator,nativeLocalStorage as localStorage} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { commitBasicCarePacket, commitBasicCareReview, confirmBasicCarePacket, confirmBasicCareReview } from "./basicCareRepository.supabase.native.ts";
+import { basicCarePacketIssue, basicCareReviewPacketIssue, type BasicCareOriginal, type BasicCarePacket, type BasicCareReviewOriginal, type BasicCareReviewPacket } from "./basicCarePacket.native.ts";
+import { cloneClientNativeOriginal, sameClientNativeOriginal } from "../clients/clientRecordNativeOriginal.native.ts";
+type Scope = {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+};
+type Result<T> = {
+    ok: true;
+    data: T;
+} | {
+    ok: false;
+    error: string;
+    uncertain?: boolean;
+    rejected?: boolean;
+};
+type Store = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+type Journal<P> = {
+    version: 1;
+    phase: 'prepared' | 'dispatched';
+    packet: P;
+};
+const prefix = 'caresuite:pflege:basic-care:v1:', reviewPrefix = 'caresuite:pflege:basic-care-review:v1:';
+export async function basicCareBrowserLock<T>(name: string, run: () => Promise<T>): Promise<T> { const locks = typeof navigator === 'undefined' ? null : navigator.locks; if (!locks)
+    throw Error('Browserweite Exklusivsperre fehlt; der Vorgang bleibt gesperrt.'); return locks.request(name, { mode: 'exclusive', ifAvailable: true }, async (lock) => { if (!lock)
+    throw Error('Ein anderer Tab bearbeitet diesen Vorgang.'); return run(); }); }
+export function createBasicCareJournal<P extends Scope, O>(scope: Scope, options: {
+    prefix: string;
+    storage: Store;
+    lock<T>(name: string, run: () => Promise<T>): Promise<T>;
+    isCurrent(): boolean;
+    issue(packet: unknown): string | null;
+    commit(packet: P, current: () => boolean): Promise<Result<O>>;
+    confirm(packet: P, current: () => boolean): Promise<Result<O>>;
+}) {
+    const owner = cloneClientNativeOriginal(scope), key = `${options.prefix}${owner.tenantId}:${owner.clientId}:${owner.actorId}`, current = () => { if (options.isCurrent() !== true)
+        throw Error('Pflegefall oder Rechtekontext hat gewechselt.'); };
+    const read = (): Journal<P> | null => { const raw = options.storage.getItem(key); if (raw === null)
+        return null; const parsed = cloneClientNativeOriginal(JSON.parse(raw)) as Journal<P>; if (!parsed || Object.keys(parsed).sort().join(',') !== 'packet,phase,version' || parsed.version !== 1 || !['prepared', 'dispatched'].includes(parsed.phase) || options.issue(parsed.packet) || parsed.packet.tenantId !== owner.tenantId || parsed.packet.clientId !== owner.clientId || parsed.packet.actorId !== owner.actorId)
+        throw Error('Das vorhandene Versandjournal ist ungeklärt und wird nicht überschrieben.'); return parsed; };
+    const persist = (journal: Journal<P>) => { current(); const raw = JSON.stringify(journal); options.storage.setItem(key, raw); if (options.storage.getItem(key) !== raw)
+        throw Error('Das dauerhafte Versandjournal konnte nicht bestätigt werden.'); };
+    const same = (journal: Journal<P>) => { current(); if (!sameClientNativeOriginal(read(), journal))
+        throw Error('Das Versandjournal wurde in einem anderen Vorgang verändert.'); };
+    const clear = (journal: Journal<P>) => { same(journal); options.storage.removeItem(key); if (options.storage.getItem(key) !== null)
+        throw Error('Das bestätigte eigene Journal konnte nicht abgeschlossen werden.'); };
+    const protect = async (run: () => Promise<Result<O> | null>): Promise<Result<O> | null> => { try {
+        return await options.lock(key, run);
+    }
+    catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'Versandjournal nicht verfügbar.', uncertain: true };
+    } };
+    return {
+        save: async (input: P): Promise<Result<O>> => (await protect(async () => { current(); const packet = cloneClientNativeOriginal(input); if (options.issue(packet) || packet.tenantId !== owner.tenantId || packet.clientId !== owner.clientId || packet.actorId !== owner.actorId)
+            throw Error('Die Anfrage ist nicht an den eigenen Vorgang gebunden.'); if (read() !== null)
+            throw Error('Ein früherer Grundpflegevorgang ist noch ungeklärt.'); const prepared: Journal<P> = { version: 1, phase: 'prepared', packet }; persist(prepared); same(prepared); const sent: Journal<P> = { ...prepared, phase: 'dispatched' }; persist(sent); same(sent); const result = await options.commit(packet, options.isCurrent); same(sent); if (result.ok) {
+            clear(sent);
+            return result;
+        } if (result.rejected === true && result.uncertain !== true) {
+            clear(sent);
+            return { ok: false, error: result.error };
+        } return { ok: false, error: result.error, uncertain: true }; }))!,
+        recover: async (): Promise<Result<O> | null> => protect(async () => { current(); const journal = read(); if (!journal)
+            return null; if (journal.phase === 'prepared') {
+            clear(journal);
+            return { ok: false, error: 'Die nachweislich nicht versandte lokale Anfrage wurde verworfen.' };
+        } same(journal); const result = await options.confirm(journal.packet, options.isCurrent); same(journal); if (result.ok) {
+            clear(journal);
+            return result;
+        } return { ok: false, error: result.error, uncertain: true }; }),
+    };
+}
+function browser<P extends Scope, O>(scope: Scope, isCurrent: () => boolean, review: boolean, commit: (p: P, c: () => boolean) => Promise<Result<O>>, confirm: (p: P, c: () => boolean) => Promise<Result<O>>) { if (typeof localStorage === 'undefined')
+    throw Error('Dauerhaftes Versandjournal ist in diesem Browser nicht verfügbar.'); return createBasicCareJournal(scope, { prefix: review ? reviewPrefix : prefix, storage: localStorage, lock: basicCareBrowserLock, isCurrent, issue: review ? basicCareReviewPacketIssue : basicCarePacketIssue, commit, confirm }); }
+export async function saveBasicCareDurably(packet: BasicCarePacket, isCurrent: () => boolean): Promise<Result<BasicCareOriginal>> { try {
+    return await browser(packet, isCurrent, false, commitBasicCarePacket, confirmBasicCarePacket).save(packet);
+}
+catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Journal nicht verfügbar.', uncertain: true };
+} }
+export async function recoverBasicCare(scope: Scope, isCurrent: () => boolean): Promise<Result<BasicCareOriginal> | null> { try {
+    return await browser(scope, isCurrent, false, commitBasicCarePacket, confirmBasicCarePacket).recover();
+}
+catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Journal nicht verfügbar.', uncertain: true };
+} }
+export async function saveBasicCareReviewDurably(packet: BasicCareReviewPacket, isCurrent: () => boolean): Promise<Result<BasicCareReviewOriginal>> { try {
+    return await browser(packet, isCurrent, true, commitBasicCareReview, confirmBasicCareReview).save(packet);
+}
+catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Journal nicht verfügbar.', uncertain: true };
+} }
+export async function recoverBasicCareReview(scope: Scope, isCurrent: () => boolean): Promise<Result<BasicCareReviewOriginal> | null> { try {
+    return await browser(scope, isCurrent, true, commitBasicCareReview, confirmBasicCareReview).recover();
+}
+catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : 'Journal nicht verfügbar.', uncertain: true };
+} }

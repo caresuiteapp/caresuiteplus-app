@@ -1,0 +1,169 @@
+// Generated native presentation from src/lib/pflege/nutritionPlanBindingDomain.web.ts. Update through scripts/port-native-workspaces.mjs.
+import { cloneClientNativeOriginal, freezeClientNativeOriginal, sameClientNativeOriginal } from "../clients/clientRecordNativeOriginal.native.ts";
+import { nutritionEliminationSourcesIssue, nutritionInstantMicros, type NutritionEliminationSources } from "./nutritionEliminationPacket.native.ts";
+type Row = Record<string, unknown>;
+export type NutritionPlanBindingScope = Readonly<{
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+}>;
+export type NutritionPlanBindingSelection = NutritionPlanBindingScope & Readonly<{
+    planVersionId: string;
+    measureId: string;
+    visitId: string;
+    assessmentId: string;
+}>;
+export type NutritionPlanBindingKind = 'nutrition_assessment' | 'meal_support' | 'drink_protocol' | 'swallowing_support' | 'stool_protocol' | 'weight_followup';
+export type NutritionPlanBindingContext = Readonly<{
+    nativeOriginals: Row;
+    sources: NutritionEliminationSources;
+    planSnapshotSha256: string;
+    blockedReasons: readonly string[];
+}>;
+export type NutritionPlanBindingPacket = NutritionPlanBindingSelection & Readonly<{
+    schemaVersion: '1';
+    requestId: string;
+    kind: NutritionPlanBindingKind;
+    title: string;
+    plannedAt: string;
+    nativeOriginals: Row;
+    sources: NutritionEliminationSources;
+}>;
+export type NutritionPlanBinding = Omit<NutritionPlanBindingSelection, 'actorId'> & Readonly<{
+    id: string;
+    planSnapshotSha256: string;
+    kind: NutritionPlanBindingKind;
+    title: string;
+    plannedAt: string;
+    sources: NutritionEliminationSources;
+    nativeOriginals: Row;
+    capturedBy: string;
+    capturedAt: string;
+}>;
+export type NutritionPlanBindingReceipt = Readonly<{
+    requestId: string;
+    packet: NutritionPlanBindingPacket;
+    binding: NutritionPlanBinding;
+}>;
+export const nutritionPlanBindingUuid = (v: unknown): v is string => typeof v === 'string' && v.length === 36 && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(v);
+export const nutritionPlanBindingSha = (v: unknown): v is string => typeof v === 'string' && v.length === 71 && /^sha256:[0-9a-f]{64}$/.test(v);
+const object = (v: unknown): v is Row => !!v && typeof v === 'object' && !Array.isArray(v);
+const exact = (v: unknown, keys: readonly string[]) => object(v) && Object.keys(v).length === keys.length && keys.every(k => Object.hasOwn(v, k));
+const text = (v: unknown, min: number, max: number): v is string => typeof v === 'string' && v.trim().length >= min && v.length <= max;
+const kinds = new Set<string>(['nutrition_assessment', 'meal_support', 'drink_protocol', 'swallowing_support', 'stool_protocol', 'weight_followup']);
+const selectionKeys = ['tenantId', 'clientId', 'actorId', 'planVersionId', 'measureId', 'visitId', 'assessmentId'] as const;
+const packetKeys = ['schemaVersion', 'requestId', ...selectionKeys, 'kind', 'title', 'plannedAt', 'nativeOriginals', 'sources'];
+const foundationKeys = ['plan', 'planVersion', 'measure', 'visit', 'tour', 'assessment', 'assessmentTopics', 'assessmentRisks', 'assessmentMeasures', 'instrumentSelection', 'model', 'instruments'];
+const blocked = ['actual_execution_provenance_unbound', 'native_device_and_continence_sources_unavailable', 'legacy_clinical_writers_not_closed', 'date_only_task_deadlines_are_not_instants'];
+const mismatch = 'Die ursprüngliche native Ernährungsplanung ist nicht vollständig und unverändert gebunden.';
+function nativeDate(v: unknown): v is string { return typeof v === 'string' && v.length === 10 && /^\d{4}-\d{2}-\d{2}$/.test(v) && nutritionInstantMicros(v + 'T00:00:00Z') !== null; }
+function localClock(v: unknown): bigint | null { if (typeof v !== 'string')
+    return null; const m = /^(\d{2}):(\d{2}):(\d{2})(?:\.(\d{1,6}))?$/.exec(v); if (!m)
+    return null; const h = Number(m[1]), minute = Number(m[2]), second = Number(m[3]), fraction = BigInt((m[4] ?? '').padEnd(6, '0')); return h > 24 || minute > 59 || second > 59 || h === 24 && (minute !== 0 || second !== 0 || fraction !== 0n) ? null : BigInt(h * 3600 + minute * 60 + second) * 1000000n + fraction; }
+function plannedWindowIssue(p: NutritionPlanBindingPacket): boolean {
+    const n = p.nativeOriginals, plan = n.plan as Row, visit = n.visit as Row, tour = n.tour as Row, micros = nutritionInstantMicros(p.plannedAt);
+    if (micros === null || !nativeDate(plan.valid_from) || plan.valid_until !== null && !nativeDate(plan.valid_until) || !nativeDate(tour.tour_date))
+        return true;
+    const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' }).formatToParts(new Date(Number(micros >= 0n ? micros / 1000n : (micros - 999n) / 1000n))), get = (k: string) => parts.find(part => part.type === k)?.value ?? '', date = `${get('year')}-${get('month')}-${get('day')}`;
+    const clock = localClock(`${get('hour')}:${get('minute')}:${get('second')}.${((micros % 1000000n + 1000000n) % 1000000n).toString().padStart(6, '0')}`), start = localClock(visit.planned_start), end = localClock(visit.planned_end);
+    return clock === null || start === null || end === null || clock < start || clock >= end || date !== tour.tour_date || date < plan.valid_from || typeof plan.valid_until === 'string' && date > plan.valid_until;
+}
+export function nutritionPlanBindingSelectionIssue(value: unknown): string | null { try {
+    const v = cloneClientNativeOriginal(value);
+    return !object(v) || !selectionKeys.every(k => nutritionPlanBindingUuid(v[k])) ? mismatch : null;
+}
+catch {
+    return mismatch;
+} }
+function foundationIssue(value: unknown, s: NutritionPlanBindingSelection): string | null {
+    if (!exact(value, foundationKeys) || !object(value) || new TextEncoder().encode(JSON.stringify(value)).length > 2097152)
+        return mismatch;
+    const n = value;
+    for (const key of ['plan', 'planVersion', 'measure', 'visit', 'tour', 'assessment'])
+        if (!object(n[key]) || !nutritionPlanBindingUuid((n[key] as Row).id) || (n[key] as Row).tenant_id !== s.tenantId)
+            return mismatch;
+    const p = n.plan as Row, v = n.planVersion as Row, m = n.measure as Row, visit = n.visit as Row, tour = n.tour as Row, a = n.assessment as Row;
+    if (v.id !== s.planVersionId || m.id !== s.measureId || visit.id !== s.visitId || a.id !== s.assessmentId || p.client_id !== s.clientId || visit.client_id !== s.clientId || a.subject_id !== s.clientId || a.subject_type !== 'client' || a.variant !== 'ambulant' || v.care_plan_id !== p.id || m.care_plan_id !== p.id || visit.tour_id !== tour.id)
+        return mismatch;
+    if (!['active', 'aktiv'].includes(String(p.status)) || m.status !== 'active' || visit.status !== 'planned' || !['draft', 'published'].includes(String(tour.status)) || !['draft', 'in_progress', 'professional_review', 'approved'].includes(String(a.status)))
+        return mismatch;
+    if (!object(v.snapshot) || !sameClientNativeOriginal(v.snapshot.plan, p) || !Array.isArray(v.snapshot.items) || v.snapshot.items.length > 2000)
+        return mismatch;
+    const ids = new Set<string>();
+    let selected = 0;
+    for (const item of v.snapshot.items) {
+        if (!object(item) || !nutritionPlanBindingUuid(item.id) || ids.has(item.id) || item.tenant_id !== s.tenantId || item.care_plan_id !== p.id)
+            return mismatch;
+        ids.add(item.id);
+        if (item.id === s.measureId) {
+            selected++;
+            if (!sameClientNativeOriginal(item, m))
+                return mismatch;
+        }
+    }
+    if (selected !== 1)
+        return mismatch;
+    for (const key of ['assessmentTopics', 'assessmentRisks', 'assessmentMeasures']) {
+        const rows = n[key];
+        if (!Array.isArray(rows) || rows.length > 2000)
+            return mismatch;
+        const seen = new Set<string>();
+        for (const row of rows)
+            if (!object(row) || !nutritionPlanBindingUuid(row.id) || seen.has(row.id) || row.tenant_id !== s.tenantId || row.assessment_id !== s.assessmentId)
+                return mismatch;
+            else
+                seen.add(row.id);
+    }
+    if (n.instrumentSelection !== null && (!object(n.instrumentSelection) || n.instrumentSelection.tenant_id !== s.tenantId || n.instrumentSelection.assessment_id !== s.assessmentId || n.instrumentSelection.subject_id !== s.clientId))
+        return mismatch;
+    if (n.model !== null && !object(n.model) || !Array.isArray(n.instruments) || n.instruments.length > 2000)
+        return mismatch;
+    return null;
+}
+export function nutritionPlanBindingContextIssue(value: unknown, selection: NutritionPlanBindingSelection): string | null { try {
+    const v = cloneClientNativeOriginal(value), s = cloneClientNativeOriginal(selection);
+    if (nutritionPlanBindingSelectionIssue(s) || !exact(v, ['nativeOriginals', 'sources', 'planSnapshotSha256', 'blockedReasons']) || !object(v) || foundationIssue(v.nativeOriginals, s) || nutritionEliminationSourcesIssue(v.sources) || !object(v.sources) || !object(v.sources.assessment) || v.sources.assessment.id !== s.assessmentId || !nutritionPlanBindingSha(v.planSnapshotSha256) || !sameClientNativeOriginal(v.blockedReasons, blocked))
+        return mismatch;
+    return null;
+}
+catch {
+    return mismatch;
+} }
+export function nutritionPlanBindingPacketIssue(value: unknown): string | null { try {
+    const p = cloneClientNativeOriginal(value) as NutritionPlanBindingPacket;
+    if (!exact(p, packetKeys) || p.schemaVersion !== '1' || nutritionPlanBindingSelectionIssue(p) || !nutritionPlanBindingUuid(p.requestId) || !kinds.has(p.kind) || !text(p.title, 3, 300) || nutritionInstantMicros(p.plannedAt) === null || foundationIssue(p.nativeOriginals, p) || nutritionEliminationSourcesIssue(p.sources) || p.sources.assessment.id !== p.assessmentId)
+        return mismatch;
+    const m = p.nativeOriginals.measure as Row;
+    return p.title !== m.title || p.kind !== m.category || plannedWindowIssue(p) ? mismatch : null;
+}
+catch {
+    return mismatch;
+} }
+export function makeNutritionPlanBindingPacket(input: NutritionPlanBindingSelection & {
+    requestId: string;
+    plannedAt: string;
+    context: NutritionPlanBindingContext;
+}): NutritionPlanBindingPacket { const v = cloneClientNativeOriginal(input), issue = nutritionPlanBindingContextIssue(v.context, v); if (issue)
+    throw Error(issue); const selected = Object.fromEntries(selectionKeys.map(k => [k, v[k]])) as NutritionPlanBindingSelection, m = v.context.nativeOriginals.measure as Row; const p = { schemaVersion: '1' as const, requestId: v.requestId, ...selected, kind: m.category as NutritionPlanBindingKind, title: m.title as string, plannedAt: v.plannedAt, nativeOriginals: v.context.nativeOriginals, sources: v.context.sources }; const problem = nutritionPlanBindingPacketIssue(p); if (problem)
+    throw Error(problem); return freezeClientNativeOriginal(p); }
+export function makeNutritionPlanBindingIntent(input: Parameters<typeof makeNutritionPlanBindingPacket>[0]): Readonly<{
+    packet: NutritionPlanBindingPacket;
+    expectedPlanSnapshotSha256: string;
+}> { const v = freezeClientNativeOriginal(cloneClientNativeOriginal(input)), packet = makeNutritionPlanBindingPacket(v); return freezeClientNativeOriginal({ packet, expectedPlanSnapshotSha256: v.context.planSnapshotSha256 }); }
+export function nutritionPlanBindingReceiptIssue(value: unknown, packet: NutritionPlanBindingPacket, expectedPlanSnapshotSha256: string): string | null {
+    try {
+        const v = cloneClientNativeOriginal(value), p = cloneClientNativeOriginal(packet);
+        if (!nutritionPlanBindingSha(expectedPlanSnapshotSha256) || nutritionPlanBindingPacketIssue(p) || !exact(v, ['requestId', 'packet', 'binding']) || !object(v) || v.requestId !== p.requestId || !sameClientNativeOriginal(v.packet, p) || !exact(v.binding, ['id', 'tenantId', 'clientId', 'planVersionId', 'measureId', 'visitId', 'assessmentId', 'planSnapshotSha256', 'kind', 'title', 'plannedAt', 'sources', 'nativeOriginals', 'capturedBy', 'capturedAt']) || !object(v.binding))
+            return mismatch;
+        const b = v.binding;
+        if (!nutritionPlanBindingUuid(b.id) || b.planSnapshotSha256 !== expectedPlanSnapshotSha256 || b.capturedBy !== p.actorId || nutritionInstantMicros(b.capturedAt) === null || nutritionInstantMicros(b.plannedAt) !== nutritionInstantMicros(p.plannedAt) || b.kind !== p.kind || b.title !== p.title || !sameClientNativeOriginal(b.nativeOriginals, p.nativeOriginals) || !sameClientNativeOriginal(b.sources, p.sources))
+            return mismatch;
+        for (const k of selectionKeys.filter(k => k !== 'actorId'))
+            if (b[k] !== p[k])
+                return mismatch;
+        return null;
+    }
+    catch {
+        return mismatch;
+    }
+}

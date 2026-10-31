@@ -1,6 +1,6 @@
 import { useEffect, type ReactNode } from 'react';
 import { runAppTransition } from '@/lib/react/runAppTransition';
-import { usePathname, useRouter } from 'expo-router';
+import { useIsFocused, usePathname, useRouter } from 'expo-router';
 import { useHydrated } from '@/hooks/useHydrated';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -13,6 +13,7 @@ type StableRouter = {
 
 export function LiquidProductAccessGuard({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const focused = useIsFocused();
   const router = useRouter() as unknown as StableRouter;
   const hydrated = useHydrated();
   const { profile } = useAuth();
@@ -20,9 +21,9 @@ export function LiquidProductAccessGuard({ children }: { children: ReactNode }) 
   const decision = checkProductAccess(pathname, profile?.roleKey, tenantId);
 
   useEffect(() => {
-    if (!hydrated || !decision.shouldRedirect) return;
+    if (!hydrated || !focused || !decision.shouldRedirect) return;
     runAppTransition(() => router.replace(decision.target));
-  }, [decision.shouldRedirect, decision.target, hydrated, router]);
+  }, [decision.shouldRedirect, decision.target, focused, hydrated, router]);
 
   if (!hydrated) {
     return (

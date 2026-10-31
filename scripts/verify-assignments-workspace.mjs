@@ -9,6 +9,10 @@ const vitest = 'node_modules/vitest/vitest.mjs';
 // build already runs the project type check through the client-intake gate.
 // DOM interactions below are not a browser layout or authenticated live-data test.
 const groups = {
+  'Employee scope resolution and portal logbook loading': [
+    'hooks/useAsyncQueryScope.test.tsx',
+    'portal/employeeLogbookLoadingTransition.test.tsx',
+  ],
   'Assignment list, refresh, status projection and recurring dates': [
     'assist/assignmentWorkspaceModel.test.ts',
     'assist/assignmentWorkspaceListInteraction.test.tsx',
@@ -29,6 +33,7 @@ const groups = {
     'assist/assignmentEditForm.test.ts',
     'assist/planningFormsScopeInteraction.test.tsx',
     'assist/visitPlanningConflictReads.test.ts',
+    'assist/visitPlanningCompleteness.test.ts',
     'assist/visitPlanningMutationTruth.test.ts',
     'assist/visitPlanningRepositoryReceipt.test.ts',
     'assist/visitEditCompletionRecovery.test.ts',

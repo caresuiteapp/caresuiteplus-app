@@ -2,7 +2,7 @@
  * ASSIST.WORKFLOW.3 — Optimistic task drafts with debounced batch save.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { protectedDataStorage as AsyncStorage } from '@/lib/security/protectedDataStorage';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
 import {

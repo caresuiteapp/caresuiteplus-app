@@ -1,0 +1,284 @@
+// Generated native presentation from src/components/pflege/BasicCareWorkspacePanel.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone,nativeCrypto as crypto} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { View } from 'react-native';
+import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
+import { useUnsavedWebChanges } from "../../hooks/useUnsavedWebChanges.native.ts";
+import { confirmAction } from '@/lib/platform/confirmAction';
+import { sameClientNativeOriginal } from "../../lib/clients/clientRecordNativeOriginal.native.ts";
+import { BasicCareBindingPanel } from "./BasicCareBindingPanel.native.tsx";
+import { blankBasicCareEntry, basicCareEntryIssue, makeBasicCarePacket, makeBasicCareReviewPacket, type BasicCareEntry, type BasicCareKind, type BasicCareOriginal, type BasicCareReviewAction, type BasicCareReviewOriginal } from "../../lib/pflege/basicCarePacket.native.ts";
+import { readBasicCarePage, readBasicCarePrerequisites, readBasicCareReviewPage, type BasicCarePrerequisites } from "../../lib/pflege/basicCareRepository.supabase.native.ts";
+import { recoverBasicCare, recoverBasicCareReview, saveBasicCareDurably, saveBasicCareReviewDurably } from "../../lib/pflege/basicCareWorkflow.native.ts";
+import { spacing, typography } from '@/theme';
+const kindLabels: Record<BasicCareKind, string> = { body_care: 'Körperpflege', oral_care: 'Mund- und Zahnpflege', dressing: 'An- und Auskleiden', transfer_positioning: 'Transfer und Lagerung', pressure_prevention: 'Dekubitusprävention', fall_prevention: 'Sturzprävention', contracture_prevention: 'Kontrakturprävention', individual_prevention: 'Individuelle Prophylaxe' };
+const outcomes = [{ key: 'planned', label: 'Geplant' }, { key: 'offered', label: 'Angeboten' }, { key: 'performed', label: 'Durchgeführt' }, { key: 'partial', label: 'Teilweise' }, { key: 'refused', label: 'Abgelehnt' }, { key: 'not_performed', label: 'Nicht durchgeführt' }];
+const levels = [{ key: 'independent', label: 'Selbstständig' }, { key: 'prompting', label: 'Anleitung' }, { key: 'partial_assist', label: 'Teilhilfe' }, { key: 'full_assist', label: 'Vollhilfe' }, { key: 'two_person_assist', label: 'Zwei Personen' }];
+const split = (value: string) => value.split(/[;,\n]/).map(item => item.trim()).filter(Boolean), join = (value: readonly string[]) => value.join(', ');
+type Props = {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    actorName: string;
+    canView: boolean;
+    canCreate: boolean;
+    canReview: boolean;
+    canPlan?: boolean;
+    isOwnerCurrent?(): boolean;
+    isLeaving?(): boolean;
+    registerLeave?(guard: (() => Promise<boolean>) | null): void;
+    onSaved?: (value: BasicCareOriginal) => void;
+};
+type State = {
+    loading: boolean;
+    busy: boolean;
+    error: string | null;
+    success: string | null;
+    uncertain: boolean;
+    reviewUncertain: boolean;
+    prerequisites: BasicCarePrerequisites | null;
+    originals: BasicCareOriginal[];
+    reviews: BasicCareReviewOriginal[];
+    selectedPlan: string;
+    selectedOriginal: string;
+    entry: BasicCareEntry;
+    initial: string;
+    reason: string;
+    reviewAction: BasicCareReviewAction;
+    reviewReason: string;
+    requiredChange: string;
+    reviewRationale: string;
+    bindingActive: boolean;
+    assistanceChosen: boolean;
+    bodyScopeChosen: boolean;
+};
+const initialState = (): State => ({ loading: true, busy: false, error: null, success: null, uncertain: false, reviewUncertain: false, prerequisites: null, originals: [], reviews: [], selectedPlan: '', selectedOriginal: '', entry: blankBasicCareEntry('body_care'), initial: '', reason: '', reviewAction: 'request', reviewReason: '', requiredChange: '', reviewRationale: '', bindingActive: false, assistanceChosen: false, bodyScopeChosen: false });
+export function useBasicCareWorkspaceController(props: Props) {
+    const latest = useRef(props);
+    latest.current = props;
+    const identity = `${props.tenantId}:${props.clientId}:${props.actorId}:${props.canView}:${props.canCreate}:${props.canReview}:${props.canPlan}`, holder = useRef<{
+        identity: string;
+        live: boolean;
+        retired: boolean;
+        guard: Props['isOwnerCurrent'];
+        flight: boolean;
+        operation: number;
+        state: State;
+    } | null>(null), [, render] = useState(0);
+    const guardNow = () => { try {
+        return props.isOwnerCurrent?.() !== false;
+    }
+    catch {
+        return false;
+    } };
+    if (holder.current) {
+        try {
+            if (holder.current.guard?.() === false || !guardNow())
+                holder.current.retired = true;
+        }
+        catch {
+            holder.current.retired = true;
+        }
+    }
+    if (!holder.current || holder.current.identity !== identity || holder.current.retired && guardNow()) {
+        if (holder.current)
+            holder.current.live = false;
+        holder.current = { identity, live: true, retired: false, guard: props.isOwnerCurrent, flight: false, operation: 0, state: initialState() };
+    }
+    const own = holder.current;
+    const current = () => { try {
+        if (own.guard?.() === false || latest.current.isOwnerCurrent?.() === false)
+            own.retired = true;
+        return own.live && !own.retired && holder.current === own && latest.current.canView;
+    }
+    catch {
+        own.retired = true;
+        return false;
+    } };
+    const update = (patch: Partial<State>) => { if (current()) {
+        own.state = { ...own.state, ...patch };
+        render(v => v + 1);
+    } };
+    const dirty = () => { const s = own.state; return !!(s.selectedPlan || s.selectedOriginal) && (JSON.stringify(s.entry) !== s.initial || !!s.reason.trim() || !!s.reviewReason.trim() || !!s.requiredChange.trim() || !!s.reviewRationale.trim() || !!s.selectedPlan && (s.assistanceChosen || s.bodyScopeChosen)); };
+    const allowed = () => current() && !own.flight && !own.state.uncertain && !own.state.reviewUncertain && !own.state.bindingActive && !latest.current.isLeaving?.();
+    const snapshot = () => ({ identity, state: own.state }), leave = useUnsavedWebChanges(dirty() || own.state.uncertain || own.state.reviewUncertain || own.state.bindingActive, own.state.busy || own.state.uncertain || own.state.reviewUncertain || own.state.bindingActive, undefined, () => { const before = snapshot(); return () => current() && !own.flight && !own.state.bindingActive && !own.state.uncertain && !own.state.reviewUncertain && sameClientNativeOriginal(before, snapshot()); });
+    useEffect(() => { props.registerLeave?.(leave); return () => props.registerLeave?.(null); }, [props.registerLeave, leave, own]);
+    const begin = (recovery = false) => { if (!current() || own.flight || own.state.bindingActive || latest.current.isLeaving?.() || !recovery && (own.state.uncertain || own.state.reviewUncertain))
+        return null; own.flight = true; const id = ++own.operation; update({ busy: true, error: null }); return id; };
+    const finish = (id: number) => { if (own.operation === id) {
+        own.flight = false;
+        update({ busy: false });
+    } };
+    const loadData = async (active: () => boolean = current) => { const context = { tenantId: props.tenantId, clientId: props.clientId, actorId: props.actorId, isCurrent: active }, [p, c, r] = await Promise.all([readBasicCarePrerequisites(context), readBasicCarePage(context), readBasicCareReviewPage(context)]); if (!active())
+        return; if (!p.ok || !c.ok || !r.ok) {
+        update({ error: !p.ok ? p.error : !c.ok ? c.error : !r.ok ? r.error : 'Bestand ungeklärt.', loading: false });
+        return;
+    } update({ prerequisites: p.data, originals: c.data, reviews: r.data, loading: false }); };
+    const load = async () => { if (!allowed() || own.state.selectedOriginal || own.state.selectedPlan)
+        return; const op = begin(); if (op === null)
+        return; update({ loading: true }); try {
+        await loadData(() => current() && own.operation === op);
+    }
+    catch (e) {
+        if (current() && own.operation === op)
+            update({ loading: false, error: e instanceof Error ? e.message : 'Bestand ungeklärt.' });
+    }
+    finally {
+        finish(op);
+    } };
+    useEffect(() => { own.live = true; let active = true; const op = ++own.operation; own.flight = true; update({ busy: true, loading: true }); const check = () => active && current(); void (async () => { try {
+        const c = await recoverBasicCare(props, check);
+        if (!check())
+            return;
+        const r = await recoverBasicCareReview(props, check);
+        if (!check())
+            return;
+        if (c && !c.ok)
+            update({ uncertain: c.uncertain === true, error: c.error });
+        if (r && !r.ok)
+            update({ reviewUncertain: r.uncertain === true, error: r.error });
+        await loadData(check);
+    }
+    catch (e) {
+        if (check())
+            update({ loading: false, error: e instanceof Error ? e.message : 'Eigenes Journal ungeklärt.', uncertain: true });
+    }
+    finally {
+        if (check())
+            finish(op);
+    } })(); return () => { active = false; own.live = false; own.operation++; own.flight = false; }; }, [own]);
+    const requestSelection = async (run: () => void) => { if (!allowed())
+        return; const before = snapshot(), operation = ++own.operation; own.flight = true; update({ busy: true }); try {
+        const accept = !dirty() || await confirmAction({ title: 'Ungespeicherte Grundpflege', message: 'Bearbeitung verwerfen und die Auswahl wechseln?', confirmLabel: 'Verwerfen', cancelLabel: 'Weiter bearbeiten' });
+        if (!accept || !current() || own.operation !== operation || latest.current.isLeaving?.() || own.state.bindingActive || own.state.uncertain || own.state.reviewUncertain || !sameClientNativeOriginal({ ...before, state: { ...before.state, busy: true } }, snapshot()))
+            return;
+        run();
+    }
+    finally {
+        if (own.operation === operation) {
+            own.flight = false;
+            update({ busy: false });
+        }
+    } };
+    const choosePlan = (key: string) => requestSelection(() => { const plan = own.state.prerequisites?.plans.find(p => `${p.planVersionId}:${p.measureId}:${p.visitId}` === key); if (!plan)
+        return; const base = blankBasicCareEntry(plan.kind, plan.plannedAt), entry = { ...base, title: plan.title, planVersionId: plan.planVersionId, measureId: plan.measureId, visitId: plan.visitId, planSnapshotSha256: plan.planSnapshotSha256, execution: { ...base.execution, bodyScope: 'not_applicable' as const }, assistance: { ...base.assistance, secondPersonRequired: plan.secondPersonRequired, level: plan.secondPersonRequired ? 'two_person_assist' as const : 'independent' as const } }; update({ selectedPlan: key, selectedOriginal: '', entry, initial: JSON.stringify(entry), reason: '', reviewReason: '', requiredChange: '', reviewRationale: '', assistanceChosen: false, bodyScopeChosen: false, error: null, success: null }); });
+    const chooseOriginal = (id: string) => requestSelection(() => { const o = own.state.originals.find(x => x.headId === id); if (!o)
+        return; const entry = structuredClone(o.payload); update({ selectedOriginal: id, selectedPlan: '', entry, initial: JSON.stringify(entry), reason: '', reviewAction: 'request', reviewReason: '', requiredChange: '', reviewRationale: '', assistanceChosen: true, bodyScopeChosen: true, error: null, success: null }); });
+    const field = (key: 'reason' | 'reviewReason' | 'requiredChange' | 'reviewRationale' | 'reviewAction', value: string) => { if (allowed())
+        update({ [key]: value }); };
+    const change = <K extends keyof BasicCareEntry>(key: K, value: BasicCareEntry[K]) => { if (!allowed() || !latest.current.canCreate)
+        return; update({ entry: { ...own.state.entry, [key]: value } }); };
+    const changeAssistanceLevel = (level: BasicCareEntry['assistance']['level']) => { if (!allowed() || !latest.current.canCreate)
+        return; update({ entry: { ...own.state.entry, assistance: { ...own.state.entry.assistance, level } }, assistanceChosen: true }); };
+    const changeBodyScope = (bodyScope: 'partial' | 'full') => { if (!allowed() || !latest.current.canCreate || own.state.entry.kind !== 'body_care')
+        return; update({ entry: { ...own.state.entry, execution: { ...own.state.entry.execution, bodyScope } }, bodyScopeChosen: true }); };
+    const original = () => own.state.originals.find(o => o.headId === own.state.selectedOriginal) ?? null, review = () => own.state.reviews.find(r => r.careHeadId === original()?.headId) ?? null;
+    const save = async () => { if (!latest.current.canCreate || !own.state.assistanceChosen || own.state.entry.kind === 'body_care' && !own.state.bodyScopeChosen || !own.state.selectedPlan && !original())
+        return; const op = begin(); if (op === null)
+        return; try {
+        const s = own.state, o = original(), plan = s.prerequisites?.plans.find(p => p.planVersionId === s.entry.planVersionId && p.measureId === s.entry.measureId && p.visitId === s.entry.visitId);
+        if (!plan)
+            throw Error('Die aktuelle native Planbindung fehlt.');
+        const packet = makeBasicCarePacket({ action: o ? 'revise' : 'create', requestId: crypto.randomUUID(), tenantId: props.tenantId, clientId: props.clientId, actorId: props.actorId, expectedHeadId: o?.headId ?? null, expectedRevision: o?.revision ?? 0, entry: s.entry, reason: o ? s.reason.trim() : '', original: o, pressureOriginals: plan.pressureOriginals, fallOriginals: plan.fallOriginals }), result = await saveBasicCareDurably(packet, () => current() && own.operation === op);
+        if (!current() || own.operation !== op)
+            return;
+        if (!result.ok) {
+            update({ error: result.error, uncertain: result.uncertain === true });
+            return;
+        }
+        const data = result.data;
+        update({ originals: [data, ...own.state.originals.filter(o => o.rootId !== data.rootId)], selectedOriginal: data.headId, selectedPlan: '', entry: data.payload, initial: JSON.stringify(data.payload), reason: '', uncertain: false, success: 'Die vollständige eigene Quittung wurde bestätigt gespeichert.' });
+        latest.current.onSaved?.(data);
+    }
+    catch (e) {
+        if (current() && own.operation === op)
+            update({ error: e instanceof Error ? e.message : 'Grundpflege konnte nicht gespeichert werden.' });
+    }
+    finally {
+        finish(op);
+    } };
+    const saveReview = async () => { const o = original(), r = review(), action = r && own.state.reviewAction === 'request' ? 'return' : own.state.reviewAction; if (!o || (action === 'request' ? !latest.current.canCreate : !latest.current.canReview))
+        return; const op = begin(); if (op === null)
+        return; try {
+        const s = own.state, packet = makeBasicCareReviewPacket({ action, requestId: crypto.randomUUID(), tenantId: props.tenantId, clientId: props.clientId, actorId: props.actorId, occurredAt: new Date().toISOString(), expectedReviewHeadId: r?.headId ?? null, expectedReviewRevision: r?.revision ?? 0, careOriginal: o!, reviewOriginal: r, reason: action === 'accept' ? '' : s.reviewReason.trim(), requiredChange: action === 'return' ? s.requiredChange.trim() : '', rationale: action === 'accept' ? s.reviewRationale.trim() : '' }), result = await saveBasicCareReviewDurably(packet, () => current() && own.operation === op);
+        if (!current() || own.operation !== op)
+            return;
+        if (!result.ok) {
+            update({ error: result.error, reviewUncertain: result.uncertain === true });
+            return;
+        }
+        update({ reviews: [result.data, ...own.state.reviews.filter(r => r.rootId !== result.data.rootId)], reviewReason: '', requiredChange: '', reviewRationale: '', reviewUncertain: false, success: 'Die eigene technische Prüfquittung wurde bestätigt.' });
+    }
+    catch (e) {
+        if (current() && own.operation === op)
+            update({ error: e instanceof Error ? e.message : 'Prüfanfrage konnte nicht gespeichert werden.' });
+    }
+    finally {
+        finish(op);
+    } };
+    const retryKind = async (reviewing: boolean) => { const op = begin(true); if (op === null)
+        return; try {
+        const result = await (reviewing ? recoverBasicCareReview(props, () => current() && own.operation === op) : recoverBasicCare(props, () => current() && own.operation === op));
+        if (!current() || own.operation !== op)
+            return;
+        if (result?.ok) {
+            update(reviewing ? { reviewUncertain: false, reviews: [result.data as BasicCareReviewOriginal, ...own.state.reviews.filter(r => r.rootId !== result.data.rootId)] } : { uncertain: false, originals: [result.data as BasicCareOriginal, ...own.state.originals.filter(o => o.rootId !== result.data.rootId)] });
+        }
+        else
+            update({ error: result?.error ?? 'Keine passende bestätigte Quittung.', ...(reviewing ? { reviewUncertain: true } : { uncertain: true }) });
+    }
+    finally {
+        finish(op);
+    } };
+    const bindingEditingChange = (active: boolean) => { if (!active) {
+        if (holder.current !== own)
+            return false;
+        update({ bindingActive: false });
+        return true;
+    } if (!allowed() || dirty() || own.state.selectedPlan || own.state.selectedOriginal)
+        return false; update({ bindingActive: true }); return current() && own.state.bindingActive; };
+    const close = () => requestSelection(() => update({ selectedPlan: '', selectedOriginal: '', entry: blankBasicCareEntry('body_care'), initial: '', reason: '', reviewReason: '', requiredChange: '', reviewRationale: '', assistanceChosen: false, bodyScopeChosen: false }));
+    const s = own.state, o = original(), r = review();
+    return { ...s, original: o, currentReview: r, effectiveReviewAction: r && s.reviewAction === 'request' ? 'return' as const : s.reviewAction, dirty: dirty(), issue: !s.assistanceChosen ? 'Hilfeumfang für diesen Eintrag ausdrücklich wählen.' : s.entry.kind === 'body_care' && !s.bodyScopeChosen ? 'Teil- oder Ganzkörperpflege ausdrücklich wählen.' : basicCareEntryIssue(s.entry), contextCurrent: current, ownerToken: own, load, choosePlan, chooseOriginal, change, changeAssistanceLevel, changeBodyScope, save, saveReview, retry: () => retryKind(false), retryReview: () => retryKind(true), setReason: (v: string) => field('reason', v), setReviewReason: (v: string) => field('reviewReason', v), setRequiredChange: (v: string) => field('requiredChange', v), setReviewRationale: (v: string) => field('reviewRationale', v), setReviewAction: (v: BasicCareReviewAction) => field('reviewAction', v), bindingEditingChange, close, bound: async () => { if (!current() || own.flight)
+            return; const op = begin(); if (op === null)
+            return; try {
+            await loadData(() => current() && own.operation === op);
+        }
+        finally {
+            finish(op);
+        } } };
+}
+export function BasicCareWorkspacePanel(props: Props) {
+    const { tenantId, clientId, actorId, actorName, canView, canCreate, canReview } = props;
+    const c = useBasicCareWorkspaceController(props);
+    const { loading, busy, error, success, uncertain, reviewUncertain, prerequisites, originals, reviews, selectedPlan, selectedOriginal, entry, reason, reviewReason, requiredChange, reviewRationale, original, currentReview, effectiveReviewAction, issue, load, choosePlan, chooseOriginal, change, changeAssistanceLevel, changeBodyScope, save, saveReview, retry, retryReview, setReason, setReviewReason, setRequiredChange, setReviewRationale, setReviewAction } = c;
+    if (!canView)
+        return <ErrorState message="Das aktuelle Leserecht für Pflegeplanung und Grundpflegedokumentation fehlt."/>;
+    if (loading)
+        return <SectionPanel title="Grundpflege und Prophylaxen"><LoadingState message="Planbindungen, vollständige Originale und ein mögliches Versandjournal werden geladen…"/></SectionPanel>;
+    const helpers = entry.assistance.helpers, performed = entry.execution.performedBy;
+    return <SectionPanel title="Grundpflege und Prophylaxen" subtitle="Planung, tatsächliche Durchführung, Beobachtung, Abweichung und Folgeauftrag in einem Verlauf">
+  <BasicCareBindingPanel tenantId={tenantId} clientId={clientId} actorId={actorId} ownerToken={c.ownerToken} canView={canView} canPlan={props.canPlan === true && canCreate} blocked={busy || uncertain || reviewUncertain || !!selectedPlan || !!original} isCurrent={c.contextCurrent} isLeaving={props.isLeaving} onEditingChange={c.bindingEditingChange} onBound={c.bound}/><InfoBanner variant="info" title="Plan ist nicht Durchführung" message="Die gewählte Planfassung bleibt unverändert gebunden. Erst ein eigener Ereigniszeitpunkt, Einwilligungsstand, ausführende Personen, Maßnahmen und Ergebnis belegen eine tatsächliche Durchführung."/>
+  {prerequisites?.plans.length ? <><Text style={{ ...typography.label }}>Aktuelle, serverseitig gelesene Planmaßnahme</Text><FilterChipGroup wrap options={prerequisites.plans.map(plan => ({ key: `${plan.planVersionId}:${plan.measureId}:${plan.visitId}`, label: `${kindLabels[plan.kind]} · ${plan.title}` }))} value={selectedPlan} onChange={choosePlan}/></> : <InfoBanner variant="warning" message="Keine vollständig lesbare passende Planmaßnahme. Daraus folgt weder fehlender Pflegebedarf noch eine Nichtdurchführung."/>}
+  {originals.length ? <><Text style={{ ...typography.label }}>Bestehende vollständige Fassung fortschreiben</Text><FilterChipGroup wrap options={originals.map(item => ({ key: item.headId, label: `${kindLabels[item.kind]} · Rev. ${item.revision} · ${item.payload.lifecycle === 'completed' ? 'abgeschlossen' : 'offen'}` }))} value={selectedOriginal} onChange={chooseOriginal}/></> : null}
+  {selectedPlan || original ? <View style={{ gap: spacing.sm }}>
+   <SectionPanel title={`${kindLabels[entry.kind]} · Planbindung`}><PremiumInput label="Titel" value={entry.title} editable={false}/><PremiumInput label="Plantermin (ISO mit Zeitzone)" value={entry.plannedAt} editable={false}/><InfoBanner variant="info" message={`Planfassung ${entry.planVersionId} · Maßnahme ${entry.measureId} · Einsatz ${entry.visitId} · ${entry.planSnapshotSha256}`}/></SectionPanel>
+   <SectionPanel title="Einwilligung und tatsächliches Ereignis"><FilterChipGroup wrap options={[{ key: 'not_asked', label: 'Nicht erhoben' }, { key: 'consented', label: 'Eingewilligt' }, { key: 'refused', label: 'Abgelehnt' }, { key: 'withdrawn', label: 'Widerrufen' }]} value={entry.consent.state} onChange={value => change('consent', { ...entry.consent, state: value as BasicCareEntry['consent']['state'], recordedAt: value === 'not_asked' ? null : new Date().toISOString() })}/><PremiumInput label="Tatsächlicher Ereigniszeitpunkt (leer bei Planung)" value={entry.occurredAt ?? ''} onChangeText={value => change('occurredAt', value.trim() || null)}/><PremiumInput label="Geäußerter Ablehnungsgrund" value={entry.consent.statedReason} onChangeText={value => change('consent', { ...entry.consent, statedReason: value })} multiline/><PremiumInput label="Tatsächlich erfolgte Beratung" value={entry.consent.consultation} onChangeText={value => change('consent', { ...entry.consent, consultation: value })} multiline/></SectionPanel>
+   <SectionPanel title="Hilfe, Hilfsmittel und Ausführende"><FilterChipGroup wrap options={levels} value={c.assistanceChosen ? entry.assistance.level : ''} onChange={value => c.changeAssistanceLevel(value as BasicCareEntry['assistance']['level'])}/><PremiumInput label="Vorgesehene Helfer-Profil-IDs" value={join(helpers)} onChangeText={value => change('assistance', { ...entry.assistance, helpers: split(value) })}/><PremiumInput label="Tatsächlich ausführende Profil-IDs" value={join(performed)} onChangeText={value => change('execution', { ...entry.execution, performedBy: split(value) })}/><PremiumInput label="Hilfsmittel" value={join(entry.assistance.aids)} onChangeText={value => change('assistance', { ...entry.assistance, aids: split(value) })}/><PremiumInput label="Konkrete Technik / Unterstützung" value={entry.assistance.technique} onChangeText={value => change('assistance', { ...entry.assistance, technique: value })} multiline/></SectionPanel>
+   <SectionPanel title="Beobachtung und Durchführung"><PremiumInput label="Ausgangslage" value={entry.observation.baseline} onChangeText={value => change('observation', { ...entry.observation, baseline: value })} multiline/><PremiumInput label="Hautbeobachtung" value={entry.observation.skin} onChangeText={value => change('observation', { ...entry.observation, skin: value })} multiline/><PremiumInput label="Mobilität" value={entry.observation.mobility} onChangeText={value => change('observation', { ...entry.observation, mobility: value })} multiline/><PremiumInput label="Mund-/Zahnbefund" value={entry.observation.oral} onChangeText={value => change('observation', { ...entry.observation, oral: value })} multiline/><PremiumInput label="Verträglichkeit / Reaktion" value={entry.observation.tolerance} onChangeText={value => change('observation', { ...entry.observation, tolerance: value })} multiline/><FilterChipGroup wrap options={outcomes} value={entry.execution.outcome} onChange={value => change('execution', { ...entry.execution, outcome: value as BasicCareEntry['execution']['outcome'] })}/>{entry.kind === 'body_care' ? <FilterChipGroup wrap options={[{ key: 'partial', label: 'Teilkörperpflege' }, { key: 'full', label: 'Ganzkörperpflege' }]} value={c.bodyScopeChosen ? entry.execution.bodyScope : ''} onChange={value => c.changeBodyScope(value as 'partial' | 'full')}/> : null}<PremiumInput label="Tatsächliche Maßnahmen" value={join(entry.execution.interventions)} onChangeText={value => change('execution', { ...entry.execution, interventions: split(value) })}/><PremiumInput label="Tatsächliches Ergebnis" value={entry.execution.result} onChangeText={value => change('execution', { ...entry.execution, result: value })} multiline/><PremiumInput label="Abweichung / Nichtdurchführungsgrund" value={entry.execution.deviation} onChangeText={value => change('execution', { ...entry.execution, deviation: value })} multiline/></SectionPanel>
+   {['pressure_prevention', 'fall_prevention', 'individual_prevention'].includes(entry.kind) ? <SectionPanel title="Individuelle Prophylaxe"><PremiumInput label="Individuelles Risiko" value={entry.prevention.risk} onChangeText={value => change('prevention', { ...entry.prevention, risk: value })} multiline/><PremiumInput label="Fachliche Grundlage" value={entry.prevention.professionalBasis} onChangeText={value => change('prevention', { ...entry.prevention, professionalBasis: value })} multiline/><PremiumInput label="Individuelle Maßnahme" value={entry.prevention.individualMeasure} onChangeText={value => change('prevention', { ...entry.prevention, individualMeasure: value })} multiline/><PremiumInput label="Geplanter Prüftermin (ISO, optional)" value={entry.prevention.reviewAt ?? ''} onChangeText={value => change('prevention', { ...entry.prevention, reviewAt: value.trim() || null })}/>{entry.kind === 'fall_prevention' ? <><FilterChipGroup wrap options={[{ key: 'no', label: 'Kein Sturzereignis dokumentiert' }, { key: 'yes', label: 'Sturzereignis verknüpfen' }]} value={entry.prevention.fallOccurred ? 'yes' : 'no'} onChange={value => change('prevention', { ...entry.prevention, fallOccurred: value === 'yes' })}/><PremiumInput label="Ereignis-ID" value={entry.prevention.incidentId ?? ''} onChangeText={value => change('prevention', { ...entry.prevention, incidentId: value.trim() || null })}/><PremiumInput label="Neubewertungs-ID" value={entry.prevention.reassessmentId ?? ''} onChangeText={value => change('prevention', { ...entry.prevention, reassessmentId: value.trim() || null })}/></> : null}</SectionPanel> : null}
+   <SectionPanel title="Folgeauftrag und Abschluss"><FilterChipGroup wrap options={[{ key: 'none', label: 'Kein Folgeauftrag' }, { key: 'open', label: 'Folgeauftrag offen' }, { key: 'closed', label: 'Folgeauftrag abgeschlossen' }]} value={entry.followUp.required ? entry.followUp.state : 'none'} onChange={value => change('followUp', value === 'none' ? { required: false, reason: '', responsibleProfileId: null, dueAt: null, taskId: null, state: 'not_required', closureEvidence: '' } : { ...entry.followUp, required: true, state: value as 'open' | 'closed' })}/><PremiumInput label="Anlass" value={entry.followUp.reason} onChangeText={value => change('followUp', { ...entry.followUp, reason: value })}/><PremiumInput label="Verantwortliches Profil" value={entry.followUp.responsibleProfileId ?? ''} onChangeText={value => change('followUp', { ...entry.followUp, responsibleProfileId: value.trim() || null })}/><PremiumInput label="Fällig am (ISO mit Zeitzone)" value={entry.followUp.dueAt ?? ''} onChangeText={value => change('followUp', { ...entry.followUp, dueAt: value.trim() || null })}/><PremiumInput label="Auftrags-ID" value={entry.followUp.taskId ?? ''} onChangeText={value => change('followUp', { ...entry.followUp, taskId: value.trim() || null })}/><PremiumInput label="Unveränderter Abschlussbeleg" value={entry.followUp.closureEvidence} onChangeText={value => change('followUp', { ...entry.followUp, closureEvidence: value })} multiline/><FilterChipGroup wrap options={[{ key: 'open', label: 'Vorgang offen' }, { key: 'completed', label: 'Vorgang abgeschlossen' }]} value={entry.lifecycle} onChange={value => change('lifecycle', value as 'open' | 'completed')}/></SectionPanel>
+   {original ? <PremiumInput label="Konkreter Grund der Fortschreibung" value={reason} onChangeText={setReason} multiline/> : null}
+  </View> : null}
+  {original ? <SectionPanel title="Getrennte fachliche Prüfung" subtitle="Prüfanfrage, Rückgabe und qualifizierte Annahme bleiben an genau diese unveränderte Pflegefassung gebunden">
+   {currentReview ? <><InfoBanner variant={currentReview.status === 'accepted' ? 'success' : currentReview.status === 'returned' ? 'warning' : 'info'} title={`Prüfstatus: ${currentReview.status === 'requested' ? 'angefragt' : currentReview.status === 'returned' ? 'zurückgegeben' : 'qualifiziert angenommen'}`} message={`Prüfrevision ${currentReview.revision} · Pflegekopf ${currentReview.careHeadId} · ${currentReview.careContentFingerprint}`}/>{currentReview.history.map(item => <View key={item.id} style={{ gap: spacing.xs }}><Text style={{ ...typography.label }}>{item.kind === 'review_request' ? 'Prüfanfrage' : item.kind === 'review_return' ? 'Begründete Rückgabe' : 'Qualifizierte Annahme'} · {item.recordedAt} · {item.actorName}</Text><Text>{item.kind === 'review_acceptance' ? item.rationale : item.kind === 'review_return' ? `${item.reason} · ${item.requiredChange}` : item.reason}</Text>{item.qualificationOriginal ? <Text>Qualifikation: {item.qualificationOriginal.title} · {item.qualificationOriginal.status} · gültig bis {item.qualificationOriginal.validUntil ?? 'unbefristet'}</Text> : null}</View>)}</> : <InfoBanner variant="info" message="Für diese aktuelle Pflegefassung liegt noch keine getrennte Prüfhistorie vor."/>}
+   {!currentReview ? <><PremiumInput label="Konkreter Anlass der Prüfanfrage" value={reviewReason} onChangeText={setReviewReason} multiline editable={!busy && !reviewUncertain}/><PremiumButton title="Unveränderte Pflegefassung zur Prüfung anfragen" fullWidth loading={busy} disabled={busy || reviewUncertain || !canCreate || reviewReason.trim().length < 10} onPress={saveReview}/></> : currentReview.status === 'requested' ? <><FilterChipGroup wrap options={[{ key: 'return', label: 'Begründet zurückgeben' }, { key: 'accept', label: 'Qualifiziert annehmen' }]} value={effectiveReviewAction} onChange={value => setReviewAction(value as BasicCareReviewAction)}/>{effectiveReviewAction === 'accept' ? <PremiumInput label="Fachliche Annahmebegründung" value={reviewRationale} onChangeText={setReviewRationale} multiline editable={!busy && !reviewUncertain}/> : <><PremiumInput label="Konkreter Rückgabegrund" value={reviewReason} onChangeText={setReviewReason} multiline editable={!busy && !reviewUncertain}/><PremiumInput label="Erforderliche Änderung" value={requiredChange} onChangeText={setRequiredChange} multiline editable={!busy && !reviewUncertain}/></>}<PremiumButton title={effectiveReviewAction === 'accept' ? 'Qualifizierte Annahme speichern' : 'Begründete Rückgabe speichern'} fullWidth loading={busy} disabled={busy || reviewUncertain || !canReview || (effectiveReviewAction === 'accept' ? reviewRationale.trim().length < 10 : reviewReason.trim().length < 10 || requiredChange.trim().length < 10)} onPress={saveReview}/></> : null}
+   {reviewUncertain ? <><InfoBanner variant="warning" title="Prüfausgang ungeklärt" message="Die unveränderte ursprüngliche Prüfanfrage bleibt gesperrt. Es wird weder eine zweite Anfrage noch eine Entscheidung erzeugt."/><PremiumButton title="Genau diese native Prüfquittung erneut prüfen" loading={busy} onPress={retryReview}/></> : null}
+   <InfoBanner variant="warning" message="Prüfanfrage oder Annahme beweist keine Pflegehandlung, Kommunikation, Abrechnung oder externe qualifizierte Abnahme."/>
+  </SectionPanel> : null}
+  {selectedPlan || original ? <PremiumButton title="Bearbeitung ausdrücklich schließen" variant="secondary" disabled={busy || uncertain || reviewUncertain} onPress={c.close}/> : null}{issue && (selectedPlan || original) ? <InfoBanner variant="danger" title="Noch nicht speicherbar" message={issue}/> : null}{error ? <ErrorState message={error}/> : null}{success ? <SuccessState message={success}/> : null}
+  {uncertain ? <><InfoBanner variant="warning" title="Speicherausgang ungeklärt" message="Die unveränderte ursprüngliche Anfrage bleibt gesperrt. Es wird weder ein Ersatzwrite noch eine neue Durchführung erzeugt."/><PremiumButton title="Genau diese native Quittung erneut prüfen" loading={busy} onPress={retry}/></> : <View style={{ gap: spacing.sm }}><PremiumButton title={original ? 'Grundpflege append-only fortschreiben' : 'Grundpflegepaket vollständig speichern'} fullWidth loading={busy} disabled={busy || !canCreate || (!selectedPlan && !original) || !!issue} onPress={save}/><PremiumButton title="Planbindungen und vollständige Originale neu laden" variant="secondary" disabled={busy} onPress={load}/></View>}
+  <InfoBanner variant="warning" message={`Aktueller Akteur: ${actorName}. Lokale Prüfungen bestätigen keine pflegefachliche Durchführung, Einwilligungswirksamkeit oder rechtliche Freigabe.`}/>
+ </SectionPanel>;
+}

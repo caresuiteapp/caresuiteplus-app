@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import type { PermissionKey, RoleKey } from '@/types';
-import type { InventoryAssignment, InventoryItem, InventoryReturnCapture, OffboardingInventoryCheck } from '@/types/inventory';
+import type { InventoryCategoryGroup, InventoryAssignment, InventoryItem, InventoryReturnCapture, OffboardingInventoryCheck } from '@/types/inventory';
 import { INVENTORY_CATEGORY_LABELS } from '@/types/inventory';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { confirmAction } from '@/lib/platform/confirmAction';
@@ -29,6 +29,8 @@ export type CompanyInventoryWorkspaceProps = {
   effectivePermissions?: readonly PermissionKey[];
   scopeLimited?: boolean;
   initialView?: CompanyInventoryView;
+  categoryGroupFilter?: InventoryCategoryGroup;
+  title?: string;
   initialEmployeeId?: string;
   initialItemId?: string;
   onViewChange?: (view: CompanyInventoryView) => void;
@@ -43,7 +45,7 @@ export function CompanyInventoryWorkspace(props: CompanyInventoryWorkspaceProps)
   return <InventoryWorkspaceScope key={`${props.tenantId}:${props.roleKey}:${props.actorProfileId ?? ''}:${permissionsKey}:${Boolean(props.scopeLimited)}`} {...props} />;
 }
 
-function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectivePermissions, scopeLimited = false, initialView = 'stock', initialEmployeeId, initialItemId, onViewChange, onNavigationGuardChange }: CompanyInventoryWorkspaceProps) {
+function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectivePermissions, scopeLimited = false, initialView = 'stock', categoryGroupFilter, title, initialEmployeeId, initialItemId, onViewChange, onNavigationGuardChange }: CompanyInventoryWorkspaceProps) {
   const scope = useMemo<CompanyInventoryScope>(() => ({ tenantId, actorRoleKey: roleKey, actorProfileId, effectivePermissions }), [tenantId, roleKey, actorProfileId, effectivePermissions]);
   const [snapshot, setSnapshot] = useState<CompanyInventorySnapshot | null>(null);
   const permissions = useMemo(() => {
@@ -174,7 +176,7 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
     </style>
     <div className="ci-heading">
       <div>
-        <h2>Inventar</h2>
+        <h2>{title??'Inventar'}</h2>
         <p>Ausstattung und Rückgaben Ihres Unternehmens.</p>
       </div>
     </div>
@@ -187,25 +189,27 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
     </div>}
   </div>;
 
-  const activeAssignments = snapshot.assignments.filter(isAssignmentOpen);
+  const selectedItems=snapshot.items.filter(item=>!categoryGroupFilter||item.categoryGroup===categoryGroupFilter);
+  const selectedIds=new Set(selectedItems.map(item=>item.id));
+  const activeAssignments = snapshot.assignments.filter(item=>selectedIds.has(item.itemId)).filter(isAssignmentOpen);
   const overdueAssignments = activeAssignments.filter(assignment => isAssignmentOverdue(assignment));
-  const openDamage = snapshot.damageReports.filter(report => !report.resolvedAt);
+  const openDamage = snapshot.damageReports.filter(report => selectedIds.has(report.itemId)&&!report.resolvedAt);
   const itemName = (itemId: string) => snapshot.items.find(item => item.id === itemId)?.name ?? 'Gegenstand nicht mehr verfügbar';
   const categoryName = (item: InventoryItem) => snapshot.categories.find(category => category.id === item.categoryId)?.label ?? INVENTORY_CATEGORY_LABELS[item.categoryGroup];
   const locationName = (item: InventoryItem) => snapshot.locations.find(location => location.id === item.locationId)?.label ?? (item.locationId ? 'Lagerort nicht mehr verfügbar' : 'Ohne festen Lagerort');
-  const items = snapshot.items.filter(item => (!categoryFilter || item.categoryId === categoryFilter)
+  const items = selectedItems.filter(item => (!categoryFilter || item.categoryId === categoryFilter)
     && (!locationFilter || (locationFilter === 'none' ? !item.locationId : item.locationId === locationFilter))
     && (!statusFilter || item.status === statusFilter)
     && inventoryMatches(search, [item.name, item.sku, item.serialNumber, item.manufacturer, item.model, item.barcode, categoryName(item), locationName(item)]))
     .sort((a, b) => a.name.localeCompare(b.name, 'de'));
-  const assignments = snapshot.assignments.filter(assignment => (assignmentFilter === 'all'
+  const assignments = snapshot.assignments.filter(assignment => selectedIds.has(assignment.itemId)&&(assignmentFilter === 'all'
     || (assignmentFilter === 'open' && isAssignmentOpen(assignment))
     || (assignmentFilter === 'overdue' && isAssignmentOverdue(assignment))
     || (assignmentFilter === 'closed' && !isAssignmentOpen(assignment)))
     && (!employeeFilter || assignment.recipientEmployeeId === employeeFilter)
     && inventoryMatches(search, [itemName(assignment.itemId), person(assignment.recipientEmployeeId), ASSIGNMENT_STATUS_LABELS[assignment.status], snapshot.items.find(item => item.id === assignment.itemId)?.sku]))
     .sort((a, b) => Number(isAssignmentOverdue(b)) - Number(isAssignmentOverdue(a)) || b.createdAt.localeCompare(a.createdAt));
-  const damageReports = snapshot.damageReports.filter(report => (damageFilter === 'all' || (damageFilter === 'open' ? !report.resolvedAt : report.resolvedAt))
+  const damageReports = snapshot.damageReports.filter(report => selectedIds.has(report.itemId)&&(damageFilter === 'all' || (damageFilter === 'open' ? !report.resolvedAt : report.resolvedAt))
     && inventoryMatches(search, [itemName(report.itemId), report.description, report.reportType === 'loss' ? 'Verlust' : report.reportType === 'missing_return' ? 'Fehlende Rückgabe' : 'Schaden']))
     .sort((a, b) => b.reportedAt.localeCompare(a.reportedAt));
   const detailItem = dialog?.kind === 'detail' ? snapshot.items.find(item => item.id === dialog.itemId) : null;
@@ -216,7 +220,7 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
     </style>
     <div className="ci-heading">
       <div>
-        <h2>Inventar</h2>
+        <h2>{title??'Inventar'}</h2>
         <p>Bestand, Ausgabe und Rücknahme an einem Ort.</p>
       </div>
       <div className="ci-actions">
@@ -261,8 +265,8 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
       </div>
     </div>}
     <div className="ci-stats">
-      <Stat label="Bestand" value={snapshot.items.filter(item => item.status !== 'archived').length} detail="ohne archivierte Einträge" icon="grid" onClick={() => { setStatusFilter(''); void switchView('stock'); }} />
-      <Stat label="Verfügbar" value={snapshot.items.filter(item => item.status === 'available').length} detail="bereit zur Ausgabe" icon="check" onClick={() => { setStatusFilter('available'); void switchView('stock'); }} />
+      <Stat label="Bestand" value={selectedItems.filter(item => item.status !== 'archived').length} detail="ohne archivierte Einträge" icon="grid" onClick={() => { setStatusFilter(''); void switchView('stock'); }} />
+      <Stat label="Verfügbar" value={selectedItems.filter(item => item.status === 'available').length} detail="bereit zur Ausgabe" icon="check" onClick={() => { setStatusFilter('available'); void switchView('stock'); }} />
       <Stat label="Offene Ausgaben" value={activeAssignments.length} detail="noch nicht abgeschlossen" icon="transfer" onClick={() => { setAssignmentFilter('open'); void switchView('assignments'); }} />
       <Stat label="Rückgaben überfällig" value={overdueAssignments.length} detail="Rückgabefrist überschritten" icon="clock" attention={overdueAssignments.length > 0} onClick={() => { setAssignmentFilter('overdue'); void switchView('assignments'); }} />
     </div>
@@ -278,7 +282,7 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
         <Search value={search} onChange={setSearch} placeholder="Gegenstand, Kennung oder Seriennummer suchen" />
         <Filter label="Kategorie" value={categoryFilter} onChange={setCategoryFilter}>
           <option value="">Alle Kategorien</option>
-          {snapshot.categories.map(category => <option key={category.id} value={category.id}>
+          {snapshot.categories.filter(category=>!categoryGroupFilter||category.group===categoryGroupFilter).map(category => <option key={category.id} value={category.id}>
             {category.label}
           </option>)}
         </Filter>
@@ -298,7 +302,7 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
       </div>
       <div className="ci-result-line">
         <span>
-          {items.length} von {snapshot.items.length} Bestandsposten</span>
+          {items.length} von {selectedItems.length} Bestandsposten</span>
         {Boolean(search || categoryFilter || locationFilter || statusFilter) && <button type="button" className="ci-text-button" onClick={() => { setSearch(''); setCategoryFilter(''); setLocationFilter(''); setStatusFilter(''); }}>Filter zurücksetzen</button>}
       </div>
       {items.length ? <div className="ci-table-shell" tabIndex={0} role="region" aria-label="Inventarbestand, bei Bedarf seitlich scrollen">
@@ -424,7 +428,7 @@ function InventoryWorkspaceScope({ tenantId, roleKey, actorProfileId, effectiveP
           <CompanyIcon name="plus" size={16} />Kategorie anlegen</button>}
       </div>
       {snapshot.categories.length ? <div className="ci-card-grid">
-        {snapshot.categories.map(category => <article key={category.id} className="ci-card">
+        {snapshot.categories.filter(category=>!categoryGroupFilter||category.group===categoryGroupFilter).map(category => <article key={category.id} className="ci-card">
           <div className="ci-card-header">
             <div>
               <h3>

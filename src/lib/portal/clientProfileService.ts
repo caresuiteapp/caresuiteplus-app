@@ -30,6 +30,7 @@ function isClientPortalRole(roleKey: RoleKey | null): boolean {
 function enforceClientPortalProfileAccess(
   roleKey: RoleKey | null,
 ): ServiceResult<never> | null {
+  if (roleKey === 'family_portal') return { ok: false, error: 'Vollständige Klientenprofile sind für diesen Angehörigenzugang nicht freigegeben.' };
   if (!roleKey) {
     return { ok: false, error: 'Sie sind nicht angemeldet. Bitte melden Sie sich an.' };
   }
@@ -42,6 +43,7 @@ function enforceClientPortalProfileAccess(
 function enforceClientCarePlanAccess(
   roleKey: RoleKey | null,
 ): ServiceResult<never> | null {
+  if (roleKey === 'family_portal') return { ok: false, error: 'Pflegepläne sind für diesen Angehörigenzugang nicht freigegeben.' };
   if (!roleKey) {
     return { ok: false, error: 'Sie sind nicht angemeldet. Bitte melden Sie sich an.' };
   }

@@ -1,7 +1,8 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { AdaptiveKpiGrid, type KpiGridItem } from '@/components/adaptive';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { formatOfficeDocumentSizeDisplay } from '@/lib/office/officeDocumentDisplay';
@@ -73,19 +74,22 @@ function downloadValue(downloadReady: boolean, viewReady: boolean): string {
 export function PortalDocumentDetailHero({ document, scope }: PortalDocumentDetailHeroProps) {
   const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
-  const { isPhone } = useDeviceClass();
+  const { isPhone, width } = useDeviceClass();
   const compact = isPhone;
+  const { fontScale } = useWindowDimensions();
+  const stackedHeading = width / Math.max(1, fontScale || 1) < 300;
   const labelCase = compact ? 'normal' : 'uppercase';
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         topRow: {
-          flexDirection: 'row',
+          flexDirection: stackedHeading ? 'column' : 'row',
           gap: spacing.md,
         },
         textCol: {
-          flex: 1,
+          flex: stackedHeading ? undefined : 1,
+          width: stackedHeading ? '100%' : undefined,
           gap: 2,
           minWidth: 0,
         },
@@ -116,7 +120,7 @@ export function PortalDocumentDetailHero({ document, scope }: PortalDocumentDeta
           gap: spacing.sm,
         },
       }),
-    [colors.bgElevated, heroText.eyebrow, heroText.meta, heroText.subtitle, heroText.title],
+    [colors.bgElevated, heroText.eyebrow, heroText.meta, heroText.subtitle, heroText.title, stackedHeading],
   );
 
   const kpiItems = useMemo((): KpiGridItem[] => {
@@ -199,7 +203,7 @@ export function PortalDocumentDetailHero({ document, scope }: PortalDocumentDeta
           ) : null}
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>📄</Text>
+          <SemanticArtwork style={styles.iconText}>📄</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

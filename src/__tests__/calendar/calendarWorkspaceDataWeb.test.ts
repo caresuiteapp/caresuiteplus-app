@@ -26,6 +26,13 @@ const event = (id: string): CalendarEvent => ({ id, title: 'Termin', start: '202
 const record = (id: string) => ({ id, tenant_id: 'tenant-a', module_key: 'office', source_type: 'custom_event', source_id: id, event_type: 'termin', title: 'Termin', start_at: '2026-10-17T08:00:00Z', end_at: '2026-10-17T09:00:00Z', all_day: false, status: 'aktiv', is_office_visible: true, is_module_visible: true, archived_at: null });
 beforeEach(() => { vi.clearAllMocks(); f.client = {}; f.calls = []; f.permission.mockReturnValue(null); f.blocked.mockReturnValue(null); f.resolve.mockReturnValue({ data: [], error: null }); f.visits.mockResolvedValue({ ok: true, data: [] }); });
 describe('Web calendar data completeness and mutation truth', () => {
+  it('shows the names of every selected meeting participant after reloading the central record', async () => {
+    f.resolve.mockImplementation((call) => ({ data: call.table === 'calendar_events'
+      ? [{ ...record('meeting'), related_employee_id: 'employee-a', participant_employee_ids: ['employee-a', 'employee-b'] }]
+      : call.table === 'employees' ? [{id:'employee-a',first_name:'Tom',last_name:'Neumann'},{id:'employee-b',first_name:'Mara',last_name:'Becker'}] : [], error: null }));
+    const result = await getWorkspaceCalendarEvents(params);
+    expect(result.ok && result.data.find(item => item.id === 'meeting')?.employeeName).toBe('Tom Neumann, Mara Becker');
+  });
   it('propagates central query failures instead of showing an empty calendar', async () => {
     f.resolve.mockReturnValue({ data: null, error: { message: 'Kalenderzugriff abgelehnt' } });
     expect(await getWorkspaceCalendarEvents(params)).toEqual({ ok: false, error: 'Kalenderzugriff abgelehnt' });

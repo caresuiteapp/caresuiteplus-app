@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from 'react';
 
 type Props = {
@@ -136,7 +137,7 @@ export function AssistLiveFilterSelect({ className, label, ariaLabel, value, opt
       aria-haspopup="listbox" aria-expanded={open} aria-controls={open ? `${id}-list` : undefined}
       aria-activedescendant={open && options.length ? optionId(activeIndex) : undefined} value={value}
       onClick={() => open ? setOpen(false) : openList()} onKeyDown={onKeyDown}>
-      <span>{selected?.label ?? label}</span><svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true"><path d="m4 6 4 4 4-4" /></svg>
+      <span>{selected?.label ?? label}</span><WebActionIcon size="compact"><path d="m6 9 6 6 6-6" /></WebActionIcon>
     </button>
     {open && <div ref={listRef} id={`${id}-list`} role="listbox" aria-label={ariaLabel} className="cs-live-filter-list">
       {options.map((option, index) => <div key={option.value} id={optionId(index)} role="option" aria-label={option.label}

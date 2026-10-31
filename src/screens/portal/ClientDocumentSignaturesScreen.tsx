@@ -17,6 +17,7 @@ import { subscribeToClientPortalDocumentRequestChanges, type RealtimeHandler } f
 import { liquidRadius } from '@/liquid-command/foundation/tokens';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { spacing } from '@/theme';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 type FilterKey = 'open' | 'done';
 
@@ -29,7 +30,8 @@ export function ClientDocumentSignaturesScreen() {
   const router = useRouter();
   const attention = useClientSignatureAttention();
   const proofs = attention.items.filter((item) => item.kind === 'proof');
-  const { tenantId, clientId, roleKey, isLinkedReady } = usePortalActor();
+  const { tenantId, clientId, roleKey, isLinkedReady, familyAccess } = usePortalActor();
+  const documentsAllowed = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'documents');
   const { can } = usePermissions();
   const [filter, setFilter] = useState<FilterKey>('open');
   const { width } = useDeviceClass();
@@ -56,11 +58,11 @@ export function ClientDocumentSignaturesScreen() {
     [tenantId, clientId, roleKey, filter],
     {
       enabled:
-        isLinkedReady &&
+        isLinkedReady && documentsAllowed &&
         (roleKey === 'client_portal' || roleKey === 'family_portal') &&
         !!tenantId &&
         !!clientId,
-      queryKey: JSON.stringify([tenantId, clientId, roleKey, filter]),
+      queryKey: JSON.stringify([tenantId, clientId, roleKey, filter, documentsAllowed]),
       live: { tenantId, subscribe, pollMs: 30_000, refreshOnFocus: true },
     },
   );
@@ -70,7 +72,7 @@ export function ClientDocumentSignaturesScreen() {
       ? (query.data ?? []).filter((r) => r.pendingSignatureRoles.some((role) => role === 'client' || role === 'representative'))
       : (query.data ?? []).filter((r) => r.status === 'completed' || r.status === 'archived');
 
-  if (!can('portal.client.documents.view' as never)) {
+  if (!documentsAllowed || !can('portal.client.documents.view' as never)) {
     return (
       <PortalTabScreen title="Unterschriften" scroll={false}>
         <EmptyState title="Kein Zugriff" message="Dokumente sind derzeit nicht verfügbar." />

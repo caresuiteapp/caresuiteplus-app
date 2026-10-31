@@ -1,0 +1,134 @@
+// Generated native presentation from src/lib/pflege/nutritionEliminationWorkflow.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeLocalStorage as localStorage} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { commitNutritionEliminationPacket, confirmNutritionEliminationPacket, commitNutritionReview, confirmNutritionReview } from "./nutritionEliminationRepository.supabase.native.ts";
+import { nutritionEliminationPacketIssue, nutritionReviewPacketIssue, type NutritionEliminationOriginal, type NutritionEliminationPacket, type NutritionReviewOriginal, type NutritionReviewPacket } from "./nutritionEliminationPacket.native.ts";
+import { cloneClientNativeOriginal, freezeClientNativeOriginal, sameClientNativeOriginal } from "../clients/clientRecordNativeOriginal.native.ts";
+type Scope = Readonly<{
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+}>;
+type Journal<P extends Scope> = Readonly<{
+    version: 1;
+    phase: 'prepared' | 'dispatched';
+    packet: P;
+}>;
+type Result<T> = {
+    ok: true;
+    data: T;
+} | {
+    ok: false;
+    error: string;
+    uncertain?: boolean;
+    rejected?: boolean;
+};
+type PacketIssue = (value: unknown) => string | null;
+const prefix = 'caresuite:pflege:nutrition-elimination:v1:', reviewPrefix = 'caresuite:pflege:nutrition-review:v1:';
+const key = (prefix: string, c: Scope) => prefix + c.tenantId + ':' + c.clientId + ':' + c.actorId;
+const uuid = (v: unknown): v is string => typeof v === 'string' && v.length === 36 && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+const storage = () => { if (typeof localStorage === 'undefined')
+    throw Error('Dauerhaftes Versandjournal ist in diesem Browser nicht verfügbar.'); return localStorage; };
+const changed = () => Error('Journal, Pflegefall oder Rechtekontext hat gewechselt. Die ursprüngliche Anfrage bleibt ungeklärt.');
+function capture<T>(input: T): T { const value = cloneClientNativeOriginal(input), encoded = JSON.stringify(value); if (encoded === undefined || !sameClientNativeOriginal(value, JSON.parse(encoded)))
+    throw Error('Die ursprüngliche Anfrage ist nicht verlustfrei speicherbar.'); return freezeClientNativeOriginal(value); }
+function scope(value: Scope): Scope { if (!value || ![value.tenantId, value.clientId, value.actorId].every(uuid))
+    throw changed(); return freezeClientNativeOriginal({ tenantId: value.tenantId, clientId: value.clientId, actorId: value.actorId }); }
+function owner(prefix: string, input: Scope, captured: Scope, current: () => boolean) {
+    const bound = scope(captured), name = key(prefix, bound), target = storage(), get = target.getItem, set = target.setItem, remove = target.removeItem, nav = globalThis.navigator;
+    const locks = (nav as Navigator & {
+        locks?: {
+            request<T>(name: string, options: {
+                mode: 'exclusive';
+                ifAvailable: boolean;
+            }, callback: (lock: unknown) => Promise<T>): Promise<T>;
+        };
+    } | undefined)?.locks, request = locks?.request;
+    if (!locks || typeof request !== 'function')
+        throw Error('Browserweite Exklusivsperre fehlt; Speichern bleibt gesperrt.');
+    if (![get, set, remove].every(method => typeof method === 'function') || typeof current !== 'function')
+        throw changed();
+    const stable = () => { if (storage() !== target || target.getItem !== get || target.setItem !== set || target.removeItem !== remove || globalThis.navigator !== nav || nav.locks !== locks || locks.request !== request)
+        throw changed(); for (const field of ['tenantId', 'clientId', 'actorId'] as const) {
+        const d = Object.getOwnPropertyDescriptor(input, field);
+        if (!d || !('value' in d) || d.value !== bound[field])
+            throw changed();
+    } };
+    const check = () => { stable(); if (current() !== true)
+        throw changed(); stable(); };
+    const raw = () => { stable(); const first = Reflect.apply(get, target, [name]) as string | null; stable(); const second = Reflect.apply(get, target, [name]) as string | null; stable(); if (first !== second)
+        throw changed(); return first; };
+    const replace = (expected: string | null, next: string | null) => { check(); if (raw() !== expected)
+        throw changed(); if (next === null)
+        Reflect.apply(remove, target, [name]);
+    else
+        Reflect.apply(set, target, [name, next]); stable(); if (raw() !== next)
+        throw Error('Das ursprüngliche Versandjournal konnte nicht unverändert bestätigt werden.'); check(); if (raw() !== next)
+        throw changed(); };
+    return { name, check, raw, replace, locked: <T>(run: () => Promise<T>) => Reflect.apply(request, locks, [name, { mode: 'exclusive', ifAvailable: true }, async (lock: unknown) => { if (!lock)
+                throw Error('Ein anderer Tab bearbeitet diesen Vorgang.'); check(); return run(); }]) as Promise<T> };
+}
+function read<P extends Scope>(raw: string | null, c: Scope, issue: PacketIssue): Journal<P> | null { if (raw === null)
+    return null; try {
+    const j = capture(JSON.parse(raw)) as Journal<P>;
+    if (!j || typeof j !== 'object' || Array.isArray(j) || Object.keys(j).sort().join(',') !== 'packet,phase,version' || j.version !== 1 || !['prepared', 'dispatched'].includes(j.phase) || j.packet?.tenantId !== c.tenantId || j.packet.clientId !== c.clientId || j.packet.actorId !== c.actorId || issue(j.packet) !== null)
+        throw Error();
+    return j;
+}
+catch {
+    throw Error('Das gespeicherte Journal ist unvollständig. Es bleibt erhalten; ein neuer Schreibvorgang ist gesperrt.');
+} }
+async function save<P extends Scope, T>(prefix: string, p: P, current: () => boolean, issue: PacketIssue, commit: (p: P, current: () => boolean) => Promise<Result<T>>): Promise<Result<T>> {
+    try {
+        const captured = capture(p), problem = issue(captured);
+        if (problem)
+            throw Error(problem);
+        const guard = owner(prefix, p, captured, current);
+        return await guard.locked<Result<T>>(async () => { guard.check(); let expected = guard.raw(); const previous = read<P>(expected, captured, issue); if (previous?.phase === 'dispatched')
+            return { ok: false, error: 'Ein früherer Schreibvorgang ist noch ungeklärt.', uncertain: true }; const prepared = JSON.stringify({ version: 1, phase: 'prepared', packet: captured }); guard.replace(expected, prepared); expected = prepared; const dispatched = JSON.stringify({ version: 1, phase: 'dispatched', packet: captured }); guard.replace(expected, dispatched); expected = dispatched; const pinnedCurrent = () => { try {
+            guard.check();
+            return guard.raw() === expected;
+        }
+        catch {
+            return false;
+        } }; if (!pinnedCurrent())
+            throw changed(); const result = await commit(captured, pinnedCurrent); if (!pinnedCurrent())
+            return { ok: false, error: 'Kontext oder ursprüngliches Journal nach Versand geändert.', uncertain: true }; if (result.ok) {
+            guard.replace(expected, null);
+            return result;
+        } if (result.rejected) {
+            guard.replace(expected, null);
+            return { ok: false, error: result.error };
+        } return { ok: false, error: result.error, uncertain: true }; });
+    }
+    catch (cause) {
+        return { ok: false, error: cause instanceof Error ? cause.message : 'Journal oder Sperre konnte nicht bestätigt werden.', uncertain: true };
+    }
+}
+async function recover<P extends Scope, T>(prefix: string, c: Scope, current: () => boolean, issue: PacketIssue, confirm: (p: P, current: () => boolean) => Promise<Result<T>>): Promise<Result<T> | null> {
+    try {
+        const captured = scope(capture(c)), guard = owner(prefix, c, captured, current);
+        return await guard.locked<Result<T> | null>(async () => { guard.check(); const expected = guard.raw(), j = read<P>(expected, captured, issue); if (!j)
+            return null; if (j.phase === 'prepared') {
+            guard.replace(expected, null);
+            return { ok: false, error: 'Nicht versandte lokale Anfrage wurde verworfen.' };
+        } const pinnedCurrent = () => { try {
+            guard.check();
+            return guard.raw() === expected;
+        }
+        catch {
+            return false;
+        } }; if (!pinnedCurrent())
+            throw changed(); const result = await confirm(j.packet, pinnedCurrent); if (!pinnedCurrent())
+            return { ok: false, error: 'Kontext oder ursprüngliches Journal während der Quittungsprüfung geändert.', uncertain: true }; if (result.ok) {
+            guard.replace(expected, null);
+            return result;
+        } return { ok: false, error: result.error, uncertain: true }; });
+    }
+    catch (cause) {
+        return { ok: false, error: cause instanceof Error ? cause.message : 'Das ursprüngliche Journal bleibt ungeklärt.', uncertain: true };
+    }
+}
+export const saveNutritionEliminationDurably = (p: NutritionEliminationPacket, current: () => boolean) => save<NutritionEliminationPacket, NutritionEliminationOriginal>(prefix, p, current, nutritionEliminationPacketIssue, commitNutritionEliminationPacket);
+export const recoverNutritionElimination = (c: Scope, current: () => boolean) => recover<NutritionEliminationPacket, NutritionEliminationOriginal>(prefix, c, current, nutritionEliminationPacketIssue, confirmNutritionEliminationPacket);
+export const saveNutritionReviewDurably = (p: NutritionReviewPacket, current: () => boolean) => save<NutritionReviewPacket, NutritionReviewOriginal>(reviewPrefix, p, current, nutritionReviewPacketIssue, commitNutritionReview);
+export const recoverNutritionReview = (c: Scope, current: () => boolean) => recover<NutritionReviewPacket, NutritionReviewOriginal>(reviewPrefix, c, current, nutritionReviewPacketIssue, confirmNutritionReview);

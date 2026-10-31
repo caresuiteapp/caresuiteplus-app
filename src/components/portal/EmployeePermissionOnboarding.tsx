@@ -8,7 +8,6 @@ import {
   getEmployeePermissionOverview,
   needsPermissionOnboarding,
   PERMISSION_KINDS,
-  requestLocationPermissionOnce,
   type EmployeePermissionKind,
   type EmployeePermissionOverviewItem,
 } from '@/features/employeePermissions';
@@ -73,14 +72,6 @@ export function EmployeePermissionOnboarding({
   const explanation = currentKind ? EMPLOYEE_PERMISSION_EXPLANATIONS[currentKind] : null;
   const isLastStep = step >= PERMISSION_KINDS.length - 1;
 
-  const handleRequestBrowserPermission = useCallback(async () => {
-    if (currentKind !== 'location') return;
-    setLoading(true);
-    await requestLocationPermissionOnce(tenantId, employeeId);
-    setLoading(false);
-    const overview = await getEmployeePermissionOverview(tenantId, employeeId);
-    if (overview.ok) setItems(overview.data.items);
-  }, [currentKind, tenantId, employeeId]);
 
   const handleNext = useCallback(async () => {
     setError(null);
@@ -127,7 +118,7 @@ export function EmployeePermissionOnboarding({
             <Text style={styles.permissionDesc}>{explanation.description}</Text>
             {currentItem ? (
               <Text style={styles.status}>
-                Gerätestatus: {statusLabel(currentItem.browserStatus)}
+                {currentKind === 'signature' ? 'Fachliche Funktion · keine Geräteberechtigung erforderlich' : `Gerätestatus: ${statusLabel(currentItem.browserStatus)}`}
               </Text>
             ) : null}
           </PremiumCard>
@@ -139,13 +130,7 @@ export function EmployeePermissionOnboarding({
                 „Einsatz starten“ und endet automatisch mit dem Einsatz. Eine zusätzliche
                 CareSuite-Zustimmung ist nicht erforderlich.
               </Text>
-              <PremiumButton
-                title="Geräte-Standort freigeben"
-                variant="secondary"
-                fullWidth
-                loading={loading}
-                onPress={handleRequestBrowserPermission}
-              />
+              <Text style={styles.note}>Die Gerätefreigabe wird beim Start der betreffenden Standortfunktion angefragt. Ablehnen verhindert nicht den Zugang zum Portal.</Text>
             </SectionPanel>
           ) : null}
 

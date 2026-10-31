@@ -61,6 +61,7 @@ export type CalendarEventFormState = {
   address: string;
   relatedClientId: string;
   relatedEmployeeId: string;
+  participantEmployeeIds?: string[];
   relatedWardId: string;
   relatedCaseId: string;
   participantNote: string;
@@ -95,6 +96,7 @@ export type CalendarEventFormInput = {
   address?: string | null;
   relatedClientId?: string | null;
   relatedEmployeeId?: string | null;
+  participantEmployeeIds?: string[];
   relatedWardId?: string | null;
   relatedCaseId?: string | null;
   isOfficeVisible?: boolean;
@@ -131,6 +133,7 @@ export function createDefaultFormState(
     address: '',
     relatedClientId: '',
     relatedEmployeeId: '',
+    participantEmployeeIds: [],
     relatedWardId: '',
     relatedCaseId: '',
     participantNote: '',

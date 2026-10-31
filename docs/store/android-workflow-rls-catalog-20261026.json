@@ -1,0 +1,240 @@
+{
+  "capturedAt": "2026-10-26",
+  "readOnlyCatalog": true,
+  "containsBusinessRows": false,
+  "functions": [
+    {
+      "proname": "current_portal_account_id",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_portal_account_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT CASE\r\n    WHEN COALESCE(auth.jwt()->'app_metadata'->>'portal_account_id', '') ~*\r\n      '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'\r\n    THEN (auth.jwt()->'app_metadata'->>'portal_account_id')::uuid\r\n    ELSE NULL\r\n  END\r\n$function$\n",
+      "signature": "public.current_portal_account_id()",
+      "sha256": "7977fea6427a2b3d146b912cbc7d69cefc3c3b033d01cf890fbb50c918172df6"
+    },
+    {
+      "proname": "current_employee_id",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_employee_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT CASE\r\n    WHEN public.current_portal_type() = 'employee' THEN (\r\n      SELECT epa.employee_id\r\n      FROM public.employee_portal_accounts epa\r\n      WHERE epa.id = public.current_portal_account_id()\r\n        AND epa.auth_user_id = auth.uid()\r\n        AND epa.status IN ('active', 'pending_first_login', 'password_reset_required')\r\n      LIMIT 1\r\n    )\r\n    WHEN public.current_portal_type() IS NOT NULL THEN NULL\r\n    ELSE (\r\n      SELECT epa.employee_id\r\n      FROM public.employee_portal_accounts epa\r\n      WHERE epa.auth_user_id = auth.uid()\r\n        AND epa.tenant_id = public.current_tenant_id()\r\n        AND epa.status IN ('active', 'pending_first_login', 'password_reset_required')\r\n      ORDER BY epa.updated_at DESC NULLS LAST\r\n      LIMIT 1\r\n    )\r\n  END\r\n$function$\n",
+      "signature": "public.current_employee_id()",
+      "sha256": "3c17296724d9f088e3e7362f48cf2ef462a5764662eac7f2ea141ce0eb002304"
+    },
+    {
+      "proname": "current_employee_id_from_profile",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_employee_id_from_profile()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT e.id\r\n  FROM public.employees e\r\n  INNER JOIN public.profiles p ON p.id = e.profile_id\r\n  WHERE (p.id = auth.uid() OR p.auth_user_id = auth.uid())\r\n    AND e.tenant_id = public.current_tenant_id()\r\n  LIMIT 1\r\n$function$\n",
+      "signature": "public.current_employee_id_from_profile()",
+      "sha256": "530ddd7e2cd3d2689900f7b5d4cf3bcd2c47de154e5521708dce89082a1cad87"
+    },
+    {
+      "proname": "current_portal_type",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_portal_type()\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT NULLIF(auth.jwt()->'app_metadata'->>'portal_type', '')\r\n$function$\n",
+      "signature": "public.current_portal_type()",
+      "sha256": "0fb99f15f806cfa1e1dce0121d7e14458695a8e2fb9aefa7213868c232142dcb"
+    },
+    {
+      "proname": "current_role_key",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_role_key()\n RETURNS text\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT CASE public.current_portal_type()\r\n    WHEN 'employee' THEN CASE WHEN EXISTS (\r\n      SELECT 1\r\n      FROM public.employee_portal_accounts epa\r\n      WHERE epa.id = public.current_portal_account_id()\r\n        AND epa.auth_user_id = auth.uid()\r\n        AND epa.status IN ('active', 'pending_first_login', 'password_reset_required')\r\n    ) THEN 'employee_portal'::text ELSE NULL END\r\n    WHEN 'client' THEN CASE WHEN EXISTS (\r\n      SELECT 1\r\n      FROM public.client_portal_access cpa\r\n      WHERE cpa.id = public.current_portal_account_id()\r\n        AND cpa.auth_user_id = auth.uid()\r\n        AND cpa.portal_enabled = TRUE\r\n        AND cpa.status = 'aktiv'\r\n    ) OR EXISTS (\r\n      SELECT 1\r\n      FROM public.client_portal_codes cpc\r\n      WHERE cpc.id = public.current_portal_account_id()\r\n        AND cpc.auth_user_id = auth.uid()\r\n        AND cpc.status = 'active'\r\n        AND (cpc.expires_at IS NULL OR cpc.expires_at > NOW())\r\n    ) THEN 'client_portal'::text ELSE NULL END\r\n    WHEN 'relative' THEN CASE WHEN EXISTS (\r\n      SELECT 1\r\n      FROM public.relative_portal_codes rpc\r\n      WHERE rpc.id = public.current_portal_account_id()\r\n        AND rpc.auth_user_id = auth.uid()\r\n        AND rpc.status = 'active'\r\n        AND (rpc.expires_at IS NULL OR rpc.expires_at > NOW())\r\n    ) THEN 'family_portal'::text ELSE NULL END\r\n    ELSE CASE\r\n      WHEN public.current_portal_type() IS NULL OR public.current_portal_type() = 'business'\r\n      THEN COALESCE(\r\n        (\r\n          SELECT r.key\r\n          FROM public.profiles p\r\n          JOIN public.roles r ON r.id = p.role_id\r\n          WHERE p.id = auth.uid() OR p.auth_user_id = auth.uid()\r\n          ORDER BY (p.id = auth.uid()) DESC\r\n          LIMIT 1\r\n        ),\r\n        NULLIF(auth.jwt()->'app_metadata'->>'role_key', '')\r\n      )\r\n      ELSE NULL\r\n    END\r\n  END\r\n$function$\n",
+      "signature": "public.current_role_key()",
+      "sha256": "5e7fcd624f863a64cbec0212445b40413c13825eec4aaf225609cbc6daf32d89"
+    },
+    {
+      "proname": "current_tenant_id",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_tenant_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$SELECT CASE WHEN public.platform_tenant_access_allowed(v.tenant_id,false) THEN v.tenant_id ELSE NULL END FROM (\r\n  SELECT CASE public.current_portal_type()\r\n    WHEN 'employee' THEN (\r\n      SELECT epa.tenant_id\r\n      FROM public.employee_portal_accounts epa\r\n      WHERE epa.id = public.current_portal_account_id()\r\n        AND epa.auth_user_id = auth.uid()\r\n        AND epa.status IN ('active', 'pending_first_login', 'password_reset_required')\r\n      LIMIT 1\r\n    )\r\n    WHEN 'client' THEN COALESCE(\r\n      (\r\n        SELECT cpa.tenant_id\r\n        FROM public.client_portal_access cpa\r\n        WHERE cpa.id = public.current_portal_account_id()\r\n          AND cpa.auth_user_id = auth.uid()\r\n          AND cpa.portal_enabled = TRUE\r\n          AND cpa.status = 'aktiv'\r\n        LIMIT 1\r\n      ),\r\n      (\r\n        SELECT cpc.tenant_id\r\n        FROM public.client_portal_codes cpc\r\n        WHERE cpc.id = public.current_portal_account_id()\r\n          AND cpc.auth_user_id = auth.uid()\r\n          AND cpc.status = 'active'\r\n          AND (cpc.expires_at IS NULL OR cpc.expires_at > NOW())\r\n        LIMIT 1\r\n      )\r\n    )\r\n    WHEN 'relative' THEN (\r\n      SELECT rpc.tenant_id\r\n      FROM public.relative_portal_codes rpc\r\n      WHERE rpc.id = public.current_portal_account_id()\r\n        AND rpc.auth_user_id = auth.uid()\r\n        AND rpc.status = 'active'\r\n        AND (rpc.expires_at IS NULL OR rpc.expires_at > NOW())\r\n      LIMIT 1\r\n    )\r\n    ELSE CASE\r\n      WHEN public.current_portal_type() IS NULL OR public.current_portal_type() = 'business'\r\n      THEN COALESCE(\r\n        (\r\n          SELECT p.tenant_id\r\n          FROM public.profiles p\r\n          WHERE p.id = auth.uid() OR p.auth_user_id = auth.uid()\r\n          ORDER BY (p.id = auth.uid()) DESC\r\n          LIMIT 1\r\n        ),\r\n        CASE\r\n          WHEN COALESCE(auth.jwt()->'app_metadata'->>'tenant_id', '') ~*\r\n            '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$'\r\n          THEN (auth.jwt()->'app_metadata'->>'tenant_id')::uuid\r\n          ELSE NULL\r\n        END\r\n      )\r\n      ELSE NULL\r\n    END\r\n  END\r\n) v(tenant_id)$function$\n",
+      "signature": "public.current_tenant_id()",
+      "sha256": "cf997112462db94cd9851c65b5ff141bdc4e41ee480031a7e6c578d98d464073"
+    },
+    {
+      "proname": "is_employee_portal_rls_context",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_employee_portal_rls_context(p_tenant_id uuid DEFAULT NULL::uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT public.current_role_key() = 'employee_portal'\r\n    AND public.is_active_employee_portal_actor(p_tenant_id)\r\n$function$\n",
+      "signature": "public.is_employee_portal_rls_context(uuid)",
+      "sha256": "58d9f8aa3778b7e1df166161146d5cd8360c10f36dec74f2d3a4f4fcd0a3d576"
+    },
+    {
+      "proname": "is_internal_tenant_actor",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_internal_tenant_actor(p_tenant_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$SELECT coalesce(v.allowed,false) AND public.platform_tenant_access_allowed(p_tenant_id,false) FROM (\r\n  SELECT\r\n    COALESCE(public.current_role_key(), '') NOT IN (\r\n      'employee_portal',\r\n      'client_portal',\r\n      'family_portal'\r\n    )\r\n    AND (\r\n      EXISTS (\r\n        SELECT 1\r\n        FROM public.profiles p\r\n        WHERE (p.id = auth.uid() OR p.auth_user_id = auth.uid())\r\n          AND p.tenant_id = p_tenant_id\r\n      )\r\n      OR EXISTS (\r\n        SELECT 1\r\n        FROM public.tenant_memberships tm\r\n        WHERE tm.user_id = auth.uid()\r\n          AND tm.tenant_id = p_tenant_id\r\n          AND tm.is_active = TRUE\r\n      )\r\n    )\r\n) v(allowed)$function$\n",
+      "signature": "public.is_internal_tenant_actor(uuid)",
+      "sha256": "b34cfd8764cabc87a61714393df55de8cdbe362b5e13ef99d64f70c79e3b5d37"
+    },
+    {
+      "proname": "is_tenant_admin",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_tenant_admin()\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$\n  SELECT EXISTS (\n    SELECT 1\n    FROM public.profiles p\n    JOIN public.roles r ON r.id = p.role_id\n    WHERE (p.id = auth.uid() OR p.auth_user_id = auth.uid())\n      AND p.status IN ('active', 'invited')\n      AND (\n        COALESCE(r.is_admin_role, FALSE) = TRUE\n        OR r.key IN (\n          'owner',\n          'admin',\n          'management',\n          'geschaeftsfuehrung',\n          'business_admin'\n        )\n      )\n  )\n$function$\n",
+      "signature": "public.is_tenant_admin()",
+      "sha256": "1db39d8635deadbf8b63ab583a74931d9ab0313c7b17a355ba731197f93039a9"
+    },
+    {
+      "proname": "current_client_id",
+      "definition": "CREATE OR REPLACE FUNCTION public.current_client_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT CASE public.current_portal_type()\r\n    WHEN 'client' THEN COALESCE(\r\n      (\r\n        SELECT cpa.client_id\r\n        FROM public.client_portal_access cpa\r\n        WHERE cpa.id = public.current_portal_account_id()\r\n          AND cpa.auth_user_id = auth.uid()\r\n          AND cpa.portal_enabled = TRUE\r\n          AND cpa.status = 'aktiv'\r\n        LIMIT 1\r\n      ),\r\n      (\r\n        SELECT cpc.client_id\r\n        FROM public.client_portal_codes cpc\r\n        WHERE cpc.id = public.current_portal_account_id()\r\n          AND cpc.auth_user_id = auth.uid()\r\n          AND cpc.status = 'active'\r\n          AND (cpc.expires_at IS NULL OR cpc.expires_at > NOW())\r\n        LIMIT 1\r\n      )\r\n    )\r\n    WHEN 'relative' THEN (\r\n      SELECT rpc.client_id\r\n      FROM public.relative_portal_codes rpc\r\n      WHERE rpc.id = public.current_portal_account_id()\r\n        AND rpc.auth_user_id = auth.uid()\r\n        AND rpc.status = 'active'\r\n        AND (rpc.expires_at IS NULL OR rpc.expires_at > NOW())\r\n      LIMIT 1\r\n    )\r\n    WHEN 'employee' THEN NULL\r\n    ELSE COALESCE(\r\n      (\r\n        SELECT cpa.client_id\r\n        FROM public.client_portal_access cpa\r\n        WHERE cpa.auth_user_id = auth.uid()\r\n          AND cpa.tenant_id = public.current_tenant_id()\r\n          AND cpa.portal_enabled = TRUE\r\n          AND cpa.status = 'aktiv'\r\n        LIMIT 1\r\n      ),\r\n      (\r\n        SELECT cpc.client_id\r\n        FROM public.client_portal_codes cpc\r\n        WHERE cpc.auth_user_id = auth.uid()\r\n          AND cpc.tenant_id = public.current_tenant_id()\r\n          AND cpc.status = 'active'\r\n          AND (cpc.expires_at IS NULL OR cpc.expires_at > NOW())\r\n        LIMIT 1\r\n      ),\r\n      (\r\n        SELECT rpc.client_id\r\n        FROM public.relative_portal_codes rpc\r\n        WHERE rpc.auth_user_id = auth.uid()\r\n          AND rpc.tenant_id = public.current_tenant_id()\r\n          AND rpc.status = 'active'\r\n          AND (rpc.expires_at IS NULL OR rpc.expires_at > NOW())\r\n        LIMIT 1\r\n      )\r\n    )\r\n  END\r\n$function$\n",
+      "signature": "public.current_client_id()",
+      "sha256": "425f2f7de56f496fb9264f75a890877b771ba9b383776d1f2b4b6a32fb432f29"
+    },
+    {
+      "proname": "is_active_employee_portal_actor",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_active_employee_portal_actor(p_tenant_id uuid DEFAULT NULL::uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT public.current_portal_type() = 'employee'\r\n    AND public.current_employee_id() IS NOT NULL\r\n    AND public.current_tenant_id() = COALESCE(p_tenant_id, public.current_tenant_id())\r\n$function$\n",
+      "signature": "public.is_active_employee_portal_actor(uuid)",
+      "sha256": "ea4e8c09db484728ca7046648bee565a0890a70815560037ff5269cbad95aa7e"
+    },
+    {
+      "proname": "is_client_portal_rls_context",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_client_portal_rls_context(p_tenant_id uuid DEFAULT NULL::uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT public.current_role_key() IN ('client_portal', 'family_portal')\r\n    AND public.current_client_id() IS NOT NULL\r\n    AND public.current_tenant_id() = COALESCE(p_tenant_id, public.current_tenant_id())\r\n$function$\n",
+      "signature": "public.is_client_portal_rls_context(uuid)",
+      "sha256": "3f4039cf02e6692ef790563a1c9f5790ed16bae1d7a10a5d5d6a230ba5b0b6cb"
+    },
+    {
+      "proname": "is_tenant_member",
+      "definition": "CREATE OR REPLACE FUNCTION public.is_tenant_member(p_tenant_id uuid)\n RETURNS boolean\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public', 'pg_temp'\nAS $function$SELECT coalesce(v.allowed,false) AND public.platform_tenant_access_allowed(p_tenant_id,false) FROM (\n  SELECT EXISTS (SELECT 1 FROM public.tenant_memberships tm WHERE tm.tenant_id = p_tenant_id AND tm.user_id = auth.uid() AND tm.is_active = TRUE)\n  OR EXISTS (SELECT 1 FROM public.profiles p WHERE (p.id = auth.uid() OR p.auth_user_id = auth.uid()) AND p.tenant_id = p_tenant_id)\n  OR EXISTS (SELECT 1 FROM public.employee_portal_accounts epa WHERE epa.auth_user_id = auth.uid() AND epa.tenant_id = p_tenant_id AND epa.status = 'active')\n  OR EXISTS (SELECT 1 FROM public.client_portal_access cpa WHERE cpa.auth_user_id = auth.uid() AND cpa.tenant_id = p_tenant_id AND cpa.portal_enabled = TRUE)) v(allowed)$function$\n",
+      "signature": "public.is_tenant_member(uuid)",
+      "sha256": "23bd97e89beacde836bbfca08149ecb6695c15fc33a5062c32f494fd187a42d7"
+    },
+    {
+      "proname": "portal_employee_assigned_visit_ids",
+      "definition": "CREATE OR REPLACE FUNCTION public.portal_employee_assigned_visit_ids(p_tenant_id uuid)\n RETURNS SETOF uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\n  SELECT v.id\n  FROM public.assist_visits v\n  WHERE v.tenant_id = p_tenant_id\n    AND v.employee_id = public.resolve_current_employee_id()\n    AND v.planning_status <> 'draft'\n  UNION\n  SELECT v.id\n  FROM public.assignments a\n  JOIN public.assist_visits v\n    ON v.tenant_id = a.tenant_id\n    AND (v.legacy_assignment_id = a.id OR v.id = a.id)\n  WHERE a.tenant_id = p_tenant_id\n    AND a.employee_id = public.resolve_current_employee_id()\n$function$\n",
+      "signature": "public.portal_employee_assigned_visit_ids(uuid)",
+      "sha256": "6de7d2c760a9dc839bbcd90a844c84c3a1d3d95823eb815ac203f70441ac227c"
+    },
+    {
+      "proname": "resolve_current_employee_id",
+      "definition": "CREATE OR REPLACE FUNCTION public.resolve_current_employee_id()\n RETURNS uuid\n LANGUAGE sql\n STABLE SECURITY DEFINER\n SET search_path TO 'public'\nAS $function$\r\n  SELECT CASE\r\n    WHEN public.current_portal_type() IS NOT NULL THEN public.current_employee_id()\r\n    ELSE COALESCE(public.current_employee_id(), public.current_employee_id_from_profile())\r\n  END\r\n$function$\n",
+      "signature": "public.resolve_current_employee_id()",
+      "sha256": "320b128270c5c9124c089f699e8435ebadb41811604b22a98ec227fe806d1bc6"
+    },
+    {
+      "proname": "company_profile",
+      "definition": "CREATE OR REPLACE FUNCTION care_security.company_profile(p_tenant uuid)\n RETURNS uuid\n LANGUAGE plpgsql\n STABLE SECURITY DEFINER\n SET search_path TO 'pg_catalog'\nAS $function$\nDECLARE v_profile uuid; v_count integer; v_claim text;\nBEGIN\n  IF auth.uid() IS NULL OR p_tenant IS DISTINCT FROM public.current_tenant_id() THEN RETURN NULL; END IF;\n  v_claim:=lower(coalesce(auth.jwt()->'app_metadata'->>'role_key',''));\n  IF v_claim IN ('employee_portal','client_portal','family_portal','employee','client','family','relative','caregiver','nurse')\n    OR lower(coalesce(auth.jwt()->'app_metadata'->>'portal','')) IN ('employee','client','family')\n    OR lower(coalesce(auth.jwt()->'app_metadata'->>'portal_type','')) IN ('employee','client','family') THEN RETURN NULL; END IF;\n  SELECT count(*),(array_agg(p.id))[1] INTO v_count,v_profile\n  FROM public.profiles p JOIN public.roles r ON r.id=p.role_id\n  WHERE (p.auth_user_id=auth.uid() OR (p.auth_user_id IS NULL AND p.id=auth.uid()))\n    AND p.tenant_id=p_tenant AND p.status::text='active' AND p.is_active IS TRUE\n    AND (to_jsonb(r)->>'tenant_id' IS NULL OR to_jsonb(r)->>'tenant_id'=p_tenant::text)\n    AND lower(r.key) NOT IN ('employee_portal','client_portal','family_portal','employee','client','family','relative','caregiver','nurse');\n  IF v_count<>1 THEN RETURN NULL; END IF;\n  -- Duplicate/inactive personnel links must not silently discard an override.\n  IF (SELECT count(*) FROM public.employees e WHERE e.profile_id=v_profile)>1\n    OR EXISTS(SELECT 1 FROM public.employees e WHERE e.profile_id=v_profile\n      AND (e.tenant_id IS DISTINCT FROM p_tenant OR e.status::text NOT IN ('active','aktiv'))) THEN RETURN NULL; END IF;\n  RETURN v_profile;\nEND $function$\n",
+      "signature": "care_security.company_profile(uuid)",
+      "sha256": "9cc519787ac09db634cd1b8754e02e0eac95350aa5939a6f0dede9ce5758d145"
+    }
+  ],
+  "policies": [
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_admin_manage_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_tenant_admin() AS is_tenant_admin))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_tenant_admin() AS is_tenant_admin))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_portal_client_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (client_id = ( SELECT current_client_id() AS current_client_id)) AND (( SELECT current_client_id() AS current_client_id) IS NOT NULL))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_portal_employee_select",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_portal_employee_update",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "UPDATE",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)) AND ( SELECT is_employee_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_employee_portal_rls_context))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND (employee_id = ( SELECT resolve_current_employee_id() AS resolve_current_employee_id)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_select_own_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "SELECT",
+      "qual": "(tenant_id = ( SELECT current_tenant_id() AS current_tenant_id))",
+      "with_check": null
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assignments",
+      "policyname": "assignments_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_internal_tenant_actor(( SELECT current_tenant_id() AS current_tenant_id)) AS is_internal_tenant_actor))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_execution_state",
+      "policyname": "assist_visit_execution_state_portal_employee",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_employee_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_employee_portal_rls_context) AND (visit_id IN ( SELECT portal_employee_assigned_visit_ids(( SELECT current_tenant_id() AS current_tenant_id)) AS portal_employee_assigned_visit_ids)))",
+      "with_check": "((tenant_id = ( SELECT current_tenant_id() AS current_tenant_id)) AND ( SELECT is_employee_portal_rls_context(( SELECT current_tenant_id() AS current_tenant_id)) AS is_employee_portal_rls_context) AND (visit_id IN ( SELECT portal_employee_assigned_visit_ids(( SELECT current_tenant_id() AS current_tenant_id)) AS portal_employee_assigned_visit_ids)))"
+    },
+    {
+      "schemaname": "public",
+      "tablename": "assist_visit_execution_state",
+      "policyname": "assist_visit_execution_state_tenant",
+      "permissive": "PERMISSIVE",
+      "roles": "{authenticated}",
+      "cmd": "ALL",
+      "qual": "is_tenant_member(tenant_id)",
+      "with_check": "is_tenant_member(tenant_id)"
+    }
+  ],
+  "effectivePrivileges": [
+    {
+      "relation": "assignments",
+      "role": "anon",
+      "sel": false,
+      "ins": false,
+      "upd": false,
+      "del": false
+    },
+    {
+      "relation": "assignments",
+      "role": "authenticated",
+      "sel": true,
+      "ins": true,
+      "upd": true,
+      "del": true
+    },
+    {
+      "relation": "assignments",
+      "role": "service_role",
+      "sel": true,
+      "ins": true,
+      "upd": true,
+      "del": false
+    },
+    {
+      "relation": "assist_visit_execution_state",
+      "role": "anon",
+      "sel": false,
+      "ins": false,
+      "upd": false,
+      "del": false
+    },
+    {
+      "relation": "assist_visit_execution_state",
+      "role": "authenticated",
+      "sel": true,
+      "ins": true,
+      "upd": true,
+      "del": false
+    },
+    {
+      "relation": "assist_visit_execution_state",
+      "role": "service_role",
+      "sel": false,
+      "ins": false,
+      "upd": false,
+      "del": false
+    }
+  ],
+  "limitations": [
+    "Table shapes in the isolated fixture contain only fields required by these policies/helpers; unrelated RLS, triggers, foreign keys, Storage, Realtime and full workflows are not simulated.",
+    "auth.uid/JWT and platform access are controlled synthetic session inputs; authorization helpers are the captured SQL definitions.",
+    "No deployment or end-to-end production proof."
+  ]
+}

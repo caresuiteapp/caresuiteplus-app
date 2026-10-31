@@ -1,3 +1,5 @@
+import { SemanticIconLabel } from '@/components/navigation/SemanticIconLabel';
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo, useState } from 'react';
 import {
   Linking,
@@ -73,9 +75,9 @@ function NavItem({
         ]}
       >
         {active ? <View style={[styles.activeBar, { backgroundColor: accent }]} /> : null}
-        <Text style={[styles.navIcon, collapsed ? styles.navIconCollapsed : styles.navIconExpanded]}>
+        <SemanticArtwork webSize={24} webColor={active ? accent : spatialCare.textOnNight} style={[styles.navIcon, collapsed ? styles.navIconCollapsed : styles.navIconExpanded]}>
           {item.icon}
-        </Text>
+        </SemanticArtwork>
         {!collapsed ? (
           <Text
             style={[
@@ -193,9 +195,7 @@ export function PortalLeftNav({
 
       <View style={styles.footer}>
         <Pressable onPress={toggleCollapse} style={styles.footerBtn} accessibilityRole="button">
-          <Text style={[styles.footerBtnText, { color: text.muted }]}>
-            {isCollapsed ? '▸ Menü' : '◂ Menü minimieren'}
-          </Text>
+          <SemanticIconLabel symbol={isCollapsed ? '▸' : '◂'} label={isCollapsed ? 'Menü' : 'Menü minimieren'} style={[styles.footerBtnText, { color: text.muted }]} />
         </Pressable>
         <Pressable
           onPress={() => {
@@ -206,7 +206,7 @@ export function PortalLeftNav({
           style={styles.footerBtn}
           accessibilityRole="link"
         >
-          <Text style={[styles.footerBtnText, { color: text.muted }]}>❓ Hilfe</Text>
+          <SemanticIconLabel symbol="❓" label="Hilfe" style={[styles.footerBtnText, { color: text.muted }]} />
         </Pressable>
       </View>
     </View>

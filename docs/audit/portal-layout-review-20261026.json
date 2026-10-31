@@ -1,0 +1,361 @@
+{
+  "sourceCommit": "e7bd663c334d6ae4aab626ee361fe1719f24384d",
+  "ciRun": 40374367142,
+  "scope": "Initial 360x800 ready-state browser frames at 1.6 font scale, native sources with isolated presentation data; no Android device or interaction acceptance.",
+  "reviewedSheets": [
+    "administration-01.jpg",
+    "administration-02.jpg",
+    "employee-01.jpg",
+    "employee-02.jpg",
+    "employee-03.jpg",
+    "employee-04.jpg",
+    "employee-05.jpg",
+    "client-family-01.jpg",
+    "client-family-02.jpg",
+    "client-family-03.jpg",
+    "client-family-04.jpg",
+    "client-family-05.jpg",
+    "client-family-06.jpg",
+    "client-family-07.jpg"
+  ],
+  "reviewedFrames": 81,
+  "findings": [
+    {
+      "id": "announcements-title",
+      "cases": [
+        "employee-audit-announcements"
+      ],
+      "finding": "Heading Ankündigungen splits its final letter next to the large icon."
+    },
+    {
+      "id": "detail-fact-columns",
+      "cases": [
+        "employee-audit-assignment-detail",
+        "employee-audit-document-detail",
+        "client-audit-document-detail"
+      ],
+      "finding": "Two narrow fact cards split a date or a label such as Einsatzzeit; use responsive stacking at enlarged text."
+    },
+    {
+      "id": "client-name-width",
+      "cases": [
+        "employee-audit-client-detail"
+      ],
+      "finding": "Name Musterfrau loses its last letter to a new line because avatar and badge reserve the title width."
+    },
+    {
+      "id": "employee-document-metrics",
+      "cases": [
+        "employee-audit-documents"
+      ],
+      "finding": "Spatial employee KPI title and empty-state words split; the MobilePortalKpiCard change only covers client/family."
+    },
+    {
+      "id": "portal-headline-clamp",
+      "cases": [
+        "employee-audit-payroll",
+        "employee-audit-tasks",
+        "client-audit-help"
+      ],
+      "finding": "Main section title is ellipsized at enlarged text."
+    },
+    {
+      "id": "long-document-title",
+      "cases": [
+        "client-audit-signature-detail"
+      ],
+      "finding": "Long original document title breaks inside Alltagsbegleitung; examine available width and native line-break strategy."
+    },
+    {
+      "id": "timeline-fixture-contract",
+      "cases": [
+        "admin-audit-client-timeline"
+      ],
+      "finding": "An explicit missing-preview-contract error dialog is shown. This frame does not prove a ready timeline."
+    },
+    {
+      "id": "conversation-fixture-content",
+      "cases": [
+        "employee-audit-thread",
+        "client-audit-thread"
+      ],
+      "finding": "Conversation frame is blank apart from navigation/composer; verify ready-data contract and specific receiving content."
+    },
+    {
+      "id": "family-guarded-modal-contracts",
+      "cases": [
+        "client-audit-activities",
+        "client-audit-request",
+        "client-audit-requests",
+        "client-audit-upload"
+      ],
+      "finding": "Family frames remain on home instead of opening the client modal. Check expected role guards; do not enable forbidden family writes."
+    }
+  ],
+  "correctedAndVisuallyConfirmed": [
+    {
+      "id": "client-document-metrics",
+      "cases": [
+        "client-audit-documents"
+      ],
+      "roles": [
+        "client",
+        "family"
+      ],
+      "evidence": "Full-width cards preserve Eingeschränkt and Keine eingeschränkten; six geometric/receiving-page assertions pass in CI160."
+    }
+  ],
+  "unreviewed": [
+    "320px ready frames",
+    "1280px ready frames",
+    "loading/error/empty states",
+    "all nonprepared route cases",
+    "real Android device operations",
+    "real authenticated server writes/reads"
+  ],
+  "releaseAcceptance": false,
+  "recheckedMontageArtifacts": [
+    {
+      "id": "dock-overlap",
+      "outcome": "No defect confirmed in six original-resolution dock crops. The apparent missing glyphs were an overview-resizing artifact; no navigation code was changed."
+    }
+  ],
+  "implementedAwaitingNewImages": [
+    "Measured pane-width and font-scale column limits in AdaptiveKpiGrid; scaled horizontal card widths.",
+    "Employee tab metrics use the same adaptive grid.",
+    "Main portal hero headings and role pills no longer clamp or shrink to a single line. Native title hyphenation is enabled but requires Android verification.",
+    "Enlarged announcement/document/client record headings obtain a full-width text column.",
+    "Assignment fact card basis grows with system font scale.",
+    "Fictional two-message conversations and a single namespaced client-timeline fixture provide actual receiving content. File transport and writes remain denied.",
+    "The home role pill labels a family session as Angehörigenportal; four guarded family entries assert the home content and absence of client write modals."
+  ],
+  "artifacts": {
+    "administration": {
+      "id": 12675040843,
+      "sha256": "cef83f408de1c220c33d45542380d811cc814339d84a3f9b88fd653defc4a0f1"
+    },
+    "employee": {
+      "id": 12674321853,
+      "sha256": "e418138e65f62d6217ad59b94109e1610f8a0edefa68ae3e3cc6354f99ac8a32"
+    },
+    "client_and_family": {
+      "id": 12674866815,
+      "sha256": "cee65b5fb575440ebebb64e5575dfed2604abed5f42bbe75420edf8e6c2091c5"
+    }
+  },
+  "sourceCheckedRoleGuards": [
+    {
+      "cases": [
+        "client-audit-activities",
+        "client-audit-request",
+        "client-audit-requests",
+        "client-audit-upload"
+      ],
+      "role": "family",
+      "outcome": "Remaining on home is intended: mixed feeds/requests lack a family grant; AssistPortalOverview and ClientPortalHomeDashboard explicitly block family uploads. No permissions were widened.",
+      "sources": [
+        "src/lib/portal/familyPortalAccessScope.ts",
+        "src/components/portal/assist/AssistPortalOverview.tsx",
+        "src/components/portal/assist/ClientPortalHomeDashboard.tsx"
+      ]
+    }
+  ],
+  "localValidation": {
+    "targetedTests": 138,
+    "testFiles": 17,
+    "prepareOnly": {
+      "cases": 65,
+      "sourceFiles": 2721
+    },
+    "physicalDeviceAcceptance": false
+  },
+  "followupReview": {
+    "sourceCommit": "53b7c88a34ab4ec93e107fc4aeac0e0656431024",
+    "ciRun": 40380125178,
+    "ciStatus": "CI161 completed successfully, including all three portal jobs, TypeScript, source synchronization, native administration visuals and navigation checks; Android build skipped.",
+    "targetedEnlargedFramesReviewed": 15,
+    "visuallyConfirmed": [
+      "announcements-title",
+      "client-name-width",
+      "assignment-fact-columns",
+      "employee-document-metrics",
+      "payroll-and-task-full-headlines",
+      "family-home-role-label",
+      "populated-conversation-content"
+    ],
+    "notYetConfirmed": [
+      "long compound title breaks still leave a trailing fragment; optional compound boundaries added for next run",
+      "chat own-message time overflows at enlarged text; metadata wrapping added for next run",
+      "document detail carousel cards are wider; a newly added scrolled image must confirm the complete date",
+      "timeline ready content was received below the initial viewport; a newly added scrolled image must be reviewed"
+    ],
+    "artifacts": {
+      "administration": {
+        "id": 12678112586,
+        "sha256": "b6a79783c4c7a93caf25f973c1d6f9eba8e95a807a39293460c2be571f8803ba"
+      },
+      "employee": {
+        "id": 12678592099,
+        "sha256": "8d26e15f91d534bbc6937f7619ea74101b13ab5619f21cee42182fe4bd3efb21"
+      },
+      "clientAndFamily": {
+        "id": 12678127288,
+        "sha256": "e5687fce711cf5068278df5359a253c6d1c368594f6d50bdd948170bbfa5f907"
+      }
+    }
+  },
+  "administrationComparison": {
+    "sourceCommit": "e7bd663c334d6ae4aab626ee361fe1719f24384d",
+    "artifactId": 12676170575,
+    "sha256": "fa26a4beacdf293f63f195e0db4ec8375039568ac1836e42c8f620260f361691",
+    "artifactImages": 799,
+    "reviewedEnlargedInitialFrames": 27,
+    "pairedCasesReviewed": [
+      "desktop",
+      "clients",
+      "employees",
+      "company",
+      "inventory",
+      "notes",
+      "catalog",
+      "academy",
+      "consultation"
+    ],
+    "pairedViewports": [
+      320,
+      1280
+    ],
+    "findings": [
+      "Personnel mixed-repeat grid becomes two columns instead of four.",
+      "Auto-fit does not collapse vacant tracks; academy KPI row leaves unused space.",
+      "Nested min(100%, Npx) track minimum is ignored; card column counts differ.",
+      "Calendar explicit seven-day tracks can be reduced by the generic font-scale card adaptation.",
+      "Remaining spacing, table-column and text-clamping differences still require complete comparison."
+    ],
+    "implementedAwaitingImages": [
+      "Expand each repeat in a mixed grid template.",
+      "Use the authored nested minimum and actual item count for auto-fit; auto-fill keeps vacant tracks.",
+      "Mark calendar weekday/day grids to preserve their seven-column assignment at enlarged text.",
+      "Verify all four personnel filters share a row in the browser at the wide breakpoint."
+    ]
+  },
+  "latestLocalValidation": {
+    "tests": 105,
+    "files": 8,
+    "sourceOutputs": {
+      "modules": 1110,
+      "routes": 269,
+      "stale": 0,
+      "nativeFallbacks": 4
+    },
+    "portalBundlePreparedCases": 65,
+    "note": "Two outdated communication assertions were replaced with execution of the canonical redirect and both platform ownership filters; the initial expanded run failed those assertions and the corrected run passes."
+  },
+  "nextRunScope": {
+    "preparedCases": 65,
+    "states": [
+      "ready",
+      "loading",
+      "error",
+      "empty"
+    ],
+    "plannedCasesAcrossRolesAndSizes": 1044,
+    "notExecutedAtCheckpoint": true,
+    "noDeviceOrServerAcceptance": true
+  },
+  "ci162Checkpoint": {
+    "sourceCommit": "f611737071e929205fe3b24939f60251e2a34562",
+    "run": 40382851541,
+    "administrationCases": 108,
+    "administrationJob": "passed",
+    "reviewedEnlargedAdministrationInitialFrames": 36,
+    "timelineScrolledImageReviewed": true,
+    "timelineFinding": "The received event title and subtitle were ellipsized without a detail action. Client record timeline now opts into full entries and puts relative time on its own line. New visual verification pending.",
+    "typecheck": "Failed because the new message-route test fixture omitted required updatedAt. The field was added locally. The corrected test file and its imported contracts pass isolated TypeScript checking; 16 tests pass. Full CI rerun remains required.",
+    "otherPortalJobs": {
+      "employee": {
+        "cases": 408,
+        "job": "passed",
+        "artifactId": 12679309902,
+        "sha256": "3a3f6ba5b61477e2846e528f61fac7035644978e992164f5072e66d394e89b8e"
+      },
+      "clientAndFamily": {
+        "cases": 528,
+        "job": "failed",
+        "failedCases": 6,
+        "artifactId": 12680915500,
+        "sha256": "184960531f0d20824a2eb674e137a6ee4573c846d05737d313a49c705d819b07",
+        "reason": "The original images show complete suffixes after discretionary hyphens. A Range can include a preceding discretionary-hyphen rectangle. The checker now measures individual glyph line positions and runs intentionally broken-word and complete-word controls. Full rerun pending."
+      }
+    },
+    "administrationArtifact": {
+      "id": 12679283219,
+      "sha256": "a0fcd63e3f7e33c5a6b794f37b44499bc2c8a582b93505bdc470c5039d344896"
+    },
+    "additionalOfficeDestinationTests": 49,
+    "targetedTimelineMessageTests": 39,
+    "releaseAcceptance": false,
+    "confirmedInOriginalImages": [
+      "Own-message timestamp/status/copy wrap within the bubble.",
+      "Help title breaks at Notfall- / nummern; no isolated final letter.",
+      "Signature title breaks at Alltags- / begleitung; accessible original title is retained."
+    ]
+  },
+  "nonReadyReview": {
+    "sourceCommit": "f611737071e929205fe3b24939f60251e2a34562",
+    "ciRun": 40382851541,
+    "employee": {
+      "selectedEnlargedFrames": 93,
+      "representativeDistinctBodyTextViewsReviewed": 79,
+      "overviewSheets": 14
+    },
+    "clientAndFamily": {
+      "selectedEnlargedFrames": 129,
+      "representativeDistinctBodyTextViewsReviewed": 54,
+      "overviewSheets": 9
+    },
+    "confirmedInOriginalResolution": [
+      "Feedback title Klientenakte/ Klientenakten breaks inside the final letters next to icon and close action.",
+      "Empty proof guide ends the title with an isolated final e.",
+      "Request select fields overlap the following label when text is enlarged."
+    ],
+    "implementedAwaitingNewImages": [
+      "Phone feedback heading receives a separate full-width row below icon/close controls.",
+      "Phone portal guide places its mascot above a full-width speech bubble and supports Leistungs-/nachweise.",
+      "Stacked request selects retain intrinsic height rather than sharing flex space.",
+      "Client profile without data displays an explanation and reload action."
+    ],
+    "fixtureCorrections": [
+      "Record-detail empty data includes the actual hook notFound signal.",
+      "Open-assignment input includes the actual hook isLinkedReady signal.",
+      "Empty object queries return null, so the signature detail exercises its missing-record state."
+    ],
+    "localValidation": {
+      "tests": 62,
+      "files": 7,
+      "preparedPortalCases": 65,
+      "staleNativeSourceOutputs": 0
+    },
+    "limits": [
+      "Representative text-identical frames were grouped; this is not a review of every rendered image.",
+      "Static help, compose and globally gated feature views do not necessarily perform a request in each synthetic state.",
+      "No physical Android navigation or server persistence proved."
+    ]
+  },
+  "ci163Checkpoint": {
+    "sourceCommit": "9d760ed94721a32fba98b3061d25f698a718cbac",
+    "run": 40385597787,
+    "portalJobs": "all three passed",
+    "preparedStateCases": 1044,
+    "typecheck": "passed",
+    "administrationVisualJob": "still running at this checkpoint",
+    "timelineOriginalReviewed": true,
+    "timelineResult": "Full event title, separate relative timestamp and complete subtitle are visible in the scrolled 360px/1.6 image.",
+    "administrationArtifact": {
+      "id": 12681621241,
+      "sha256": "6cf3aeeea519fc8d2100cdc98db3cd0b9c491066304f946b327ecfa562acfd69"
+    },
+    "textMeasurement": "All portals execute the broken-word negative and complete-word/soft-hyphen positive controls; previous six false failures are resolved.",
+    "releaseAcceptance": false
+  }
+}

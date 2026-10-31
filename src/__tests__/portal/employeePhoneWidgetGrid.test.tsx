@@ -5,12 +5,13 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 
 const device = vi.hoisted(() => ({ phone: true }));
 vi.mock('@/hooks/useDeviceClass', () => ({ useDeviceClass: () => ({
-  deviceClass: device.phone ? 'phone' : 'tablet', isPhone: device.phone,
+  deviceClass: device.phone ? 'phone' : 'tablet', isPhone: device.phone, width: device.phone ? 390 : 900,
 }) }));
 vi.mock('react-native', () => {
   const flatten = (style: any): any => Array.isArray(style) ? Object.assign({}, ...style.filter(Boolean).map(flatten)) : style;
   return {
     Platform: { OS: 'web' },
+    useWindowDimensions: () => ({width: device.phone ? 390 : 900, fontScale: 1}),
     View: ({ children, style }: any) => <div data-layout={JSON.stringify(flatten(style))}>{children}</div>,
     ScrollView: ({ children, horizontal }: any) => <div data-horizontal={String(horizontal)}>{children}</div>,
     StyleSheet: { create: (styles: any) => styles },

@@ -1,2 +1,6 @@
-import { DomainPortalScreen } from '@/product-workflows/screens/shared/DomainPortalScreen';
-export default function PortalPreview() { return <DomainPortalScreen wpNumber={452} route="office/catalogs/portal-preview" />; }
+import { Redirect } from 'expo-router';
+
+/** No catalogue portal preview is published; keep old links usable. */
+export default function CatalogPortalPreviewRoute() {
+  return <Redirect href="/office/catalogs" />;
+}

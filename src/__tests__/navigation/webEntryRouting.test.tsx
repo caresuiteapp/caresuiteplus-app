@@ -12,6 +12,7 @@ vi.mock('react-native', () => ({ Platform: { OS: 'web' } }));
 vi.mock('expo-router', () => ({
   usePathname: () => state.pathname,
   useRouter: () => state.router,
+  useIsFocused: () => true,
   Redirect: ({ href }: { href: string }) => <span>Weiterleitung: {href}</span>,
 }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => state.auth }));

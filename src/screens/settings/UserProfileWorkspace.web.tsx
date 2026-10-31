@@ -1,9 +1,11 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { USER_PROFILE_WORKSPACE_CSS } from './userProfileWorkspaceCss.web';
 
 export type ProfileField = 'firstName' | 'lastName' | 'phone';
 
 export type UserProfileWorkspaceProps = {
+  securityContent?: ReactNode;
   profile: {
     firstName: string;
     lastName: string;
@@ -65,7 +67,7 @@ const PROFILE_ICON_PATHS: Record<IconName, ReactNode> = {
 };
 
 function ProfileIcon({ name, className }: { name: IconName; className?: string }) {
-  return <svg className={className} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false">{PROFILE_ICON_PATHS[name]}</svg>;
+  return <WebActionIcon className={className}>{PROFILE_ICON_PATHS[name]}</WebActionIcon>;
 }
 
 function Feedback({ message, error, id }: { message?: string | null; error?: string | null; id?: string }) {
@@ -179,6 +181,8 @@ export function UserProfileWorkspace(props: UserProfileWorkspaceProps) {
           </section>
         </div>
       </div>
+
+      {props.securityContent}
 
       <div className="cs-profile-session">
         <div><span className="cs-profile-session-icon"><ProfileIcon name="logout" /></span><p><strong>Von CareSuite abmelden</strong><span>Ihre gespeicherten Angaben bleiben erhalten.</span></p></div>

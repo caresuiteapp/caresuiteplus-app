@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { StyleSheet, Text, View } from 'react-native';
 import { AuroraBadge, AuroraGlassCard } from '@/components/aurora';
 import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
@@ -67,7 +68,7 @@ export function ClientListCard({ client, onPress, selected = false }: ClientList
           </View>
         </View>
         <View style={styles.openIndicator}>
-          <Text style={styles.openIndicatorText}>→</Text>
+          <SemanticArtwork style={styles.openIndicatorText} webSize={20}>→</SemanticArtwork>
         </View>
       </View>
 
@@ -80,7 +81,7 @@ export function ClientListCard({ client, onPress, selected = false }: ClientList
       <View style={styles.factGrid}>
         {facts.map((fact) => (
           <View key={fact.label} style={styles.fact}>
-            <Text style={styles.factIcon}>{fact.icon}</Text>
+            <SemanticArtwork style={styles.factIcon} webSize={20}>{fact.icon}</SemanticArtwork>
             <View style={styles.factText}>
               <Text style={styles.factLabel}>{fact.label}</Text>
               <Text style={styles.factValue} numberOfLines={2}>{fact.value}</Text>

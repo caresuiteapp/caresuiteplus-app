@@ -3,8 +3,9 @@ import { LiquidPortalRouteLayout } from '@/liquid-command/shell/LiquidPortalRout
 import { EmployeeLogbookLifecycleGate } from '@/components/portal/EmployeeLogbookLifecycleGate';
 
 const state = vi.hoisted(() => ({
-  path: '/portal/employee', width: 360, bottom: 24,
-  trip: null as Record<string, unknown> | null, gate: false, slot: 0,
+  role: 'employee_portal', clientSettings: null as any, path: '/portal/employee', width: 360, bottom: 24,
+  top: 24, left: 0, right: 0, keyboard: false,
+  trip: null as Record<string, unknown> | null, gate: false, slot: 0, unread: 0,
   replace: vi.fn(), push: vi.fn(),
 }));
 vi.mock('react', async (original) => ({
@@ -23,13 +24,14 @@ vi.mock('expo-router', () => ({
   Stack: 'Stack', usePathname: () => state.path,
   useRouter: () => ({ replace: state.replace, push: state.push }),
 }));
-vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 24, bottom: state.bottom }) }));
+vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: state.top, bottom: state.bottom, left: state.left, right: state.right }) }));
 vi.mock('@/lib/auth', () => ({
-  useAuth: () => ({ profile: { displayName: 'Testkonto' }, signOut: vi.fn() }),
+  useAuth: () => ({ profile: { displayName: 'Testkonto', roleKey: state.role }, signOut: vi.fn() }),
   RequireAuth: 'RequireAuth', RequireEmployeePasswordSetup: 'RequireEmployeePasswordSetup', RequireRole: 'RequireRole',
 }));
-vi.mock('@/hooks/useportalofficemessages', () => ({ usePortalOfficeMessages: () => ({ threads: [] }) }));
-vi.mock('@/hooks/useClientPortalSettings', () => ({ useClientPortalSettings: () => ({ settings: null }) }));
+vi.mock('@/hooks/usePortalVisualViewport', () => ({ usePortalVisualViewport: () => ({ height: null, width: null, offsetTop: 0, offsetLeft: 0, keyboardVisible: state.keyboard }) }));
+vi.mock('@/hooks/useportalofficemessages', () => ({ usePortalOfficeMessages: () => ({ threads: [{ unreadCount: state.unread }] }) }));
+vi.mock('@/hooks/useClientPortalSettings', () => ({ useClientPortalSettings: () => ({ settings: state.clientSettings }) }));
 vi.mock('@/lib/portal/portalMessengerFocusContext', () => ({
   PortalMessengerFocusProvider: 'MessengerFocus',
   usePortalMessengerFocus: () => ({ active: false }),
@@ -54,14 +56,37 @@ function nodes(tree: unknown): Element[] {
   return [node, ...nodes(node.props.children)];
 }
 const flatStyle = (style: unknown): Record<string, any> => Object.assign({}, ...[style].flat(Infinity).filter(Boolean));
-function shell() {
+function shell(kind: 'employee' | 'client' = 'employee') {
   state.gate = false;
-  return nodes(LiquidPortalRouteLayout({ kind: 'employee', overlay: <ViewMarker /> }));
+  return nodes(LiquidPortalRouteLayout({ kind, overlay: <ViewMarker /> }));
 }
 function ViewMarker() { return <div data-testid="gps-slot" />; }
-beforeEach(() => { vi.clearAllMocks(); state.path = '/portal/employee'; state.width = 360; state.bottom = 24; state.trip = null; state.gate = false; state.slot = 0; });
+beforeEach(() => { state.role = 'employee_portal'; state.clientSettings = null; vi.clearAllMocks(); state.path = '/portal/employee'; state.width = 360; state.bottom = 24; state.top = 24; state.left = 0; state.right = 0; state.keyboard = false; state.trip = null; state.gate = false; state.slot = 0; state.unread = 0; });
 
 describe('portal navigation stays accessible during GPS and execution', () => {
+  it.each(['employee', 'client'] as const)('keeps the wide %s portal and composer above the tablet system bars', (kind) => {
+    state.width = 1280; state.path = `/portal/${kind}/messages`;
+    state.top = 32; state.bottom = 56; state.left = 10; state.right = 18;
+    const tree = shell(kind), viewport = tree.find(node => node.props.testID === 'portal-visual-viewport')!;
+    const main = tree.find(node => node.type === 'View' && flatStyle(node.props.style).overflow === 'hidden' && flatStyle(node.props.style).paddingTop === state.top)!;
+    expect(main).toBeDefined();
+    expect(flatStyle(viewport.props.style)).toMatchObject({ paddingLeft: 10, paddingRight: 18 });
+    expect(flatStyle(tree.find(node => node.props.testID === 'portal-navigation-footer')!.props.style).paddingBottom).toBe(56);
+    expect(tree.some(node => node.props.testID === 'portal-bottom-navigation')).toBe(false);
+  });
+  it('does not add a second navigation-bar gap above the open keyboard', () => {
+    state.width = 1280; state.keyboard = true; state.bottom = 56;
+    expect(flatStyle(shell().find(node => node.props.testID === 'portal-navigation-footer')!.props.style).paddingBottom).toBe(0);
+  });
+  it('does not advertise a budget page to family accounts while retaining it for released client accounts', () => {
+    state.width = 1280; state.path = '/portal/client'; state.clientSettings = {portalEnabled: true, showBudget: true};
+    state.role = 'client_portal';
+    expect(shell('client').some(node => node.props.accessibilityLabel === 'Budget')).toBe(true);
+    state.role = 'family_portal';
+    const family = shell('client');
+    expect(family.some(node => node.props.accessibilityLabel === 'Budget')).toBe(false);
+    expect(family.some(node => node.props.accessibilityLabel === 'Einsätze')).toBe(true);
+  });
   it.each(['/portal/employee', '/portal/employee/assignments/visit/execute'])('keeps every navigation action callable on %s', (path) => {
     state.path = path;
     const tree = shell();
@@ -71,14 +96,14 @@ describe('portal navigation stays accessible during GPS and execution', () => {
     expect(tabs).toHaveLength(4);
     expect(nodes(navigation).filter(node => node.props.accessibilityRole === 'tab' || node.props.accessibilityRole === 'button')).toHaveLength(5);
     for (const tab of tabs) tab.props.onPress();
-    expect(state.replace).toHaveBeenCalledTimes(tabs.length);
+    expect(state.push).toHaveBeenCalledTimes(tabs.length);
     expect(nodes(navigation).some((node) => node.props.accessibilityLabel === 'Weitere Portalbereiche öffnen')).toBe(true);
   });
   it('keeps readable labels and the open-assignment page accessible in the full menu', () => {
     state.width = 320;
     const tree = shell();
     const navigation = tree.find(node => node.props.testID === 'portal-bottom-navigation')!;
-    const labels = nodes(navigation).filter(node => node.type === 'Text' && flatStyle(node.props.style).fontSize === 11);
+    const labels = nodes(navigation).filter(node => node.type === 'Text' && typeof node.props.children === 'string');
     expect(labels).toHaveLength(5);
     for (const label of labels) {
       expect(label.props.numberOfLines).toBe(2);
@@ -87,7 +112,42 @@ describe('portal navigation stays accessible during GPS and execution', () => {
     }
     const open = tree.find(node => node.props.accessibilityLabel === 'Offene Einsätze');
     expect(open).toBeDefined(); open!.props.onPress();
-    expect(state.replace).toHaveBeenCalledWith('/portal/employee/offene-einsaetze');
+    expect(state.push).toHaveBeenCalledWith('/portal/employee/offene-einsaetze');
+  });
+  it.each(['employee', 'client'] as const)('keeps full accessible names and destinations behind the short %s plan label', (kind) => {
+    if (kind === 'client') { state.role = 'client_portal'; state.path = '/portal/client'; }
+    const navigation = shell(kind).find(node => node.props.testID === 'portal-bottom-navigation')!;
+    const plan = nodes(navigation).find(node => node.props.accessibilityLabel === 'Einsätze')!;
+    expect(nodes(plan).some(node => node.type === 'Text' && node.props.children === 'Plan')).toBe(true);
+    plan.props.onPress();
+    expect(state.push).toHaveBeenCalledWith(kind === 'employee' ? '/portal/employee/assignments' : '/portal/client/appointments');
+    if (kind === 'employee') {
+      const logbook = nodes(navigation).find(node => node.props.accessibilityLabel === 'Fahrtenbuch')!;
+      expect(nodes(logbook).some(node => node.type === 'Text' && node.props.children === 'Fahrt')).toBe(true);
+      logbook.props.onPress();
+      expect(state.push).toHaveBeenCalledWith('/portal/employee/fahrtenbuch');
+    }
+  });
+  it.each([[0, undefined], [1, '1'], [123, '99+']] as const)('keeps compact unread count %s readable and the exact count accessible', (count, badge) => {
+    state.unread = count;
+    const tree = shell();
+    const label = count > 0 ? `Nachrichten, ${count} ungelesene Nachrichten` : 'Nachrichten';
+    const header = tree.find(node => node.type === 'IconButton' && node.props.label === label)!;
+    expect(header.props.badge).toBe(badge);
+    const navigation = tree.find(node => node.props.testID === 'portal-bottom-navigation')!;
+    const chat = nodes(navigation).find(node => node.props.accessibilityLabel === label)!;
+    expect(chat).toBeDefined();
+    expect(nodes(chat).filter(node => node.type === 'Text').map(node => node.props.children)).toEqual(badge ? ['Chats', badge] : ['Chats']);
+    chat.props.onPress();
+    expect(state.push).toHaveBeenCalledWith('/portal/employee/messages');
+  });
+  it('retains the client document destination and accessible name behind the short record label', () => {
+    state.role = 'client_portal'; state.path = '/portal/client';
+    const navigation = shell('client').find(node => node.props.testID === 'portal-bottom-navigation')!;
+    const documents = nodes(navigation).find(node => node.props.accessibilityLabel === 'Dokumente')!;
+    expect(nodes(documents).some(node => node.type === 'Text' && node.props.children === 'Akte')).toBe(true);
+    documents.props.onPress();
+    expect(state.push).toHaveBeenCalledWith('/portal/client/documents');
   });
   it.each([0, 24, 48])('reserves the GPS row and navigation above system inset %s', (inset) => {
     state.bottom = inset;
@@ -101,9 +161,19 @@ describe('portal navigation stays accessible during GPS and execution', () => {
     expect(flatStyle(content[navIndex].props.style).position).not.toBe('absolute');
     expect(flatStyle(footer.props.style).flexShrink).toBe(0);
   });
-  it('keeps the desktop rail accessible in execution', () => {
+  it('keeps desktop navigation actions callable during execution with system insets', () => {
     state.width = 1280; state.path = '/portal/employee/assignments/visit/execute';
-    expect(shell().filter((node) => node.props.accessibilityRole === 'tab').length).toBeGreaterThan(5);
+    state.top = 32; state.bottom = 56;
+    const tabs = shell().filter((node) => node.props.accessibilityRole === 'tab');
+    expect(tabs.length).toBeGreaterThan(5);
+    for (const tab of tabs) {
+      expect(tab.props.onPress).toBeTypeOf('function');
+      tab.props.onPress();
+    }
+    expect(state.push).toHaveBeenCalledTimes(tabs.length);
+    expect(state.push).toHaveBeenCalledWith('/portal/employee/assignments');
+    expect(state.push).toHaveBeenCalledWith('/portal/employee/fahrtenbuch');
+    expect(state.push).toHaveBeenCalledWith('/portal/employee/offene-einsaetze');
   });
   it('opens the active approach directly in its assignment', () => {
     state.gate = true;

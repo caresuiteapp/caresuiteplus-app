@@ -15,7 +15,12 @@ export function PhoneDeviceApproval() {
   const [request, setRequest] = useState<TvLoginInspection | null>(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
-  const [matched, setMatched] = useState(false);
+  const decisionScope = JSON.stringify([code, isAuthenticated, portalSession?.tenantId, portalSession?.accountId, portalSession?.sessionToken, portalSession?.roleKey, portalSession?.mustChangePassword, profile?.id, profile?.roleKey, user?.id, user?.roleKey]);
+  const scopeRef = useRef(decisionScope);
+  scopeRef.current = decisionScope;
+  const [matchedScope, setMatchedScope] = useState<string | null>(null);
+  const matched = matchedScope === decisionScope;
+  const setMatched = (value: boolean) => setMatchedScope(value ? decisionScope : null);
   const [reload, setReload] = useState(0);
   const [now, setNow] = useState(Date.now());
   const decisionController = useRef<AbortController | null>(null);
@@ -29,6 +34,11 @@ export function PhoneDeviceApproval() {
     }).catch((cause) => { if (!controller.signal.aborted) setError(message(cause)); });
     return () => controller.abort();
   }, [code, reload]);
+  useEffect(() => {
+    setBusy(false);
+    setMatchedScope(null);
+    return () => { decisionController.current?.abort(); decisionController.current = null; };
+  }, [decisionScope]);
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
     return () => { clearInterval(timer); decisionController.current?.abort(); };
@@ -60,18 +70,21 @@ export function PhoneDeviceApproval() {
     finally { setBusy(false); }
   };
   const decide = async (decision: 'approve' | 'deny') => {
-    if (!request || busy || !isAuthenticated || expired || request.status !== 'pending' || (decision === 'approve' && (!matched || !roleMatches))) return;
+    if (!request || busy || decisionController.current || !authReady || !isAuthenticated || expired || request.status !== 'pending' || (decision === 'approve' && (!matched || !roleMatches || portalSession?.mustChangePassword))) return;
     setBusy(true); setError('');
     const controller = new AbortController();
     decisionController.current = controller;
     try {
       await decideTvLogin(code, request.verificationCode, decision, portalSession?.sessionToken, controller.signal);
-      if (controller.signal.aborted) return;
+      if (controller.signal.aborted || scopeRef.current !== decisionScope) return;
       clearTvLoginReturn();
       setRequest({ ...request, status: decision === 'approve' ? 'approved' : 'denied' });
     } catch (cause) {
-      if (!controller.signal.aborted) setError(message(cause));
-    } finally { if (!controller.signal.aborted) setBusy(false); }
+      if (!controller.signal.aborted && scopeRef.current === decisionScope) setError(message(cause));
+    } finally {
+      if (decisionController.current === controller) decisionController.current = null;
+      if (!controller.signal.aborted && scopeRef.current === decisionScope) setBusy(false);
+    }
   };
 
   return <main className="cs-device-login cs-phone-device">

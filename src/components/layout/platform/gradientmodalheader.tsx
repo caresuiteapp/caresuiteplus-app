@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo, type ReactNode } from 'react';
 
 import { Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
@@ -43,13 +44,13 @@ export function GradientModalHeader({
 }: GradientModalHeaderProps) {
   const runtimePortalTheme = usePortalPremiumRuntimeTheme();
   const runtimeTheme = useLegacyTheme();
-  const webTone = Platform.OS === 'web' ? tone : undefined;
-  const explicitLight = webTone === 'light';
-  const portalTheme = webTone ? { ...runtimePortalTheme, active: false } : runtimePortalTheme;
-  const isLight = webTone ? webTone === 'light' : runtimeTheme.isLight;
+  const explicitTone = tone;
+  const explicitLight = explicitTone === 'light';
+  const portalTheme = explicitTone ? { ...runtimePortalTheme, active: false } : runtimePortalTheme;
+  const isLight = explicitTone ? explicitTone === 'light' : runtimeTheme.isLight;
   const auroraActive = useAuroraGlassActive();
   const shellHostsAurora = useShellHostsAurora();
-  const auroraHeader = !webTone && !portalTheme.active && auroraActive && shellHostsAurora;
+  const auroraHeader = !explicitTone && !portalTheme.active && auroraActive && shellHostsAurora;
   const plainLightHeader = portalTheme.active || (isLight && !auroraHeader);
   const text = useAuroraAdaptiveText();
   const headerGlass = useShellGlassSurfaceStyle('modal', { viewContext: 'form' });
@@ -166,7 +167,7 @@ export function GradientModalHeader({
             accessibilityRole="button"
             accessibilityLabel="Zurück"
           >
-            <Text style={[styles.iconLabel, { color: iconColor }]}>←</Text>
+            <SemanticArtwork webSize={24} style={[styles.iconLabel, { color: iconColor }]}>←</SemanticArtwork>
           </Pressable>
         ) : null}
         <Text style={[styles.title, titleStyle]} numberOfLines={Platform.OS === 'web' ? 1 : undefined}>
@@ -181,7 +182,7 @@ export function GradientModalHeader({
           accessibilityRole="button"
           accessibilityLabel="Schließen"
         >
-          <Text style={closeIconStyle}>×</Text>
+          <SemanticArtwork webSize={24} style={closeIconStyle}>×</SemanticArtwork>
         </Pressable>
       </View>
     </>

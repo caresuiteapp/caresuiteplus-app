@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo, useState } from 'react';
 import {
   Platform,
@@ -77,7 +78,7 @@ export function PlatformProfileMenu({ accentColor, fullWidth = false }: Platform
             {displayName}
           </Text>
           <View style={styles.chevronSlot}>
-            <Text style={styles.chevron}>{profileOpen ? '▴' : '▾'}</Text>
+            <SemanticArtwork webSize={16} style={styles.chevron}>{profileOpen ? '▴' : '▾'}</SemanticArtwork>
           </View>
         </Pressable>
       </View>

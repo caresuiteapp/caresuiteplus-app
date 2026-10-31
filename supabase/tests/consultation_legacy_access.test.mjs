@@ -16,7 +16,7 @@ async function fixture() {
   await f.owner();
   await f.db.exec(`
     ALTER TABLE role_permissions ADD COLUMN can_create boolean DEFAULT false,
-      ADD COLUMN can_update boolean DEFAULT false, ADD COLUMN can_approve boolean DEFAULT false,
+      ADD COLUMN can_approve boolean DEFAULT false,
       ADD COLUMN restrictions jsonb DEFAULT '{}', ADD COLUMN product_key text;
     ALTER TABLE role_permissions ADD UNIQUE(role_id, permission_key);
     CREATE TABLE products(id uuid PRIMARY KEY, product_key text, is_active boolean DEFAULT true);

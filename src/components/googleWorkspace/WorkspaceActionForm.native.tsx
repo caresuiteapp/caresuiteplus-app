@@ -1,58 +1,110 @@
+// Generated native presentation from src/components/googleWorkspace/WorkspaceActionForm.web.tsx. Update through scripts/port-native-workspaces.mjs.
+import {nativeCrypto as crypto} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import {NativeForm,NativeDiv,NativeH3,NativeButton,NativeLabel,NativeSelect,NativeOption,NativeInput,NativeSpan,NativeTextarea,NativeP} from '@/components/layout/NativeWorkspaceElements.native';
+import { nativeBlobDataUrl } from '@/lib/platform/nativeInvoiceLogo.native';
 import { useRef, useState } from 'react';
-import { Text, View } from 'react-native';
-import * as Crypto from 'expo-crypto';
-import * as DocumentPicker from 'expo-document-picker';
-import { File } from 'expo-file-system';
-import { CareDateInput } from '@/components/inputs/CareDateInput';
-import { CareTimeInput } from '@/components/inputs/CareTimeInput';
-import { NativeAction, NativeField, nativeWorkspaceStyles as ui } from '@/components/ui/NativeWorkspaceUi';
 import { invokeGoogleWorkspaceAction as invoke } from '@/lib/googleWorkspace/googleWorkspaceService';
-import { encodeMail, googleLink, type WorkspaceItem, type WorkspaceService } from '@/lib/googleWorkspace/workspaceModel';
-
-export function WorkspaceActionForm({ service, taskListId, item, onSaved, onCancel }: { service: WorkspaceService; taskListId?: string; item?: WorkspaceItem; onSaved: (message: string, url?: string) => void; onCancel: () => void }) {
-  const [values, setValues] = useState<Record<string, string>>({}); const [busy, setBusy] = useState(false); const [error, setError] = useState('');
-  const [file, setFile] = useState<DocumentPicker.DocumentPickerAsset>(); const [mode, setMode] = useState<'upload' | 'folder'>('upload'); const [meet, setMeet] = useState(service === 'meet');
-  const lock = useRef(false); const value = (key: string) => values[key]?.trim() ?? ''; const update = (key: string, next: string) => setValues(previous => ({ ...previous, [key]: next }));
-  const titles: Record<WorkspaceService, string> = { gmail: 'Neue E-Mail', calendar: 'Termin anlegen', meet: 'Videotermin planen', drive: 'Datei oder Ordner hinzufügen', docs: 'Dokument erstellen', sheets: 'Tabelle erstellen', slides: 'Präsentation erstellen', tasks: 'Aufgabe anlegen', contacts: 'Kontakt anlegen', chat: `Nachricht an ${item?.title ?? 'Space'}` };
-  const pickFile = async () => { setError(''); try { const result = await DocumentPicker.getDocumentAsync({ copyToCacheDirectory: true, multiple: false }); if (!result.canceled) { const chosen = result.assets[0]; if (!chosen.size || chosen.size > 5 * 1024 * 1024) throw new Error('Die Datei muss zwischen 1 Byte und 5 MB groß sein.'); setFile(chosen); } } catch (e) { setError(e instanceof Error ? e.message : 'Datei konnte nicht ausgewählt werden.'); } };
-  const save = async (draft = false) => {
-    if (lock.current) return; lock.current = true; setBusy(true); setError('');
-    try {
-      let result: any; let url: string | undefined; let message = 'Erfolgreich in Google gespeichert.';
-      if (!['contacts', 'chat'].includes(service) && !(service === 'drive' && mode === 'upload') && !value('title')) throw new Error('Bitte einen Titel oder Betreff eingeben.');
-      if (service === 'gmail') { result = await invoke(draft ? 'gmail_draft' : 'gmail_send', { raw: encodeMail(value('to'), value('title'), value('body')) }, true); message = draft ? 'Entwurf in Gmail gespeichert.' : `E-Mail an ${value('to')} gesendet.`; }
-      else if (service === 'calendar' || service === 'meet') {
-        const start = new Date(`${value('startDate')}T${value('startTime')}:00`); const end = new Date(`${value('endDate')}T${value('endTime')}:00`);
-        if (!Number.isFinite(start.getTime()) || !Number.isFinite(end.getTime()) || !(end > start)) throw new Error('Beginn und Ende vollständig eingeben. Das Ende muss nach dem Beginn liegen.');
-        if (value('attendee') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value('attendee'))) throw new Error('Bitte eine gültige E-Mail-Adresse für die Einladung eingeben.');
-        result = await invoke<any>('calendar_create', { event: { summary: value('title'), description: value('body'), start: { dateTime: start.toISOString() }, end: { dateTime: end.toISOString() }, ...(value('attendee') ? { attendees: [{ email: value('attendee') }] } : {}) }, createMeet: meet, requestId: Crypto.randomUUID(), sendUpdates: 'all' }, true);
-        url = googleLink(result.htmlLink) ?? undefined; message = meet ? 'Videotermin im Google-Kalender gespeichert.' : 'Termin im Google-Kalender gespeichert.';
-      } else if (service === 'drive') {
-        if (mode === 'folder') result = await invoke<any>('drive_create_folder', { name: value('title') }, true);
-        else { if (!file) throw new Error('Bitte eine Datei auswählen.'); const local = new File(file.uri); if (!local.exists || local.size > 5 * 1024 * 1024 || local.size < 1) throw new Error('Die Datei ist nicht verfügbar oder größer als 5 MB.'); result = await invoke<any>('drive_upload', { name: file.name, mimeType: file.mimeType || 'application/octet-stream', base64: await local.base64() }, true); }
-        url = googleLink(result.webViewLink) ?? `https://drive.google.com/open?id=${encodeURIComponent(result.id)}`;
-      } else if (['docs', 'sheets', 'slides'].includes(service)) {
-        result = await invoke<any>(`${service}_create`, { title: value('title') }, true); const id = result.documentId || result.spreadsheetId || result.presentationId;
-        url = `https://docs.google.com/${service === 'docs' ? 'document' : service === 'sheets' ? 'spreadsheets' : 'presentation'}/d/${encodeURIComponent(id)}/edit`;
-      } else if (service === 'tasks') { result = await invoke('tasks_create', { taskListId: taskListId || '@default', task: { title: value('title'), notes: value('body'), ...(value('due') ? { due: `${value('due')}T00:00:00.000Z` } : {}) } }, true); }
-      else if (service === 'contacts') { if (!value('first')) throw new Error('Bitte einen Vornamen eingeben.'); if (value('email') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value('email'))) throw new Error('Bitte eine gültige E-Mail-Adresse eingeben.'); result = await invoke('contacts_create', { person: { names: [{ givenName: value('first'), familyName: value('last') }], ...(value('email') ? { emailAddresses: [{ value: value('email') }] } : {}), ...(value('phone') ? { phoneNumbers: [{ value: value('phone') }] } : {}) } }, true); }
-      else { if (!item || !value('body')) throw new Error('Einen Space auswählen und die Nachricht eingeben.'); result = await invoke('chat_send', { space: item.id, message: { text: value('body') } }, true); message = `Nachricht an „${item.title}“ gesendet.`; }
-      onSaved(message, url);
-    } catch (e) { setError(e instanceof Error ? e.message : 'Speichern fehlgeschlagen. Ihre Eingaben bleiben erhalten.'); }
-    finally { lock.current = false; setBusy(false); }
-  };
-  const field = (key: string, label: string, email = false, multiline = false) => <NativeField label={label} value={values[key] ?? ''} onChangeText={next => update(key, next)} editable={!busy} keyboardType={email ? 'email-address' : 'default'} autoCapitalize={email ? 'none' : 'sentences'} multiline={multiline} maxLength={multiline ? 20000 : 250} />;
-  return <View style={ui.surface}>
-    <Text accessibilityRole="header" style={ui.title}>{titles[service]}</Text>{error ? <Text accessibilityRole="alert" style={ui.error}>{error}</Text> : null}
-    {service === 'drive' ? <View style={ui.row}><NativeAction label="Datei hochladen" selected={mode === 'upload'} disabled={busy} onPress={() => setMode('upload')} /><NativeAction label="Ordner anlegen" selected={mode === 'folder'} disabled={busy} onPress={() => setMode('folder')} /></View> : null}
-    {service === 'gmail' ? field('to', 'Empfänger:in', true) : null}
-    {!['contacts', 'chat'].includes(service) && !(service === 'drive' && mode === 'upload') ? field('title', service === 'gmail' ? 'Betreff' : 'Titel') : null}
-    {service === 'drive' && mode === 'upload' ? <><NativeAction label={file?.name ?? 'Datei auswählen · bis 5 MB'} disabled={busy} onPress={() => void pickFile()} />{file?.size ? <Text style={ui.muted}>{Math.ceil(file.size / 1024)} KB</Text> : null}</> : null}
-    {service === 'calendar' || service === 'meet' ? <><CareDateInput label="Beginn · Datum" value={value('startDate')} onChange={next => update('startDate', next)} onDarkSurface /><CareTimeInput label="Beginn · Ortszeit" value={value('startTime')} onChange={next => update('startTime', next)} onDarkSurface /><CareDateInput label="Ende · Datum" value={value('endDate')} onChange={next => update('endDate', next)} onDarkSurface /><CareTimeInput label="Ende · Ortszeit" value={value('endTime')} onChange={next => update('endTime', next)} onDarkSurface />{field('attendee', 'Teilnehmer:in einladen (optional)', true)}<Text style={ui.muted}>Google sendet der angegebenen Adresse eine Einladung.</Text>{service === 'calendar' ? <NativeAction label={meet ? '✓ Google-Meet-Link erstellen' : 'Google-Meet-Link erstellen'} selected={meet} disabled={busy} onPress={() => setMeet(!meet)} /> : null}</> : null}
-    {service === 'tasks' ? <CareDateInput label="Fällig am (optional)" value={value('due')} onChange={next => update('due', next)} onDarkSurface /> : null}
-    {service === 'contacts' ? <>{field('first', 'Vorname')}{field('last', 'Nachname')}{field('email', 'E-Mail (optional)', true)}{field('phone', 'Telefon (optional)')}</> : null}
-    {['gmail', 'calendar', 'meet', 'tasks', 'chat'].includes(service) ? field('body', service === 'gmail' || service === 'chat' ? 'Nachricht' : 'Beschreibung (optional)', false, true) : null}
-    <Text style={ui.muted}>{service === 'gmail' || service === 'chat' ? 'Mit „Senden“ wird die Nachricht an den angegebenen Empfänger übermittelt.' : 'Mit „Speichern“ wird der Eintrag im verbundenen Google-Konto angelegt.'}</Text>
-    <View style={ui.row}><NativeAction label={service === 'gmail' || service === 'chat' ? 'Senden' : 'Speichern'} primary busy={busy} onPress={() => void save()} />{service === 'gmail' ? <NativeAction label="Als Entwurf speichern" disabled={busy} onPress={() => void save(true)} /> : null}<NativeAction label="Abbrechen" disabled={busy} onPress={onCancel} /></View>
-  </View>;
+import { encodeMail, googleLink, type WorkspaceService, type WorkspaceItem } from '@/lib/googleWorkspace/workspaceModel';
+type Props = {
+    service: WorkspaceService;
+    taskListId?: string;
+    item?: WorkspaceItem;
+    onSaved: (message: string, url?: string) => void;
+    onCancel: () => void;
+};
+export function WorkspaceActionForm({ service, taskListId, item, onSaved, onCancel }: Props) {
+    const [busy, setBusy] = useState(false);
+    const [error, setError] = useState('');
+    const lock = useRef(false);
+    const [mode, setMode] = useState(service === 'drive' ? 'upload' : 'create');
+    const [values, setValues] = useState<Record<string, string>>({});
+    const [pickedFile, setPickedFile] = useState<Blob & {
+        name?: string;
+    }>();
+    const formRef = useRef<HTMLFormElement>(null);
+    const update = (key: string, value: string) => setValues(previous => ({ ...previous, [key]: value }));
+    const titles: Record<WorkspaceService, string> = { gmail: 'Neue E-Mail', calendar: 'Termin anlegen', meet: 'Videotermin planen', drive: 'Datei oder Ordner hinzufügen', docs: 'Dokument erstellen', sheets: 'Tabelle erstellen', slides: 'Präsentation erstellen', tasks: 'Aufgabe anlegen', contacts: 'Kontakt anlegen', chat: `Nachricht an ${item?.title ?? 'Space'}` };
+    const submit = async (draft: boolean) => {
+        if (lock.current || !formRef.current?.reportValidity())
+            return;
+        lock.current = true;
+        setBusy(true);
+        setError('');
+        const data = { get: (key: string) => key === 'file' ? pickedFile : values[key] };
+        const value = (key: string) => (values[key] ?? '').trim();
+        try {
+            let result: any;
+            let url: string | undefined;
+            let message = 'Erfolgreich in Google gespeichert.';
+            if (service === 'gmail') {
+                result = await invoke(draft ? 'gmail_draft' : 'gmail_send', { raw: encodeMail(value('to'), value('title'), value('body')) }, true);
+                message = draft ? 'Entwurf in Gmail gespeichert.' : `E-Mail an ${value('to')} gesendet.`;
+            }
+            else if (service === 'calendar' || service === 'meet') {
+                const start = new Date(value('start')), end = new Date(value('end'));
+                if (!(end.getTime() > start.getTime()))
+                    throw new Error('Das Ende muss nach dem Beginn liegen.');
+                const createMeet = service === 'meet' || data.get('meet') === 'on';
+                result = await invoke<any>('calendar_create', { event: { summary: value('title'), description: value('body'), start: { dateTime: start.toISOString() }, end: { dateTime: end.toISOString() }, ...(value('attendee') ? { attendees: [{ email: value('attendee') }] } : {}) }, createMeet, requestId: crypto.randomUUID(), sendUpdates: 'all' }, true);
+                url = googleLink(result.htmlLink) ?? undefined;
+                message = createMeet ? 'Videotermin gespeichert. Falls Google den Meet-Link noch erstellt, aktualisieren Sie die Terminliste in Kürze.' : 'Termin im Google-Kalender gespeichert.';
+            }
+            else if (service === 'drive') {
+                if (mode === 'folder')
+                    result = await invoke<any>('drive_create_folder', { name: value('title') }, true);
+                else {
+                    const file = data.get('file') as File;
+                    if (!file?.size)
+                        throw new Error('Bitte eine Datei auswählen.');
+                    if (file.size > 5 * 1024 * 1024)
+                        throw new Error('Die Datei darf höchstens 5 MB groß sein.');
+                    const base64 = (await nativeBlobDataUrl(file)).split(',')[1];
+                    result = await invoke<any>('drive_upload', { name: file.name, mimeType: file.type || 'application/octet-stream', base64 }, true);
+                }
+                url = googleLink(result.webViewLink) ?? `https://drive.google.com/open?id=${encodeURIComponent(result.id)}`;
+            }
+            else if (['docs', 'sheets', 'slides'].includes(service)) {
+                result = await invoke<any>(`${service}_create`, { title: value('title') }, true);
+                const id = result.documentId || result.spreadsheetId || result.presentationId;
+                const path = service === 'docs' ? 'document' : service === 'sheets' ? 'spreadsheets' : 'presentation';
+                url = `https://docs.google.com/${path}/d/${encodeURIComponent(id)}/edit`;
+            }
+            else if (service === 'tasks') {
+                result = await invoke('tasks_create', { taskListId: taskListId || '@default', task: { title: value('title'), notes: value('body'), ...(value('due') ? { due: `${value('due')}T00:00:00.000Z` } : {}) } }, true);
+            }
+            else if (service === 'contacts') {
+                result = await invoke('contacts_create', { person: { names: [{ givenName: value('first'), familyName: value('last') }], ...(value('email') ? { emailAddresses: [{ value: value('email') }] } : {}), ...(value('phone') ? { phoneNumbers: [{ value: value('phone') }] } : {}) } }, true);
+            }
+            else {
+                if (!item)
+                    throw new Error('Bitte zuerst einen Space auswählen.');
+                result = await invoke('chat_send', { space: item.id, message: { text: value('body') } }, true);
+                message = `Nachricht an „${item.title}“ gesendet.`;
+            }
+            onSaved(message, url);
+        }
+        catch (e) {
+            setError(e instanceof Error ? e.message : 'Speichern fehlgeschlagen.');
+        }
+        finally {
+            lock.current = false;
+            setBusy(false);
+        }
+    };
+    return <NativeForm ref={formRef} className="cs-w-form cs-w-stack" onSubmit={e => { e.preventDefault(); void submit(false); }} aria-label={titles[service]}>
+    <NativeDiv className="cs-w-row cs-w-between"><NativeH3>{titles[service]}</NativeH3><NativeButton className="cs-w-button small" type="button" disabled={busy} onClick={onCancel}>Abbrechen</NativeButton></NativeDiv>
+    {error && <NativeDiv className="cs-w-notice error" role="alert">{error}</NativeDiv>}
+    {service === 'drive' && <NativeLabel className="cs-w-field">Aktion<NativeSelect value={mode} onChange={e => setMode(e.target.value)} disabled={busy}><NativeOption value="upload">Datei hochladen (bis 5 MB)</NativeOption><NativeOption value="folder">Ordner anlegen</NativeOption></NativeSelect></NativeLabel>}
+    <NativeDiv className="cs-w-form-grid">
+      {service === 'gmail' && <NativeLabel className="cs-w-field full">Empfänger:in<NativeInput required type="email" name="to" value={values.to ?? ''} onChange={e => update('to', e.target.value)} autoComplete="off" maxLength={254}/></NativeLabel>}
+      {!['contacts', 'chat'].includes(service) && !(service === 'drive' && mode === 'upload') && <NativeLabel className="cs-w-field full">{service === 'gmail' ? 'Betreff' : 'Titel'}<NativeInput name="title" value={values.title ?? ''} onChange={e => update('title', e.target.value)} required maxLength={250}/></NativeLabel>}
+      {service === 'drive' && mode === 'upload' && <NativeLabel className="cs-w-field full">Datei<NativeInput type="file" name="file" onChange={e => setPickedFile(e.target.files?.[0])}/>{pickedFile && <NativeSpan className="cs-w-muted">{pickedFile.name}</NativeSpan>}</NativeLabel>}
+      {(service === 'calendar' || service === 'meet') && <><NativeLabel className="cs-w-field">Beginn (Ortszeit)<NativeInput type="datetime-local" required name="start" value={values.start ?? ''} onChange={e => update('start', e.target.value)}/></NativeLabel><NativeLabel className="cs-w-field">Ende (Ortszeit)<NativeInput type="datetime-local" required name="end" value={values.end ?? ''} onChange={e => update('end', e.target.value)}/></NativeLabel><NativeLabel className="cs-w-field full">Teilnehmer:in einladen (optional)<NativeInput type="email" name="attendee" value={values.attendee ?? ''} onChange={e => update('attendee', e.target.value)}/><NativeSpan className="cs-w-muted">Google sendet dieser Adresse eine Einladung.</NativeSpan></NativeLabel>{service === 'calendar' && <NativeLabel className="cs-w-check full"><NativeInput type="checkbox" name="meet" checked={values.meet === 'on'} onChange={e => update('meet', e.target.checked ? 'on' : '')}/>Google-Meet-Link erstellen</NativeLabel>}</>}
+      {service === 'tasks' && <NativeLabel className="cs-w-field full">Fällig am (optional)<NativeInput type="date" name="due" value={values.due ?? ''} onChange={e => update('due', e.target.value)}/></NativeLabel>}
+      {service === 'contacts' && <><NativeLabel className="cs-w-field">Vorname<NativeInput name="first" value={values.first ?? ''} onChange={e => update('first', e.target.value)} required maxLength={100}/></NativeLabel><NativeLabel className="cs-w-field">Nachname<NativeInput name="last" value={values.last ?? ''} onChange={e => update('last', e.target.value)} maxLength={100}/></NativeLabel><NativeLabel className="cs-w-field">E-Mail<NativeInput type="email" name="email" value={values.email ?? ''} onChange={e => update('email', e.target.value)}/></NativeLabel><NativeLabel className="cs-w-field">Telefon<NativeInput type="tel" name="phone" value={values.phone ?? ''} onChange={e => update('phone', e.target.value)}/></NativeLabel></>}
+      {['gmail', 'calendar', 'meet', 'tasks', 'chat'].includes(service) && <NativeLabel className="cs-w-field full">{service === 'gmail' || service === 'chat' ? 'Nachricht' : 'Beschreibung (optional)'}<NativeTextarea name="body" value={values.body ?? ''} onChange={e => update('body', e.target.value)} required={service === 'gmail' || service === 'chat'} maxLength={20000}/></NativeLabel>}
+    </NativeDiv>
+    <NativeP className="cs-w-muted">{service === 'gmail' || service === 'chat' ? 'Mit „Senden“ wird Ihre Nachricht an den angezeigten Empfänger übermittelt.' : 'Mit „Speichern“ wird der Eintrag im verbundenen Google-Konto angelegt.'}</NativeP>
+    <NativeDiv className="cs-w-row"><NativeButton disabled={busy} className="cs-w-button primary" type="submit">{busy ? 'Wird verarbeitet …' : service === 'gmail' || service === 'chat' ? 'Senden' : 'Speichern'}</NativeButton>{service === 'gmail' && <NativeButton type="button" className="cs-w-button" disabled={busy} onClick={() => void submit(true)}>Als Entwurf speichern</NativeButton>}</NativeDiv>
+  </NativeForm>;
 }

@@ -612,3 +612,17 @@ export function resolveClientRecordTabKey(tab: string | undefined): ClientRecord
   const key = tab as ClientRecordTabKey;
   return PFLEGEGRAD_BUDGETS_TAB_ALIASES[key] ?? key;
 }
+
+/** The dedicated billing link retains its own read-only billing/contract view.
+ * Other context-specific links must not silently enable an unavailable module.
+ */
+export function clientRecordTabsForRequestedView(
+  tabs: ClientRecordTabKey[],
+  requestedTab: ClientRecordTabKey | undefined,
+  canViewBilling: boolean,
+): ClientRecordTabKey[] {
+  if (!canViewBilling) return tabs.filter(tab => tab !== 'abrechnung');
+  return tabs.length > 0 && requestedTab === 'abrechnung' && !tabs.includes('abrechnung')
+    ? [...tabs, 'abrechnung']
+    : tabs;
+}

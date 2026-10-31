@@ -1,0 +1,244 @@
+// Generated native presentation from src/lib/pflege/vitalCarePathPacket.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+export type VitalCareKind = 'measurement_review' | 'anomaly_response' | 'control_review' | 'case_resolution' | 'correction';
+export type VitalCareRef = Readonly<{
+    id: string;
+    revision: number;
+    recordedAt: string;
+    fingerprint: string;
+    tenantId: string;
+    clientId: string;
+    measurementId: string;
+    payload: Record<string, unknown>;
+}>;
+export type VitalCareSources = Readonly<{
+    measurements: readonly VitalCareRef[];
+    settings: readonly VitalCareRef[];
+    devices: readonly VitalCareRef[];
+    calibrations: readonly VitalCareRef[];
+    followUps: readonly VitalCareRef[];
+    invalidations: readonly VitalCareRef[];
+    events: readonly VitalCareRef[];
+    people: readonly VitalCareRef[];
+    paths: readonly VitalCareRef[];
+}>;
+export type VitalCareEntry = Readonly<{
+    kind: VitalCareKind;
+    title: string;
+    tenantId: string;
+    clientId: string;
+    measurementId: string;
+    observedAt: string;
+    interpretation: Readonly<{
+        state: 'unrated' | 'within_configured_range' | 'outside_configured_range' | 'measurement_uncertain';
+        summary: string;
+        measurementType: string;
+        values: Record<string, number>;
+        unit: string;
+        context: Record<string, string>;
+        configuredLimitId: string | null;
+    }>;
+    device: Readonly<{
+        deviceId: string | null;
+        calibrationId: string | null;
+        suitability: 'confirmed' | 'limited' | 'unknown' | 'not_applicable';
+        method: string;
+        limitation: string;
+    }>;
+    response: Readonly<{
+        state: 'not_required' | 'pending' | 'performed' | 'declined' | 'failed';
+        occurredAt: string | null;
+        action: string;
+        reason: string;
+        contactName: string;
+        responsibleBy: string | null;
+    }>;
+    control: Readonly<{
+        state: 'none' | 'scheduled' | 'performed' | 'resolved';
+        dueAt: string | null;
+        performedAt: string | null;
+        result: string;
+        responsibleBy: string | null;
+    }>;
+    correction: Readonly<{
+        targetId: string | null;
+        reason: string;
+        replacementId: string | null;
+        approvedBy: string | null;
+        approvedAt: string | null;
+    }>;
+}>;
+export type VitalCareHistoryItem = Readonly<{
+    id: string;
+    revision: number;
+    previousId: string | null;
+    recordedAt: string;
+    recordedBy: string;
+    recordedByName: string;
+    reason: string;
+    payload: VitalCareEntry;
+    contentFingerprint: string;
+}>;
+export type VitalCareOriginal = Readonly<{
+    id: string;
+    tenantId: string;
+    clientId: string;
+    measurementId: string;
+    rootId: string;
+    headId: string;
+    revision: number;
+    kind: VitalCareKind;
+    recordedAt: string;
+    recordedBy: string;
+    recordedByName: string;
+    payload: VitalCareEntry;
+    contentFingerprint: string;
+    history: readonly VitalCareHistoryItem[];
+}>;
+export type VitalCarePacket = Readonly<{
+    schemaVersion: '1';
+    action: 'create' | 'revise';
+    requestId: string;
+    tenantId: string;
+    clientId: string;
+    measurementId: string;
+    actorId: string;
+    expectedHeadId: string | null;
+    expectedRevision: number;
+    entry: VitalCareEntry;
+    reason: string;
+    original: VitalCareOriginal | null;
+    sources: VitalCareSources;
+}>;
+const kinds = new Set<VitalCareKind>(['measurement_review', 'anomaly_response', 'control_review', 'case_resolution', 'correction']);
+const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+const instant = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:?\d{2})$/.test(v) && Number.isFinite(Date.parse(v));
+const micros = (v: string) => { const m = v.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}:?\d{2})$/); if (!m)
+    return null; const ms = Date.parse(`${m[1]}${m[3]}`); return Number.isFinite(ms) ? BigInt(ms) * 1000n + BigInt((m[2] ?? '').padEnd(6, '0')) : null; };
+const sha = (v: unknown): v is string => typeof v === 'string' && /^sha256:[0-9a-f]{64}$/.test(v);
+const text = (v: unknown, min = 0, max = 8000): v is string => typeof v === 'string' && v.trim().length >= min && v.length <= max;
+const object = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v) && [Object.prototype, null].includes(Object.getPrototypeOf(v));
+const stable = (v: unknown): string => JSON.stringify(v, (_key, item: unknown) => object(item) ? Object.fromEntries(Object.keys(item).sort().map(k => [k, item[k]])) : item);
+const deepFreeze = <T>(v: T): T => { if (v && typeof v === 'object' && !Object.isFrozen(v)) {
+    Object.freeze(v);
+    for (const child of Object.values(v as Record<string, unknown>))
+        deepFreeze(child);
+} return v; };
+function refs(list: readonly VitalCareRef[], limit = 4000) { return Array.isArray(list) && Object.keys(list).length === list.length && list.length <= limit && list.every(x => x && uuid(x.id) && Number.isSafeInteger(x.revision) && x.revision > 0 && instant(x.recordedAt) && sha(x.fingerprint) && uuid(x.tenantId) && uuid(x.clientId) && uuid(x.measurementId) && object(x.payload)) && new Set(list.map(x => x.id.toLowerCase())).size === list.length; }
+function numbers(v: unknown): v is Record<string, number> { return object(v) && Object.keys(v).length > 0 && Object.keys(v).length <= 30 && Object.entries(v).every(([k, n]) => text(k, 1, 80) && typeof n === 'number' && Number.isFinite(n) && Math.abs(n) <= 1000000000); }
+function strings(v: unknown): v is Record<string, string> { return object(v) && Object.keys(v).length <= 30 && Object.entries(v).every(([k, s]) => text(k, 1, 80) && typeof s === 'string' && s.length <= 1000); }
+export function blankVitalCareEntry(kind: VitalCareKind, tenantId: string, clientId: string, measurementId: string, now = new Date().toISOString()): VitalCareEntry { return { kind, title: '', tenantId, clientId, measurementId, observedAt: now, interpretation: { state: 'unrated', summary: '', measurementType: '', values: {}, unit: '', context: {}, configuredLimitId: null }, device: { deviceId: null, calibrationId: null, suitability: 'unknown', method: '', limitation: '' }, response: { state: 'pending', occurredAt: null, action: '', reason: '', contactName: '', responsibleBy: null }, control: { state: 'none', dueAt: null, performedAt: null, result: '', responsibleBy: null }, correction: { targetId: null, reason: '', replacementId: null, approvedBy: null, approvedAt: null } }; }
+export function vitalCareSourcesIssue(v: unknown): string | null { const s = v as VitalCareSources; if (!s || !refs(s.measurements, 1) || s.measurements.length !== 1 || !refs(s.settings) || !refs(s.devices) || !refs(s.calibrations) || !refs(s.followUps) || !refs(s.invalidations) || !refs(s.events) || !refs(s.people) || !refs(s.paths))
+    return 'Messung, Grenzen, Geräte, Kalibrierungen, Reaktionen, Korrekturen, Ereignisse, Personen oder Vitalpfad sind abgeschnitten, doppelt oder ohne native Revision.'; return null; }
+export function vitalCareEntryIssue(v: unknown): string | null {
+    const e = v as VitalCareEntry;
+    if (!e || !kinds.has(e.kind) || !text(e.title, 3, 300) || ![e.tenantId, e.clientId, e.measurementId].every(uuid) || !instant(e.observedAt) || !e.interpretation || !e.device || !e.response || !e.control || !e.correction)
+        return 'Vitalpfad ist nicht vollständig an Mandant, Pflegefall, Messung und tatsächliche Beobachtungszeit gebunden.';
+    const i = e.interpretation;
+    if (!['unrated', 'within_configured_range', 'outside_configured_range', 'measurement_uncertain'].includes(i.state) || !text(i.summary, 3) || !text(i.measurementType, 1, 100) || !numbers(i.values) || !text(i.unit, 1, 40) || !strings(i.context) || i.configuredLimitId !== null && !uuid(i.configuredLimitId))
+        return 'Originalwerte, Einheit, Messsituation und fachliche Einordnung müssen vollständig und getrennt vorliegen.';
+    const d = e.device;
+    if (!['confirmed', 'limited', 'unknown', 'not_applicable'].includes(d.suitability) || d.deviceId !== null && !uuid(d.deviceId) || d.calibrationId !== null && !uuid(d.calibrationId) || !text(d.method, d.suitability === 'not_applicable' ? 0 : 1, 500) || !text(d.limitation, d.suitability === 'confirmed' || d.suitability === 'not_applicable' ? 0 : 3, 1000))
+        return 'Messgerät, Verfahren, Eignung und bekannte Einschränkung ausdrücklich dokumentieren.';
+    if (d.calibrationId !== null && d.deviceId === null)
+        return 'Kalibrierungsoriginal benötigt das zugehörige Messgerät.';
+    const r = e.response;
+    if (!['not_required', 'pending', 'performed', 'declined', 'failed'].includes(r.state) || r.responsibleBy !== null && !uuid(r.responsibleBy))
+        return 'Reaktionsstatus und Verantwortung sind ungültig.';
+    if (['performed', 'declined', 'failed'].includes(r.state) && (!instant(r.occurredAt) || !text(r.action, 3) || !text(r.reason, 3) || !uuid(r.responsibleBy)))
+        return 'Tatsächliche Reaktion oder Nichtdurchführung benötigt Zeitpunkt, Handlung, Grund und Verantwortung.';
+    if (r.occurredAt && micros(r.occurredAt)! < micros(e.observedAt)!)
+        return 'Tatsächliche Reaktion darf nicht vor der beobachteten Messung liegen.';
+    if (['pending', 'not_required'].includes(r.state) && (r.occurredAt !== null || r.action || r.contactName || r.responsibleBy !== null))
+        return 'Aus Messwert, Grenze, Alarm oder Plan darf keine tatsächliche Reaktion abgeleitet werden.';
+    if (r.state === 'not_required' && !text(r.reason, 3))
+        return 'Nicht erforderliche Reaktion benötigt eine ausdrückliche Begründung.';
+    if (r.state === 'performed' && !text(r.contactName, 1))
+        return 'Tatsächliche Reaktion benötigt die erreichte oder verantwortliche Gegenstelle.';
+    const c = e.control;
+    if (!['none', 'scheduled', 'performed', 'resolved'].includes(c.state) || c.responsibleBy !== null && !uuid(c.responsibleBy))
+        return 'Kontrollstatus und Verantwortung sind ungültig.';
+    if (c.state === 'none' && (c.dueAt !== null || c.performedAt !== null || c.result || c.responsibleBy !== null))
+        return 'Ohne Kontrollvorgang dürfen kein Termin, Ergebnis oder Abschluss erscheinen.';
+    if (c.state === 'scheduled' && (!instant(c.dueAt) || c.performedAt !== null || c.result || !uuid(c.responsibleBy)))
+        return 'Geplante Kontrolle benötigt Termin und Verantwortung, aber noch kein tatsächliches Ergebnis.';
+    if (['performed', 'resolved'].includes(c.state) && (!instant(c.performedAt) || !text(c.result, 3) || !uuid(c.responsibleBy)))
+        return 'Durchgeführte Kontrolle benötigt tatsächlichen Zeitpunkt, Ergebnis und Verantwortung.';
+    if (c.dueAt && micros(c.dueAt)! < micros(e.observedAt)!)
+        return 'Geplante Kontrolle darf nicht vor der beobachteten Messung liegen.';
+    if (c.performedAt && micros(c.performedAt)! < micros(e.observedAt)!)
+        return 'Kontrolle darf nicht vor der beobachteten Messung liegen.';
+    if (c.state === 'resolved' && r.state !== 'performed' && r.state !== 'not_required')
+        return 'Abschluss benötigt eine tatsächliche Reaktion oder eine ausdrücklich begründete Nicht-Erforderlichkeit.';
+    if (e.kind === 'anomaly_response' && i.state !== 'outside_configured_range' && i.state !== 'measurement_uncertain' || e.kind === 'anomaly_response' && !['performed', 'declined', 'failed'].includes(r.state))
+        return 'Auffälligkeitsbearbeitung benötigt eine ausdrückliche Auffälligkeit und die tatsächliche Reaktion oder Nichtdurchführung.';
+    if (e.kind === 'control_review' && !['performed', 'resolved'].includes(c.state) || e.kind === 'case_resolution' && c.state !== 'resolved')
+        return 'Vorgangsart und tatsächlicher Kontroll- oder Abschlussstatus widersprechen sich.';
+    if (e.kind === 'correction' && (!uuid(e.correction.targetId) || !text(e.correction.reason, 10) || !uuid(e.correction.replacementId) || e.correction.targetId === e.correction.replacementId || !uuid(e.correction.approvedBy) || !instant(e.correction.approvedAt)))
+        return 'Korrektur benötigt historisches Original, begründeten Nachtrag, neue Identität und aktuelle Freigabe.';
+    if (e.kind === 'correction' && micros(e.correction.approvedAt!)! < micros(e.observedAt)!)
+        return 'Korrekturfreigabe darf nicht vor der beobachteten Messung liegen.';
+    if (e.kind !== 'correction' && Object.values(e.correction).some(x => x !== null && x !== ''))
+        return 'Nur ein Korrekturvorgang darf Korrekturfelder setzen.';
+    return null;
+}
+export function vitalCareOriginalIssue(v: unknown, c: {
+    tenantId: string;
+    clientId: string;
+    measurementId: string;
+}): string | null { const o = v as VitalCareOriginal; if (!o || ![o.id, o.rootId, o.headId, o.recordedBy].every(uuid) || o.tenantId !== c.tenantId || o.clientId !== c.clientId || o.measurementId !== c.measurementId || !kinds.has(o.kind) || !Number.isSafeInteger(o.revision) || o.revision < 1 || !instant(o.recordedAt) || !sha(o.contentFingerprint) || !Array.isArray(o.history) || Object.keys(o.history).length !== o.history.length || o.history.length !== o.revision || o.history.length > 2000)
+    return 'Vitalpfadhistorie fehlt, ist abgeschnitten oder fremd.'; for (let n = 0; n < o.history.length; n++) {
+    const h = o.history[n], previous = n === 0 ? null : o.history[n - 1].id;
+    if (!uuid(h.id) || o.history.slice(0, n).some(prior => prior.id.toLowerCase() === h.id.toLowerCase()) || n === 0 && h.id !== o.rootId || h.revision !== n + 1 || h.previousId !== previous || !instant(h.recordedAt) || !uuid(h.recordedBy) || !text(h.recordedByName, 1) || !sha(h.contentFingerprint) || vitalCareEntryIssue(h.payload) || h.payload.tenantId !== c.tenantId || h.payload.clientId !== c.clientId || h.payload.measurementId !== c.measurementId)
+        return 'Vitalpfadhistorie besitzt eine Lücke oder ungültigen Inhalt.';
+} const h = o.history.at(-1)!; return o.id !== h.id || o.headId !== h.id || o.revision !== h.revision || o.kind !== h.payload.kind || o.recordedAt !== h.recordedAt || o.recordedBy !== h.recordedBy || o.recordedByName !== h.recordedByName || o.contentFingerprint !== h.contentFingerprint || stable(o.payload) !== stable(h.payload) ? 'Vitalpfad-Originalkopf widerspricht der Historie.' : null; }
+export function vitalCarePacketIssue(v: unknown): string | null {
+    const p = v as VitalCarePacket;
+    if (!p || p.schemaVersion !== '1' || !['create', 'revise'].includes(p.action) || ![p.requestId, p.tenantId, p.clientId, p.measurementId, p.actorId].every(uuid) || p.entry?.tenantId !== p.tenantId || p.entry.clientId !== p.clientId || p.entry.measurementId !== p.measurementId)
+        return 'Paketidentität oder Messungsbindung ist ungültig.';
+    const sourceIssue = vitalCareSourcesIssue(p.sources), entryIssue = vitalCareEntryIssue(p.entry);
+    if (sourceIssue || entryIssue)
+        return sourceIssue ?? entryIssue;
+    const m = p.sources.measurements[0];
+    if (m.id !== p.measurementId || m.tenantId !== p.tenantId || m.clientId !== p.clientId || String(m.payload.occurred_at) !== p.entry.observedAt || String(m.payload.vital_key) !== p.entry.interpretation.measurementType || String(m.payload.unit) !== p.entry.interpretation.unit || stable(m.payload.values) !== stable(p.entry.interpretation.values) || stable(m.payload.context) !== stable(p.entry.interpretation.context))
+        return 'Messwert, Zeitpunkt, Einheit oder Messsituation stimmen nicht vollständig mit dem nativen Original überein.';
+    const own = (list: readonly VitalCareRef[], id: string | null) => id === null ? null : list.find(x => x.id === id && x.tenantId === p.tenantId && x.clientId === p.clientId && x.measurementId === p.measurementId);
+    if (p.entry.interpretation.configuredLimitId) {
+        const setting = own(p.sources.settings, p.entry.interpretation.configuredLimitId);
+        if (!setting || !['physician_order', 'care_plan', 'individual_configuration'].includes(String(setting.payload.source_kind)) || setting.payload.active !== true || !uuid(setting.payload.approved_by) || !instant(setting.payload.valid_from) || setting.payload.valid_to !== null && !instant(setting.payload.valid_to))
+            return 'Patientenspezifische Grenze besitzt keine aktive Quelle, Gültigkeit oder verantwortliche Freigabe.';
+        const at = micros(p.entry.observedAt)!;
+        if (at < micros(String(setting.payload.valid_from))! || setting.payload.valid_to && at > micros(String(setting.payload.valid_to))!)
+            return 'Patientenspezifische Grenze galt zum tatsächlichen Messzeitpunkt nicht.';
+    }
+    if (p.entry.device.deviceId) {
+        const device = own(p.sources.devices, p.entry.device.deviceId);
+        if (!device)
+            return 'Zugeordnetes Messgerät fehlt im vollständigen Bestand.';
+        if (p.entry.device.calibrationId) {
+            const calibration = own(p.sources.calibrations, p.entry.device.calibrationId);
+            if (!calibration || calibration.payload.device_id !== device.id || calibration.payload.status !== 'valid')
+                return 'Kalibrierungs-/Wartungsoriginal passt nicht unverändert zum Messgerät.';
+        }
+    }
+    if (p.entry.response.responsibleBy && !p.sources.people.some(x => x.id === p.entry.response.responsibleBy && x.payload.active === true))
+        return 'Reaktionsverantwortung ist nicht im aktuellen vollständigen Personenbestand.';
+    if (p.entry.control.responsibleBy && !p.sources.people.some(x => x.id === p.entry.control.responsibleBy && x.payload.active === true))
+        return 'Kontrollverantwortung ist nicht im aktuellen vollständigen Personenbestand.';
+    if (p.entry.kind === 'correction' && (!own(p.sources.paths, p.entry.correction.targetId) || p.entry.correction.approvedBy !== p.actorId || p.entry.correction.replacementId !== p.requestId))
+        return 'Korrektur ist nicht an Original, aktuelle Sitzung und Anfrageidentität gebunden.';
+    if (p.action === 'create') {
+        if (p.original !== null || p.expectedHeadId !== null || p.expectedRevision !== 0 || p.reason)
+            return 'Neuanlage darf keinen historischen Kopf vortäuschen.';
+    }
+    else {
+        const issue = p.original ? vitalCareOriginalIssue(p.original, p) : 'Historisches Original fehlt.';
+        if (issue)
+            return issue;
+        if (p.expectedHeadId !== p.original!.headId || p.expectedRevision !== p.original!.revision || !text(p.reason, 10) || stable(p.entry) === stable(p.original!.payload))
+            return 'Fortschreibung benötigt aktuellen CAS-Kopf, konkreten Grund und echte Änderung.';
+    }
+    return null;
+}
+export function makeVitalCarePacket(v: VitalCarePacket): VitalCarePacket { const captured = structuredClone(v), issue = vitalCarePacketIssue(captured); if (issue)
+    throw Error(issue); return deepFreeze(captured); }

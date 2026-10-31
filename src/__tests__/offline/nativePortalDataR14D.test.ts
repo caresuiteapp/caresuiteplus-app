@@ -9,15 +9,15 @@ describe('R14-D native portal data resilience', () => {
   it('stores native offline records in protected device storage', () => {
     const idb = read('src/lib/offline/idb.ts');
     expect(idb).toContain("Platform.OS === 'android' || Platform.OS === 'ios'");
-    expect(idb).toContain('sensitiveAuthStorage.setItem(storageKey, raw)');
-    expect(idb).toContain('sensitiveAuthStorage.getItem(storageKey)');
+    expect(idb).toContain('protectedDataStorage.setItem(storageKey, raw)');
+    expect(idb).toContain('protectedDataStorage.getItem(storageKey)');
     expect(idb).toContain('NATIVE_INDEX_KEY');
   });
 
   it('clears all protected offline records during logout', () => {
     const idb = read('src/lib/offline/idb.ts');
     const auth = read('src/lib/auth/AuthProvider.tsx');
-    expect(idb).toContain('Promise.all(keys.map((key) => sensitiveAuthStorage.removeItem(key)))');
+    expect(idb).toContain('Promise.all(keys.map((key) => protectedDataStorage.removeItem(key)))');
     expect(auth).toContain('await clearOfflineDb()');
   });
 

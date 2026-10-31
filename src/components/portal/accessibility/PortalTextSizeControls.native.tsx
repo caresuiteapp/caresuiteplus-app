@@ -1,12 +1,15 @@
+import { CareSuiteNativeText as Text } from '@/components/ui/CareSuiteNativeText';
+import { desktopHeaderControl, desktopHeaderControlColors } from '@/design/web/desktopHeaderControls';
 import { useState } from 'react';
-import { Linking, Modal, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Linking, Modal, Platform, Pressable, StyleSheet, ScrollView, View, useWindowDimensions } from 'react-native';
 import { liquidClassicColors, liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
 import { useLiquidVisualMode } from '@/liquid-command/components/LiquidPrimitives';
 
-type Props = { compact?: boolean };
+type Props = { compact?: boolean; dense?: boolean; appearance?: 'default' | 'desktop-header' };
 
 /** Native text follows the device text scale. The dialog routes to the relevant setting on Android. */
-export function PortalTextSizeControls({ compact = false }: Props) {
+export function PortalTextSizeControls({ compact = false, dense = false, appearance = 'default' }: Props) {
+  const desktopHeader = appearance === 'desktop-header';
   const orbit = useLiquidVisualMode() === 'orbit';
   const { fontScale } = useWindowDimensions();
   const [visible, setVisible] = useState(false);
@@ -27,16 +30,16 @@ export function PortalTextSizeControls({ compact = false }: Props) {
         accessibilityRole="button"
         accessibilityLabel="Textgröße ändern"
         onPress={() => setVisible(true)}
-        style={({ pressed }) => [styles.button, orbit && styles.orbitButton, compact && styles.compact, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.button, orbit && styles.orbitButton, compact && styles.compact, dense && styles.dense, desktopHeader && styles.header, pressed && styles.pressed]}
         testID="portal-text-size-controls"
       >
-        <Text style={[styles.label, orbit && styles.orbitLabel]}>aA</Text>
-        {!compact ? <View><Text style={[styles.caption, orbit && styles.orbitCaption]}>Textgröße</Text></View> : null}
+        <Text style={[styles.label, orbit && styles.orbitLabel, desktopHeader && styles.headerText]}>aA</Text>
+        {!compact && !dense ? <View><Text style={[styles.caption, orbit && styles.orbitCaption]}>Textgröße</Text></View> : null}
       </Pressable>
 
       <Modal visible={visible} transparent animationType="fade" onRequestClose={() => setVisible(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard} accessibilityViewIsModal>
+          <ScrollView style={styles.modalScroll} contentContainerStyle={styles.modalScrollContent} keyboardShouldPersistTaps="handled"><View style={styles.modalCard} accessibilityViewIsModal>
             <Text style={styles.modalTitle}>Textgröße</Text>
             <Text style={styles.modalBody}>
               CareSuite übernimmt automatisch die Textgröße Ihres Geräts. Aktuell werden etwa {Math.round(fontScale * 100)} % verwendet.
@@ -48,14 +51,14 @@ export function PortalTextSizeControls({ compact = false }: Props) {
             </Text>
             {error ? <Text style={styles.modalError}>{error}</Text> : null}
             {Platform.OS === 'android' ? (
-              <Pressable style={styles.modalPrimary} onPress={() => void openAndroidTextSettings()}>
+              <Pressable accessibilityRole="button" accessibilityLabel="Anzeige & Textgröße öffnen" style={styles.modalPrimary} onPress={() => void openAndroidTextSettings()}>
                 <Text style={styles.modalPrimaryText}>Anzeige & Textgröße öffnen</Text>
               </Pressable>
             ) : null}
-            <Pressable style={styles.modalSecondary} onPress={() => setVisible(false)}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Schließen" style={styles.modalSecondary} onPress={() => setVisible(false)}>
               <Text style={styles.modalSecondaryText}>Schließen</Text>
             </Pressable>
-          </View>
+          </View></ScrollView>
         </View>
       </Modal>
     </>
@@ -63,6 +66,11 @@ export function PortalTextSizeControls({ compact = false }: Props) {
 }
 
 const styles = StyleSheet.create({
+  header: { ...desktopHeaderControl, minWidth: 44, minHeight: 44 },
+  headerText: { color: desktopHeaderControlColors.text },
+  dense: { minWidth: 44, paddingHorizontal: 10 },
+  modalScroll: { flexShrink: 1, width: '100%' },
+  modalScrollContent: { flexGrow: 1, justifyContent: 'center', paddingVertical: 8 },
   button: {
     minHeight: 42,
     paddingHorizontal: 12,

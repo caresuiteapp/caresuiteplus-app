@@ -1,6 +1,7 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { PremiumBadge } from '@/components/ui';
 import { PORTAL_EMPLOYEE_LABEL } from '@/lib/portal/portalDisplayLabels';
 
@@ -83,6 +84,8 @@ export function PortalEmployeeAssignmentDetailHero({
   assignment,
 }: PortalEmployeeAssignmentDetailHeroProps) {
   const heroText = usePremiumHeroTextStyles();
+  const { fontScale } = useWindowDimensions();
+  const factBasis = 150 * Math.max(1, fontScale || 1);
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -125,7 +128,7 @@ export function PortalEmployeeAssignmentDetailHero({
         },
         facts: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         fact: {
-          flexGrow: 1, flexBasis: 150, padding: spacing.md, borderRadius: 16,
+          flexGrow: 1, flexBasis: factBasis, padding: spacing.md, borderRadius: 16,
           backgroundColor: 'rgba(241, 245, 249, 0.75)', borderWidth: 1,
           borderColor: 'rgba(148, 163, 184, 0.20)', gap: 3,
         },
@@ -133,7 +136,7 @@ export function PortalEmployeeAssignmentDetailHero({
         factValue: { fontSize: 17, fontWeight: '800', color: '#0F172A' },
         factMeta: { fontSize: 12, color: '#475569' },
       }),
-    [heroText],
+    [heroText, factBasis],
   );
 
   const duration = durationMinutes(assignment.startsAt, assignment.endsAt);
@@ -148,7 +151,7 @@ export function PortalEmployeeAssignmentDetailHero({
           {assignment.location ? <Text style={styles.subtitle}>{assignment.location}</Text> : null}
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>📋</Text>
+          <SemanticArtwork style={styles.iconText}>📋</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

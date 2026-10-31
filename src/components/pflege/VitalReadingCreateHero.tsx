@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useEffect, useMemo, useRef } from 'react';
 import { AccessibilityInfo, Animated, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumListHeroFrame } from '@/components/ui';
@@ -56,7 +57,7 @@ export function VitalReadingCreateHero({ roleKey, isReadOnly }: Props) {
         <View style={styles.iconWrap}>
           <Animated.View style={[styles.halo, { opacity: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.2, 0.82] }),
             transform: [{ scale: pulse.interpolate({ inputRange: [0, 1], outputRange: [0.84, 1.12] }) }] }]} />
-          <View style={styles.iconBadge}><Text style={styles.iconText}>💓</Text></View>
+          <View style={styles.iconBadge}><SemanticArtwork style={styles.iconText}>💓</SemanticArtwork></View>
         </View>
       </View>
       <View style={styles.badges}>

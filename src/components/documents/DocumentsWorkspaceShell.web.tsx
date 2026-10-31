@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import type { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout/ScreenShell.web';
@@ -30,7 +31,7 @@ export function DocumentWorkspaceIcon({ name, size = 20 }: { name: string; size?
     eye: 'M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6',
     plus: 'M12 4v16M4 12h16',
   };
-  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d={paths[name] ?? paths.document} /></svg>;
+  return <WebActionIcon size={size}><path d={paths[name] ?? paths.document} /></WebActionIcon>;
 }
 
 export function DocumentsWorkspaceShell({ active, title, description, eyebrow = 'OFFICE · DOKUMENTE', actions, stats, back, beforeNavigate, children }: {
@@ -51,13 +52,13 @@ export function DocumentsWorkspaceShell({ active, title, description, eyebrow = 
     <div className="dw-workspace" data-cs-documents-surface="light">
       <style>{documentsWorkspaceCss}</style>
       <nav className="dw-navigation" aria-label="Dokumentenbereiche">
-        {NAVIGATION.map(item => <button key={item.id} type="button" aria-current={active === item.id ? 'page' : undefined} onClick={() => { if (active !== item.id && beforeNavigate?.() !== false) router.push(item.route as never); }}><DocumentWorkspaceIcon name={item.icon} size={18} />{item.label}</button>)}
-        {showSettings ? <button type="button" className="dw-settings-link" aria-current={active === 'settings' ? 'page' : undefined} onClick={() => { if (active !== 'settings' && beforeNavigate?.() !== false) router.push('/business/templates/documents-hub' as never); }}><DocumentWorkspaceIcon name="settings" size={18} />Vorlageneinstellungen</button> : null}
+        {NAVIGATION.map(item => <button key={item.id} type="button" aria-current={active === item.id ? 'page' : undefined} onClick={() => { if (active !== item.id && beforeNavigate?.() !== false) router.push(item.route as never); }}><DocumentWorkspaceIcon name={item.icon} size={20} />{item.label}</button>)}
+        {showSettings ? <button type="button" className="dw-settings-link" aria-current={active === 'settings' ? 'page' : undefined} onClick={() => { if (active !== 'settings' && beforeNavigate?.() !== false) router.push('/business/templates/documents-hub' as never); }}><DocumentWorkspaceIcon name="settings" size={20} />Vorlageneinstellungen</button> : null}
       </nav>
       {back ? <button type="button" className="dw-back" onClick={() => { if (beforeNavigate?.() !== false) back.onClick(); }}><span aria-hidden="true">←</span>{back.label}</button> : null}
       <header className="dw-hero">
         <div className="dw-hero-copy"><div className="dw-eyebrow">{eyebrow}</div><h1>{title}</h1>{description ? <p>{description}</p> : null}{actions ? <div className="dw-hero-actions">{actions}</div> : null}</div>
-        {stats ? <div className="dw-hero-stats">{stats}</div> : <div className="dw-hero-art" aria-hidden="true"><div className="dw-paper"><DocumentWorkspaceIcon name={active === 'signatures' ? 'signature' : 'document'} size={40} /><span /><span /></div></div>}
+        {stats ? <div className="dw-hero-stats">{stats}</div> : <div className="dw-hero-art" aria-hidden="true"><div className="dw-paper"><DocumentWorkspaceIcon name={active === 'signatures' ? 'signature' : 'document'} size={32} /><span /><span /></div></div>}
       </header>
       <div className="dw-content">{children}</div>
     </div>

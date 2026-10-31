@@ -32,7 +32,9 @@ describe('portal scroll ownership R13', () => {
 
   it('allows the employee page frame to shrink inside the portal viewport', () => {
     const frame = read('src/components/portal/EmployeePortalPageFrame.tsx');
-    expect(frame).toMatch(/page:\s*\{[\s\S]*flex:\s*1[\s\S]*minHeight:\s*0/);
-    expect(frame).toMatch(/content:\s*\{[\s\S]*flex:\s*1[\s\S]*minHeight:\s*0/);
+    expect(frame).toMatch(/page:\s*\{[\s\S]*minHeight:\s*0/);
+    expect(frame).toContain('fillContent: { flex: 1 }');
+    expect(frame).toContain('naturalHeight ? styles.naturalContent : styles.fillContent');
+    expect(frame).toMatch(/content:\s*\{[\s\S]*minHeight:\s*0/);
   });
 });

@@ -1,3 +1,5 @@
+import { SemanticIconLabel } from '@/components/navigation/SemanticIconLabel';
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { ReactNode } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
@@ -59,7 +61,7 @@ export function DesktopShell({
                   accessibilityState={{ selected: active }}
                   accessibilityLabel={tab.label}
                 >
-                  <Text style={styles.navIcon}>{tab.icon}</Text>
+                  <SemanticArtwork webSize={24} webColor={active ? accentColor : colors.textSecondary} style={styles.navIcon}>{tab.icon}</SemanticArtwork>
                   <Text style={[styles.navLabel, active && { color: accentColor }]}>
                     {tab.label}
                   </Text>
@@ -70,7 +72,7 @@ export function DesktopShell({
           <View style={styles.footer}>
             {showModuleSwitcher ? (
               <Pressable onPress={openSwitcher} style={styles.footerLink} accessibilityRole="button">
-                <Text style={styles.footerLinkText}>🧩 Module wechseln</Text>
+                <SemanticIconLabel symbol="🧩" label="Module wechseln" style={styles.footerLinkText} />
               </Pressable>
             ) : null}
             <Pressable

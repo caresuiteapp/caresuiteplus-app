@@ -1,3 +1,4 @@
+import { readPendingMfaBootstrap } from './accountSecurityService';
 import { configurePortalBackgroundRefresh } from '@/lib/offline/portalBackgroundRefresh';
 import { cancelAssignmentDetailPrefetch } from '@/lib/offline/assignmentDetailPrefetch';
 import {
@@ -228,6 +229,19 @@ async function hydrateSupabaseSession(
     return { ok: true };
   }
   try {
+    if (!portalRecord) {
+      // An own minimal identity allows enrollment without exposing the workspace
+      // while server-side MFA guards withhold normal tenant/profile resolvers.
+      const pending = await withAuthBootstrapTimeout(readPendingMfaBootstrap(supabaseSession.user.id), 'Zusätzliche Anmeldesicherheit').catch(() => null);
+      if (!canCommit()) return { ok: true };
+      if (pending) {
+        const minimal = buildMinimalAuthState(supabaseSession);
+        const protectedUser = { ...minimal.user, roleKey: pending.roleKey, displayName: pending.displayName };
+        setUser(protectedUser); setProfile(pending); setSession({ ...minimal.session, user: protectedUser });
+        setProfileBootstrapError(null);
+        return { ok: true };
+      }
+    }
     const bootstrap = await withAuthBootstrapTimeout(
       bootstrapTenantContext(supabaseSession),
       'Profil-Bootstrap',

@@ -1,0 +1,6 @@
+import {createElement} from 'react';
+import * as Print from 'expo-print';
+import {ConsultationDocument} from '@/features/beratung/ConsultationDocument.print.native';
+import {nativePrintMarkup} from '@/lib/platform/nativePrintMarkup.shared';
+import {normalizeConsultationAnswers,type ConsultationRevision} from './workspaceModel';
+export async function printConsultationRevision(revision:ConsultationRevision|null):Promise<void>{if(!revision)throw Error('Bitte zuerst eine bestätigte Fassung öffnen.');const {snapshot}=revision,body=nativePrintMarkup(createElement(ConsultationDocument,{answers:normalizeConsultationAnswers(snapshot.answers),client:snapshot.client,kind:snapshot.service_kind,revision}));await Print.printAsync({html:'<!doctype html><html lang="de"><head><meta charset="utf-8"><title>Beratungsdokumentation</title><style>body{font-family:sans-serif;color:#122440;font-size:12px;padding:24px;line-height:1.5}h2{font-size:23px}h3{margin-top:24px}dt{font-weight:bold}dd{margin:3px 0 12px;white-space:pre-wrap}.cw-form-grid{display:flex;gap:24px;flex-wrap:wrap}.cw-signature-image{width:260px;height:90px;object-fit:contain}.cw-hash{overflow-wrap:anywhere}section{break-inside:avoid}</style></head><body>'+body+'</body></html>'});}

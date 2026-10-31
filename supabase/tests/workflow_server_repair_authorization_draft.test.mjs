@@ -86,6 +86,74 @@ await test('reproduces the captured Production caller-tenant/actor spoof and ter
     assert.equal((await old.query('SELECT count(*)::int n FROM assist_visit_proofs')).rows[0].n,0);
   }finally{await old.close();}
 });
+// The active RPC body is retained; only its caller/row binding is guarded.
+const authGuardDb=await createDb(false);
+await authGuardDb.exec(`CREATE FUNCTION auth.jwt() RETURNS jsonb LANGUAGE sql STABLE AS $$
+ SELECT jsonb_build_object('role',coalesce(current_setting('test.jwt_role',true),'authenticated'),
+   'user_metadata',jsonb_build_object('role',current_setting('test.user_meta_role',true)))$$;
+ CREATE ROLE service_role;GRANT EXECUTE ON FUNCTION repair_assist_visit_workflow_status(uuid,uuid,text,text,uuid,boolean) TO service_role;
+ CREATE SCHEMA care_security;
+ CREATE FUNCTION care_security.company_actor(uuid,text) RETURNS boolean LANGUAGE sql AS $$
+ SELECT $1=current_tenant_id() AND $2='assist.execution.manage' AND current_setting('test.internal',true)='true'
+   AND (current_setting('test.permission',true)='true' OR current_setting('test.admin',true)='true')$$;`);
+await authGuardDb.exec(read('../../docs/store/android-repair-assist-visit-workflow-status-guard-review.sql'));
+await test('current-body guard binds own employee/profile callers and stored audit author',async()=>{
+ for(const actor of [id.employee,id.profile,null]){
+  await reset(authGuardDb,false);await call(authGuardDb,'angekommen',{actor});const state=await snapshot(authGuardDb);
+  assert.equal(state.assignments[0].status,'arrived');assert.equal(state.audit[0].actor_profile_id,id.profile);
+ }
+});
+await test('current-body guard denies missing/foreign/disabled/other-role identity before any writes',async()=>{
+ for(const changes of [{uid:''},{uid:id.otherUser},{tenant:''},{tenant:id.foreignTenant},{employee:''},{employee:id.otherEmployee},{account:id.otherVisit},{portal:'client'},{portal:'relative'}]){
+  await reset(authGuardDb,false);await config(authGuardDb,changes);const before=await snapshot(authGuardDb);
+  await assert.rejects(()=>call(authGuardDb));assert.deepEqual(await snapshot(authGuardDb),before);
+ }
+ for(const sql of ["UPDATE employee_portal_accounts SET status='disabled'",'UPDATE employee_portal_accounts SET must_change_password=true','UPDATE employee_portal_accounts SET first_login_completed=false','UPDATE employees SET portal_enabled=false','UPDATE employees SET deleted_at=now()','UPDATE profiles SET is_active=false',
+  `INSERT INTO tenant_users(tenant_id,auth_user_id,status,must_change_password,first_login_completed) VALUES('${id.tenant}','${id.user}',NULL,false,true)`,
+  `INSERT INTO tenant_users(tenant_id,auth_user_id,status,must_change_password,first_login_completed) VALUES('${id.tenant}','${id.user}','active',NULL,true)`,
+  `INSERT INTO tenant_users(tenant_id,auth_user_id,status,must_change_password,first_login_completed) VALUES('${id.tenant}','${id.user}','active',false,NULL)`]){
+  await reset(authGuardDb,false);await write(authGuardDb,sql);const before=await snapshot(authGuardDb);
+  await assert.rejects(()=>call(authGuardDb));assert.deepEqual(await snapshot(authGuardDb),before);
+ }
+});
+await test('current-body guard denies arbitrary actor, foreign assignment and employee timestamp bypass',async()=>{
+ for(const options of [{actor:id.otherEmployee},{assignment:id.otherVisit},{tenant:id.foreignTenant},{allow:true}]){
+  await reset(authGuardDb,false);const before=await snapshot(authGuardDb);
+  await assert.rejects(()=>call(authGuardDb,'angekommen',options));assert.deepEqual(await snapshot(authGuardDb),before);
+ }
+});
+await test('current-body guard retains explicitly authorized Office/admin repair and denies missing permission',async()=>{
+ for(const rights of [{permission:'true',admin:'false'},{permission:'false',admin:'true'}]){
+  await reset(authGuardDb,false);await config(authGuardDb,{portal:'business',internal:'true',...rights});
+  await call(authGuardDb);const state=await snapshot(authGuardDb);
+  assert.equal(state.assignments[0].status,'arrived');assert.equal(state.audit[0].actor_profile_id,id.profile);
+ }
+ await reset(authGuardDb,false);await config(authGuardDb,{portal:'business',internal:'true',permission:'false',admin:'false'});
+ const before=await snapshot(authGuardDb);await assert.rejects(()=>call(authGuardDb));assert.deepEqual(await snapshot(authGuardDb),before);
+});
+await test('current-body guard preserves trusted service-role jobs and rejects user metadata role spoofing',async()=>{
+ await reset(authGuardDb,false);await config(authGuardDb,{uid:'',tenant:'',portal:''});
+ await authGuardDb.query("SELECT set_config('test.jwt_role','service_role',false)");
+ await authGuardDb.exec('SET ROLE service_role');
+ await call(authGuardDb,'angekommen',{actor:id.otherEmployee});
+ await authGuardDb.exec('RESET ROLE');
+ const service=(await authGuardDb.query('SELECT actor_profile_id FROM assignment_audit_events')).rows[0];
+ assert.equal(service.actor_profile_id,id.otherEmployee); // Original trusted job semantics.
+ await authGuardDb.query("SELECT set_config('test.jwt_role','authenticated',false)");
+ await authGuardDb.query("SELECT set_config('test.user_meta_role','service_role',false)");
+ await reset(authGuardDb,false);await config(authGuardDb,{uid:'',tenant:'',portal:''});
+ const before=await snapshot(authGuardDb);await assert.rejects(()=>call(authGuardDb));
+ assert.deepEqual(await snapshot(authGuardDb),before);
+ await authGuardDb.query("SELECT set_config('test.user_meta_role','',false)");
+});
+await test('current-body guard keeps signature/defaults and refuses changed function bodies',async()=>{
+ const [meta]=(await authGuardDb.query("SELECT pg_get_function_identity_arguments(oid) args,pronargdefaults defaults,prosecdef FROM pg_proc WHERE proname='repair_assist_visit_workflow_status'")).rows;
+ assert.equal(meta.args,'p_tenant_id uuid, p_assignment_id uuid, p_target_status text, p_reason text, p_actor_employee_id uuid, p_allow_service_without_timestamp boolean');
+ assert.equal(meta.defaults,3);assert.equal(meta.prosecdef,true);
+ await authGuardDb.exec('RESET ROLE');await assert.rejects(()=>authGuardDb.exec(read('../../docs/store/android-repair-assist-visit-workflow-status-guard-review.sql')),/Reviewed function source changed/);
+ await authGuardDb.exec('ROLLBACK');
+});
+await authGuardDb.close();
 const db=await createDb();
 await test('own partial repair uses real actor profile and actual times; retry changes no version or audit',async()=>{
   await reset(db);await call(db);const first=await snapshot(db);

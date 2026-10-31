@@ -1,3 +1,5 @@
+import { useNativePaneWidth } from '@/hooks/useNativePaneWidth';
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Pressable,
@@ -6,7 +8,6 @@ import {
   Text,
   TextInput,
   View,
-  useWindowDimensions,
 } from 'react-native';
 import type { CalendarEventTemplate, CalendarModuleKey } from '@/types/calendar';
 import type { CalendarEventFormState, CalendarFormStep } from '@/types/calendar/calendarEventForm';
@@ -16,6 +17,8 @@ import { CalendarEventPreviewStep } from './CalendarEventPreviewStep';
 import { CareEntitySelect, type CareEntityOption } from '@/components/inputs/CareEntitySelect';
 import { CareDateInput } from '@/components/inputs/CareDateInput';
 import { CareTimeInput } from '@/components/inputs/CareTimeInput';
+import { CalendarEmployeeMultiSelect } from './CalendarEmployeeMultiSelect';
+import { calendarEmployeeIds } from '@/lib/calendar/calendarParticipants';
 import { berlinTimestamp } from '@/lib/calendar/employeeMonthPlanning';
 
 type CalendarEventFormProps = {
@@ -226,13 +229,13 @@ export function CalendarEventForm({
   onAssistEinsatzLink,
   clients = [], employees = [], peopleLoading = false, disabled = false,
 }: CalendarEventFormProps) {
-  const { width } = useWindowDimensions();
-  const compact = width < 760;
+  const { width, fontScale, onLayout } = useNativePaneWidth();
+  const compact = width < 760 * fontScale;
   const styles = useMemo(() => createFormStyles(compact), [compact]);
 
   if (step === 'type' && moduleKey === 'assist') {
     return (
-      <View style={styles.wrap}>
+      <View onLayout={onLayout} style={styles.wrap}>
         <StepHeader styles={styles} step={step}
           title="Was möchten Sie planen?"
           description="Wählen Sie den passenden Ablauf. Ihre Auswahl öffnet direkt den nächsten sinnvollen Schritt."
@@ -243,7 +246,7 @@ export function CalendarEventForm({
             style={({ pressed }) => [styles.typeCard, styles.typeCardPrimary, pressed && { opacity: 0.82 }]}
             accessibilityRole="button"
           >
-            <View style={styles.typeIcon}><Text style={styles.typeIconText}>+</Text></View>
+            <View style={styles.typeIcon}><SemanticArtwork webSize={24} style={styles.typeIconText}>+</SemanticArtwork></View>
             <View style={{ gap: 5 }}>
               <Text style={styles.typeTitle}>Termin oder Abwesenheit</Text>
               <Text style={styles.typeDesc}>Besprechung, Geburtstag, Urlaub, Erinnerung oder eigener Kalendereintrag.</Text>
@@ -255,7 +258,7 @@ export function CalendarEventForm({
             style={({ pressed }) => [styles.typeCard, pressed && { opacity: 0.82 }]}
             accessibilityRole="button"
           >
-            <View style={styles.typeIcon}><Text style={styles.typeIconText}>↗</Text></View>
+            <View style={styles.typeIcon}><SemanticArtwork webSize={24} style={styles.typeIconText}>↗</SemanticArtwork></View>
             <View style={{ gap: 5 }}>
               <Text style={styles.typeTitle}>Assist-Einsatz</Text>
               <Text style={styles.typeDesc}>Klient:in, Mitarbeitende, Leistung, Zeit und Aufgaben vollständig zuordnen.</Text>
@@ -269,7 +272,7 @@ export function CalendarEventForm({
 
   if (step === 'template') {
     return (
-      <View style={styles.wrap}>
+      <View onLayout={onLayout} style={styles.wrap}>
         <StepHeader styles={styles} step={step}
           title="Schnell mit einer Vorlage starten"
           description="Eine Vorlage übernimmt Art und Dauer. Sie können jederzeit ohne Vorlage fortfahren."
@@ -287,13 +290,13 @@ export function CalendarEventForm({
 
   if (step === 'basics') {
     return (
-      <View style={styles.wrap}>
+      <View onLayout={onLayout} style={styles.wrap}>
         <StepHeader styles={styles} step={step} title="Grunddaten und Zuordnung" description="Erfassen Sie Anlass und ordnen Sie den Eintrag bei Bedarf direkt zu." />
         <View style={styles.grid}>
           <Field styles={styles} disabled={disabled} label="Titel *" value={form.title} onChangeText={(title) => onChange({ title })} placeholder="z. B. Teamgespräch" full />
           <Field styles={styles} disabled={disabled} label="Beschreibung" value={form.description} onChangeText={(description) => onChange({ description })} placeholder="Was ist geplant?" multiline full />
           <View style={styles.field}><CareEntitySelect label="Klient:in / Bewohner:in" value={form.relatedClientId} options={[{ value: "", label: "Keine Zuordnung" }, ...clients]} loading={peopleLoading} onChange={(relatedClientId) => { if (!disabled) onChange({ relatedClientId }); }} /></View>
-          <View style={styles.field}><CareEntitySelect label="Mitarbeitende" value={form.relatedEmployeeId} options={[{ value: "", label: "Keine Zuordnung" }, ...employees]} loading={peopleLoading} onChange={(relatedEmployeeId) => { if (!disabled) onChange({ relatedEmployeeId }); }} /></View>
+          <View style={[styles.field, styles.fieldFull]}><CalendarEmployeeMultiSelect values={calendarEmployeeIds(form)} options={employees} loading={peopleLoading} disabled={disabled} onChange={participantEmployeeIds => onChange({ participantEmployeeIds, relatedEmployeeId: participantEmployeeIds[0] ?? '', ...(!participantEmployeeIds.length ? { isEmployeePortalVisible: false } : {}) })} /></View>
           {moduleKey === "beratung" ? <Field styles={styles} disabled={disabled} label="Fall / Akte" value={form.relatedCaseId} onChangeText={(relatedCaseId) => onChange({ relatedCaseId })} placeholder="ID einer vorhandenen Akte" /> : null}
           {moduleKey === "stationaer" ? <Field styles={styles} disabled={disabled} label="Wohnbereich" value={form.relatedWardId} onChangeText={(relatedWardId) => onChange({ relatedWardId })} placeholder="ID eines vorhandenen Wohnbereichs" /> : null}
         </View>
@@ -303,7 +306,7 @@ export function CalendarEventForm({
 
   if (step === 'datetime') {
     return (
-      <View style={styles.wrap}>
+      <View onLayout={onLayout} style={styles.wrap}>
         <StepHeader styles={styles} step={step} title="Zeit und Ort" description="Legen Sie den vollständigen Zeitraum und den Treffpunkt fest." />
         <View style={styles.grid}>
           <CalendarDateTimeField styles={styles} disabled={disabled} label="Beginn" value={form.startAt} onChange={(startAt) => onChange({ startAt })} />
@@ -321,7 +324,7 @@ export function CalendarEventForm({
 
   if (step === 'visibility') {
     return (
-      <View style={styles.wrap}>
+      <View onLayout={onLayout} style={styles.wrap}>
         <StepHeader styles={styles} step={step} title="Sichtbarkeit und Hinweise" description="Bestimmen Sie bewusst, wo der Eintrag erscheint, und ergänzen Sie optionale Hinweise." />
         <View style={styles.grid}>
           <View style={styles.field}><VisibilitySwitch styles={styles} disabled={disabled} title="Zentraler Kalender" description="In der zentralen Planung anzeigen." value={form.isOfficeVisible} onValueChange={(isOfficeVisible) => onChange({ isOfficeVisible })} /></View>
@@ -340,13 +343,13 @@ export function CalendarEventForm({
 
   if (step === 'preview') {
     return (
-      <View style={styles.wrap}>
+      <View onLayout={onLayout} style={styles.wrap}>
         <StepHeader styles={styles} step={step} title="Prüfen und speichern" description="Kontrollieren Sie die wichtigsten Angaben vor dem Speichern." />
         <View style={styles.sectionCard}>
           <Text style={styles.sectionTitle}>Zusammenfassung</Text>
           <CalendarEventPreviewStep form={form} template={template} moduleKey={moduleKey}
             clientLabel={clients.find(person => person.value === form.relatedClientId)?.label}
-            employeeLabel={employees.find(person => person.value === form.relatedEmployeeId)?.label} />
+            employeeLabel={calendarEmployeeIds(form).map(id => employees.find(person => person.value === id)?.label ?? 'Nicht mehr verfügbare Person').join(', ')} />
         </View>
       </View>
     );

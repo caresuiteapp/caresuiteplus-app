@@ -20,6 +20,7 @@ const tests = [
   'src/__tests__/navigation/officeNotesDesktop.test.ts',
   'src/__tests__/layout/officeNotesDesktopInteraction.test.tsx',
   'src/__tests__/layout/desktopAppsWidgetsInteraction.test.tsx',
+  'src/__tests__/layout/desktopWidgetSuggestions.test.ts',
   'src/__tests__/layout/desktopPreferenceStorage.test.ts',
   'src/__tests__/navigation/appsWidgetsCatalogModel.test.ts',
   'src/__tests__/navigation/desktopCatalogIcon.test.ts',

@@ -21,8 +21,6 @@ const ROLE_CAPABILITIES: Record<PlatformRoleKey, PlatformCapability[] | 'all'> =
     'system.read',
     'releases.read',
     'users.read',
-    'bodymap.review.read',
-    'bodymap.review.write',
   ],
   platform_billing: [
     'tenants.read',
@@ -51,7 +49,6 @@ const ROLE_CAPABILITIES: Record<PlatformRoleKey, PlatformCapability[] | 'all'> =
     'audit.read',
     'system.read',
     'releases.read',
-    'bodymap.review.read',
   ],
   platform_readonly: [
     'tenants.read',
@@ -61,12 +58,10 @@ const ROLE_CAPABILITIES: Record<PlatformRoleKey, PlatformCapability[] | 'all'> =
     'billing.read',
     'payments.read',
     'flags.read',
-    'support.read',
     'audit.read',
     'system.read',
     'releases.read',
     'users.read',
-    'bodymap.review.read',
   ],
 };
 

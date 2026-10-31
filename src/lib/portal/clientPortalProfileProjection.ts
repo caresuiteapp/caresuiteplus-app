@@ -218,7 +218,7 @@ export function buildClientPortalProfileProjection(
 
   const assignment = input.nextAssignment;
   const nextAppointmentTitle = assignment
-    ? String(assignment.service_type ?? 'Einsatz').trim() || 'Einsatz'
+    ? String(assignment.title ?? assignment.service_type ?? 'Einsatz').trim() || 'Einsatz'
     : null;
   const nextAppointmentAt = assignment?.planned_start_at
     ? String(assignment.planned_start_at)

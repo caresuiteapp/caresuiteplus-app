@@ -1,3 +1,4 @@
+import { WebActionIcon } from '@/components/icons/WebActionIcon.web';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIsFocused, useLocalSearchParams, useNavigation, useRouter } from 'expo-router';
 import { usePreventRemove } from 'expo-router/react-navigation';
@@ -191,7 +192,7 @@ function InboxContent({ tenantId, roleKey, scopeKey, canImport, canReview }: { t
   function cancelPending() { if (!lock.current) { setPending(null); setError(''); if (fileInput.current) fileInput.current.value = ''; } }
   const queryError = query.error || query.refreshError;
   return <section className="iw ei iw-fade" data-testid="office-einvoice-inbox" data-healthos-einvoice-inbox="20261018">
-    <header className="iw-header"><div className="iw-heading"><span className="iw-mark" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none"><path d="M12 3v11m-4-4 4 4 4-4M4 15v5h16v-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" /></svg></span><div><p className="iw-eyebrow">Office · Rechnungen</p><h1>Rechnungseingang</h1><p>Rechnungen für Ihr Unternehmen lesen, prüfen und als Original ablegen.</p></div></div><div className="iw-actions"><button type="button" disabled={Boolean(busy) || query.loading || query.refreshing} onClick={() => void refresh()}>{query.refreshing ? 'Wird aktualisiert …' : 'Aktualisieren'}</button></div></header>
+    <header className="iw-header"><div className="iw-heading"><span className="iw-mark" aria-hidden="true"><WebActionIcon size={24}><path d="M12 3v11m-4-4 4 4 4-4M4 15v5h16v-5" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" /></WebActionIcon></span><div><p className="iw-eyebrow">Office · Rechnungen</p><h1>Rechnungseingang</h1><p>Rechnungen für Ihr Unternehmen lesen, prüfen und als Original ablegen.</p></div></div><div className="iw-actions"><button type="button" disabled={Boolean(busy) || query.loading || query.refreshing} onClick={() => void refresh()}>{query.refreshing ? 'Wird aktualisiert …' : 'Aktualisieren'}</button></div></header>
     <nav className="iw-tabs" aria-label="Rechnungsbereich"><button type="button" disabled={Boolean(busy)} onClick={() => { if (focused && mayLeave()) { leaveAllowed.current = true; router.push('/business/office/invoices' as never); } }}>Ausgangsrechnungen</button><span className="ei-current-tab" aria-current="page">Rechnungseingang</span></nav>
     {error && <div className="iw-notice" data-tone="error" role="alert">{error}</div>}
     {notice && <div className="iw-notice" data-tone="success" role="status">{notice}</div>}

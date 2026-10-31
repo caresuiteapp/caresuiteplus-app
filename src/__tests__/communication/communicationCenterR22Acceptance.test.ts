@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+import type { OfficeMessageThread } from '@/types/office/messaging';
+const routeState = vi.hoisted(() => ({ params: {} as Record<string, string | string[]> }));
+vi.mock('expo-router', () => ({ Redirect: () => null, useLocalSearchParams: () => routeState.params }));
+import BusinessMessageDetailRoute from '../../../app/business/messages/[threadId]';
+import CommunicationAssignmentsRoute from '../../../app/business/messages/assignments';
+import { parseConversationFilter, selectConversations } from '@/lib/office/messageWorkspace.web';
+import { parseConversationFilter as parseNativeFilter, selectConversations as selectNativeConversations } from '@/lib/office/messageWorkspace.native';
 
 const ROOT = resolve(__dirname, '../../..');
 
@@ -17,12 +24,18 @@ describe('Kommunikationszentrum R22 – Production Acceptance', () => {
     expect(business).not.toContain('CommunicationAdaptiveScreen');
   });
 
-  it('Direktlink und Reload eines Threads bleiben im produktiven Messenger', () => {
-    const route = readSrc('app/business/messages/[threadId].tsx');
-    const screen = readSrc('src/screens/office/OfficeMessengerScreen.tsx');
-    expect(route).toContain('OfficeMessengerScreen');
-    expect(screen).toContain('threadId?: string');
-    expect(screen).toContain('params.thread ?? params.threadId');
+  it.each([
+    [{ threadId: 'thread/a & b', audience: 'clients' }, 'thread/a & b'],
+    [{ id: 'legacy-id', audience: 'employees' }, 'legacy-id'],
+    [{ threadId: 'path-id', thread: 'explicit-id', audience: 'clients' }, 'explicit-id'],
+  ] as const)('keeps the exact requested conversation and audience through the canonical redirect', (params, thread) => {
+    routeState.params = { ...params };
+    const redirected = BusinessMessageDetailRoute();
+    expect(redirected.props.href).toEqual({ pathname: '/business/messages', params: { audience: params.audience, thread } });
+    for (const suffix of ['web', 'native']) {
+      const screen = readSrc(`src/screens/office/OfficeMessengerScreen.${suffix}.tsx`);
+      expect(screen).toContain('params.thread ?? params.threadId ?? params.id');
+    }
   });
 
   it('Neu, Archiv und Zuordnungen führen nicht in das alte Datenmodell', () => {
@@ -31,7 +44,13 @@ describe('Kommunikationszentrum R22 – Production Acceptance', () => {
     const assignments = readSrc('app/business/messages/assignments.tsx');
     expect(create).toContain('/business/messages?compose=1');
     expect(archive).toContain('/business/messages?chatAge=old');
-    expect(assignments).toContain('/business/messages?chatAge=new');
+    expect(assignments).toContain('/business/messages?filter=mine');
+    const href = new URL(CommunicationAssignmentsRoute().props.href, 'https://fixture.invalid');
+    const base: OfficeMessageThread = { id: 'owned', tenantId: 'tenant-a', createdAt: '2026-10-26T08:00:00Z', updatedAt: '2026-10-26T08:00:00Z', threadType: 'client_office', status: 'open', priority: 'normal', subject: 'Synthetische Anfrage', categoryId: null, categoryLabel: null, clientId: null, clientName: null, employeeId: null, employeeName: null, participantName: null, lastMessageAt: null, lastMessagePreview: null, unreadCount: 0, archivedAt: null, assignedToUserId: 'profile-a' };
+    const threads = [base, { ...base, id: 'foreign', assignedToUserId: 'profile-b' }, { ...base, id: 'unassigned', assignedToUserId: null }];
+    for (const [parse, select] of [[parseConversationFilter, selectConversations], [parseNativeFilter, selectNativeConversations]] as const) {
+      expect(select(threads, '', parse(href.searchParams.get('filter'), href.searchParams.get('chatAge')), 'profile-a').map(thread => thread.id)).toEqual(['owned']);
+    }
     expect(`${create}${archive}${assignments}`).not.toContain('CommunicationAdaptiveScreen');
   });
 

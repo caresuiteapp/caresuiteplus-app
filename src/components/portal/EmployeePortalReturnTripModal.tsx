@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Modal,
@@ -250,7 +251,7 @@ export function EmployeePortalReturnTripModal({
         <View style={styles.modalSurface}>
           <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
             <View style={styles.header}>
-              <View style={styles.icon}><Text style={styles.iconText}>⌖</Text></View>
+              <View style={styles.icon}><SemanticArtwork style={styles.iconText} webSize={24}>⌖</SemanticArtwork></View>
               <View style={styles.headerCopy}>
                 <Text style={styles.eyebrow}>TAGESABSCHLUSS · FAHRTENBUCH</Text>
                 <Text style={styles.title}>

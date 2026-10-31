@@ -3,6 +3,7 @@ import { totalmem } from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
+import { resolveTypeScriptHeapMiB } from './resolve-typescript-heap.mjs';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const clientSuites = [
@@ -38,8 +39,7 @@ const vitest = 'node_modules/vitest/vitest.mjs';
 // The previous verification used an 8 GiB ceiling. Keep that ceiling local to
 // TypeScript, and reserve 1 GiB when a smaller build-container limit is known.
 const constrainedBytes = process.constrainedMemory?.() ?? 0;
-const memoryBytes = constrainedBytes > 0 ? Math.min(totalmem(), constrainedBytes) : totalmem();
-const heapMiB = Math.max(512, Math.min(8192, Math.floor(memoryBytes / 1024 / 1024) - 1024));
+const heapMiB = resolveTypeScriptHeapMiB(totalmem(), constrainedBytes, process.env.CARESUITE_TYPESCRIPT_HEAP_MIB);
 const steps = [
   { label: 'Shared App/Edge verifier', args: ['scripts/build-intake-edge-runtime.mjs', '--check'] },
   { label: `TypeScript (heap ceiling ${heapMiB} MiB)`, args: [`--max-old-space-size=${heapMiB}`, typescript, '--noEmit', '--skipLibCheck'] },

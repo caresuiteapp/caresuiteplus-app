@@ -1,4 +1,4 @@
-import { Platform } from 'react-native';
+import { currentCompanyWorkflows } from './currentCompanyWorkflows';
 import { guardLegacyCompanyWebAccess } from './companyLegacyWebAccess';
 import type { ServiceResult } from '@/types';
 import type { TenantBrandingProfile } from '@/types/tenant/tenantCenter';
@@ -54,7 +54,7 @@ export async function saveTenantBrandingProfile(
 ): Promise<ServiceResult<TenantBrandingProfile>> {
   const webDenied = await guardLegacyCompanyWebAccess<TenantBrandingProfile>(tenantId);
   if (webDenied) return webDenied;
-  const denied = Platform.OS === 'web' ? null : enforcePermission<TenantBrandingProfile>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
+  const denied = currentCompanyWorkflows ? null : enforcePermission<TenantBrandingProfile>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;

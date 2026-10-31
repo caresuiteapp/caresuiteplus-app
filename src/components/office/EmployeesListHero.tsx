@@ -43,7 +43,7 @@ export function EmployeesListHero({
   showViewToggle = false,
 }: EmployeesListHeroProps) {
   const { width } = useWindowDimensions();
-  const mobileWeb = Platform.OS === 'web' && width < 900;
+  const mobileWeb = width < 900;
   return (
     <View style={[styles.surface, mobileWeb && styles.mobileSurface]}>
       <View style={[styles.headingRow, mobileWeb && styles.mobileHeading]}>

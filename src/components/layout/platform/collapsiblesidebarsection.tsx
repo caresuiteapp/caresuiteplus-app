@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import {
   Modal,
@@ -251,7 +252,7 @@ export function CollapsibleSidebarSection<T>({
             accessibilityLabel={moreLabel}
           >
             <Text style={styles.moreLabel}>{moreLabel}</Text>
-            <Text style={styles.chevron}>{open ? '▴' : '▾'}</Text>
+            <SemanticArtwork webSize={16} style={styles.chevron}>{open ? '▴' : '▾'}</SemanticArtwork>
           </Pressable>
         </View>
       ) : null}

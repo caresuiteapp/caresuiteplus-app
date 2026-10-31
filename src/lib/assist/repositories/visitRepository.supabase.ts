@@ -1075,6 +1075,15 @@ export const visitSupabaseRepository = {
     if (!existing.ok) return existing;
     if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
+    // A workflow status must not publish a private draft implicitly or leave
+    // its assignment mirror confirmed while portal readers still exclude it.
+    if (existing.data.planningStatus === 'draft' && toStatus !== 'geplant' && toStatus !== 'storniert') {
+      return {
+        ok: false,
+        error: 'Dieser Einsatz ist noch ein Entwurf. Bitte zuerst über „Bearbeiten“ freigeben, bevor Sie ihn bestätigen oder ausführen.',
+      };
+    }
+
     const fromStatus = existing.data.assignmentStatus;
     const remoteStatus = assignmentStatusToRemote(toStatus);
     const now = new Date().toISOString();
@@ -1328,6 +1337,15 @@ export const visitSupabaseRepository = {
     const existing = await this.getById(tenantId, visitId);
     if (!existing.ok) return existing;
     if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    // Draft writes skip the legacy assignment mirror. Allowing a published
+    // plan back into draft would silently remove it from the employee portal.
+    if (input.saveAsDraft && existing.data.planningStatus !== 'draft') {
+      return {
+        ok: false,
+        error: 'Dieser Einsatz ist bereits veröffentlicht und kann nicht wieder als Entwurf gespeichert werden. Bitte den Einsatz umplanen oder absagen.',
+      };
+    }
 
     const duration = durationMinutes(input.plannedStartAt, input.plannedEndAt, null);
     const taskTitles = input.tasks.map((task) => task.trim()).filter(Boolean);

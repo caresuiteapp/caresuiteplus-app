@@ -113,7 +113,8 @@ describe('desktop catalogue picture artwork', () => {
 
   it('keeps existing premium pictures and uses the same motif for aliases and workflow destinations', () => {
     for (const widget of artworkCatalog.WIDGETS) {
-      if (!widget.images || widget.route === '/office/notizen') continue;
+      if (!widget.images || widget.route === '/office/notizen' ||
+        artworkCatalog.desktopCatalogArtworkName(widget.route) === 'document-catalog') continue;
       expect(artworkCatalog.desktopCatalogArtwork(widget.route, widget.images)).toBe(widget.images);
     }
     for (const routes of [
@@ -123,6 +124,28 @@ describe('desktop catalogue picture artwork', () => {
       ['/office/invoices', '/business/office/invoices/new'],
     ]) {
       expect(new Set(routes.map(artworkCatalog.desktopCatalogArtworkName)).size).toBe(1);
+    }
+  });
+
+  it('uses the same three-dimensional Web catalogue for aliases, QM templates and inherited widget pictures', () => {
+    const catalog = artworkCatalog.WIDGETS.find(widget => widget.route === '/business/office/document-catalog')!;
+    expect(catalog.images).toBeTruthy();
+    // The platform-neutral widget keeps its original asset for native clients.
+    expect(catalog.images!.medium.uri).toMatch(/\/widgets-premium\/document-catalog\.png$/);
+    const webArtwork = artworkCatalog.desktopCatalogArtwork(catalog.route, catalog.images);
+    expect(webArtwork).not.toBe(catalog.images);
+    for (const source of Object.values(webArtwork)) {
+      expect(source.uri).toMatch(/\/widgets-premium\/web\/document-catalog-3d\.png$/);
+    }
+    for (const route of [
+      '/business/office/document-catalog', '/office/document-catalog',
+      '/business/office/document-catalog?source=desktop#templates',
+      '/business/office/qm/templates', '/office/qm/templates',
+      '/business/templates/documents-hub', '/office/catalogs',
+    ]) {
+      expect(artworkCatalog.desktopCatalogArtworkName(route), route).toBe('document-catalog');
+      expect(artworkCatalog.desktopCatalogArtwork(route), route).toBe(webArtwork);
+      expect(artworkCatalog.desktopCatalogArtwork(route, catalog.images), route).toBe(webArtwork);
     }
   });
 

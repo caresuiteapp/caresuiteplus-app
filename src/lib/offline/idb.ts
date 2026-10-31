@@ -7,7 +7,7 @@ import {
   type SyncMetaRecord,
 } from './types';
 import { Platform } from 'react-native';
-import { sensitiveAuthStorage } from '@/lib/security/sensitiveAuthStorage';
+import { protectedDataStorage } from '@/lib/security/protectedDataStorage';
 
 let dbPromise: Promise<IDBDatabase | null> | null = null;
 const IDB_OPEN_TIMEOUT_MS = 3_000;
@@ -47,7 +47,7 @@ function nativeRecordKey(storeName: OfflineStoreName, key: string): string {
 }
 
 async function readNativeIndex(): Promise<string[]> {
-  const raw = await sensitiveAuthStorage.getItem(NATIVE_INDEX_KEY);
+  const raw = await protectedDataStorage.getItem(NATIVE_INDEX_KEY);
   if (!raw) return [];
   try {
     const parsed = JSON.parse(raw) as unknown;
@@ -63,7 +63,7 @@ async function rememberNativeKey(storageKey: string): Promise<void> {
   nativeIndexWriteQueue = nativeIndexWriteQueue.catch(() => {}).then(async () => {
     const keys = await readNativeIndex();
     if (keys.includes(storageKey)) return;
-    await sensitiveAuthStorage.setItem(NATIVE_INDEX_KEY, JSON.stringify([...keys, storageKey]));
+    await protectedDataStorage.setItem(NATIVE_INDEX_KEY, JSON.stringify([...keys, storageKey]));
   });
   await nativeIndexWriteQueue;
 }
@@ -81,7 +81,7 @@ async function putNativeRecord<T extends { key: string }>(
     try {
       await rememberNativeKey(storageKey);
       if (epoch !== cacheEpoch) return false;
-      await sensitiveAuthStorage.setItem(storageKey, raw);
+      await protectedDataStorage.setItem(storageKey, raw);
       if (epoch === cacheEpoch) rememberHotRecord(storageKey, raw);
       return epoch === cacheEpoch;
     } catch (error) {
@@ -107,7 +107,7 @@ async function getNativeRecord<T extends { key: string }>(
     else {
       let reading = nativeReads.get(storageKey);
       if (!reading) {
-        reading = sensitiveAuthStorage.getItem(storageKey);
+        reading = protectedDataStorage.getItem(storageKey);
         nativeReads.set(storageKey, reading);
       }
       try { raw = await reading; }
@@ -255,7 +255,7 @@ function runTransaction<T>(
 export async function getOfflineDbHealth(): Promise<OfflineDbHealth> {
   if (isNativeStorage()) {
     try {
-      await sensitiveAuthStorage.getItem(NATIVE_INDEX_KEY);
+      await protectedDataStorage.getItem(NATIVE_INDEX_KEY);
       return {
         status: 'available',
         schemaVersion: OFFLINE_DB_VERSION,
@@ -396,8 +396,8 @@ export async function clearOfflineDb(): Promise<boolean> {
       await Promise.allSettled([...nativeWrites.values()]);
       await nativeIndexWriteQueue.catch(() => {});
       const keys = await readNativeIndex();
-      await Promise.all(keys.map((key) => sensitiveAuthStorage.removeItem(key)));
-      await sensitiveAuthStorage.removeItem(NATIVE_INDEX_KEY);
+      await Promise.all(keys.map((key) => protectedDataStorage.removeItem(key)));
+      await protectedDataStorage.removeItem(NATIVE_INDEX_KEY);
       nativeIndexWriteQueue = Promise.resolve();
       return true;
     } catch (error) {

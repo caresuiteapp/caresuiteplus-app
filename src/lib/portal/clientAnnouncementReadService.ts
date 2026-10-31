@@ -8,10 +8,13 @@ export async function readClientPortalAnnouncement(
   userId: string,
   item: AppNotification,
   employeeId?: string | null,
+  options?: { isCurrent: () => boolean },
 ): Promise<ServiceResult<{ body: string; readWarning: string | null }>> {
+  if (options && !options.isCurrent()) return { ok: false, error: 'Der Portalzugang wurde inzwischen gewechselt.' };
   if (!item.relatedBroadcastId) return { ok: false, error: 'Der Volltext dieser Mitteilung ist nicht mehr verfügbar.' };
   try {
     const detail = await fetchBroadcastForNotification(tenantId, item.relatedBroadcastId);
+    if (options && !options.isCurrent()) return { ok: false, error: 'Der Portalzugang wurde inzwischen gewechselt.' };
     if (!detail.ok) return { ok: false, error: 'Diese Mitteilung ist nicht mehr freigegeben oder konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.' };
     let readWarning: string | null = null;
     if (!item.isRead || employeeId) {

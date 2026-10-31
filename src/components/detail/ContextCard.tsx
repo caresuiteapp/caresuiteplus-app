@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumCard } from '@/components/ui';
 import { colors, spacing, typography } from '@/theme';
@@ -39,7 +40,7 @@ export function ContextCard({
     <View style={styles.cell}>
       <PremiumCard style={styles.card} accentColor={accentColor}>
         <View style={styles.content}>
-          <Text style={styles.icon}>{icon}</Text>
+          <SemanticArtwork style={styles.icon} webSize={24} webColor={accentColor}>{icon}</SemanticArtwork>
           <Text style={[styles.count, { color: accentColor }]}>{count}</Text>
           <Text style={styles.label}>{label}</Text>
         </View>

@@ -333,16 +333,25 @@ export function subscribeToEmployeePortalChanges(
   tenantId: string,
   employeeId: string,
   handler: RealtimeHandler,
+  options?: { schedule: 'own' | 'team' },
 ): () => void {
   const tenant = tenantFilter(tenantId);
   const employee = `employee_id=eq.${employeeId}`;
+  const scheduleKey = options ? `:schedule-${options.schedule}` : '';
   return subscribeToTenantTables(
     {
-      subscriptionKey: `employee-portal:${tenantId}:${employeeId}`,
-      channelName: `portal:employee:${tenantId}:${employeeId}`,
+      subscriptionKey: `employee-portal:${tenantId}:${employeeId}${scheduleKey}`,
+      channelName: `portal:employee:${tenantId}:${employeeId}${scheduleKey}`,
       demoPollMs: 10_000,
       specs: [
         { table: 'assignments', filter: employee },
+        // The portal reads assist_visits as its primary planning source. Calendar
+        // participants may include an employee without a direct employee_id;
+        // tenant-scoped invalidation still respects each table's SELECT RLS.
+        ...(options ? [
+          { table: 'assist_visits', filter: options.schedule === 'team' ? tenant : employee },
+          { table: 'calendar_events', filter: tenant },
+        ] : []),
         { table: 'message_threads', filter: employee },
         { table: 'workforce_work_sessions', filter: employee },
         { table: 'assist_tracking_sessions', filter: tenant },

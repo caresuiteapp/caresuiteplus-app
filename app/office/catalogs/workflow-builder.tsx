@@ -1,5 +1,6 @@
-import { WorkflowBuilderScreen } from '@/product-workflows/screens/catalog/WorkflowBuilderScreen';
+import { Redirect } from 'expo-router';
 
-export default function WorkflowBuilderRoute() {
-  return <WorkflowBuilderScreen />;
+/** The former prototype did not persist workflows; use the live catalogue. */
+export default function CatalogWorkflowRoute() {
+  return <Redirect href="/office/catalogs" />;
 }

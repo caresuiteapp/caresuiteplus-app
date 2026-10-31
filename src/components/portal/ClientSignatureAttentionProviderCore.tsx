@@ -9,6 +9,7 @@ import {
 } from '@/lib/portal/clientSignatureAttention';
 
 import { subscribePortalProofCache } from '@/lib/portal/portalProofCacheSignal';
+import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 
 const AttentionContext = createContext({
   items: [] as ClientSignatureItem[],
@@ -18,8 +19,11 @@ const AttentionContext = createContext({
 });
 export const useClientSignatureAttention = () => useContext(AttentionContext);
 export function ClientSignatureAttentionProvider({ children }: { children: ReactNode }) {
-  const { tenantId, clientId, actorId, roleKey, isLinkedReady } = usePortalActor();
-  const key = JSON.stringify([tenantId, clientId, actorId, roleKey]);
+  const { tenantId, clientId, actorId, roleKey, isLinkedReady, familyAccess } = usePortalActor();
+  const canSign = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'sign_records');
+  const canReadProofs = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'service_records');
+  const canReadDocuments = roleKey !== 'family_portal' || familyPortalAllows(familyAccess, 'documents');
+  const key = JSON.stringify([tenantId, clientId, actorId, roleKey, canSign, canReadProofs, canReadDocuments]);
   const enabled =
     isLinkedReady &&
     !!tenantId &&
@@ -37,12 +41,12 @@ export function ClientSignatureAttentionProvider({ children }: { children: React
   const proofs = useAsyncQuery(
     () => fetchClientPendingProofs(tenantId ?? '', clientId ?? '', roleKey),
     [key],
-    { enabled, queryKey: key, live },
+    { enabled: enabled && canSign && canReadProofs, queryKey: key, live },
   );
   const documents = useAsyncQuery(
     () => fetchClientPendingDocuments(tenantId ?? '', clientId ?? '', roleKey),
     [key],
-    { enabled, queryKey: key, live },
+    { enabled: enabled && canSign && canReadDocuments, queryKey: key, live },
   );
   const refreshProofs = proofs.refresh;
   const refreshDocuments = documents.refresh;

@@ -1,0 +1,82 @@
+// Generated native presentation from src/lib/pflege/basicCareBindingWorkflow.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeLocalStorage as localStorage} from '@/lib/platform/nativeWorkflowEnvironment.native';
+import { cloneClientNativeOriginal, sameClientNativeOriginal } from "../clients/clientRecordNativeOriginal.native.ts";
+import { basicCareBrowserLock } from "./basicCareWorkflow.native.ts";
+import { assertBasicCareBindingReference, assertBasicCareBindingExpectedSelection, basicCareBindingPacketHash, basicCareBindingPacketText, basicCareBindingSelection, decodeBasicCareBindingStatus, type BasicCareBindingPacket, type BasicCareBindingScope, type BasicCareBindingReference, type BasicCareBindingExpectedSelection, type BasicCareBindingSelectionIds, type BasicCareBindingStatus } from "./basicCareBinding.native.ts";
+import { prepareBasicCareBindingIntent, confirmBasicCareBindingIntent, commitBasicCareBindingIntent, cancelBasicCareBindingIntent } from "./basicCareBindingRepository.supabase.native.ts";
+type Result = {
+    ok: true;
+    data: BasicCareBindingStatus;
+} | {
+    ok: false;
+    error: string;
+    uncertain?: boolean;
+};
+export type BasicCareBindingJournal = {
+    version: 1;
+    reference: BasicCareBindingReference;
+    selection: BasicCareBindingSelectionIds;
+    phase: 'preparing' | 'prepared' | 'committing' | 'cancelling' | 'committed' | 'cancelled';
+};
+type Dependencies = {
+    storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+    lock<T>(key: string, run: () => Promise<T>): Promise<T>;
+    isCurrent(): boolean;
+    prepare: typeof prepareBasicCareBindingIntent;
+    confirm: typeof confirmBasicCareBindingIntent;
+    commit: typeof commitBasicCareBindingIntent;
+    cancel: typeof cancelBasicCareBindingIntent;
+};
+export function createBasicCareBindingWorkflow(scope: BasicCareBindingScope, deps: Dependencies) {
+    const owner = cloneClientNativeOriginal(scope), key = `caresuite:pflege:basic-care-binding:v1:${owner.tenantId}:${owner.clientId}:${owner.actorId}`;
+    let preparedHash: string | null = null, liveSelection: BasicCareBindingExpectedSelection | null = null, observed: BasicCareBindingReference | null = null;
+    const current = () => { if (deps.isCurrent() !== true)
+        throw Error('Pflegefall oder Rechtekontext hat gewechselt.'); };
+    const read = (): BasicCareBindingJournal | null => { current(); const raw = deps.storage.getItem(key); if (raw === null) {
+        if (observed)
+            throw Error('Das bereits beobachtete eigene Journal fehlt; der Ausgang bleibt ungeklärt.');
+        return null;
+    } const v = cloneClientNativeOriginal(JSON.parse(raw)) as BasicCareBindingJournal; if (!v || Object.keys(v).sort().join(',') !== 'phase,reference,selection,version' || v.version !== 1 || !['preparing', 'prepared', 'committing', 'cancelling', 'committed', 'cancelled'].includes(v.phase) || !v.reference || Object.keys(v.reference).sort().join(',') !== 'actorId,clientId,packetHash,requestId,tenantId' || !v.selection || Object.keys(v.selection).sort().join(',') !== 'measureId,planVersionId,visitId')
+        throw Error('Das vorhandene Planbindungsjournal ist ungeklärt.'); assertBasicCareBindingReference(v.reference); assertBasicCareBindingExpectedSelection(v.selection); if (v.reference.tenantId !== owner.tenantId || v.reference.clientId !== owner.clientId || v.reference.actorId !== owner.actorId)
+        throw Error('Das Planbindungsjournal gehört zu einem anderen Kontext.'); if (observed && !sameClientNativeOriginal(observed, v.reference))
+        throw Error('Ein anderer Vorgang hat das Planbindungsjournal ersetzt.'); observed ??= cloneClientNativeOriginal(v.reference); return v; };
+    const persist = (v: BasicCareBindingJournal) => { current(); const text = JSON.stringify(v); deps.storage.setItem(key, text); if (deps.storage.getItem(key) !== text)
+        throw Error('Das dauerhafte Planbindungsjournal konnte nicht bestätigt werden.'); };
+    const same = (v: BasicCareBindingJournal) => { current(); if (!sameClientNativeOriginal(read(), v))
+        throw Error('Das Planbindungsjournal wurde zwischenzeitlich verändert.'); };
+    const expected = (j: BasicCareBindingJournal) => preparedHash === j.reference.packetHash && liveSelection ? liveSelection : j.selection;
+    const certainty = (j: BasicCareBindingJournal, result: Result): Result => { same(j); if (!result.ok)
+        return { ok: false, error: result.error, uncertain: true }; const status = decodeBasicCareBindingStatus(result.data, j.reference, expected(j)); if ((j.phase === 'committed' || j.phase === 'cancelled') && status.state !== j.phase)
+        throw Error('Der unveränderliche bestätigte Ausgang widerspricht der Quittung.'); const phase = status.state === 'absent' ? 'preparing' : status.state; persist({ ...j, phase }); return { ok: true, data: status }; };
+    const safe = async (run: () => Promise<Result>): Promise<Result> => { try {
+        return await deps.lock(key, run);
+    }
+    catch (e) {
+        return { ok: false, error: e instanceof Error ? e.message : 'Planbindungsjournal ist nicht verfügbar.', uncertain: true };
+    } };
+    return { read, canCommit: () => { try {
+            const j = read();
+            return !!j && j.phase === 'prepared' && preparedHash === j.reference.packetHash && !!liveSelection;
+        }
+        catch {
+            return false;
+        } },
+        prepare: async (input: BasicCareBindingPacket): Promise<Result> => safe(async () => { const packet = cloneClientNativeOriginal(input); current(); if (read())
+            throw Error('Ein früherer Planbindungsvorgang muss zuerst geklärt werden.'); const text = basicCareBindingPacketText(packet), packetHash = await basicCareBindingPacketHash(text); current(); if (read())
+            throw Error('Ein anderer Vorgang hat bereits ein Journal angelegt.'); if (packet.tenantId !== owner.tenantId || packet.clientId !== owner.clientId || packet.actorId !== owner.actorId)
+            throw Error('Fremder Planbindungskontext.'); liveSelection = basicCareBindingSelection(packet); preparedHash = packetHash; const reference = { ...owner, requestId: packet.requestId, packetHash }, selection = { planVersionId: packet.planVersionId, measureId: packet.measureId, visitId: packet.visitId }, j: BasicCareBindingJournal = { version: 1, reference, selection, phase: 'preparing' }; observed = cloneClientNativeOriginal(reference); persist(j); same(j); return certainty(j, await deps.prepare(reference, text, liveSelection, deps.isCurrent)); }),
+        confirm: async (): Promise<Result> => safe(async () => { const j = read(); if (!j)
+            throw Error('Kein eigener Planbindungsvorgang vorhanden.'); return certainty(j, await deps.confirm(j.reference, expected(j), deps.isCurrent)); }),
+        commit: async (): Promise<Result> => safe(async () => { const j = read(); if (!j || j.phase !== 'prepared' || preparedHash !== j.reference.packetHash || !liveSelection)
+            throw Error('Eine wiederhergestellte Planung kann nur bestätigt oder verworfen werden. Prüfen Sie eine neue Entscheidung ausdrücklich.'); const sent: BasicCareBindingJournal = { ...j, phase: 'committing' }; persist(sent); same(sent); return certainty(sent, await deps.commit(sent.reference, liveSelection, deps.isCurrent)); }),
+        cancel: async (): Promise<Result> => safe(async () => { const j = read(); if (!j || ['committed', 'cancelled'].includes(j.phase))
+            throw Error('Ein bereits bestätigter Ausgang kann hier nicht aufgehoben werden.'); const sent: BasicCareBindingJournal = { ...j, phase: 'cancelling' }; persist(sent); same(sent); return certainty(sent, await deps.cancel(sent.reference, expected(sent), deps.isCurrent)); }),
+        close: async (): Promise<Result> => safe(async () => { const j = read(); if (!j || !['committed', 'cancelled'].includes(j.phase))
+            throw Error('Der Planbindungsausgang ist noch ungeklärt.'); const result = certainty(j, await deps.confirm(j.reference, expected(j), deps.isCurrent)); if (!result.ok)
+            return result; const latest = read(); if (!latest || latest.phase !== j.phase || !sameClientNativeOriginal(latest.reference, j.reference))
+            throw Error('Das bestätigte Journal wurde verändert.'); deps.storage.removeItem(key); if (deps.storage.getItem(key) !== null)
+            throw Error('Das eigene bestätigte Journal konnte nicht abgeschlossen werden.'); preparedHash = null; liveSelection = null; observed = null; return result; }),
+    };
+}
+export function browserBasicCareBindingWorkflow(scope: BasicCareBindingScope, isCurrent: () => boolean) { if (typeof localStorage === 'undefined')
+    throw Error('Dauerhaftes Planbindungsjournal ist in diesem Browser nicht verfügbar.'); return createBasicCareBindingWorkflow(scope, { storage: localStorage, lock: basicCareBrowserLock, isCurrent, prepare: prepareBasicCareBindingIntent, confirm: confirmBasicCareBindingIntent, commit: commitBasicCareBindingIntent, cancel: cancelBasicCareBindingIntent }); }

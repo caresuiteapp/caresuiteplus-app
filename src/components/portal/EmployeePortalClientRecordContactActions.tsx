@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Alert, Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumButton } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -25,7 +26,7 @@ export function PhoneActionRow({ label, value, icon = '📞' }: PhoneActionRowPr
   return (
     <View style={styles.row}>
       <View style={styles.iconWrap}>
-        <Text style={styles.icon}>{icon}</Text>
+        <SemanticArtwork style={styles.icon} webSize={24} webColor={text.primary}>{icon}</SemanticArtwork>
       </View>
       <Pressable style={[styles.copy, webCursor]} onPress={() => dialPhoneNumber(value)}
         accessibilityRole="button" accessibilityLabel={`${label} anrufen: ${value}`}>

@@ -64,7 +64,7 @@ function sourceRecords(map) {
 
 function ownPath(path) {
   if (/(?:^|\/)node_modules\//.test(path)) return null;
-  return /(?:^|\/)((?:app|app-portal|src)\/.+)$/.exec(path)?.[1] ?? null;
+  return /(?:^|\/)((?:app|app-portal|src|modules)\/.+)$/.exec(path)?.[1] ?? null;
 }
 
 function runtimeImports(record, browserUi = []) {
@@ -533,7 +533,7 @@ function runAudit() {
     portalSecurityGates: true, authenticationAndRolePolicy: true, reachableWebImplementations: [],
     inactiveWebCandidates: inactiveWebSources,
     currentSourceIdentity: verifyCurrentSources, verifiedCurrentSources,
-    currentSourceIdentityScope: 'Mapped app/src text only; BOM/CRLF normalized. Other input content identity is not asserted by this field.',
+    currentSourceIdentityScope: 'Mapped app/src/modules text only; BOM/CRLF normalized. Other input content identity is not asserted by this field.',
     easArchiveAssets,
     introAssets, nativeFont: { bytes: font.bytes, sha256: fontDigest, packaged: normalized(relative(exportRoot, font.file)) },
     packagedAssets: packagedAssets.length, packagedAssetBytes: packagedAssets.reduce((sum, asset) => sum + asset.bytes, 0), largestAssets,

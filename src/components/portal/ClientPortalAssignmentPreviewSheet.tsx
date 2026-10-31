@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AssistLiveMap } from '@/components/maps/AssistLiveMap';
@@ -145,7 +146,7 @@ export function ClientPortalAssignmentPreviewSheet({
               />
             ) : (
               <View style={styles.liveHint}>
-                <Text style={styles.liveHintIcon}>i</Text>
+                <SemanticArtwork webSize={20} webColor={portalPremium.accent.blue} style={styles.liveHintIcon}>i</SemanticArtwork>
                 <Text style={styles.liveHintText}>
                   Die Karte erscheint automatisch kurz vor dem Termin, sobald Ihre Betreuungskraft unterwegs ist.
                 </Text>

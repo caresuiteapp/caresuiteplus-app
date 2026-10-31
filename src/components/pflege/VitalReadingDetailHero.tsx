@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
@@ -108,7 +109,7 @@ export function VitalReadingDetailHero({ reading, roleKey, isReadOnly }: VitalRe
             },
           ]}
         >
-          <Text style={styles.iconText}>❤️</Text>
+          <SemanticArtwork style={styles.iconText}>❤️</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>

@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
@@ -11,6 +12,7 @@ import {
   SpatialPortalSection,
 } from '@/components/portal/SpatialPortalSurface';
 import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
+import { AdaptiveKpiGrid } from '@/components/adaptive/AdaptiveKpiGrid';
 
 import type { PortalScope } from '@/types/portal';
 import { designTokens, spacing } from '@/theme';
@@ -108,7 +110,7 @@ function PortalTabHeroLegacy(props: PortalTabHeroProps) {
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
         <View style={[styles.iconBadge, { borderColor: `${accent}55` }]}>
-          <Text style={styles.iconText}>{tabIcons[tab]}</Text>
+          <SemanticArtwork style={styles.iconText}>{tabIcons[tab]}</SemanticArtwork>
         </View>
       </View>
       <View style={styles.badges}>
@@ -145,18 +147,22 @@ function PortalTabHeroSpatial(props: PortalTabHeroProps) {
       subtitle={`${meta} · ${subtitle}`}
       accentColor={spatialCareColors.cyanLight}
     >
-      <View style={stylesSpatial.metrics}>
-        {kpis.map((kpi) => (
-          <SpatialPortalMetric
+      <AdaptiveKpiGrid
+        style={stylesSpatial.metrics}
+        phoneLayout="grid"
+        columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
+        items={kpis.map((kpi) => ({
+          id: kpi.id,
+          node: <SpatialPortalMetric
             key={kpi.id}
             label={kpi.label}
             value={String(kpi.numericValue ?? 0)}
             subValue={kpi.numericValue ? kpi.subValue : kpi.fallbackLabel}
             icon={kpi.icon}
             accentColor={kpi.accentColor ?? spatialCareColors.cyanLight}
-          />
-        ))}
-      </View>
+          />,
+        }))}
+      />
     </SpatialPortalSection>
   );
 }

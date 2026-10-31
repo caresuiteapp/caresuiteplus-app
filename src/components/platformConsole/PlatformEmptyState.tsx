@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PLATFORM_COLORS } from './PlatformColors';
 import { spacing } from '@/theme';
@@ -12,7 +13,7 @@ type PlatformEmptyStateProps = {
 export function PlatformEmptyState({ title, message, actionLabel, onAction }: PlatformEmptyStateProps) {
   return (
     <View style={styles.wrap} accessibilityRole="text">
-      <View style={styles.icon}><Text style={styles.iconText}>◇</Text></View>
+      <View style={styles.icon}><SemanticArtwork webSize={32} style={styles.iconText}>◇</SemanticArtwork></View>
       <Text style={styles.title}>{title}</Text>
       {message ? <Text style={styles.message}>{message}</Text> : null}
       {actionLabel && onAction ? (

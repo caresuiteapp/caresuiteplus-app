@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ClientDetailModal } from '@/components/office/clientdetailmodal';
@@ -135,6 +135,7 @@ export function ClientsListScreen({
   return (
     <>
       <C14vSubpageShell
+        contentOwnsHero={Platform.OS !== 'web'}
         title="Klient:innen"
         subtitle={`${contextLabel}${isReadOnly ? ' · Lesemodus' : ''}`}
         moduleLabel={moduleLabel}

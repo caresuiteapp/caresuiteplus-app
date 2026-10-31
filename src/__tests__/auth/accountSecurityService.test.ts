@@ -1,0 +1,16 @@
+import {beforeEach,expect,it,vi} from 'vitest';
+const mocks=vi.hoisted(()=>({session:vi.fn(),mainSet:vi.fn(),verify:vi.fn(),challenge:vi.fn(),create:vi.fn(),init:vi.fn(),rpc:vi.fn(),enroll:vi.fn()}));
+vi.mock('react-native',()=>({Platform:{OS:'android'}}));
+vi.mock('@/lib/supabase/config',()=>({getSupabaseConfig:()=>({url:'https://example.invalid',anonKey:'public-key'})}));
+vi.mock('@/lib/supabase/client',()=>({getSupabaseClient:()=>({rpc:mocks.rpc,auth:{getSession:mocks.session,setSession:mocks.mainSet,mfa:{verify:mocks.verify}}})}));
+vi.mock('@supabase/supabase-js',()=>({createClient:mocks.create}));
+vi.mock('@/lib/auth/portalSessionStore',()=>({getActivePortalSession:()=>null}));
+import {enrollMfaFactor,verifyMfaFactor,savePersonalNotificationPreference,revokeAccountDevice} from '@/lib/auth/accountSecurityService';
+beforeEach(()=>{vi.resetAllMocks();mocks.session.mockResolvedValue({data:{session:{user:{id:'owner'},access_token:'token',refresh_token:'refresh'}},error:null});mocks.init.mockResolvedValue({error:null});mocks.create.mockReturnValue({auth:{setSession:mocks.init,mfa:{challenge:mocks.challenge,enroll:mocks.enroll}}});mocks.challenge.mockResolvedValue({data:{id:'challenge'},error:null});mocks.verify.mockResolvedValue({error:null})});
+it('verifies with the current authenticated client without importing tokens from an isolated client',async()=>{await verifyMfaFactor('owner','factor','123456');expect(mocks.verify).toHaveBeenCalledWith({factorId:'factor',challengeId:'challenge',code:'123456'});expect(mocks.mainSet).not.toHaveBeenCalled();expect(mocks.create.mock.calls[0][2].auth.persistSession).toBe(false)});
+it('rejects a late challenge after the signed-in account changes',async()=>{mocks.session.mockResolvedValueOnce({data:{session:{user:{id:'owner'},access_token:'token',refresh_token:'refresh'}}}).mockResolvedValueOnce({data:{session:{user:{id:'other'}}}});await expect(verifyMfaFactor('owner','factor','123456')).rejects.toThrow('Konto hat sich geändert');expect(mocks.verify).not.toHaveBeenCalled();expect(mocks.mainSet).not.toHaveBeenCalled()});
+it('does not accept an unconfirmed authenticator code',async()=>{mocks.verify.mockResolvedValue({error:{message:'invalid'}});await expect(verifyMfaFactor('owner','factor','123456')).rejects.toThrow('nicht bestätigt')});
+it('requires exact readback before accepting a personal preference',async()=>{mocks.rpc.mockResolvedValue({data:{message:true},error:null});await expect(savePersonalNotificationPreference('message',false)).rejects.toThrow('nicht bestätigt')});
+it('does not acknowledge an unconfirmed device revocation',async()=>{mocks.rpc.mockResolvedValue({data:false,error:null});await expect(revokeAccountDevice('30000000-0000-4000-8000-000000000001')).rejects.toThrow('nicht bestätigt')});
+
+it('normalizes the installed SDK data URI to actual SVG XML for both renderers',async()=>{const svg='<svg width="100%" xmlns="http://www.w3.org/2000/svg"><path d="M0 0"/></svg>';mocks.enroll.mockResolvedValue({data:{id:'factor',totp:{qr_code:'data:image/svg+xml;utf-8,'+svg,secret:'TOTP-SECRET',uri:'otpauth://totp/test'}},error:null});const result=await enrollMfaFactor('owner');expect(result.totp.qr_code).toBe(svg);expect(result.totp.secret).toBe('TOTP-SECRET')});

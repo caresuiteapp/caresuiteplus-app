@@ -1,3 +1,4 @@
+import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
 import type { ConnectCategory } from '@/types/modules/connect';
@@ -14,7 +15,7 @@ export function ConnectCategoryCard({ category, visibleCount, onPress }: Connect
   return (
     <PremiumCard accentColor={colors.cyan} onPress={onPress}>
       <View style={styles.row}>
-        <Text style={styles.icon}>{category.icon}</Text>
+        <SemanticArtwork style={styles.icon} webSize={32} webColor={colors.cyan}>{category.icon}</SemanticArtwork>
         <View style={styles.content}>
           <Text style={styles.title}>{category.label}</Text>
           <Text style={styles.description}>{category.description}</Text>

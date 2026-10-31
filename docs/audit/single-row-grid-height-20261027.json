@@ -1,0 +1,24 @@
+{
+  "sourceBefore": "7d0d2decca79904ebca985c0213b8518f3f166e6",
+  "finding": "The native wide note sidebar footer is below the visible panel although the Web footer remains inside the bottom edge. The bridge maps every grid to wrapped flex lines; a single wrapped line can retain its intrinsic content height instead of stretching into the bounded grid panel.",
+  "evidence": {
+    "run": 40421292840,
+    "artifact": 12698032800,
+    "archiveSha256": "253acebf3114af20830d7d66de10f35d02000d1dfd5bb3f7d1ff1987ef6e4f5a",
+    "native": {
+      "image": "notes-1280x800.png",
+      "sha256": "2036ff9c9aba3a9dc211103e6b01432247da01499be2b4775b5a92ca53f45cf0"
+    },
+    "web": {
+      "image": "web-notes-1280x800.png",
+      "sha256": "f0d5929faf8de665b21007637ef370c457512e76121649d2f1c6271f504e1c71"
+    }
+  },
+  "correction": "Use a single nonwrapping flex line only when the fully placed grid slots fit in one row. Multiple rows, explicit row holes and horizontal spans retain the wrapped representation.",
+  "checks": {
+    "newExecutingCases": 2,
+    "browser": "The actual Web and native wide notes sidebar footer must remain inside the visible workspace; captured bounds are recorded in verification.json."
+  },
+  "validation": "Pending executing tests, browser bounds and fresh original images.",
+  "releaseAcceptance": false
+}

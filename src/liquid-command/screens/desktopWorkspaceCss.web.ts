@@ -1,10 +1,11 @@
+import { desktopGridMetrics } from '../navigation/desktopLayoutModel';
+
 /** Keep sidebar motion, track widths and artwork height in the same browser layout pass. */
-export function desktopWorkspaceCss(fontScale: number, mobile = false) {
-  const scale = Math.max(1, Number.isFinite(fontScale) ? fontScale : 1);
-  const gap = mobile ? 10 : 14;
-  const minimum = (mobile ? 135 : 240) * scale;
+export function desktopWorkspaceCss(fontScale: number, mobile = false, hasSuggestions = false) {
+  // Recommendations include copy and two actions; keep them readable on tablets
+  // and phones too, instead of inheriting the compact artwork-only card width.
+  const { scale, gap, minimum, labelHeight } = desktopGridMetrics(fontScale, mobile, hasSuggestions);
   const threshold = (columns: number) => columns * minimum + (columns - 1) * gap;
-  const labelHeight = Math.ceil((mobile ? 32 : 48) * scale + (mobile ? 12 : 16));
   return `
     input#desktop-navigation-search {
       background: transparent !important;
@@ -25,6 +26,7 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
       transition: opacity 160ms ease, transform 240ms cubic-bezier(.2,.8,.2,1);
     }
     [data-cs-desktop-widget-grid] {
+      --cs-desktop-card-height: ${labelHeight + 152}px;
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(min(100%, ${minimum}px), 1fr));
       gap: ${gap}px;
@@ -44,6 +46,7 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
         --cs-desktop-artwork-height: clamp(72px,
           calc((100cqh - 24px - (var(--cs-desktop-rows) - 1) * ${gap}px) / var(--cs-desktop-rows) - ${labelHeight + 12}px),
           min(180px, calc((100cqw - (var(--cs-desktop-columns) - 1) * ${gap}px) / var(--cs-desktop-columns) * .55)));
+        --cs-desktop-card-height: calc(${labelHeight + 12}px + var(--cs-desktop-artwork-height));
         grid-template-columns: repeat(var(--cs-desktop-columns), minmax(0, 1fr));
       }
       [data-cs-desktop-widget-artwork] { height: var(--cs-desktop-artwork-height) !important; }
@@ -62,6 +65,7 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
       }
     }
     ${mobile ? `
+    [data-cs-desktop-widget-grid] { --cs-desktop-card-height: ${labelHeight + 98}px; }
     [data-cs-desktop-widget-label] { padding: 6px 10px; gap: 6px; }
     [data-cs-desktop-widget-label] [role="heading"] {
       font-size: ${16 * fontScale}px !important;

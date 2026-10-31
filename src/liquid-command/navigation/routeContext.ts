@@ -9,7 +9,8 @@ type RouteAlias = {
 
 const routeAliases: Partial<Record<LiquidModuleKey, readonly RouteAlias[]>> = {
   office: [
-    ...(Platform.OS === 'web' ? [{ area: 'company', pattern: /^\/(?:office|business\/office\/dashboard)$/ }] : []),
+    { area: 'inventory', pattern: /^\/unternehmen\/inventar(?:\/|$)/ },
+    { area: 'company', pattern: /^\/(?:unternehmen(?:\/.*)?|office|business\/office\/dashboard)$/ },
     { area: 'communication', pattern: /^\/(?:business\/)?(?:office\/)?messages(?:\/|$)/ },
     { area: 'timekeeping', pattern: /^\/business\/office\/time-tracking(?:\/|$)/ },
     { area: 'payroll', pattern: /^\/business\/office\/payroll(?:\/|$)/ },

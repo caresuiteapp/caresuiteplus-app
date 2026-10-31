@@ -12,6 +12,8 @@ const h = vi.hoisted(() => ({
   businessWelcome: vi.fn(), portalWelcome: vi.fn(), back: vi.fn(),
   portalSession: null as any,
 }));
+vi.mock('@/lib/supabase/tenantService', () => ({ fetchTenantProfile: vi.fn() }));
+vi.mock('@/lib/auth/accountSecurityService', () => ({ readPendingMfaBootstrap: vi.fn() }));
 vi.mock('react', async original => ({
   ...await original<object>(),
   useState: (initial: any) => {
@@ -37,7 +39,7 @@ vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ t
 vi.mock('@react-native-async-storage/async-storage', () => ({ default: {
   getItem: (...args: any[]) => h.get(...args), setItem: (...args: any[]) => h.set(...args), removeItem: (...args: any[]) => h.remove(...args),
 } }));
-vi.mock('expo-router', () => ({ Link: 'Link', useRouter: () => ({ replace: h.replace }) }));
+vi.mock('expo-router', () => ({ Link: 'Link', useIsFocused: () => true, useRouter: () => ({ replace: h.replace }) }));
 vi.mock('expo-linking', () => ({ useURL: () => null }));
 vi.mock('@/lib/auth', () => ({
   useAuth: () => ({ signInWithSupabaseSession: h.signIn, signInPortalSession: h.portalSignIn, updatePortalSession: h.updateSession, portalSession: h.portalSession }),
@@ -194,7 +196,7 @@ describe('native company registration UI flow', () => {
 
 describe('native login destination and welcome markers', () => {
   it('opens the native business dashboard only after the secure session is accepted', async () => {
-    h.businessLogin.mockResolvedValue({ ok: true, data: { supabaseSession: { access_token: 'test-token' } } });
+    h.businessLogin.mockResolvedValue({ ok: true, data: { supabaseSession: { access_token: 'test-token', user: { id: 'native-business-auth' } } } });
     field('E-Mail', 'anna@example.test', BusinessAccessScreen); field('Passwort', '  keep-spaces  ', BusinessAccessScreen);
     await press('Anmelden', BusinessAccessScreen); await settle();
     expect(h.businessLogin).toHaveBeenCalledWith('anna@example.test', '  keep-spaces  ');

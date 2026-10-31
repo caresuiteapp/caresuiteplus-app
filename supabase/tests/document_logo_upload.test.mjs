@@ -18,8 +18,6 @@ try {
   await owner();
   await db.exec(`
     ALTER TABLE role_permissions ADD COLUMN can_create boolean DEFAULT false;
-    ALTER TABLE role_permissions ADD COLUMN can_update boolean DEFAULT false;
-    ALTER TABLE role_permissions ADD COLUMN can_delete boolean DEFAULT false;
     CREATE SCHEMA storage;
     CREATE TABLE storage.buckets(id text PRIMARY KEY,name text NOT NULL,public boolean NOT NULL DEFAULT false,file_size_limit bigint,allowed_mime_types text[]);
     CREATE TABLE storage.objects(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),bucket_id text NOT NULL,name text NOT NULL,metadata jsonb NOT NULL DEFAULT '{}',UNIQUE(bucket_id,name));

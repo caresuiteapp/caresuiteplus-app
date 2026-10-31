@@ -35,6 +35,7 @@ vi.mock('react-native', async () => {
     }),
     Modal: ({ children, visible }: any) => visible ? <div>{children}</div> : null,
     Platform: { OS: 'android' },
+    Keyboard: { isVisible: () => false, addListener: () => ({ remove() {} }) },
     StyleSheet: { create: (styles: unknown) => styles },
     AppState: {
       get currentState() { return h.appState; },

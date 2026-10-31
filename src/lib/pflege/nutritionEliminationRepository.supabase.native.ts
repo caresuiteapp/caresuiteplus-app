@@ -1,0 +1,275 @@
+// Generated native presentation from src/lib/pflege/nutritionEliminationRepository.supabase.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
+import { getSupabaseClient } from "../supabase/client.ts";
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
+import { cloneClientNativeOriginal, sameClientNativeOriginal } from "../clients/clientRecordNativeOriginal.native.ts";
+import { requireCareWorkspaceAuthorityWeb } from "./careWorkspaceAuthority.native.ts";
+import { nutritionEliminationOriginalIssue, nutritionEliminationPacketIssue, nutritionEliminationSourcesIssue, nutritionReviewOriginalIssue, nutritionReviewPacketIssue, nutritionEliminationReceiptIssue, nutritionReviewReceiptIssue, nutritionWorkspaceHistoryIssue, nutritionInstantMicros, type NutritionReviewOriginal, type NutritionReviewPacket, type NutritionEliminationKind, type NutritionEliminationOriginal, type NutritionEliminationPacket, type NutritionEliminationSources } from "./nutritionEliminationPacket.native.ts";
+type Row = Record<string, unknown>;
+type Context = {
+    tenantId: string;
+    clientId: string;
+    actorId: string;
+    isCurrent(): boolean;
+};
+type Result<T> = {
+    ok: true;
+    data: T;
+} | {
+    ok: false;
+    error: string;
+    uncertain?: boolean;
+    rejected?: boolean;
+};
+export type NutritionEliminationPrerequisites = Readonly<{
+    plans: readonly Readonly<{
+        planVersionId: string;
+        measureId: string;
+        visitId: string;
+        assessmentId: string;
+        planSnapshotSha256: string;
+        kind: NutritionEliminationKind;
+        title: string;
+        plannedAt: string;
+        sources: NutritionEliminationSources;
+    }>[];
+    stateFingerprint: string;
+    blockedReasons: readonly Readonly<{
+        bindingId: string;
+        reason: 'retained_native_capture_missing' | 'native_foundation_changed';
+    }>[];
+}>;
+const unavailable = 'Der vollständige Ernährungs- und Ausscheidungsbestand konnte nicht bestätigt werden.';
+const object = (v: unknown): v is Row => !!v && typeof v === 'object' && !Array.isArray(v);
+const exact = (v: unknown, keys: readonly string[]) => object(v) && Object.keys(v).length === keys.length && keys.every(k => Object.hasOwn(v, k));
+const uuid = (v: unknown): v is string => typeof v === 'string' && v.length === 36 && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+const sha = (v: unknown): v is string => typeof v === 'string' && v.length === 71 && /^sha256:[0-9a-f]{64}$/.test(v);
+const kinds = new Set<NutritionEliminationKind>(['nutrition_assessment', 'meal_support', 'drink_protocol', 'swallowing_support', 'enteral_nutrition', 'fluid_balance', 'continence_support', 'stool_protocol', 'catheter_care', 'stoma_care', 'tube_observation', 'weight_followup']);
+const dbClient = () => getSupabaseClient() as unknown as {
+    auth: {
+        getSession(): Promise<{
+            data: {
+                session: null | {
+                    user: {
+                        id: string;
+                    };
+                    access_token: string;
+                    expires_at?: number;
+                };
+            };
+            error: unknown;
+        }>;
+        getUser(token?: string): Promise<{
+            data: {
+                user: null | {
+                    id: string;
+                    is_anonymous?: boolean;
+                };
+            };
+            error: unknown;
+        }>;
+    };
+    rpc(name: string, args: Row): Promise<{
+        data: unknown;
+        error: unknown;
+        status?: number;
+    }>;
+} | null;
+function contextField(c: unknown, key: string): unknown { if (!object(c) || ![Object.prototype, null].includes(Object.getPrototypeOf(c)))
+    throw Error(unavailable); const d = Object.getOwnPropertyDescriptor(c, key); if (!d || !('value' in d) || !d.enumerable)
+    throw Error(unavailable); return d.value; }
+async function authority(c: Context) {
+    const owner = { tenantId: contextField(c, 'tenantId') as string, clientId: contextField(c, 'clientId') as string, actorId: contextField(c, 'actorId') as string, current: contextField(c, 'isCurrent') as () => boolean }, db = dbClient();
+    if (!db || ![owner.tenantId, owner.clientId, owner.actorId].every(uuid) || typeof owner.current !== 'function')
+        throw Error(unavailable);
+    const auth = db.auth, getSession = auth.getSession, getUser = auth.getUser, rpc = db.rpc;
+    let sessionKey: string | null = null;
+    const current = () => { if (contextField(c, 'tenantId') !== owner.tenantId || contextField(c, 'clientId') !== owner.clientId || contextField(c, 'actorId') !== owner.actorId || contextField(c, 'isCurrent') !== owner.current || owner.current() !== true || dbClient() !== db || db.auth !== auth || auth.getSession !== getSession || auth.getUser !== getUser || db.rpc !== rpc || owner.current() !== true)
+        throw Error(unavailable); };
+    const scope = { tenantId: owner.tenantId, clientId: owner.clientId, actorId: owner.actorId, isCurrent: () => { try {
+            current();
+            return true;
+        }
+        catch {
+            return false;
+        } } };
+    const capture = async <T>(request: PromiseLike<T>, operation = 'Eigenen Ernährungskontext bestätigen'): Promise<T> => { const response = cloneClientNativeOriginal(await withServiceQueryTimeout(Promise.resolve(request), operation, 20000)); current(); return response; };
+    const facade = { auth: { getSession: async () => { current(); const response = await capture(Reflect.apply(getSession, auth, []) as ReturnType<typeof getSession>), s = response.data.session; if (response.error !== null || !s || !uuid(s.user.id) || typeof s.access_token !== 'string' || !s.access_token || typeof s.expires_at !== 'number' || !Number.isFinite(s.expires_at) || s.expires_at * 1000 <= Date.now())
+                throw Error(unavailable); const key = JSON.stringify([s.user.id, s.access_token, s.expires_at]); if (sessionKey !== null && sessionKey !== key)
+                throw Error(unavailable); sessionKey = key; return response; }, getUser: async (token?: string) => { current(); const response = await capture(Reflect.apply(getUser, auth, [token]) as ReturnType<typeof getUser>); if (response.error !== null || response.data.user?.is_anonymous === true)
+                throw Error(unavailable); return response; } }, rpc: async (name: string, args: Row) => { current(); if (!['resolve_current_profile_id', 'current_tenant_id'].includes(name))
+            throw Error(unavailable); const r = await capture(Reflect.apply(rpc, db, [name, args]) as ReturnType<typeof rpc>); if (r.error !== null)
+            throw Error(unavailable); return r; } };
+    const check = async () => { current(); await requireCareWorkspaceAuthorityWeb(scope, () => { current(); return facade; }, (request, operation) => withServiceQueryTimeout(Promise.resolve(request), operation, 20000), unavailable); current(); };
+    const request = async (name: string, args: Row, operation: string) => { current(); const response = await capture(Reflect.apply(rpc, db, [name, args]) as ReturnType<typeof rpc>, operation); await check(); return response; };
+    await check();
+    return { scope, current, check, request };
+}
+function decode(v: unknown, c: Pick<Context, 'tenantId' | 'clientId'>): NutritionEliminationOriginal { const issue = nutritionEliminationOriginalIssue(v, c); if (issue)
+    throw Error(issue); return cloneClientNativeOriginal(v as NutritionEliminationOriginal); }
+function decodeReview(v: unknown, c: Pick<Context, 'tenantId' | 'clientId'>): NutritionReviewOriginal { const issue = nutritionReviewOriginalIssue(v, c); if (issue)
+    throw Error(issue); return cloneClientNativeOriginal(v as NutritionReviewOriginal); }
+const scopeArgs = (c: Pick<Context, 'tenantId' | 'clientId' | 'actorId'>) => ({ p_tenant_id: c.tenantId, p_client_id: c.clientId, p_actor_profile_id: c.actorId });
+type HistoryOriginal = NutritionEliminationOriginal | NutritionReviewOriginal;
+async function readHistorySnapshot<T extends HistoryOriginal>(c: Context, review: boolean, decodeRow: (value: unknown, scope: Pick<Context, 'tenantId' | 'clientId'>) => T): Promise<Result<{
+    items: T[];
+    stateFingerprint: string;
+}>> {
+    try {
+        const guard = await authority(c), rows: T[] = [], roots = new Set<string>(), events = new Set<string>(), requests = new Set<string>();
+        let at: string | null = null, id: string | null = null, state: string | null = null, head: Row | null = null;
+        const fetch = async (cursorAt: string | null, cursorId: string | null) => { const r = await guard.request(review ? 'web_read_nutrition_review_page' : 'web_read_nutrition_elimination_page', { ...scopeArgs(guard.scope), p_cursor_recorded_at: cursorAt, p_cursor_id: cursorId, p_page_size: 100 }, 'Ernährungsoriginale vollständig laden'); if (r.error !== null || !exact(r.data, ['rows', 'nextCursorRecordedAt', 'nextCursorId', 'stateFingerprint']) || !object(r.data) || !Array.isArray(r.data.rows) || r.data.rows.length > 100 || !sha(r.data.stateFingerprint))
+            throw Error(unavailable); if (state !== null && r.data.stateFingerprint !== state)
+            throw Error(unavailable); state = r.data.stateFingerprint; return r.data; };
+        for (let page = 0; page < 100; page++) {
+            const data = await fetch(at, id);
+            if (head === null)
+                head = data;
+            if ((data.rows as unknown[]).length === 0) {
+                if (data.nextCursorRecordedAt !== null || data.nextCursorId !== null)
+                    throw Error(unavailable);
+                const final = await fetch(null, null);
+                if (!sameClientNativeOriginal(head, final) || !sha(final.stateFingerprint))
+                    throw Error(unavailable);
+                await guard.check();
+                return { ok: true, data: { items: rows, stateFingerprint: final.stateFingerprint } };
+            }
+            let priorAt: string | null = at, priorId: string | null = id;
+            for (const raw of data.rows as unknown[]) {
+                const row = decodeRow(raw, guard.scope), created = row.history[0].recordedAt, time = nutritionInstantMicros(created), root = row.rootId.toLowerCase();
+                if (time === null || roots.has(root) || priorAt !== null && (time > nutritionInstantMicros(priorAt)! || time === nutritionInstantMicros(priorAt) && root >= priorId!.toLowerCase()))
+                    throw Error(unavailable);
+                roots.add(root);
+                for (const event of row.history) {
+                    const eventId = event.id.toLowerCase();
+                    if (events.has(eventId))
+                        throw Error(unavailable);
+                    events.add(eventId);
+                    if (review) {
+                        const requestId = (event as NutritionReviewOriginal['history'][number]).requestId.toLowerCase();
+                        if (requests.has(requestId))
+                            throw Error(unavailable);
+                        requests.add(requestId);
+                    }
+                }
+                rows.push(row);
+                priorAt = created;
+                priorId = row.rootId;
+            }
+            if (!uuid(data.nextCursorId) || nutritionInstantMicros(data.nextCursorRecordedAt) === null || data.nextCursorId !== priorId || nutritionInstantMicros(data.nextCursorRecordedAt) !== nutritionInstantMicros(priorAt))
+                throw Error(unavailable);
+            at = data.nextCursorRecordedAt as string;
+            id = data.nextCursorId;
+        }
+        throw Error('Der vollständige Ernährungsbestand überschreitet die sicher lesbare Grenze.');
+    }
+    catch (cause) {
+        return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+    }
+}
+export async function readNutritionEliminationPage(c: Context): Promise<Result<NutritionEliminationOriginal[]>> { const r = await readHistorySnapshot(c, false, decode); return r.ok ? { ok: true, data: r.data.items } : r; }
+export async function readNutritionReviewPage(c: Context): Promise<Result<NutritionReviewOriginal[]>> { const r = await readHistorySnapshot(c, true, decodeReview); return r.ok ? { ok: true, data: r.data.items } : r; }
+function prerequisites(value: unknown): NutritionEliminationPrerequisites {
+    if (!exact(value, ['plans', 'stateFingerprint', 'blockedReasons']) || !object(value) || !Array.isArray(value.plans) || value.plans.length > 500 || !sha(value.stateFingerprint) || !Array.isArray(value.blockedReasons) || value.blockedReasons.length > 500)
+        throw Error(unavailable);
+    const seen = new Set<string>();
+    for (const v of value.plans) {
+        if (!exact(v, ['planVersionId', 'measureId', 'visitId', 'assessmentId', 'planSnapshotSha256', 'kind', 'title', 'plannedAt', 'sources']) || !object(v) || ![v.planVersionId, v.measureId, v.visitId, v.assessmentId].every(uuid) || !sha(v.planSnapshotSha256) || !kinds.has(v.kind as NutritionEliminationKind) || typeof v.title !== 'string' || v.title.trim().length < 3 || v.title.length > 300 || nutritionInstantMicros(v.plannedAt) === null || nutritionEliminationSourcesIssue(v.sources) || !object(v.sources) || !object(v.sources.assessment) || v.sources.assessment.id !== v.assessmentId)
+            throw Error(unavailable);
+        const key = `${v.planVersionId}:${v.measureId}:${v.visitId}:${v.kind}`.toLowerCase();
+        if (seen.has(key))
+            throw Error(unavailable);
+        seen.add(key);
+    }
+    const blocked = new Set<string>();
+    for (const item of value.blockedReasons) {
+        if (!exact(item, ['bindingId', 'reason']) || !object(item) || !uuid(item.bindingId) || !['retained_native_capture_missing', 'native_foundation_changed'].includes(String(item.reason)) || blocked.has(item.bindingId.toLowerCase()))
+            throw Error(unavailable);
+        blocked.add(item.bindingId.toLowerCase());
+    }
+    return cloneClientNativeOriginal(value as unknown as NutritionEliminationPrerequisites);
+}
+export async function readNutritionEliminationPrerequisites(c: Context): Promise<Result<NutritionEliminationPrerequisites>> { try {
+    const guard = await authority(c), read = async () => { const r = await guard.request('web_read_nutrition_elimination_prerequisites', scopeArgs(guard.scope), 'Native Ernährungsbezüge vollständig laden'); if (r.error !== null)
+        throw Error(unavailable); return prerequisites(r.data); };
+    const first = await read(), last = await read();
+    if (!sameClientNativeOriginal(first, last))
+        throw Error(unavailable);
+    await guard.check();
+    return { ok: true, data: last };
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+} }
+export type NutritionEliminationWorkspace = Readonly<{
+    prerequisites: NutritionEliminationPrerequisites;
+    careOriginals: readonly NutritionEliminationOriginal[];
+    reviewOriginals: readonly NutritionReviewOriginal[];
+    stateFingerprint: string;
+}>;
+export async function readNutritionEliminationWorkspace(c: Context): Promise<Result<NutritionEliminationWorkspace>> { try {
+    const guard = await authority(c), first = await readNutritionEliminationPrerequisites(c);
+    if (!first.ok)
+        throw Error(first.error);
+    await guard.check();
+    const care = await readHistorySnapshot(c, false, decode);
+    if (!care.ok)
+        throw Error(care.error);
+    if (care.data.stateFingerprint !== first.data.stateFingerprint)
+        throw Error(unavailable);
+    await guard.check();
+    const review = await readHistorySnapshot(c, true, decodeReview);
+    if (!review.ok)
+        throw Error(review.error);
+    if (review.data.stateFingerprint !== first.data.stateFingerprint)
+        throw Error(unavailable);
+    await guard.check();
+    const last = await readNutritionEliminationPrerequisites(c);
+    if (!last.ok)
+        throw Error(last.error);
+    if (!sameClientNativeOriginal(first.data, last.data))
+        throw Error(unavailable);
+    await guard.check();
+    const issue = nutritionWorkspaceHistoryIssue({ careOriginals: care.data.items, reviewOriginals: review.data.items }, guard.scope);
+    if (issue)
+        throw Error(issue);
+    return { ok: true, data: { prerequisites: last.data, careOriginals: care.data.items, reviewOriginals: review.data.items, stateFingerprint: last.data.stateFingerprint } };
+}
+catch (cause) {
+    return { ok: false, error: cause instanceof Error ? cause.message : unavailable };
+} }
+async function operation(input: NutritionEliminationPacket | NutritionReviewPacket, isCurrent: () => boolean, confirm: boolean, review: boolean): Promise<Result<NutritionEliminationOriginal | NutritionReviewOriginal>> {
+    let p: typeof input;
+    try {
+        p = cloneClientNativeOriginal(input);
+        const issue = review ? nutritionReviewPacketIssue(p) : nutritionEliminationPacketIssue(p);
+        if (issue)
+            return { ok: false, error: issue, rejected: true };
+    }
+    catch {
+        return { ok: false, error: unavailable, rejected: true };
+    }
+    let dispatched = false;
+    try {
+        const guard = await authority({ ...p, isCurrent });
+        await guard.current();
+        dispatched = !confirm;
+        const r = await guard.request(review ? (confirm ? 'web_confirm_nutrition_review' : 'web_commit_nutrition_review') : (confirm ? 'web_confirm_nutrition_elimination_packet' : 'web_commit_nutrition_elimination_packet'), confirm ? { ...scopeArgs(p), p_request_id: p.requestId, p_packet: p } : { p_packet: p }, confirm ? 'Eigene ursprüngliche Quittung bestätigen' : 'Ernährungspaket transaktional sichern');
+        if (r.error !== null) {
+            const code = object(r.error) ? String(r.error.code ?? '') : '';
+            return { ok: false, error: toGermanSupabaseError(r.error as Parameters<typeof toGermanSupabaseError>[0]), ...(!confirm && r.data === null && ['22007', '22008', '22023', '22P02', '23514', '40001', '42501', 'P0G01', 'P0G02', 'P0G03'].includes(code) ? { rejected: true } : dispatched ? { uncertain: true } : {}) };
+        }
+        if ((review ? nutritionReviewReceiptIssue(r.data, p as NutritionReviewPacket) : nutritionEliminationReceiptIssue(r.data, p as NutritionEliminationPacket)) || !object(r.data))
+            return { ok: false, error: unavailable, ...(dispatched ? { uncertain: true } : {}) };
+        await guard.current();
+        return { ok: true, data: review ? decodeReview(r.data.original, p) : decode(r.data.original, p) };
+    }
+    catch (cause) {
+        return { ok: false, error: cause instanceof Error ? cause.message : unavailable, ...(dispatched ? { uncertain: true } : confirm ? {} : { rejected: true }) };
+    }
+}
+export const commitNutritionEliminationPacket = (p: NutritionEliminationPacket, current: () => boolean) => operation(p, current, false, false) as Promise<Result<NutritionEliminationOriginal>>;
+export const confirmNutritionEliminationPacket = (p: NutritionEliminationPacket, current: () => boolean) => operation(p, current, true, false) as Promise<Result<NutritionEliminationOriginal>>;
+export const commitNutritionReview = (p: NutritionReviewPacket, current: () => boolean) => operation(p, current, false, true) as Promise<Result<NutritionReviewOriginal>>;
+export const confirmNutritionReview = (p: NutritionReviewPacket, current: () => boolean) => operation(p, current, true, true) as Promise<Result<NutritionReviewOriginal>>;

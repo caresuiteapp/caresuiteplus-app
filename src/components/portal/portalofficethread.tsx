@@ -51,10 +51,10 @@ type PortalOfficeThreadProps = {
 };
 
 export function PortalOfficeThread(props: PortalOfficeThreadProps) {
-  const { tenantId, actorId, roleKey, clientId, employeeId } = usePortalActor();
+  const { tenantId, actorId, roleKey, clientId, employeeId, familyAccess } = usePortalActor();
   // A conversation owns its composer and any pending send. Changing only the
   // hook argument would retain another thread's unsent text and attachments.
-  const scope = JSON.stringify([tenantId, actorId, roleKey, clientId, employeeId, props.threadId]);
+  const scope = JSON.stringify([tenantId, actorId, roleKey, clientId, employeeId, props.threadId, familyAccess?.permissions]);
   return <PortalOfficeThreadContent key={scope} {...props} />;
 }
 
@@ -84,7 +84,7 @@ function PortalOfficeThreadContent({
   const mounted = useRef(true);
   const [appActive, setAppActive] = useState(AppState.currentState === 'active');
   const screenFocused = useIsFocused();
-  const { detail, loading, error, sending, sendMessage, startNewChat, refresh, markAsRead, actorClientId, actorEmployeeId } =
+  const { detail, loading, error, sending, canSend = true, sendMessage, startNewChat, refresh, markAsRead, actorClientId, actorEmployeeId } =
     usePortalOfficeThreadDetail(threadId);
 
   const markedReadBatchRef = useRef<string | null>(null);
@@ -344,7 +344,7 @@ function PortalOfficeThreadContent({
                 : 'Dieser Chat ist abgeschlossen und schreibgeschützt. Bei erneutem Kontakt schreiben Sie der Verwaltung erneut.'}
             </Text>
             {restartError ? <Text accessibilityRole="alert" style={styles.sendErrorText}>{restartError}</Text> : null}
-            {!isGroup ? (
+            {!isGroup && canSend ? (
               useLightUi ? (
                 <CareLightButton title="Verwaltung anschreiben" loading={restarting} onPress={() => void handleStartNewChat()} />
               ) : (
@@ -365,12 +365,13 @@ function PortalOfficeThreadContent({
               </View>
             ) : null}
             <View style={styles.composerWrap}>
-              <OfficeMessageComposer
+                {!canSend ? <Text style={styles.meta}>Dieser Angehörigenzugang erlaubt das Lesen von Nachrichten. Das Senden ist nicht freigegeben.</Text> : null}
+                <OfficeMessageComposer
                 text={draft}
                 onChangeText={setDraft}
                 onSend={handleSend}
                 sending={sending}
-                disabled={sending}
+                disabled={sending || !canSend}
                 onDarkSurface={onDarkSurface}
                 pendingAttachments={pendingAttachments}
                 onPendingAttachmentsChange={setPendingAttachments}

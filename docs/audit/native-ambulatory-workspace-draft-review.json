@@ -1,0 +1,328 @@
+{
+  "schemaVersion": 1,
+  "auditId": "native-ambulatory-workspace-draft-contract-review",
+  "observedDate": "2026-10-26",
+  "decision": "release_blocked_prepared_drafts_not_ready_to_apply",
+  "scope": {
+    "personnelRoute": "/business/office/personal/workforce",
+    "financingRoute": "/business/office/clients/[id]/contracts",
+    "drafts": [
+      "supabase/patches/ambulatory_personnel_workspace.sql",
+      "supabase/patches/ambulatory_client_financing_workspace.sql"
+    ],
+    "excluded": "No reactivation or application of older multi-patch packages."
+  },
+  "evidence": {
+    "productionMetadata": {
+      "directory": "/workspace/scratch/bbe6d3a3b50b/android-next-qa",
+      "files": [
+        {
+          "name": "portal-full-audit-production-functions.json",
+          "rows": 432
+        },
+        {
+          "name": "portal-full-audit-production-relations.json",
+          "rows": 927
+        },
+        {
+          "name": "portal-full-audit-production-policies.json",
+          "rows": 1324
+        }
+      ],
+      "observedDate": "2026-10-26",
+      "method": "Existing read-only catalog exports; no business rows or RPC execution.",
+      "validation": "All three final files parsed successfully. No minute-accurate query timestamp established.",
+      "supersedes": "Earlier transient truncated policies export and 07:36 timestamp assumption are not the final evidence."
+    },
+    "repositorySources": [
+      "src/lib/office/personnelWorkspaceRepository.web.ts",
+      "src/lib/office/personnelWorkspaceDomain.web.ts",
+      "src/lib/clients/clientFinancingWorkspaceRepository.web.ts",
+      "src/lib/clients/clientFinancingWorkspaceDomain.web.ts",
+      "scripts/checks/personnel-workspace.node.test.mjs",
+      "scripts/checks/client-financing-workspace.node.test.mjs"
+    ],
+    "postgresPrimaryReferences": [
+      "https://www.postgresql.org/docs/current/sql-createfunction.html",
+      "https://www.postgresql.org/docs/16/sql-createfunction.html"
+    ],
+    "constraints": {
+      "remoteDatabaseCalls": false,
+      "businessDataReads": false,
+      "databaseWrites": false,
+      "sqlApplied": false,
+      "testsExecutedForThisReview": false,
+      "installs": false,
+      "builds": false,
+      "migrationEdits": false,
+      "productEdits": false
+    }
+  },
+  "contracts": [
+    {
+      "id": "personnel-workspace",
+      "source": "supabase/patches/ambulatory_personnel_workspace.sql",
+      "activeRpcContract": [
+        {
+          "name": "web_personnel_employees",
+          "args": [
+            "p_tenant_id uuid",
+            "p_actor_id uuid"
+          ],
+          "catalogPresent": false,
+          "repository": "employees(authority)"
+        },
+        {
+          "name": "web_personnel_context",
+          "args": [
+            "p_tenant_id uuid",
+            "p_actor_id uuid",
+            "p_employee_id uuid"
+          ],
+          "catalogPresent": false,
+          "repository": "context(authority,employeeId)"
+        },
+        {
+          "name": "web_commit_personnel_event",
+          "args": [
+            "p_command jsonb"
+          ],
+          "catalogPresent": false,
+          "repository": "commit(authority,command)"
+        },
+        {
+          "name": "web_confirm_personnel_event",
+          "args": [
+            "p_tenant_id uuid",
+            "p_actor_id uuid",
+            "p_employee_id uuid",
+            "p_request_id uuid",
+            "p_command jsonb"
+          ],
+          "catalogPresent": false,
+          "repository": "confirm(authority,command)"
+        }
+      ],
+      "prerequisites": {
+        "missingRelations": [
+          "public.user_roles",
+          "public.employee_training_records",
+          "public.employee_assignment_eligibility",
+          "public.employee_time_entries",
+          "public.employee_portal_access",
+          "public.employee_hr_documents"
+        ],
+        "presentReferencedRelations": [
+          "public.profiles",
+          "public.roles",
+          "public.employees",
+          "public.employee_documents",
+          "public.employee_qualifications",
+          "public.employee_absences",
+          "public.employee_access_revocations"
+        ],
+        "consequence": "SQL-language sources() references missing relations. Under normal check_function_bodies behavior CREATE FUNCTION fails; the draft cannot simply add four RPCs to this catalog."
+      },
+      "actor": {
+        "observed": "auth.uid must equal p_actor; profile id equals p_actor; profile tenant equals requested tenant; user_roles role allowlist business_admin/business_manager/billing/dispatch; public.has_permission chooses edit for write versus view_sensitive for read.",
+        "limitations": [
+          "Depends on absent user_roles.",
+          "Assumes profiles.id equals auth user ID; no production identity-row reads establish that equality.",
+          "No explicit profile status/is_active or current auth-session expiry check inside this actor helper; has_permission behavior is a separate dependency.",
+          "Role allowlist and canonical profile identity require reconciliation with the actual current permission contract."
+        ]
+      },
+      "rlsAndGrants": {
+        "observed": "Private roots/events enable RLS, have no client table grants, and append-only triggers; public wrappers are SECURITY INVOKER. Private schema USAGE is revoked from authenticated, and no subsequent USAGE/private entrypoint EXECUTE grants appear.",
+        "effect": "The INVOKER wrappers cannot call the private entrypoints as authenticated even after relation prerequisites are solved.",
+        "important": "Adding schema USAGE alone is not an adequate correction: newly created helper functions also require explicit least-privilege EXECUTE ACL review."
+      },
+      "idempotencyAndReceipts": {
+        "observed": "Tenant/employee advisory lock and locked root serialize head update; request_id unique per tenant; exact command comparison and confirm read endpoint exist.",
+        "defect": "commit_event compares root.head_id against expected before it reads an existing request_id. An identical post-success commit replay uses the old expected head and raises 40001 before its receipt can be returned.",
+        "readback": "Repository validates exact request/command/event/previous head; uncertain workflow uses a separate confirm-only path. This recovery path does not prove idempotent commit replay.",
+        "unverified": [
+          "No two-session CAS/rollback/deadlock execution for this draft.",
+          "No test executed against this draft's actual SQL or public wrappers."
+        ]
+      },
+      "validation": {
+        "observed": "SQL checks some scope/version/kind fields and shallow snapshot originals plus offboard access count.",
+        "blocker": "It does not enforce the TypeScript payload schema, required field types/date/enum rules, active-person snapshots or full domain transitions. Client validation cannot secure an authenticated raw RPC call.",
+        "additionalSourceGap": "commit_event does not itself require employee_original(t,e) to exist before creating the root/event; read_context has an employee check, but it is not a substitute for a mutation-side check.",
+        "readbackImpact": "Strict history/context decoders can reject a server-persisted malformed command, making a ledger unusable through the intended receiver."
+      },
+      "dataMutationBoundary": "Prepared operations append evidence roots/events; they are not proof that original employee, payroll, access-provider or HR records changed."
+    },
+    {
+      "id": "client-financing-workspace",
+      "source": "supabase/patches/ambulatory_client_financing_workspace.sql",
+      "activeRpcContract": [
+        {
+          "name": "web_client_financing_context",
+          "args": [
+            "p_tenant_id uuid",
+            "p_client_id uuid",
+            "p_actor_id uuid"
+          ],
+          "catalogPresent": false,
+          "repository": "context(authority)"
+        },
+        {
+          "name": "web_commit_client_financing_event",
+          "args": [
+            "p_command jsonb"
+          ],
+          "catalogPresent": false,
+          "repository": "commit(authority,command)"
+        },
+        {
+          "name": "web_confirm_client_financing_event",
+          "args": [
+            "p_tenant_id uuid",
+            "p_client_id uuid",
+            "p_actor_id uuid",
+            "p_request_id uuid",
+            "p_command jsonb"
+          ],
+          "catalogPresent": false,
+          "repository": "confirm(authority,command)"
+        }
+      ],
+      "prerequisites": {
+        "missingRelations": [
+          "public.client_service_records"
+        ],
+        "presentRelevantRelations": [
+          "public.clients",
+          "public.profiles",
+          "public.roles",
+          "public.role_permissions",
+          "public.role_permission_sets",
+          "public.client_contracts",
+          "public.client_documents",
+          "public.client_financing_paths",
+          "public.client_financing_approvals",
+          "public.client_tariff_positions",
+          "public.client_budget_entitlement_periods",
+          "public.client_cost_estimates",
+          "public.client_service_combination_rules",
+          "public.pfleger_service_proofs",
+          "public.service_records"
+        ],
+        "consequence": "sources() directly references client_service_records, absent from the final relation catalog. Existing service_records is not proof of a compatible substitution; it needs its own contract review.",
+        "existingGrantBoundary": "Several present financing source tables have RLS enabled, zero policies and no authenticated CRUD in the final catalog. New SECURITY DEFINER source reads would therefore introduce a controlled read API; existing table RLS alone does not establish its authorization."
+      },
+      "actor": {
+        "observed": "Checks auth UID, canonical profile ID and current tenant with null-safe comparisons; JWT exp and auth.sessions/session_id; active bound profile; live role/permission-set checks and exact permissions. Write locks permission/source tables.",
+        "limitations": [
+          "Assumes auth.uid equals actor/profile ID and resolve_current_profile_id equals the same ID; support for distinct profile/auth IDs is not established by metadata.",
+          "auth.sessions structure, function-owner privileges, default function ACLs and configured exposed schemas are not covered by the public name-only catalogs."
+        ]
+      },
+      "rlsAndGrants": {
+        "observed": "Private roots/events enable RLS and table grants are revoked; schema USAGE plus read_context/commit_event/confirm_event EXECUTE are granted to authenticated. Other newly created helper functions are not explicitly revoked from PUBLIC.",
+        "blocker": "Under normal PostgreSQL defaults, helpers such as SECURITY DEFINER sources(t,c) and history(t,c) retain PUBLIC EXECUTE. These helpers take caller-supplied tenant/client IDs and do not call actor(). Schema USAGE makes the SQL privilege boundary wider than the three intended entrypoints.",
+        "limits": [
+          "The patch has not been applied.",
+          "No claim of a directly reachable REST exploit: exposure of the private schema and actual default ACLs were not queried.",
+          "A private schema/SECURITY DEFINER label does not replace explicit per-function privilege control."
+        ]
+      },
+      "idempotencyAndReceipts": {
+        "observed": "Locks current client and source/role tables, locks root, then looks up prior request before fresh source/CAS validation; exact command comparison returns a prior receipt. Confirm also checks current actor/event owner. Source walk, history-chain validation and correction-target check exist.",
+        "positive": "Ordering supports identical known-request replay after the head has advanced, unlike the personnel draft.",
+        "unverified": [
+          "No actual SQL execution, SDK/PostgREST wrapper test, role-switching grants test or two-session CAS/deadlock/rollback proof for this draft."
+        ]
+      },
+      "validation": {
+        "observed": "SQL enforces kind-specific payload key sets, nonempty values when a value happens to be a string, and exact source snapshots only for objects carrying kind/id/snapshot.",
+        "blocker": "Required source values may be null and required numeric/date/enum fields may have inappropriate types. walk_sources(null/number) does nothing. The SQL does not enforce its TypeScript domain contract.",
+        "illustrativeStaticCounterexample": {
+          "kind": "calculation",
+          "payload": {
+            "path": null,
+            "tariff": null,
+            "quantity": -1,
+            "baseAmount": 0,
+            "surcharge": 0,
+            "totalAmount": -1,
+            "calculationRule": "raw"
+          }
+        },
+        "counterexampleLimits": "A full command still needs valid current actor/tenant/client IDs, request/event IDs, timestamp/note and expected head. This is a source control-flow counterexample, not an executed write.",
+        "readbackImpact": "The intended TypeScript validator rejects these values. A malformed persisted event can then make strict history/context loading fail."
+      },
+      "dataMutationBoundary": "Prepared operations append evidence ledger records; they do not change native financing, billing, service or proof originals."
+    }
+  ],
+  "findings": [
+    {
+      "id": "AMBU-MISSING-PRODUCTION-PREREQUISITES",
+      "releaseBlocker": true,
+      "status": "source_and_final_catalog_confirmed",
+      "summary": "Seven public RPCs and seven draft-required relation names across the two packages are absent. Missing relation prerequisites prevent treating these as ready RPC-only additions."
+    },
+    {
+      "id": "AMBU-PERSONNEL-INVOKER-GRANTS",
+      "releaseBlocker": true,
+      "status": "source_confirmed",
+      "summary": "Authenticated public INVOKER wrappers cannot enter the private schema because required privileges are explicitly revoked and not restored."
+    },
+    {
+      "id": "AMBU-FINANCING-HELPER-ACL",
+      "releaseBlocker": true,
+      "status": "source_confirmed_under_standard_default_acl",
+      "summary": "Private helper execute ACLs are not explicitly restricted; schema USAGE plus default PUBLIC EXECUTE can expose unguarded definer helpers at the SQL boundary. Actual exposed API/default ACLs unknown."
+    },
+    {
+      "id": "AMBU-PERSONNEL-REPLAY-ORDER",
+      "releaseBlocker": true,
+      "status": "source_control_flow_confirmed_not_runtime_executed",
+      "summary": "CAS precedes request replay lookup, so successful identical commit retry cannot reach its stored receipt."
+    },
+    {
+      "id": "AMBU-SERVER-DOMAIN-VALIDATION",
+      "releaseBlocker": true,
+      "status": "source_control_flow_confirmed_not_runtime_executed",
+      "summary": "Server validators do not enforce the payload/domain contracts required by client decoders; malformed authorized raw requests can create unreadable ledger history."
+    }
+  ],
+  "existingTestReview": {
+    "executedForThisReview": [],
+    "personnelNodeSuite": {
+      "path": "scripts/checks/personnel-workspace.node.test.mjs",
+      "coverage": "TypeScript domain/form/draft/workflow, mocked SDK argument/receipt binding, and SQL-token assertions.",
+      "limitation": "Does not execute the personnel patch's SQL, grants, actor or idempotency."
+    },
+    "financingNodeSuite": {
+      "path": "scripts/checks/client-financing-workspace.node.test.mjs",
+      "coverage": "TypeScript model/receipt/workflow, mocked SDK errors and SQL-token assertions.",
+      "limitation": "Does not execute the financing patch's SQL, grants, actor or malformed payload path."
+    },
+    "existingPostgresSuite": {
+      "path": "supabase/tests/workflow_server_personnel_draft.test.mjs",
+      "actualDraft": "docs/workflow-server-personnel-draft.sql",
+      "limitation": "Different captured personnel/RLS draft. Its results do not validate either ambulatory workspace package."
+    },
+    "batchBoundary": "Existing workflow_* SQL summaries must not be assigned to these two patches: no reference to their patch paths or seven public RPC names was found in supabase/tests."
+  },
+  "conclusion": {
+    "nextReviewableDelta": "A new narrowly scoped design must first reconcile actual relation/identity contracts, explicit helper/entrypoint privileges, mutation-side ownership, server domain validation and request/CAS order. Then separate synthetic PostgreSQL/public-wrapper/SDK and concurrency proofs are required.",
+    "authorization": "This report authorizes no application, deployment, migration editing or remote writes."
+  },
+  "sourceFingerprints": {
+    "supabase/patches/ambulatory_personnel_workspace.sql": "df11c87ce31b918b9ec7ed0ccb05eb7ce1beb2c3e6db992d7bdc2826b37a7a4d",
+    "supabase/patches/ambulatory_client_financing_workspace.sql": "c21ccdbcbb203b10834d5505622c2f3392798b9b749b62e363b5138253fc4ae5"
+  },
+  "metadataFingerprints": {
+    "portal-full-audit-production-functions.json": "691d157fa3f6e91a20ea3e841c2f60fab8cd8c44163a68091efcdd0d55cc7b68",
+    "portal-full-audit-production-relations.json": "19cdad16268f34e44ea13a30edfb0c253cddfe0015412a3849878a755f9cb7fa",
+    "portal-full-audit-production-policies.json": "eccda6e526715f9c081647dfd78a706b4fe14e490b732756527051d8e94160f4"
+  },
+  "followup": {
+    "report": "docs/audit/native-ambulatory-workspace-hardening-review.json",
+    "status": "Local prepared source issues partly hardened and executed synthetically; original fingerprints/findings above describe the prior source snapshot. Production/application remains blocked."
+  }
+}

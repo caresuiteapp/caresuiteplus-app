@@ -13,21 +13,20 @@ it('rejects missing tenant context before writing custom fields on web', async (
   if (!result.ok) expect(result.error).toContain('Mandanten');
 });
 
-it('preserves native role permissions for creating and editing definitions', async () => {
+it('blocks native reads and writes without a live company grant even for an admin role', async () => {
   environment.os = 'android';
   const result = await saveTenantCustomFieldDefinition('tenant-a', field(), 'employee_portal');
   expect(result.ok).toBe(false);
   const visible = await fetchTenantCustomFieldDefinitions('tenant-a', 'business_admin');
-  expect(visible).toEqual({ ok: true, data: [] });
+  expect(visible).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenverbindung') });
 });
 
-it('preserves native demo stores and isolates companies', async () => {
+it('does not create native company demo fields in either tenant', async () => {
   environment.os = 'android';
   const created = await saveTenantCustomFieldDefinition('tenant-a', field(), 'business_admin');
-  if (!created.ok) throw new Error(created.error);
-  const saved = await saveTenantCustomFieldDefinition('tenant-a', { ...created.data[0], label: 'Internes Aktenzeichen', visibility: { office: true, portal: true }, validation: { required: true } }, 'business_admin');
-  expect(saved).toEqual({ ok: true, data: [expect.objectContaining({ id: created.data[0].id, label: 'Internes Aktenzeichen', visibility: { office: true, portal: true }, validation: { required: true } })] });
-  expect(await fetchTenantCustomFieldDefinitions('tenant-b', 'business_admin')).toEqual({ ok: true, data: [] });
+  expect(created).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenverbindung') });
+  expect((await fetchTenantCustomFieldDefinitions('tenant-a', 'business_admin')).ok).toBe(false);
+  expect((await fetchTenantCustomFieldDefinitions('tenant-b', 'business_admin')).ok).toBe(false);
 });
 
 it('does not create Web demo fields when the live service is absent', async () => { expect((await saveTenantCustomFieldDefinition('tenant-a', field(), 'business_admin')).ok).toBe(false); expect((await fetchTenantCustomFieldDefinitions('tenant-a', 'business_admin')).ok).toBe(false); });

@@ -10,12 +10,10 @@ const reads = ['office.catalogs.view', 'office.employees.view', 'office.invoices
 let sequence = 0;
 
 await owner();
-// Extend only this isolated fixture with the existing production column contract.
+// Extend the shared permission flags with the remaining production columns.
 await db.exec(`
   ALTER TABLE role_permissions ADD COLUMN product_key text,
     ADD COLUMN can_create boolean DEFAULT false,
-    ADD COLUMN can_update boolean DEFAULT false,
-    ADD COLUMN can_delete boolean DEFAULT false,
     ADD COLUMN can_export boolean DEFAULT false,
     ADD COLUMN can_approve boolean DEFAULT false,
     ADD COLUMN restrictions jsonb DEFAULT '{}';

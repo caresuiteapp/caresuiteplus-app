@@ -1,3 +1,5 @@
+import { sameWoundJson, woundInstant } from '../pflege/woundCareDomain.ts';
+
 export const clientFinancingWorkspaceVersion = '2026-10-16.1' as const;
 
 export const clientFinancingKinds = [
@@ -55,6 +57,32 @@ const instant = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2
 const money = /^(?:0|[1-9]\d*)(?:\.\d{1,2})?$/;
 const quantity = /^(?:0|[1-9]\d*)(?:\.\d{1,4})?$/;
 const object = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
+// Compare wire JSON, preserving member presence and finite numeric/string types.
+// sameWoundJson deliberately normalizes only object-key order; reject non-JSON
+// values first so undefined/NaN/sparse arrays cannot disappear in serialization.
+function sameClientFinancingJson(a: unknown, b: unknown): boolean {
+  const valid = (value: unknown, depth = 0, path = new Set<object>()): boolean => {
+    if (depth > 30) return false;
+    if (value === null || typeof value === 'boolean') return true;
+    if (typeof value === 'string') return !value.includes('\u0000');
+    if (typeof value === 'number') return Number.isFinite(value);
+    if (typeof value !== 'object' || path.has(value)) return false;
+    if (!Array.isArray(value) && Object.getPrototypeOf(value) !== Object.prototype) return false;
+    path.add(value);
+    const names = Reflect.ownKeys(value);
+    if (Array.isArray(value) && names.length !== value.length + 1) { path.delete(value); return false; }
+    for (const key of names) {
+      if (Array.isArray(value) && key === 'length') continue;
+      if (Array.isArray(value) && (typeof key !== 'string' || !/^(0|[1-9]\d*)$/.test(key) || Number(key) >= value.length)) { path.delete(value); return false; }
+      const descriptor = Object.getOwnPropertyDescriptor(value, key);
+      if (typeof key !== 'string' || !descriptor?.enumerable || !('value' in descriptor) || !valid(descriptor.value, depth + 1, path)) { path.delete(value); return false; }
+    }
+    path.delete(value);
+    return true;
+  };
+  return valid(a) && valid(b) && sameWoundJson(a, b);
+}
+
 const required = (value: unknown, label: string): string => { if (typeof value !== 'string' || !value.trim()) throw Error(`${label} fehlt.`); return value; };
 const validId = (value: unknown, label: string): string => { const text = required(value, label); if (!uuid.test(text) || text !== text.toLowerCase()) throw Error(`${label} ist ungültig.`); return text; };
 const validDate = (value: unknown, label: string): string => { const text = required(value, label); if (!date.test(text) || new Date(`${text}T00:00:00Z`).toISOString().slice(0, 10) !== text) throw Error(`${label} ist ungültig.`); return text; };
@@ -145,11 +173,17 @@ export function decodeClientFinancingContext(value: unknown, expected: { tenantI
 
 export function assertClientFinancingSelectionCurrent(command: ClientFinancingCommand, context: ClientFinancingContext): void {
   validateClientFinancingCommand(command);
-  const inspect = (value: unknown): void => { if (Array.isArray(value)) value.forEach(inspect); else if (object(value)) { if (Object.keys(value).sort().join(',') === 'id,kind,snapshot') { clientFinancingSource(value); const found = context.sources.rows.find((row) => row.kind === value.kind && row.id === value.id); if (!found || JSON.stringify(found) !== JSON.stringify(value)) throw Error('Eine ausgewählte Originalgrundlage ist nicht mehr aktuell.'); } else Object.values(value).forEach(inspect); } };
+  const inspect = (value: unknown): void => { if (Array.isArray(value)) value.forEach(inspect); else if (object(value)) { if (Object.keys(value).sort().join(',') === 'id,kind,snapshot') { clientFinancingSource(value); const found = context.sources.rows.find((row) => row.kind === value.kind && row.id === value.id); if (!found || !sameClientFinancingJson(found, value)) throw Error('Eine ausgewählte Originalgrundlage ist nicht mehr aktuell.'); } else Object.values(value).forEach(inspect); } };
   inspect(command.payload);
 }
 
 export function decodeClientFinancingReceipt(value: unknown, command: ClientFinancingCommand): ClientFinancingReceipt {
-  if (!object(value) || value.version !== clientFinancingWorkspaceVersion || value.requestId !== command.requestId || !object(value.command) || JSON.stringify(value.command) !== JSON.stringify(command) || !object(value.event) || value.event.id !== command.eventId || JSON.stringify(value.event.command) !== JSON.stringify(command)) throw Error('Die native Finanzierungsquittung stimmt nicht mit der gesicherten Anfrage überein.');
+  validateClientFinancingCommand(command);
+  if (!object(value) || Object.keys(value).sort().join(',') !== 'command,event,requestId,version' || value.version !== clientFinancingWorkspaceVersion || value.requestId !== command.requestId || !sameClientFinancingJson(value.command, command) || !object(value.event)) throw Error('Die native Finanzierungsquittung stimmt nicht mit der gesicherten Anfrage überein.');
+  const event = value.event;
+  if (Object.keys(event).sort().join(',') !== 'actorId,actorName,clientId,command,id,previousId,recordedAt,sequence,tenantId' || event.id !== command.eventId || event.previousId !== command.expectedHeadId || event.tenantId !== command.tenantId || event.clientId !== command.clientId || event.actorId !== command.actorId || !Number.isSafeInteger(event.sequence) || Number(event.sequence) < 1 || typeof event.actorName !== 'string' || !event.actorName.trim() || event.actorName.length > 300 || !sameClientFinancingJson(event.command, command)) throw Error('Die native Finanzierungsquittung ist widersprüchlich.');
+  validInstant(event.recordedAt, 'Quittungszeitpunkt');
+  const occurred = woundInstant(command.occurredAt), recorded = woundInstant(event.recordedAt as string);
+  if (occurred === null || recorded === null || occurred > recorded) throw Error('Die native Finanzierungsquittung hat einen widersprüchlichen Zeitpunkt.');
   return structuredClone(value) as ClientFinancingReceipt;
 }

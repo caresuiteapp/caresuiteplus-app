@@ -1,13 +1,14 @@
 import { ReactNode, useEffect } from 'react';
 import { runAppTransition } from '@/lib/react/runAppTransition';
 import { BackHandler } from 'react-native';
-import { usePathname, useRouter } from 'expo-router';
+import { useIsFocused, usePathname, useRouter } from 'expo-router';
 import { ErrorState, FullScreenLoader } from '@/components/ui';
 import { useHydrated } from '@/hooks/useHydrated';
 import { isAuthSetupRoute } from './loginRouter';
 import { resolveAuthSessionTarget } from './sessionTarget';
 import { useAuth } from './context';
 import { useSupabaseSessionProbe } from './useSupabaseSessionProbe';
+import { isAuthRoutePath } from '@/lib/navigation/isPortalRoute';
 
 function matchesNavigationTarget(current: string, target: string): boolean {
   const normalizedCurrent = current.replace(/\/$/, '') || '/';
@@ -32,6 +33,8 @@ export function RedirectIfAuthenticated({
 }: RedirectIfAuthenticatedProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const focused = useIsFocused();
+  const ownsAuthRoute = focused && isAuthRoutePath(pathname);
   const hydrated = useHydrated();
   const { authReady, authMode, isAuthenticated, profile, portalSession, user, session } = useAuth();
   const sessionPending = useSupabaseSessionProbe(authMode, authReady, isAuthenticated);
@@ -44,16 +47,16 @@ export function RedirectIfAuthenticated({
   });
 
   useEffect(() => {
-    if (!hydrated || !authReady || !isAuthenticated || !canRedirectHome) return;
+    if (!ownsAuthRoute || !hydrated || !authReady || !isAuthenticated || !canRedirectHome) return;
     if (isAuthSetupRoute(pathname)) return;
     if (matchesNavigationTarget(pathname, homePath)) return;
     runAppTransition(() => {
       router.replace(homePath as never);
     });
-  }, [canRedirectHome, homePath, hydrated, isAuthenticated, authReady, pathname, router]);
+  }, [canRedirectHome, homePath, hydrated, isAuthenticated, authReady, ownsAuthRoute, pathname, router]);
 
   useEffect(() => {
-    if (!isAuthenticated || !canRedirectHome) return undefined;
+    if (!ownsAuthRoute || !isAuthenticated || !canRedirectHome) return undefined;
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       router.replace(homePath as never);
@@ -61,7 +64,11 @@ export function RedirectIfAuthenticated({
     });
 
     return () => subscription.remove();
-  }, [canRedirectHome, homePath, isAuthenticated, router]);
+  }, [canRedirectHome, homePath, isAuthenticated, ownsAuthRoute, router]);
+
+  // Native stacks retain unfocused login scenes. They must not redirect the
+  // current workspace or intercept its hardware Back action from behind it.
+  if (!ownsAuthRoute) return <>{children}</>;
 
   if (!hydrated || !authReady || sessionPending) {
     return <FullScreenLoader message="Sitzung wird geprüft…" />;

@@ -26,7 +26,7 @@ export async function companyFixture({ resources = false } = {}) {
     CREATE TABLE roles(id uuid PRIMARY KEY,key text,tenant_id uuid,is_admin_role boolean DEFAULT false,can_manage_roles boolean DEFAULT false);
     CREATE TABLE profiles(id uuid PRIMARY KEY,auth_user_id uuid,tenant_id uuid,role_id uuid,status text,is_active boolean,display_name text,first_name text,last_name text);
     CREATE TABLE employees(id uuid PRIMARY KEY,tenant_id uuid,profile_id uuid,first_name text,last_name text,status text,deleted_at timestamptz);
-    CREATE TABLE role_permissions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),role_id uuid,tenant_id uuid,permission_key text,can_view boolean DEFAULT true);
+    CREATE TABLE role_permissions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),role_id uuid,tenant_id uuid,permission_key text,can_view boolean DEFAULT true,can_update boolean DEFAULT false,can_delete boolean DEFAULT false);
     CREATE TABLE role_permission_sets(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),tenant_id uuid,role_key text,permission_key text);
     CREATE TABLE role_templates(id uuid PRIMARY KEY,tenant_id uuid,role_key text,name text);
     CREATE TABLE role_template_permissions(id uuid PRIMARY KEY DEFAULT gen_random_uuid(),role_template_id uuid,permission_key text,allowed boolean);
@@ -63,6 +63,7 @@ export async function companyFixture({ resources = false } = {}) {
   await db.exec(companyMigration('company_access'));
   await db.exec(companyMigration('company_organization'));
   await db.exec(companyMigration('company_scope_access'));
+  await db.exec(readFileSync(new URL('../patches/assignment_legacy_manage_permission.sql', import.meta.url), 'utf8'));
   if (resources) { await db.exec(companyMigration('company_resources')); await db.exec(companyMigration('company_inventory_scope')); }
   async function actor(profile = 20, tenant = 10, claims = {}) {
     await db.exec('RESET ROLE');

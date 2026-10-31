@@ -1,6 +1,8 @@
 import { useMemo } from 'react';
+import { Platform } from 'react-native';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
 import {
   buildEmployeePortalCalendarConfig,
   getEmployeePortalTeamCalendarEvents,
@@ -13,6 +15,14 @@ export function useEmployeePortalCalendarEvents(rangeStart?: string, rangeEnd?: 
     () => (employeeId ? buildEmployeePortalCalendarConfig(employeeId) : undefined),
     [employeeId],
   );
+  const live = useMemo(() => {
+    if (Platform.OS !== 'web' || !tenantId || !employeeId) return undefined;
+    return {
+      tenantId,
+      subscribe: (tid: string, handler: () => void) =>
+        subscribeToEmployeePortalChanges(tid, employeeId, handler, { schedule: 'team' }),
+    };
+  }, [tenantId, employeeId]);
 
   const query = useAsyncQuery(
     () => {
@@ -23,6 +33,7 @@ export function useEmployeePortalCalendarEvents(rangeStart?: string, rangeEnd?: 
     },
     [tenantId, employeeId, rangeStart, rangeEnd],
     { enabled: isReady && !!tenantId && !!employeeId && !isResolvingEmployeeLink,
+      live,
       queryKey: JSON.stringify([tenantId, employeeId, actorId, roleKey, rangeStart, rangeEnd]) },
   );
 

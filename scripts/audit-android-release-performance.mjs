@@ -9,9 +9,11 @@ const config = JSON.parse(execFileSync(process.execPath, [require.resolve('expo/
 }));
 const properties = new Map(config._internal.modResults.android.gradleProperties.filter(x => x.type === 'property').map(x => [x.key, x.value]));
 const rules = readFileSync('android-proguard-rules.pro', 'utf8').replace(/^\s*#.*$/gm, '');
-const { optimizeAppBuildGradle } = require('../plugins/withAndroidReleaseOptimization.cjs');
+const { optimizeAppBuildGradle, configureProjectBuildGradle, androidGradlePluginVersion, kotlinVersion } = require('../plugins/withAndroidReleaseOptimization.cjs');
 const template = execFileSync('tar', ['-xOf', require.resolve('expo/template.tgz'), 'package/android/app/build.gradle'], { encoding: 'utf8' });
 const optimized = optimizeAppBuildGradle(template);
+const projectTemplate = execFileSync('tar', ['-xOf', require.resolve('expo/template.tgz'), 'package/android/build.gradle'], { encoding: 'utf8' });
+const projectBuild = configureProjectBuildGradle(projectTemplate);
 const dependencies = JSON.parse(readFileSync('package.json', 'utf8')).dependencies;
 const image = readFileSync('src/components/images/CareSuiteImage.native.tsx', 'utf8');
 const checks = {
@@ -20,6 +22,9 @@ const checks = {
   minify: properties.get('android.enableMinifyInReleaseBuilds') === 'true',
   shrinkResources: properties.get('android.enableShrinkResourcesInReleaseBuilds') === 'true',
   fullMode: properties.get('android.enableR8.fullMode') === 'true',
+  androidGradlePlugin9: projectBuild.includes(`classpath('com.android.tools.build:gradle:${androidGradlePluginVersion}')`) && Number(androidGradlePluginVersion.split('.')[0]) >= 9,
+  kotlinCompilerMatchesLibraries: projectBuild.includes(`classpath('org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}')`) && properties.get('android.kotlinVersion') === kotlinVersion,
+  expo57PluginCompatibility: properties.get('android.builtInKotlin') === 'false' && properties.get('android.newDsl') === 'false',
   optimizedResourceShrinking: properties.get('android.r8.optimizedResourceShrinking') === 'true',
   optimizedStandardRules: optimized.includes('getDefaultProguardFile("proguard-android-optimize.txt")') && !optimized.includes('getDefaultProguardFile("proguard-android.txt")'),
   noAppBlanketKeeps: !/^-keep(?:,[\w]+)*\s+(?:public\s+)?class\s+\S*\*\*/m.test(rules),

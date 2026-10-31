@@ -97,11 +97,13 @@ export function PlatformModal({
   dirtyCloseMessage = 'Ungespeicherte Änderungen verwerfen?',
   surfaceScope,
 }: PlatformModalProps) {
-  const portalTheme = usePortalPremiumRuntimeTheme();
+  const runtimePortalTheme = usePortalPremiumRuntimeTheme();
+  const companySurface = surfaceScope === 'company';
+  const portalTheme = companySurface ? { ...runtimePortalTheme, active: false } : runtimePortalTheme;
   const { isDark, c } = useCareLightPalette();
   const { isLight } = useLegacyTheme();
-  const auroraActive = useAuroraGlassActive();
-  const lightModal = surfaceScope === 'personal' || portalTheme.active || (isLight && auroraActive);
+  useAuroraGlassActive();
+  const lightModal = companySurface || surfaceScope === 'personal' || portalTheme.active || isLight;
   const formGlass = resolveLlganViewGlass('form', 'default');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -166,21 +168,30 @@ export function PlatformModal({
           maxHeight: sheetMaxHeight,
           flexDirection: 'column',
           overflow: 'hidden',
-          backgroundColor: portalTheme.active
+          backgroundColor: companySurface
+            ? '#FFFFFF'
+            : portalTheme.active
             ? portalPremium.surfaceRaised
             : undefined,
         },
         bodyScroll: {
-          flex: 1,
+          // The sheet has a maximum height, not a fixed height. A zero flex
+          // basis collapses short popup bodies in that intrinsically sized box.
+          flexGrow: 0,
+          flexShrink: 1,
           minHeight: 0,
         },
         body: {
           padding: compact ? careSpacing.md : careSpacing.lg,
           gap: careSpacing.sm,
           flexGrow: 1,
-          flexShrink: 1,
+          // Native scroll content must keep its measured height. Only the
+          // surrounding viewport shrinks to make room for header and footer.
+          flexShrink: Platform.OS === 'web' ? 1 : 0,
           minHeight: 0,
-          backgroundColor: portalTheme.active
+          backgroundColor: companySurface
+            ? '#F4F8FD'
+            : portalTheme.active
             ? portalPremium.surfaceRaised
             : lightModal
               ? shellColors.body.background
@@ -204,19 +215,23 @@ export function PlatformModal({
           paddingBottom: Math.max(insets.bottom + careSpacing.sm, careSpacing.lg),
           paddingTop: careSpacing.md,
           borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: lightModal
+          borderTopColor: companySurface
+            ? '#D7E3F1'
+            : lightModal
             ? shellColors.footerBorder
             : isDark
               ? shellColors.footerBorder
               : 'rgba(0,0,0,0.06)',
-          backgroundColor: portalTheme.active
+          backgroundColor: companySurface
+            ? '#FFFFFF'
+            : portalTheme.active
             ? portalPremium.surfaceRaised
             : lightModal
               ? shellColors.body.background
               : 'rgba(1,8,23,0.98)',
         },
       }),
-    [compact, formGlass.shadow, insets.bottom, insets.top, isDark, lightModal, portalTheme.active, shellColors, sheetMaxHeight, sheetWidth, variant],
+    [compact, companySurface, formGlass.shadow, insets.bottom, insets.top, isDark, lightModal, portalTheme.active, shellColors, sheetMaxHeight, sheetWidth, variant],
   );
 
   useEffect(() => {
@@ -269,6 +284,7 @@ export function PlatformModal({
       >
       <View style={{ flexShrink: 0 }}>
         <GradientModalHeader
+          tone={companySurface ? 'light' : undefined}
           title={title}
           subtitle={subtitle}
           onBack={handleBack}
@@ -277,6 +293,7 @@ export function PlatformModal({
         />
       </View>
       <PortalKeyboardScrollView
+        testID="platform-modal-body-scroll"
         style={styles.bodyScroll}
         contentContainerStyle={[styles.body, bodyStyle]}
         keyboardShouldPersistTaps="handled"

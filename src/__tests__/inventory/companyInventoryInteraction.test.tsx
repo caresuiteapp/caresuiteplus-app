@@ -12,7 +12,7 @@ const h = vi.hoisted(() => ({
   returnItem: vi.fn(), reportDamage: vi.fn(), resolveDamage: vi.fn(), acknowledge: vi.fn(), requestReturn: vi.fn(),
   offboarding: vi.fn(), confirm: vi.fn(), dispatch: vi.fn(), preventRemove: vi.fn(), changeView: vi.fn(),
 }));
-vi.mock('@/lib/inventory/companyInventoryService.web', async original => ({
+vi.mock('@/lib/inventory/companyInventoryService', async original => ({
   ...await original<typeof import('@/lib/inventory/companyInventoryService.web')>(),
   loadCompanyInventory: (...args: unknown[]) => h.load(...args),
   saveCompanyInventoryItem: (...args: unknown[]) => h.saveItem(...args),

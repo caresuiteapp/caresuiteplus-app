@@ -53,7 +53,8 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
       return {
         tenantId,
         subscribe: (tid: string, handler: () => void) =>
-          subscribeToEmployeePortalChanges(tid, scopedEmployeeId, handler),
+          subscribeToEmployeePortalChanges(tid, scopedEmployeeId, handler,
+            Platform.OS === 'web' ? { schedule: 'own' } : undefined),
       };
     }
     if (audience === 'client' && scopedClientId) {
@@ -83,7 +84,7 @@ export function usePortalAppointments(audience: OperationalPortalAudience) {
     [profileId, scopedRoleKey, tenantId, scopedClientId, scopedEmployeeId, isOffline],
     {
       enabled: queryEnabled,
-      queryKey: JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId]),
+      queryKey: JSON.stringify([tenantId, profileId, scopedRoleKey, scopedClientId, scopedEmployeeId, familyAppointmentsAllowed]),
       live: liveConfig,
       initialCache:
         Platform.OS !== 'web' && queryEnabled

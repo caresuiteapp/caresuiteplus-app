@@ -5,6 +5,8 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
+import { isUuid } from '@/lib/validation/uuid';
+import { calendarEmployeeIds } from './calendarParticipants';
 import {
   CALENDAR_EVENT_SELECT_COLUMNS,
   mapCalendarEventRow,
@@ -16,6 +18,12 @@ import {
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+}
+
+/** OR syntax is limited to UUIDs, never interpolated names or untrusted filters. */
+function employeeMembershipFilter(employeeId: string): string | null {
+  if (!isUuid(employeeId)) return null;
+  return `related_employee_id.eq.${employeeId},participant_employee_ids.cs.{${employeeId}}`;
 }
 
 export type ListCalendarEventsQuery = Omit<GetCalendarEventsParams, 'actorRoleKey'>;
@@ -77,8 +85,10 @@ export const calendarEventRepository = {
         .eq('is_client_portal_visible', true)
         .eq('module_key', 'stationaer');
     } else if (context.portalType === 'employee' && context.employeeId) {
+      const membership = employeeMembershipFilter(context.employeeId);
+      if (!membership) return { ok: false, error: 'Ungültige Mitarbeitenden-ID.' };
       query = query
-        .eq('related_employee_id', context.employeeId)
+        .or(membership)
         .eq('is_employee_portal_visible', true);
     } else {
       return { ok: true, data: [] };
@@ -130,6 +140,7 @@ export const calendarEventRepository = {
       room: record.room ?? null,
       related_client_id: record.relatedClientId ?? null,
       related_employee_id: record.relatedEmployeeId ?? null,
+      ...(record.participantEmployeeIds !== undefined ? { participant_employee_ids: calendarEmployeeIds(record) } : {}),
       related_ward_id: record.relatedWardId ?? null,
       related_case_id: record.relatedCaseId ?? null,
       related_document_id: record.relatedDocumentId ?? null,
@@ -231,11 +242,13 @@ export const calendarEventRepository = {
   ): Promise<ServiceResult<CalendarEventRecord[]>> {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
+    const membership = employeeMembershipFilter(employeeId);
+    if (!membership) return { ok: false, error: 'Ungültige Mitarbeitenden-ID.' };
 
     let query = fromUnknownTable(supabase, 'calendar_events')
       .select(CALENDAR_EVENT_SELECT_COLUMNS)
       .eq('tenant_id', tenantId)
-      .eq('related_employee_id', employeeId)
+      .or(membership)
       .eq('is_employee_portal_visible', true)
       .is('archived_at', null)
       .neq('status', 'cancelled')

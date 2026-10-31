@@ -1,0 +1,352 @@
+// Generated native presentation from src/lib/pflege/medicationSafetyPacket.web.ts. Update through scripts/port-native-workspaces.mjs.
+import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
+export type MedicationSafetyKind = 'reconciliation' | 'order_capture' | 'schedule_version' | 'administration' | 'late_administration' | 'non_administration' | 'prn_administration' | 'effect_review' | 'safety_signal' | 'controlled_witness' | 'preparation_stock' | 'order_pause_stop' | 'prn_interval_check' | 'maximum_dose_check' | 'controlled_ledger' | 'correction';
+export type MedicationSourceRef = Readonly<{
+    id: string;
+    revision: number;
+    recordedAt: string;
+    fingerprint: string;
+}>;
+export type MedicationSafetySources = Readonly<{
+    order: Readonly<MedicationSourceRef & {
+        medicationId: string;
+        clientId: string;
+        status: string;
+        updatedAt: string;
+        payload: Record<string, unknown>;
+    }>;
+    allergies: Readonly<MedicationSourceRef & {
+        state: 'documented' | 'unknown' | 'none_documented';
+        text: string;
+    }>;
+    documents: readonly Readonly<MedicationSourceRef & {
+        title: string;
+        version: string;
+    }>[];
+    administrations: readonly Readonly<MedicationSourceRef & {
+        status: string;
+        occurredAt: string | null;
+        dose: string | null;
+        unit: string | null;
+        route: string | null;
+    }>[];
+    statusEvents: readonly Readonly<MedicationSourceRef & {
+        previousStatus: string;
+        nextStatus: string;
+    }>[];
+    witnesses: readonly Readonly<MedicationSourceRef & {
+        profileId: string;
+        active: boolean;
+        qualificationState: string;
+    }>[];
+    stockMovements: readonly Readonly<MedicationSourceRef & {
+        packageId: string;
+        operation: string;
+        quantity: string;
+        unit: string;
+        balanceAfter: string;
+    }>[];
+}>;
+export type MedicationSafetyEntry = Readonly<{
+    kind: MedicationSafetyKind;
+    title: string;
+    plannedAt: string;
+    occurredAt: string | null;
+    medicationId: string;
+    clientId: string;
+    orderVersion: string;
+    sourceReview: Readonly<{
+        planFingerprint: string;
+        documentIds: readonly string[];
+        discrepancies: readonly string[];
+        allergyState: 'documented' | 'unknown' | 'none_documented';
+        allergyText: string;
+        clarification: string;
+        decision: 'unresolved' | 'confirmed' | 'rejected';
+    }>;
+    order: Readonly<{
+        medicationName: string;
+        activeIngredient: string;
+        strength: string;
+        form: string;
+        dose: string;
+        unit: string;
+        route: string;
+        prescriber: string;
+        validFrom: string;
+        validUntil: string | null;
+        indication: string;
+        isPrn: boolean;
+        minimumIntervalMinutes: string | null;
+        maximumDose: string | null;
+        maximumDoseUnit: string;
+        maximumPeriodHours: string | null;
+    }>;
+    schedule: Readonly<{
+        versionId: string | null;
+        effectiveFrom: string | null;
+        slots: readonly Readonly<{
+            id: string;
+            plannedAt: string;
+            dose: string;
+            unit: string;
+            route: string;
+        }>[];
+        changeReason: string;
+    }>;
+    administration: Readonly<{
+        outcome: 'planned' | 'administered' | 'late' | 'omitted' | 'refused' | 'held';
+        actualAt: string | null;
+        actualDose: string | null;
+        unit: string;
+        route: string;
+        performedBy: string | null;
+        deviationReason: string;
+        prnIndication: string;
+        precedingAdministrationIds: readonly string[];
+        intervalMinutes: string | null;
+        maximumPeriodDose: string | null;
+    }>;
+    effect: Readonly<{
+        administrationId: string | null;
+        observedAt: string | null;
+        observation: string;
+        action: string;
+        painScore: number | null;
+    }>;
+    safety: Readonly<{
+        state: 'not_observed' | 'suspected' | 'confirmed_external';
+        observation: string;
+        suspectedRelation: string;
+        reaction: string;
+        clinicianContact: string;
+        followUp: string;
+    }>;
+    witness: Readonly<{
+        required: boolean;
+        profileId: string | null;
+        assertion: 'not_required' | 'selection_only' | 'independently_authenticated';
+        signedAt: string | null;
+        signatureId: string | null;
+        qualificationEvidence: string;
+    }>;
+    stock: Readonly<{
+        operation: 'none' | 'prepare' | 'receipt' | 'consumption' | 'correction';
+        packageId: string | null;
+        batch: string;
+        expiry: string | null;
+        quantity: string | null;
+        unit: string;
+        balanceBefore: string | null;
+        balanceAfter: string | null;
+        reason: string;
+        responsibleBy: string | null;
+    }>;
+    orderStatus: Readonly<{
+        current: 'draft' | 'active' | 'paused' | 'stopped';
+        next: 'unchanged' | 'active' | 'paused' | 'stopped';
+        effectiveAt: string | null;
+        reason: string;
+        authorizationId: string | null;
+        followUpPlanId: string | null;
+    }>;
+    correction: Readonly<{
+        targetEventId: string | null;
+        reason: string;
+        replacementEventId: string | null;
+        approvedBy: string | null;
+        approvedAt: string | null;
+    }>;
+    lifecycle: 'open' | 'completed';
+}>;
+export type MedicationSafetyHistoryItem = Readonly<{
+    id: string;
+    revision: number;
+    previousId: string | null;
+    recordedAt: string;
+    recordedBy: string;
+    recordedByName: string;
+    reason: string;
+    payload: MedicationSafetyEntry;
+    contentFingerprint: string;
+}>;
+export type MedicationSafetyOriginal = Readonly<{
+    id: string;
+    tenantId: string;
+    clientId: string;
+    medicationId: string;
+    rootId: string;
+    headId: string;
+    revision: number;
+    kind: MedicationSafetyKind;
+    recordedAt: string;
+    recordedBy: string;
+    recordedByName: string;
+    payload: MedicationSafetyEntry;
+    contentFingerprint: string;
+    history: readonly MedicationSafetyHistoryItem[];
+    voided: boolean;
+}>;
+export type MedicationSafetyPacket = Readonly<{
+    schemaVersion: '1';
+    action: 'create' | 'revise';
+    requestId: string;
+    tenantId: string;
+    clientId: string;
+    medicationId: string;
+    actorId: string;
+    expectedHeadId: string | null;
+    expectedRevision: number;
+    entry: MedicationSafetyEntry;
+    reason: string;
+    original: MedicationSafetyOriginal | null;
+    sources: MedicationSafetySources;
+}>;
+const kinds = new Set<MedicationSafetyKind>(['reconciliation', 'order_capture', 'schedule_version', 'administration', 'late_administration', 'non_administration', 'prn_administration', 'effect_review', 'safety_signal', 'controlled_witness', 'preparation_stock', 'order_pause_stop', 'prn_interval_check', 'maximum_dose_check', 'controlled_ledger', 'correction']);
+const uuid = (v: unknown): v is string => typeof v === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(v);
+const instant = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:?\d{2})$/.test(v) && Number.isFinite(Date.parse(v));
+const date = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(v) && new Date(`${v}T12:00:00Z`).toISOString().slice(0, 10) === v;
+const text = (v: unknown, min = 0, max = 8000): v is string => typeof v === 'string' && v.trim().length >= min && v.length <= max;
+const sha = (v: unknown): v is string => typeof v === 'string' && /^sha256:[0-9a-f]{64}$/.test(v);
+const decimal = (v: unknown): v is string => typeof v === 'string' && /^(0|[1-9][0-9]{0,7})(\.[0-9]{1,3})?$/.test(v);
+const optionalDecimal = (v: unknown): v is string | null => v === null || decimal(v);
+const milli = (v: string) => { const [whole, fraction = ''] = v.split('.'); return BigInt(whole) * 1000n + BigInt(fraction.padEnd(3, '0')); };
+const instantMicros = (v: string) => { const match = v.match(/^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d{1,6}))?(Z|[+-]\d{2}:?\d{2})$/); if (!match)
+    return null; const milliseconds = Date.parse(`${match[1]}${match[3]}`); return Number.isFinite(milliseconds) ? BigInt(milliseconds) * 1000n + BigInt((match[2] ?? '').padEnd(6, '0')) : null; };
+const uniqueUuids = (v: unknown): v is readonly string[] => Array.isArray(v) && v.every(uuid) && new Set(v).size === v.length;
+const clone = <T>(v: T): T => structuredClone(v);
+const deepFreeze = <T>(value: T): T => { if (value && typeof value === 'object' && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const child of Object.values(value as Record<string, unknown>))
+        deepFreeze(child);
+} return value; };
+export function blankMedicationSafetyEntry(kind: MedicationSafetyKind, medicationId: string, clientId: string, orderVersion: string, now = new Date().toISOString()): MedicationSafetyEntry {
+    return {
+        kind, title: '', plannedAt: now, occurredAt: null, medicationId, clientId, orderVersion,
+        sourceReview: { planFingerprint: '', documentIds: [], discrepancies: [], allergyState: 'unknown', allergyText: '', clarification: '', decision: 'unresolved' },
+        order: { medicationName: '', activeIngredient: '', strength: '', form: '', dose: '', unit: '', route: '', prescriber: '', validFrom: now.slice(0, 10), validUntil: null, indication: '', isPrn: false, minimumIntervalMinutes: null, maximumDose: null, maximumDoseUnit: '', maximumPeriodHours: null },
+        schedule: { versionId: null, effectiveFrom: null, slots: [], changeReason: '' },
+        administration: { outcome: 'planned', actualAt: null, actualDose: null, unit: '', route: '', performedBy: null, deviationReason: '', prnIndication: '', precedingAdministrationIds: [], intervalMinutes: null, maximumPeriodDose: null },
+        effect: { administrationId: null, observedAt: null, observation: '', action: '', painScore: null },
+        safety: { state: 'not_observed', observation: '', suspectedRelation: '', reaction: '', clinicianContact: '', followUp: '' },
+        witness: { required: false, profileId: null, assertion: 'not_required', signedAt: null, signatureId: null, qualificationEvidence: '' },
+        stock: { operation: 'none', packageId: null, batch: '', expiry: null, quantity: null, unit: '', balanceBefore: null, balanceAfter: null, reason: '', responsibleBy: null },
+        orderStatus: { current: 'active', next: 'unchanged', effectiveAt: null, reason: '', authorizationId: null, followUpPlanId: null },
+        correction: { targetEventId: null, reason: '', replacementEventId: null, approvedBy: null, approvedAt: null }, lifecycle: 'open'
+    };
+}
+function sourceListIssue(list: readonly MedicationSourceRef[], limit: number) { return !Array.isArray(list) || list.length > limit || list.some(x => !x || !uuid(x.id) || !Number.isSafeInteger(x.revision) || x.revision < 1 || !instant(x.recordedAt) || !sha(x.fingerprint)) || new Set(list.map(x => x.id)).size !== list.length; }
+export function medicationSafetySourcesIssue(v: unknown): string | null {
+    const s = v as MedicationSafetySources;
+    if (!s || !s.order || ![s.order.id, s.order.medicationId, s.order.clientId].every(uuid) || !Number.isSafeInteger(s.order.revision) || s.order.revision < 1 || !instant(s.order.recordedAt) || !instant(s.order.updatedAt) || !sha(s.order.fingerprint) || !text(s.order.status, 1) || !s.order.payload || typeof s.order.payload !== 'object' || Array.isArray(s.order.payload))
+        return 'Vollständiges aktuelles Verordnungsoriginal fehlt.';
+    if (!s.allergies || !uuid(s.allergies.id) || !Number.isSafeInteger(s.allergies.revision) || s.allergies.revision < 1 || !instant(s.allergies.recordedAt) || !sha(s.allergies.fingerprint) || !['documented', 'unknown', 'none_documented'].includes(s.allergies.state) || s.allergies.state === 'documented' && !text(s.allergies.text, 1))
+        return 'Allergiefassung fehlt oder ist widersprüchlich.';
+    const groups = [s.documents, s.administrations, s.statusEvents, s.witnesses, s.stockMovements];
+    if (groups.some(x => !Array.isArray(x) || sourceListIssue(x, 2000)))
+        return 'Quelloriginale sind abgeschnitten, doppelt oder ungültig.';
+    if (s.documents.some(x => !text(x.title, 1) || !text(x.version, 1)) || s.administrations.some(x => !text(x.status, 1) || x.occurredAt !== null && !instant(x.occurredAt) || x.dose !== null && !text(x.dose, 1) || x.unit !== null && !text(x.unit, 1) || x.route !== null && !text(x.route, 1)) || s.statusEvents.some(x => !text(x.previousStatus, 1) || !text(x.nextStatus, 1)) || s.witnesses.some(x => !uuid(x.profileId) || typeof x.active !== 'boolean' || !text(x.qualificationState, 1)) || s.stockMovements.some(x => !uuid(x.packageId) || !text(x.operation, 1) || !decimal(x.quantity) || !text(x.unit, 1) || !decimal(x.balanceAfter)))
+        return 'Verlauf, Personen- oder Bestandsoriginale sind unvollständig.';
+    return null;
+}
+export function medicationSafetyEntryIssue(v: unknown): string | null {
+    const e = v as MedicationSafetyEntry;
+    if (!e || !kinds.has(e.kind) || !text(e.title, 3, 300) || !instant(e.plannedAt) || ![e.medicationId, e.clientId].every(uuid) || !instant(e.orderVersion) || !e.sourceReview || !e.order || !e.schedule || !e.administration || !e.effect || !e.safety || !e.witness || !e.stock || !e.orderStatus || !e.correction)
+        return 'Medikationspaket ist nicht vollständig an Verordnung und Pflegefall gebunden.';
+    if (!sha(e.sourceReview.planFingerprint) || !uniqueUuids(e.sourceReview.documentIds) || !Array.isArray(e.sourceReview.discrepancies) || e.sourceReview.discrepancies.some(x => !text(x, 3, 1000)) || !['documented', 'unknown', 'none_documented'].includes(e.sourceReview.allergyState) || e.sourceReview.allergyState === 'documented' && !text(e.sourceReview.allergyText, 1) || !['unresolved', 'confirmed', 'rejected'].includes(e.sourceReview.decision))
+        return 'Quellenabgleich, Allergiefassung oder Klärungsstand ist ungültig.';
+    if (['reconciliation', 'order_capture'].includes(e.kind) && (e.sourceReview.decision === 'confirmed' && e.sourceReview.discrepancies.length && !text(e.sourceReview.clarification, 10) || e.sourceReview.decision === 'unresolved' && e.lifecycle === 'completed'))
+        return 'Ungeklärte Differenzen dürfen nicht als gültige Verordnung abgeschlossen werden.';
+    const o = e.order;
+    if (!text(o.medicationName, 1) || !text(o.activeIngredient, 1) || !text(o.strength, 1) || !text(o.form, 1) || !decimal(o.dose) || !text(o.unit, 1) || !text(o.route, 1) || !text(o.prescriber, 1) || !date(o.validFrom) || o.validUntil !== null && !date(o.validUntil) || o.validUntil !== null && o.validUntil < o.validFrom || !text(o.indication, 1))
+        return 'Präparat, Wirkstoff, Stärke, Form, Dosis, Weg, Arzt, Indikation und Gültigkeit sind erforderlich.';
+    if (o.isPrn && (!optionalDecimal(o.minimumIntervalMinutes) || o.minimumIntervalMinutes === null || !optionalDecimal(o.maximumDose) || o.maximumDose === null || !text(o.maximumDoseUnit, 1) || !optionalDecimal(o.maximumPeriodHours) || o.maximumPeriodHours === null))
+        return 'Bedarfsmedikation benötigt ärztliche Indikation, Mindestabstand, Höchstmenge, Einheit und Bezugszeitraum.';
+    if (!o.isPrn && (o.minimumIntervalMinutes !== null || o.maximumDose !== null || o.maximumDoseUnit || o.maximumPeriodHours !== null))
+        return 'Bedarfsgrenzen dürfen nicht still auf Regelmedikation übertragen werden.';
+    if (e.kind === 'schedule_version') {
+        if (!uuid(e.schedule.versionId) || !instant(e.schedule.effectiveFrom) || !e.schedule.slots.length || e.schedule.slots.some(x => !uuid(x.id) || !instant(x.plannedAt) || !decimal(x.dose) || x.unit !== o.unit || x.route !== o.route) || new Set(e.schedule.slots.map(x => x.id)).size !== e.schedule.slots.length || !text(e.schedule.changeReason, 10))
+            return 'Gabeplan benötigt Version, Wirksamkeit, eindeutige Zeitfenster und begründete Änderung.';
+    }
+    const actual = ['administration', 'late_administration', 'prn_administration'].includes(e.kind), none = e.kind === 'non_administration';
+    if (actual) {
+        if (!['administered', 'late'].includes(e.administration.outcome) || !instant(e.administration.actualAt) || !optionalDecimal(e.administration.actualDose) || e.administration.actualDose === null || e.administration.unit !== o.unit || e.administration.route !== o.route || !uuid(e.administration.performedBy) || e.kind === 'late_administration' && !text(e.administration.deviationReason, 3))
+            return 'Tatsächliche Gabe benötigt Ergebnis, Ereigniszeit, Originaldosis/-einheit/-weg und ausführende Person.';
+    }
+    if (none) {
+        if (!['omitted', 'refused', 'held'].includes(e.administration.outcome) || !instant(e.occurredAt) || e.administration.actualAt !== null || e.administration.actualDose !== null || e.administration.performedBy !== null || e.administration.unit || e.administration.route || !text(e.administration.deviationReason, 3))
+            return 'Nichtgabe benötigt Ereignis und Grund, aber keine tatsächliche Dosis, Gabezeit oder ausführende Person.';
+    }
+    if (!actual && !none && e.administration.outcome !== 'planned')
+        return 'Planung darf keine tatsächliche Gabe ableiten.';
+    if (actual && e.occurredAt !== e.administration.actualAt)
+        return 'Paketereignis und tatsächliche Gabezeit müssen identisch bleiben.';
+    if (e.kind === 'prn_administration' && (!o.isPrn || !text(e.administration.prnIndication, 3) || !uniqueUuids(e.administration.precedingAdministrationIds) || !e.administration.precedingAdministrationIds.length || !decimal(e.administration.intervalMinutes ?? '') || !decimal(e.administration.maximumPeriodDose ?? '') || milli(e.administration.intervalMinutes!) < milli(o.minimumIntervalMinutes!) || milli(e.administration.maximumPeriodDose!) > milli(o.maximumDose!)))
+        return 'Bedarfsgabe benötigt aktuelle Indikation, passende vorherige Gaben sowie eingehaltenen Mindestabstand und Höchstmenge.';
+    if (e.kind === 'prn_interval_check' && (!o.isPrn || !uniqueUuids(e.administration.precedingAdministrationIds) || !e.administration.precedingAdministrationIds.length || !decimal(e.administration.intervalMinutes ?? '') || milli(e.administration.intervalMinutes!) < milli(o.minimumIntervalMinutes!)))
+        return 'Abstandsprüfung benötigt tatsächliche vorherige Regel-, Bedarfs- und verspätete Gaben sowie den eingehaltenen Mindestabstand.';
+    if (e.kind === 'maximum_dose_check' && (!o.isPrn || !uniqueUuids(e.administration.precedingAdministrationIds) || !e.administration.precedingAdministrationIds.length || !decimal(e.administration.maximumPeriodDose ?? '') || e.administration.unit !== o.maximumDoseUnit || milli(e.administration.maximumPeriodDose!) > milli(o.maximumDose!)))
+        return 'Höchstmengenprüfung benötigt passende tatsächliche Gaben und eine eingehaltene Höchstmenge in derselben Originaleinheit.';
+    if (e.kind === 'effect_review' && (!uuid(e.effect.administrationId) || !instant(e.effect.observedAt) || !text(e.effect.observation, 3) || !text(e.effect.action, 3) || e.effect.painScore !== null && (!Number.isInteger(e.effect.painScore) || e.effect.painScore < 0 || e.effect.painScore > 10)))
+        return 'Wirksamkeitskontrolle benötigt Gabezuordnung, Zeitpunkt, Beobachtung und Maßnahme.';
+    if (e.kind === 'safety_signal' && (e.safety.state === 'not_observed' || !text(e.safety.observation, 3) || !text(e.safety.suspectedRelation, 3) || !text(e.safety.reaction, 3) || !text(e.safety.clinicianContact, 3) || !text(e.safety.followUp, 3)))
+        return 'Nebenwirkungs- oder Fehlerverdacht benötigt Beobachtung, nur vermuteten Bezug, Reaktion, Kontakt und Verlauf.';
+    if (e.kind === 'controlled_witness') {
+        if (!e.witness.required || !uuid(e.administration.performedBy) || !uuid(e.witness.profileId) || e.witness.profileId === e.administration.performedBy || !['selection_only', 'independently_authenticated'].includes(e.witness.assertion) || e.witness.assertion === 'independently_authenticated' && (!instant(e.witness.signedAt) || !uuid(e.witness.signatureId) || !text(e.witness.qualificationEvidence, 3)))
+            return 'Gegenkontrolle benötigt ausführende und andere aktuelle Person; Auswahl allein ist keine authentifizierte Zweitsignatur.';
+    }
+    const stockKind = ['preparation_stock', 'controlled_ledger'].includes(e.kind);
+    if (stockKind) {
+        const s = e.stock;
+        if (s.operation === 'none' || !uuid(s.packageId) || !decimal(s.quantity ?? '') || !text(s.unit, 1) || !decimal(s.balanceBefore ?? '') || !decimal(s.balanceAfter ?? '') || !uuid(s.responsibleBy) || s.operation === 'prepare' && !text(s.reason, 3) || s.operation === 'correction' && !text(s.reason, 10))
+            return 'Richten/Bestand benötigt Packung, echte Bewegung, Originaleinheit, Vor-/Nachbestand, Verantwortung und gegebenenfalls Korrekturgrund.';
+        if (milli(s.balanceAfter!) < 0n)
+            return 'Bestand darf nicht unbemerkt negativ werden.';
+        if (s.operation === 'receipt' && milli(s.balanceAfter!) !== milli(s.balanceBefore!) + milli(s.quantity!) || ['prepare', 'consumption'].includes(s.operation) && milli(s.balanceAfter!) !== milli(s.balanceBefore!) - milli(s.quantity!))
+            return 'Bestandsbewegung und Vor-/Nachbestand müssen in derselben Originaleinheit rechnerisch stimmen.';
+        if (e.kind === 'controlled_ledger' && (!text(s.batch, 1) || !date(s.expiry)))
+            return 'BtM-Bestandsbuch benötigt Charge und Haltbarkeit.';
+    }
+    if (e.kind === 'order_pause_stop' && (!['paused', 'stopped'].includes(e.orderStatus.next) || !instant(e.orderStatus.effectiveAt) || !text(e.orderStatus.reason, 10) || !uuid(e.orderStatus.authorizationId) || !uuid(e.orderStatus.followUpPlanId)))
+        return 'Pausieren oder Beenden benötigt Zeitpunkt, Berechtigung, Grund und Folgeplan; Reaktivierung bleibt ein eigener Vorgang.';
+    if (e.kind === 'correction' && (!uuid(e.correction.targetEventId) || !text(e.correction.reason, 10) || !uuid(e.correction.replacementEventId) || e.correction.replacementEventId === e.correction.targetEventId || !uuid(e.correction.approvedBy) || !instant(e.correction.approvedAt)))
+        return 'Korrektur benötigt Originalereignis, begründeten Nachtrag, neue Ereignisidentität und Freigabe.';
+    if (e.lifecycle === 'completed' && (e.sourceReview.decision === 'unresolved' || e.witness.required && e.witness.assertion !== 'independently_authenticated' || e.kind === 'safety_signal' && !text(e.safety.followUp, 3)))
+        return 'Abschluss ist bei ungeklärter Quelle, fehlender Zweitsignatur oder offenem Sicherheitsverlauf gesperrt.';
+    return ['open', 'completed'].includes(e.lifecycle) ? null : 'Lebenszyklusstatus ist ungültig.';
+}
+export function medicationSafetyOriginalIssue(v: unknown, c: {
+    tenantId: string;
+    clientId: string;
+    medicationId: string;
+}): string | null { const o = v as MedicationSafetyOriginal; if (!o || ![o.id, o.rootId, o.headId, o.recordedBy].every(uuid) || o.tenantId !== c.tenantId || o.clientId !== c.clientId || o.medicationId !== c.medicationId || !Number.isSafeInteger(o.revision) || o.revision < 1 || !kinds.has(o.kind) || !instant(o.recordedAt) || !text(o.recordedByName, 1) || !sha(o.contentFingerprint) || !Array.isArray(o.history) || o.history.length !== o.revision || typeof o.voided !== 'boolean' || medicationSafetyEntryIssue(o.payload))
+    return 'Vollständiges Medikationsoriginal fehlt.'; const ids = new Set<string>(); for (let i = 0; i < o.history.length; i++) {
+    const h = o.history[i];
+    if (!h || !uuid(h.id) || ids.has(h.id) || h.revision !== i + 1 || (i ? h.previousId !== o.history[i - 1].id : h.previousId !== null) || !instant(h.recordedAt) || !uuid(h.recordedBy) || !text(h.recordedByName, 1) || !text(h.reason, i ? 10 : 0) || !sha(h.contentFingerprint) || medicationSafetyEntryIssue(h.payload) || h.payload.kind !== o.kind)
+        return 'Medikationshistorie ist abgeschnitten oder widersprüchlich.';
+    ids.add(h.id);
+} const head = o.history.at(-1); return o.history[0].id !== o.rootId || head?.id !== o.headId || o.id !== o.headId || o.kind !== o.payload.kind || head?.revision !== o.revision || head?.recordedAt !== o.recordedAt || head?.recordedBy !== o.recordedBy || head?.recordedByName !== o.recordedByName || head?.contentFingerprint !== o.contentFingerprint || JSON.stringify(head?.payload) !== JSON.stringify(o.payload) ? 'Medikationsoriginalkopf stimmt nicht mit der Historie überein.' : null; }
+export function medicationSafetyPacketIssue(v: unknown): string | null { const p = v as MedicationSafetyPacket; if (!p || p.schemaVersion !== '1' || !['create', 'revise'].includes(p.action) || ![p.requestId, p.tenantId, p.clientId, p.medicationId, p.actorId].every(uuid) || !Number.isSafeInteger(p.expectedRevision) || p.expectedRevision < 0 || p.entry.clientId !== p.clientId || p.entry.medicationId !== p.medicationId || medicationSafetyEntryIssue(p.entry) || medicationSafetySourcesIssue(p.sources) || p.sources.order.medicationId !== p.medicationId || p.sources.order.clientId !== p.clientId || p.sources.order.updatedAt !== p.entry.orderVersion || p.sources.order.fingerprint !== p.entry.sourceReview.planFingerprint || p.sources.allergies.state !== p.entry.sourceReview.allergyState || p.sources.allergies.text !== p.entry.sourceReview.allergyText || p.entry.sourceReview.documentIds.some(id => !p.sources.documents.some(x => x.id === id)))
+    return 'Anfrage ist nicht vollständig an aktuelle Verordnung, Allergien und Quellen gebunden.'; const refs = p.entry.administration.precedingAdministrationIds, actuals = refs.map(id => p.sources.administrations.find(x => x.id === id && ['administered', 'late'].includes(x.status))); if (actuals.some(x => !x))
+    return 'Abstands- oder Höchstmengenprüfung enthält keine passende tatsächliche Gabe.'; if (['prn_administration', 'prn_interval_check'].includes(p.entry.kind)) {
+    const reference = instantMicros(p.entry.kind === 'prn_administration' ? p.entry.administration.actualAt! : p.entry.plannedAt), moments = actuals.map(x => x?.occurredAt ? instantMicros(x.occurredAt) : null);
+    if (reference === null || moments.some(x => x === null) || !moments.length)
+        return 'Abstandsprüfung benötigt vollständige tatsächliche Originalzeiten.';
+    const latest = moments.reduce((a, b) => a! > b! ? a : b)!;
+    if (reference < latest || ((reference - latest) / 60000n) !== milli(p.entry.administration.intervalMinutes!))
+        return 'Abstandsminuten stimmen nicht mit den vollständig gelesenen tatsächlichen Originalzeiten überein.';
+} if (['prn_administration', 'maximum_dose_check'].includes(p.entry.kind)) {
+    if (actuals.some(x => !decimal(x?.dose) || x?.unit !== p.entry.order.maximumDoseUnit))
+        return 'Höchstmengenprüfung benötigt strukturierte tatsächliche Originaldosen in derselben Einheit.';
+    const prior = actuals.reduce((sum, x) => sum + milli(x!.dose!), 0n), proposed = p.entry.kind === 'prn_administration' ? milli(p.entry.administration.actualDose!) : 0n;
+    if (prior + proposed !== milli(p.entry.administration.maximumPeriodDose!))
+        return 'Zeitraumssumme stimmt nicht mit den vollständig gelesenen tatsächlichen Originaldosen überein.';
+} if (p.entry.effect.administrationId && !p.sources.administrations.some(x => x.id === p.entry.effect.administrationId && ['administered', 'late'].includes(x.status)))
+    return 'Wirksamkeitskontrolle ist nicht an eine bestätigte tatsächliche Gabe gebunden.'; const witness = p.entry.witness.profileId ? p.sources.witnesses.find(x => x.profileId === p.entry.witness.profileId && x.active) : null; if (p.entry.witness.profileId && !witness)
+    return 'Gegenkontrolle ist nicht im vollständigen aktuellen Personenbestand enthalten.'; if (p.entry.kind === 'controlled_witness' && (p.entry.witness.assertion !== 'independently_authenticated' || p.entry.witness.profileId !== p.actorId || p.entry.witness.signatureId !== p.requestId || p.entry.witness.qualificationEvidence !== witness?.qualificationState))
+    return 'Zweitsignatur muss an die eigene aktuelle Sitzung, Anfrage und unveränderte Qualifikationsfassung gebunden sein.'; if (p.entry.stock.packageId && p.entry.stock.operation !== 'receipt' && !p.sources.stockMovements.some(x => x.packageId === p.entry.stock.packageId))
+    return 'Abgang, Richten oder Korrektur ist nicht an einen vollständig gelesenen Packungsbestand gebunden.'; if (p.action === 'create')
+    return p.expectedHeadId !== null || p.expectedRevision !== 0 || p.original !== null || p.reason ? 'Neuanlage darf kein erfundenes Original enthalten.' : null; if (!p.original || medicationSafetyOriginalIssue(p.original, { tenantId: p.tenantId, clientId: p.clientId, medicationId: p.medicationId }) || p.expectedHeadId !== p.original.headId || p.expectedRevision !== p.original.revision || p.entry.kind !== p.original.kind || !text(p.reason, 10, 2000) || JSON.stringify(p.entry) === JSON.stringify(p.original.payload))
+    return 'Fortschreibung benötigt vollständiges Original, CAS, Grund und echte Änderung.'; return null; }
+export function makeMedicationSafetyPacket(input: Omit<MedicationSafetyPacket, 'schemaVersion'>): MedicationSafetyPacket { const packet = clone({ schemaVersion: '1' as const, ...input }); const issue = medicationSafetyPacketIssue(packet); if (issue)
+    throw Error(issue); return deepFreeze(packet); }
