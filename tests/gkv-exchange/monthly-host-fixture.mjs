@@ -64,13 +64,13 @@ export async function monthlyHostFixture(){
     catch(error){return json({code:error.code},error.code==='42501'?403:400);}
   };
   const command=async(action,input,requestId=randomUUID(),identity=claims())=>(await as(identity,'SELECT public.gkv_monthly_proof_command($1,$2,$3,$4::jsonb) value',[tenant,requestId,action,JSON.stringify(input)])).rows[0].value;
-  async function proof({clientId=randomUUID(),serviceType='01'}={}){
+  async function proof({clientId=randomUUID(),serviceType='01',serviceDate='2026-10-03'}={}){
     const client=clientId,record=randomUUID(),visit=randomUUID();
     await db.query("INSERT INTO clients(id,tenant_id,first_name,last_name) VALUES($1,$2,'Fiktive','Person') ON CONFLICT DO NOTHING",[client,tenant]);
     const receipt={tenant_id:tenant,client_id:client,employee_id:employee,proof_id:visit,proof_payload_hash:'sha256:'+'a'.repeat(64),visit_id:visit};
-    await db.query("INSERT INTO service_records VALUES($1,$2,$3,$4,'2026-10-03T12:00Z','2026-10-03','approved',45,$5,true)",[record,tenant,client,employee,JSON.stringify(receipt)]);
+    await db.query("INSERT INTO service_records VALUES($1,$2,$3,$4,$6::date+time '12:00',$6::date,'approved',45,$5,true)",[record,tenant,client,employee,JSON.stringify(receipt),serviceDate]);
     await db.query('INSERT INTO assist_visit_proofs VALUES($1,$2,$1,$3,$4)',[visit,tenant,receipt.proof_payload_hash,JSON.stringify({documentationNote:'Vollständige Unterstützung bei der Körperpflege.',tasks:[]})]);
-    const p=await command('create',{new_id:randomUUID(),client_id:client,month:'2026-10',service_type:serviceType,source_ids:[record]});
+    const p=await command('create',{new_id:randomUUID(),client_id:client,month:serviceDate.slice(0,7),service_type:serviceType,source_ids:[record]});
     return {p,input:{tenantId:tenant,proofId:p.id,revision:p.revision,captureId:randomUUID()}};
   }
   const authority=async(proofId,action,input={},identity=claims())=>(await as(identity,'SELECT public.gkv_monthly_authority_command($1,$2,$3::jsonb) value',[tenant,action,JSON.stringify({proofId,...input})])).rows[0].value;

@@ -47,5 +47,11 @@ export async function employeeFixture(){
   await f.db.query("UPDATE care_security.gkv_monthly_fact_sources m SET source_updated_at=s.updated_at,source_receipt_sha256=encode(sha256(convert_to(s.source_receipt::text,'UTF8')),'hex') FROM service_records s WHERE s.id=$1 AND m.record_id=s.id",[r.recordId]);
   await base.refresh(v);return {id,visit,receipt};
  };
- return {...base,employee,profile,account,claims,reviewClaims,command,status,workspace,submit,approve,capture};
+ // Personal INSERT capture uses the database's live clock. Keep its selected
+ // billing month in sync with Berlin's current service day, including UTC edges.
+ const setup=({mapped=true}={})=>{
+  const instant=new Date(),serviceDate=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(instant);
+  return base.setup({mapped,serviceDate,serviceStartedAt:instant.toISOString(),serviceEndedAt:instant.toISOString()});
+ };
+ return {...base,setup,employee,profile,account,claims,reviewClaims,command,status,workspace,submit,approve,capture};
 }

@@ -22,10 +22,10 @@ export async function monthlyFactsFixture(){
  await f.db.query("INSERT INTO care_security.gkv_monthly_fact_profiles VALUES($1,$2,'123456789','999888777','SYNTHETISCHE IK-Zuordnung','SYNTHETISCHE Verantwortlichenprüfung',now()+interval '1 day',NULL)",[f.tenant,f.actorId]);
  const refresh=async v=>{v.p=await f.command('replace_sources',{id:v.p.id,revision:v.p.revision,source_ids:v.p.payload.records.map(r=>r.recordId),reason:'Originalquelle erneut abgleichen'});v.input.revision=v.p.revision;};
  const freeze=async(v,id=randomUUID())=>{v.p=await f.command('freeze_facts',{id:v.p.id,revision:v.p.revision},id);v.input.revision=v.p.revision;return v.p;};
- const setup=async({mapped=true}={})=>{
-  const v=await f.proof(),r=v.p.payload.records[0];
+ const setup=async({mapped=true,serviceDate='2026-10-03',serviceStartedAt=serviceDate+'T08:00:00Z',serviceEndedAt=serviceDate+'T08:45:00Z'}={})=>{
+  const v=await f.proof({serviceDate}),r=v.p.payload.records[0];
   await f.db.query("UPDATE clients SET insurance_number='A123456789' WHERE id=$1",[v.p.payload.clientId]);
-  await f.db.query("UPDATE service_records SET source_receipt=source_receipt||$2::jsonb WHERE id=$1",[r.recordId,JSON.stringify({service_started_at:'2026-10-03T08:00:00Z',service_ended_at:'2026-10-03T08:45:00Z'})]);
+  await f.db.query("UPDATE service_records SET source_receipt=source_receipt||$2::jsonb WHERE id=$1",[r.recordId,JSON.stringify({service_started_at:serviceStartedAt,service_ended_at:serviceEndedAt})]);
   await refresh(v);
   if(mapped)await f.db.query("INSERT INTO care_security.gkv_monthly_fact_sources SELECT tenant_id,id,updated_at,encode(sha256(convert_to(source_receipt::text,'UTF8')),'hex'),'123123123',$2::jsonb,'SYNTHETISCHE Leistungszuordnung' FROM service_records WHERE id=$1",[r.recordId,JSON.stringify(lines)]);
   return v;
