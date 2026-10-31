@@ -283,7 +283,15 @@ try{
    await React.act(async()=>choice('Ich habe alle Seiten dieser Druckfassung geprüft').click());await click('Druckfassung geprüft, Scan erfassen');};
  const uploadPaper=async()=>{const file=container.querySelector('input[type=file]'),bytes=Buffer.from('%PDF- synthetic scanned boundary');
    Object.defineProperty(file,'files',{configurable:true,value:[{name:'scan.pdf',size:bytes.length,arrayBuffer:async()=>bytes.buffer.slice(bytes.byteOffset,bytes.byteOffset+bytes.length)}]});
-   await React.act(async()=>file.dispatchEvent(new window.Event('change',{bubbles:true})));};
+   await React.act(async()=>file.dispatchEvent(new window.Event('change',{bubbles:true})));
+   // Native WebCrypto can finish after React's first flush. Wait for the actual
+   // success/uncertainty state, never infer completion from dispatchEvent alone.
+   const deadline=Date.now()+5000;
+   while(!button('Seite 1')&&!button('Erfassung prüfen')){
+     assert.ok(Date.now()<deadline,'paper upload reaches a visible result');
+     await React.act(async()=>new Promise(resolve=>setTimeout(resolve,10)));
+   }
+ };
  await check('paper review requires both loaded pages, bounded crop and signature time before separate final confirmation',async()=>{
    globalThis.monthlyApi.commandMonthlyProof=async(_t,_r,c,id)=>{calls.push(['write',structuredClone(c),id]);return applySignedCapture();};
    await beginPaper();assert.equal(button('Unterschrift im Test zeichnen'),undefined);await uploadPaper();

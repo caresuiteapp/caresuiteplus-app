@@ -1,5 +1,7 @@
 # Pflege-Leistungsnachweis als XML
 
+Aktualisierung 31.10.2026: [CMS-Komponentensignatur und Monatsarchiv](monthly-component-signature.md) verbindet den konfigurierten Host mit dem dauerhaften XML-/CMS-Archiv. Die dort beschriebenen Sperren und offenen Nachweise gelten zusätzlich zum folgenden ursprünglichen Stand.
+
 Stand: 29.10.2026. `services/gkv/monthly-xml.mjs` erzeugt einen **unsignierten**
 Leistungsnachweis und prüft dessen tatsächliche Bytes gegen das amtliche
 `PFL_LNW_2.2.0.xsd`. Der private Monatsablauf bindet inzwischen vorab

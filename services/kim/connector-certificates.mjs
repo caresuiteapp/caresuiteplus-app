@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { DOCUMENT_OPERATIONS } from './connector-document-xml.mjs';
-import { eccCmsCertificate, prepareEccKimRecipients, verifyEccKimSignedContent } from './ecc-cms.mjs';
+import { eccCmsCertificate, prepareEccKimRecipients, verifyEccKimSignedContent, verifyEccComponentSignedContent } from './ecc-cms.mjs';
 import { readKimEnvelope } from './envelope.mjs';
 import { decodeKimMimeEntity } from './message.mjs';
 import { kimAddress } from './address.mjs';
@@ -257,24 +257,27 @@ export class KonnektorCertificateClient {
     } finally { this.#authBusy = false; bytes.fill(0); digest.fill(0); signature?.fill(0); jose?.fill(0); }
   }
   signSmcbDocument(input = {}) { return this.#documentOperation('SignDocument', input); }
+  signSmcbComponent(input = {}) { return this.#documentOperation('SignDocument', input, true); }
   encryptSmcbDocument(input = {}) { return this.#documentOperation('EncryptDocument', input); }
   decryptSmcbDocument(input = {}) { return this.#documentOperation('DecryptDocument', input); }
   /** Read-only nonQES verification, bound to the independently checked CMS.
    * No PIN prompt, private-key operation or automatic retry. */
-  async verifySmcbDocument(input = {}) {
-    pinOptions(input, ['data', 'certificate', 'verification', 'recipientEmails', 'signal']);
+  verifySmcbDocument(input = {}) { return this.#verifyDocument(input, false); }
+  verifySmcbComponent(input = {}) { return this.#verifyDocument(input, true); }
+  async #verifyDocument(input, component) {
+    pinOptions(input, ['data', 'certificate', 'verification', 'signal', ...(component ? [] : ['recipientEmails'])]);
     const { data, certificate: raw, verification, recipientEmails, signal } = input;
     this.#pinOpen(false); connectorSignal(signal);
     if (!this.#signatureTransport) connectorFail('CMS_UNCONFIGURED');
     if (!(data instanceof Uint8Array) || !data.length || data.length > 22020096
-      || !(recipientEmails instanceof Uint8Array) || !recipientEmails.length || recipientEmails.length > 262144) connectorFail('INPUT');
-    const bytes = Buffer.from(data), emails = Buffer.from(recipientEmails);
+      || !component && (!(recipientEmails instanceof Uint8Array) || !recipientEmails.length || recipientEmails.length > 262144)) connectorFail('INPUT');
+    const bytes = Buffer.from(data), emails = component ? null : Buffer.from(recipientEmails);
     let checked, cert;
     try {
       try {
         cert = eccCmsCertificate(raw, 'osig', this.#now());
         if (cert.certificateTypeOid !== '1.2.276.0.76.4.78') throw new Error();
-        checked = verifyEccKimSignedContent({ bytes, recipientEmails: emails, expectedSignerCertificate: cert.cert.raw, now: this.#now() });
+        checked = (component ? verifyEccComponentSignedContent : verifyEccKimSignedContent)({ bytes, recipientEmails: emails, expectedSignerCertificate: cert.cert.raw, now: this.#now() });
       } catch { connectorFail('CMS_VERIFY_INPUT'); }
       const bound = () => { this.#open(); connectorSignal(signal); assertConnectorCertificate(verification, this, { certificate: cert.cert.raw }); };
       bound(); this.#cmsBusy = true;
@@ -297,20 +300,22 @@ export class KonnektorCertificateClient {
             resultConsistent: parsed.resultConsistent, reportSha256: parsed.reportSha256, reportBinding: 'signature-and-certificate' }) });
           throw failure;
         }
+        if (component && (typeof parsed.reportBase64 !== 'string' || hash(Buffer.from(parsed.reportBase64, 'base64')) !== parsed.reportSha256)) connectorFail('CMS_VERIFY_BINDING');
         return Object.freeze({ ...metadata, dataSha256: hash(bytes), contentSha256: hash(checked.content),
           certificateSha256: checked.signerSha256, signatureSha256: checked.signatureSha256,
           verificationResult: 'VALID', verificationTime: parsed.verificationTime, timestampType: parsed.timestampType,
           reportSha256: parsed.reportSha256, reportBinding: 'signature-and-certificate',
-          deliveryStatus: 'held-for-trust-validation', profile: 'ecc-cms-diagnostic' });
+          ...(component ? { reportBase64: parsed.reportBase64 } : {}),
+          deliveryStatus: 'held-for-trust-validation', profile: component ? 'gkv-component-ecc-cades' : 'ecc-cms-diagnostic' });
       } finally { this.#cmsBusy = false; }
-    } finally { bytes.fill(0); emails.fill(0); checked?.content.fill(0); }
+    } finally { bytes.fill(0); emails?.fill(0); checked?.content.fill(0); }
   }
   /** One held ECC operation. Fresh original PIN/certificate evidence is consumed;
    * ambiguous replies latch the client until explicit host recovery. No retries. */
-  async #documentOperation(operation, input) {
+  async #documentOperation(operation, input, component = false) {
     const sign = operation === 'SignDocument', decrypt = operation === 'DecryptDocument';
     pinOptions(input, ['status', 'certificate', 'verification', 'data', 'signal',
-      ...(decrypt ? ['address', 'expectedSignerCertificate'] : ['sender', 'recipients'])]);
+      ...(component ? [] : decrypt ? ['address', 'expectedSignerCertificate'] : ['sender', 'recipients'])]);
     const { status, certificate: raw, verification, data, signal } = input;
     this.#pinOpen(); connectorSignal(signal);
     if (!(sign ? this.#signatureTransport : this.#encryptionTransport)) connectorFail('CMS_UNCONFIGURED');
@@ -327,7 +332,7 @@ export class KonnektorCertificateClient {
         if (envelope.profile !== 'ti-ecies-brainpoolp256r1-aes256gcm'
           || !envelope.mappings.some(e => e.address === kimAddress(input.address) && e.rid === cert.rid.toString('hex'))) throw new Error();
         expectedSigner = eccCmsCertificate(input.expectedSignerCertificate, 'osig', this.#now()).cert.raw;
-      } else {
+      } else if (!component) {
         recipientSet = prepareEccKimRecipients(input.sender, input.recipients, this.#now());
         if (!recipientSet.entries.some(e => e.address === kimAddress(input.sender) && e.admission.telematikId === cert.admission.telematikId)) throw new Error();
       }
@@ -355,8 +360,9 @@ export class KonnektorCertificateClient {
       bound(); output = Buffer.from(parsed.data, 'base64');
       if (sign) {
         if (parsed.requestId !== requestId) connectorFail('CMS_BINDING');
-        verified = verifyEccKimSignedContent({ bytes: output, recipientEmails: recipientSet.emails, expectedSignerCertificate: cert.cert.raw, now: this.#now() });
+        verified = (component ? verifyEccComponentSignedContent : verifyEccKimSignedContent)({ bytes: output, recipientEmails: recipientSet?.emails, expectedSignerCertificate: cert.cert.raw, now: this.#now() });
         if (!verified.content.equals(bytes)) connectorFail('CMS_BINDING');
+        if (component && (verified.claimedSigningTime < metadata.startedAt - 5000 || verified.claimedSigningTime > metadata.checkedAt + 5000)) connectorFail('CMS_BINDING');
       } else if (decrypt) {
         decoded = decodeKimMimeEntity(output, { type: 'application/pkcs7-mime', smimeType: 'signed-data' });
         verified = verifyEccKimSignedContent({ bytes: decoded, recipientEmails: envelope.recipientEmails, expectedSignerCertificate: expectedSigner, now: this.#now() });
@@ -367,7 +373,7 @@ export class KonnektorCertificateClient {
       this.#cmsUncertain = false;
       return Object.freeze({ ...metadata, data: output.toString('base64'), dataSha256: hash(bytes), outputSha256: hash(output),
         certificateSha256: hash(cert.cert.raw), ...(job ? { job: job.metadata } : {}),
-        deliveryStatus: 'held-for-trust-validation', profile: 'ecc-cms-diagnostic' });
+        deliveryStatus: 'held-for-trust-validation', profile: component ? 'gkv-component-ecc-cades' : 'ecc-cms-diagnostic' });
     } catch (e) { if (e instanceof KonnektorError) throw e; connectorFail('CMS_REJECTED'); }
     finally { this.#cmsBusy = false; bytes.fill(0); output?.fill(0); decoded?.fill(0); verified?.content.fill(0); }
   }

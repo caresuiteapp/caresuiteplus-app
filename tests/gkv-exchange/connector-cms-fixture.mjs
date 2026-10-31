@@ -46,12 +46,13 @@ export function makeCmsReply({ signingCertificate, signingKey, encryptionKey, no
     if (op === 'GetJobNumber') return cmsResponse(op);
     if (op === 'VerifyDocument') return cmsVerificationReply(bytes, { now: now() });
     const xml = bytes.toString(), data = Buffer.from(xml.match(/<dss:Base64Data[^>]*>([^<]+)</)[1], 'base64');
-    const emails = op === 'DecryptDocument' ? null : Buffer.from(xml.match(/<CMSAttribute>([^<]+)</)[1], 'base64');
+    const emailAttribute = xml.match(/<CMSAttribute>([^<]+)</)?.[1];
+    const emails = emailAttribute ? Buffer.from(emailAttribute, 'base64') : null;
     let result;
     if (op === 'SignDocument') {
       const t = new Date(now()).toISOString().replace(/[-:T]/g, '').slice(2, 14) + 'Z';
       const attrs = set(attribute(OID.contentType, id(OID.data)), attribute(OID.messageDigest, octets(hash(data))),
-        attribute(OID.signingTime, tlv(23, Buffer.from(t))), attribute(OID.signingCertificateV2, seq(seq(seq(octets(hash(c.raw)))))), emails);
+        attribute(OID.signingTime, tlv(23, Buffer.from(t))), attribute(OID.signingCertificateV2, seq(seq(seq(octets(hash(c.raw)))))), ...(emails ? [emails] : []));
       const info = seq(integer(1), rid(c), sha(), tlv(160, der(attrs).value), seq(id(OID.ecdsaSha256)), octets(sign('sha256', attrs, signingKey)));
       result = seq(id(OID.signed), tlv(160, seq(integer(1), set(sha()), seq(id(OID.data), tlv(160, octets(data))), tlv(160, c.raw), set(info))));
     } else if (op === 'EncryptDocument') {

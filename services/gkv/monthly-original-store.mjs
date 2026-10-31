@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { openStore, transaction, Vault, isUuid } from './storage.mjs';
+import {verifyEccComponentSignedContent} from '../kim/ecc-cms.mjs';
 
 const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 const identity = (tenant, capture, part) => `monthly-original-v1:${tenant}:${capture}:${part}`;
@@ -7,7 +8,7 @@ const identity = (tenant, capture, part) => `monthly-original-v1:${tenant}:${cap
 /** Existing encrypted local-worker storage. No object replacement, public URL
  * or browser storage. This is application immutability, not a WORM certification. */
 export class MonthlyOriginalStore {
-  #db; #vault; #quota;
+  #db; #vault; #quota; #closed=false;
   constructor({ path, key, maxTenantBytes = 256_000_000 }) {
     if (!Number.isSafeInteger(maxTenantBytes) || maxTenantBytes < 1024 || maxTenantBytes > 1_000_000_000) throw new Error('MONTHLY_STORE_QUOTA');
     this.#vault = new Vault(key); this.#db = openStore(path); this.#quota = maxTenantBytes;
@@ -27,6 +28,11 @@ export class MonthlyOriginalStore {
     CREATE TABLE IF NOT EXISTS monthly_scan_pages (
       tenant TEXT NOT NULL,capture TEXT NOT NULL,page INTEGER NOT NULL,image BLOB NOT NULL,
       PRIMARY KEY(tenant,capture,page)
+    ) STRICT;
+    CREATE TABLE IF NOT EXISTS monthly_components (
+      tenant TEXT NOT NULL,capture TEXT NOT NULL,state TEXT NOT NULL,
+      record BLOB NOT NULL,xml BLOB NOT NULL,cms BLOB,certificate BLOB,report BLOB,
+      PRIMARY KEY(tenant,capture)
     ) STRICT;`);
   }
   #scope(tenant, capture) {
@@ -38,7 +44,8 @@ export class MonthlyOriginalStore {
       FROM monthly_originals WHERE tenant=?`).get(tenant).n;
     const scans=this.#db.prepare('SELECT coalesce(sum(length(document)+length(manifest)),0) n FROM monthly_scans WHERE tenant=?').get(tenant).n;
     const pages=this.#db.prepare('SELECT coalesce(sum(length(image)),0) n FROM monthly_scan_pages WHERE tenant=?').get(tenant).n;
-    if (used + scans + pages + required > this.#quota) throw new Error('MONTHLY_STORE_QUOTA');
+    const components=this.#db.prepare('SELECT coalesce(sum(length(record)+length(xml)+coalesce(length(cms),0)+coalesce(length(certificate),0)+coalesce(length(report),0)),0) n FROM monthly_components WHERE tenant=?').get(tenant).n;
+    if (used + scans + pages + components + required > this.#quota) throw new Error('MONTHLY_STORE_QUOTA');
   }
   get(tenant, capture) {
     this.#scope(tenant, capture);
@@ -168,5 +175,108 @@ export class MonthlyOriginalStore {
       return this.get(tenant, capture);
     });
   }
-  close() { this.#db.close(); this.#vault.close(); }
+  /** Host-internal archive only. No download of a free-standing signature image.
+   * State is authenticated with the content; a SQLite state edit cannot release it. */
+  getComponent(tenant,capture) {
+    this.#scope(tenant,capture);
+    const row=this.#db.prepare('SELECT * FROM monthly_components WHERE tenant=? AND capture=?').get(tenant,capture);
+    if(!row)return null;
+    const open=(value,part)=>value?this.#vault.open(value,identity(tenant,capture,'component:'+part)):null;
+    const record=JSON.parse(open(row.record,'record').toString('utf8')),xml=open(row.xml,'xml');
+    const cms=open(row.cms,'cms'),certificate=open(row.certificate,'certificate'),report=open(row.report,'report');
+    const original=this.get(tenant,capture),r=original?.receipt;
+    if(!r||record.tenantId!==tenant||record.captureId!==capture||record.receiptId!==r.id
+      ||record.proofId!==r.proof_id||record.revision!==r.proof_revision||record.contentSha256!==r.content_sha256
+      ||record.originalSha256!==original.originalSha256||record.xmlSha256!==digest(xml)
+      ||record.verification.sha256!==record.xmlSha256||record.captureBinding.xmlSha256!==record.xmlSha256
+      ||row.state!==record.state||!['prepared','in-flight','signed','complete','held'].includes(record.state))throw Error('MONTHLY_COMPONENT_INTEGRITY');
+    if(cms){
+      const checked=verifyEccComponentSignedContent({bytes:cms,expectedSignerCertificate:certificate,now:record.signing.checkedAt});
+      try{if(!checked.content.equals(xml)||record.cmsSha256!==digest(cms)||record.signing.outputSha256!==record.cmsSha256
+        ||record.signing.dataSha256!==record.xmlSha256||checked.signerSha256!==record.signing.certificateSha256)throw Error('MONTHLY_COMPONENT_INTEGRITY');}
+      finally{checked.content.fill(0);}
+    }else if(certificate||record.signing||['signed','complete'].includes(record.state))throw Error('MONTHLY_COMPONENT_INTEGRITY');
+    if(report){if(!cms||digest(report)!==record.documentVerification?.reportSha256)throw Error('MONTHLY_COMPONENT_INTEGRITY');}
+    else if(record.state==='complete'||record.documentVerification)throw Error('MONTHLY_COMPONENT_INTEGRITY');
+    return {record,xml,cms,certificate,report};
+  }
+  #writeComponent(tenant,capture,record,parts={}) {
+    const prior=this.#db.prepare('SELECT * FROM monthly_components WHERE tenant=? AND capture=?').get(tenant,capture);
+    const seal=(bytes,part)=>this.#vault.seal(bytes,identity(tenant,capture,'component:'+part));
+    const values={record:seal(Buffer.from(JSON.stringify(record)),'record')};
+    for(const part of ['xml','cms','certificate','report'])values[part]=parts[part]?seal(parts[part],part):prior?.[part]??null;
+    const size=r=>['record','xml','cms','certificate','report'].reduce((n,k)=>n+(r?.[k]?.length??0),0);
+    this.#remaining(tenant,size(values)-size(prior));
+    this.#db.prepare(`INSERT INTO monthly_components VALUES(?,?,?,?,?,?,?,?) ON CONFLICT(tenant,capture)
+      DO UPDATE SET state=excluded.state,record=excluded.record,xml=excluded.xml,cms=excluded.cms,certificate=excluded.certificate,report=excluded.report`)
+      .run(tenant,capture,record.state,values.record,values.xml,values.cms,values.certificate,values.report);
+    return this.getComponent(tenant,capture);
+  }
+  reserveComponent(tenant,capture,value) {
+    this.#scope(tenant,capture);
+    const candidate=structuredClone(value),xml=Buffer.from(candidate.bytes??[]),b=candidate.captureBinding,v=candidate.verification;
+    return transaction(this.#db,()=>{
+      const original=this.get(tenant,capture),r=original?.receipt;
+      if(!r?.verified_at||!xml.length||xml.length>8*1024*1024||b?.captureId!==capture||b.proofId!==r.proof_id
+        ||b.revision!==r.proof_revision||b.contentSha256!==r.content_sha256||b.originalSha256!==original.originalSha256
+        ||b.xmlSha256!==digest(xml)||v?.sha256!==b.xmlSha256||v.checkedAt!==new Date(r.verified_at).toISOString()
+        ||v.schemaValid!==true||v.fieldRulesValid!==true||b.displayedContentMatches!==true
+        ||b.componentSignatureVerified!==false||b.dispatchReady!==false)throw Error('MONTHLY_COMPONENT_BINDING');
+      const prior=this.getComponent(tenant,capture);
+      if(prior){if(!prior.xml.equals(xml)||JSON.stringify(prior.record.captureBinding)!==JSON.stringify(b))throw Error('MONTHLY_COMPONENT_CONFLICT');return prior;}
+      return this.#writeComponent(tenant,capture,{schema:'gkv-monthly-component-v1',tenantId:tenant,captureId:capture,
+        proofId:r.proof_id,revision:r.proof_revision,receiptId:r.id,contentSha256:r.content_sha256,
+        originalSha256:original.originalSha256,xmlSha256:b.xmlSha256,verification:v,captureBinding:b,
+        state:'prepared',attemptId:null,hardwareEvidence:'not-attested',tiEvidence:'not-attested',dispatchReady:false},{xml});
+    });
+  }
+  beginComponent(tenant,capture) {
+    return transaction(this.#db,()=>{
+      const prior=this.getComponent(tenant,capture);
+      if(!prior||prior.record.state!=='prepared')throw Error('MONTHLY_COMPONENT_HELD');
+      this.assertComponentAvailable(tenant);
+      return this.#writeComponent(tenant,capture,{...prior.record,state:'in-flight',attemptId:randomUUID(),startedAt:Date.now()});
+    });
+  }
+  assertComponentAvailable(tenant) {
+    if(!isUuid(tenant))throw Error('MONTHLY_STORE_SCOPE');
+    // Authenticate every journal state before using it as a tenant-wide lock.
+    // A plaintext SQLite state edit must not hide another uncertain attempt.
+    for(const row of this.#db.prepare('SELECT capture,state,record FROM monthly_components WHERE tenant=?').all(tenant)){
+      const record=JSON.parse(this.#vault.open(row.record,identity(tenant,row.capture,'component:record')).toString('utf8'));
+      if(record.tenantId!==tenant||record.captureId!==row.capture||record.state!==row.state)throw Error('MONTHLY_COMPONENT_INTEGRITY');
+      if(['in-flight','signed','held'].includes(record.state))throw Error('MONTHLY_COMPONENT_HELD');
+    }
+  }
+  saveComponentSignature(tenant,capture,attemptId,result,certificateInput) {
+    const signature=structuredClone(result),cms=Buffer.from(signature.data??'','base64'),certificate=Buffer.from(certificateInput);
+    delete signature.data;
+    return transaction(this.#db,()=>{
+      const prior=this.getComponent(tenant,capture);
+      if(!prior||prior.record.state!=='in-flight'||prior.record.attemptId!==attemptId
+        ||signature.profile!=='gkv-component-ecc-cades'||signature.operation!=='SignDocument'
+        ||cms.length>8*1024*1024||!Number.isSafeInteger(signature.checkedAt))throw Error('MONTHLY_COMPONENT_BINDING');
+      return this.#writeComponent(tenant,capture,{...prior.record,state:'signed',cmsSha256:digest(cms),signing:signature},{cms,certificate});
+    });
+  }
+  completeComponent(tenant,capture,attemptId,result) {
+    const verification=structuredClone(result),report=Buffer.from(verification.reportBase64??'','base64');delete verification.reportBase64;
+    return transaction(this.#db,()=>{
+      const prior=this.getComponent(tenant,capture),r=prior?.record;
+      if(!r||r.state!=='signed'||r.attemptId!==attemptId||verification.operation!=='VerifyDocument'
+        ||verification.profile!=='gkv-component-ecc-cades'||verification.verificationResult!=='VALID'
+        ||verification.dataSha256!==r.cmsSha256||verification.contentSha256!==r.xmlSha256
+        ||verification.certificateSha256!==r.signing.certificateSha256||!report.length||report.length>262144
+        ||digest(report)!==verification.reportSha256)throw Error('MONTHLY_COMPONENT_BINDING');
+      return this.#writeComponent(tenant,capture,{...r,state:'complete',completedAt:Date.now(),documentVerification:verification},{report});
+    });
+  }
+  holdComponent(tenant,capture,attemptId) {
+    return transaction(this.#db,()=>{
+      const prior=this.getComponent(tenant,capture);
+      if(!prior||prior.record.attemptId!==attemptId||!['in-flight','signed'].includes(prior.record.state))throw Error('MONTHLY_COMPONENT_BINDING');
+      return this.#writeComponent(tenant,capture,{...prior.record,state:'held'});
+    });
+  }
+  close() { if(this.#closed)return;this.#db.close();this.#vault.close();this.#closed=true; }
 }

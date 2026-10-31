@@ -45,9 +45,11 @@ def inspect(payload, operation, mode, require, binary):
             require(len(payload) == 6, 'CMS_PROFILE')
             req = payload[5]
             require(set(req.attrib) == {'RequestID'} and len(req) == 3, 'CMS_PROFILE')
-            children(req[0], ['{' + DSS + '}SignatureType', '{' + DSS + '}Properties', '{' + SIG + '}IncludeEContent'])
-            value(req[0][0], CMS); value(req[0][2], 'true')
-            children(req[0][1], ['{' + DSS + '}SignedProperties']); prop(req[0][1][0])
+            component = len(req[0]) == 2
+            children(req[0], ['{' + DSS + '}SignatureType'] + ([] if component else ['{' + DSS + '}Properties']) + ['{' + SIG + '}IncludeEContent'])
+            value(req[0][0], CMS); value(req[0][-1], 'true')
+            if not component:
+                children(req[0][1], ['{' + DSS + '}SignedProperties']); prop(req[0][1][0])
             children(req[1], ['{' + DSS + '}Base64Data']); data(req[1][0], 15000000)
             value(req[2], 'false')
         elif operation == 'EncryptDocument':

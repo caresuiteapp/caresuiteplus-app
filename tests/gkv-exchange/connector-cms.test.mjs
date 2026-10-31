@@ -8,6 +8,8 @@ import { createPrivateKey } from 'node:crypto';
 import { testPki } from './pki-fixture.mjs';
 import { certificateRequest, inspectConnectorXml } from '../../services/kim/connector-xml.mjs';
 import { prepareEccKimRecipients, sealEccKimPayload } from '../../services/kim/ecc-cms.mjs';
+import {verifyEccComponentSignedContent,verifyEccKimSignedContent} from '../../services/kim/ecc-cms.mjs';
+import {openssl} from '../../services/gkv/openssl.mjs';
 import { cmsResponse, makeCmsReply } from './connector-cms-fixture.mjs';
 import { faultResponse, connectorFixture, verificationResponse, raw } from './connector-fixture.mjs';
 const ctx = { mandantId: 'm', clientSystemId: 'CareSuite', workplaceId: 'w' };
@@ -98,4 +100,46 @@ test('CMS card operations: aborted input never reaches a document service', asyn
   const a = await keyInput(client), c = new AbortController(); c.abort();
   await assert.rejects(client.decryptSmcbDocument({ ...a, signal: c.signal }), /KIM_CONNECTOR_ABORTED/);
   assert.equal(requests.some(q => cmsOperation(q.bytes)), false);
+}));
+
+test('component CMS: enveloping binary request is XSD checked and preserves bytes under independent OpenSSL verification',async()=>clientFixture(async({client,requests})=>{
+  const {sender,recipients,...args}=await keyInput(client,true);
+  args.data=Buffer.from('<?xml version="1.0"?><LNW>ä\r\n  exakt</LNW>','utf8');
+  const signed=await client.signSmcbComponent(args),cms=Buffer.from(signed.data,'base64');
+  const request=requests.find(q=>cmsOperation(q.bytes)==='SignDocument').bytes;
+  assert.equal(request.includes('CMSAttribute'),false);assert.ok(request.includes('<c:IncludeEContent>true'));
+  assert.equal((await inspectConnectorXml(request,{operation:'SignDocument',mode:'request'})).operation,'SignDocument');
+  assert.deepEqual(verifyEccComponentSignedContent({bytes:cms,expectedSignerCertificate:args.certificate}).content,args.data);
+  assert.deepEqual(await openssl(['cms','-verify','-inform','DER','-binary','-noverify'],{input:cms}),args.data);
+  assert.throws(()=>verifyEccKimSignedContent({bytes:cms,recipientEmails:input.recipientEmails,expectedSignerCertificate:args.certificate}));
+  const verification=await client.verifyCertificate({certificate:args.certificate});
+  const checked=await client.verifySmcbComponent({data:cms,certificate:args.certificate,verification});
+  assert.equal(checked.profile,'gkv-component-ecc-cades');assert.equal(checked.verificationResult,'VALID');
+  assert.ok(Buffer.from(checked.reportBase64,'base64').includes('VerificationReport'));
+  assert.equal(requests.filter(q=>cmsOperation(q.bytes)==='SignDocument').length,1);
+  await assert.rejects(client.signSmcbComponent(args),/PIN_STATUS_STALE/);
+}));
+test('component CMS: KIM recipient attributes cannot masquerade as a component signature',async()=>{
+  const data=Buffer.from(reply(certificateRequest('SignDocument',ctx,input)).match(/<dss:Base64Signature[^>]*>([^<]+)</)[1],'base64');
+  assert.throws(()=>verifyEccComponentSignedContent({bytes:data,expectedSignerCertificate:raw(signer.certificate)}));
+});
+for(const [name,change] of [
+  ['changed CMS bytes',b=>{b[b.length-1]^=1;return b;}],
+  ['trailing DER',b=>Buffer.concat([b,Buffer.from([0])])],
+  ['different binary content',b=>{const at=b.indexOf('synthetic');assert.ok(at>=0);b[at]^=1;return b;}],
+])test('component CMS: '+name+' latches ambiguous card outcome',async()=>clientFixture(async({client,requests})=>{
+  const {sender,recipients,...args}=await keyInput(client,true);
+  await assert.rejects(client.signSmcbComponent(args),/KIM_CONNECTOR_CMS_/);
+  await assert.rejects(client.signSmcbComponent(args),/CMS_OUTCOME_UNKNOWN/);
+  assert.equal(requests.filter(q=>cmsOperation(q.bytes)==='SignDocument').length,1);
+},event=>{
+  if(cmsOperation(event.bytes)!=='SignDocument')return;
+  const replyChanged=makeCmsReply({signingCertificate:signer.certificate,signingKey,transform:change});
+  cardsReply(event.response,replyChanged(event.bytes));return true;
+}));
+test('component CMS: software keys and caller recipients are rejected before key use',async()=>clientFixture(async({client,requests})=>{
+  const {sender,recipients,...args}=await keyInput(client,true);
+  for(const forbidden of [{privateKey:signingKey},{sender},{recipients},{recipientEmails:input.recipientEmails}])
+    await assert.rejects(client.signSmcbComponent({...args,...forbidden}),/KIM_CONNECTOR_INPUT/);
+  assert.equal(requests.some(q=>cmsOperation(q.bytes)),false);
 }));

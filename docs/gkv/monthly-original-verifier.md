@@ -1,5 +1,7 @@
 # Persönliche Monatsbestätigung: Originaldateien und privater Prüfbeleg
 
+Aktualisierung 31.10.2026: [CMS-Komponentensignatur und Monatsarchiv](monthly-component-signature.md) verbindet den konfigurierten Host mit dem dauerhaften XML-/CMS-Archiv. Die dort beschriebenen Sperren und offenen Nachweise gelten zusätzlich zum folgenden ursprünglichen Stand.
+
 Stand: 29.10.2026. Der private Dienstkern erzeugt die anzuzeigende PDF-Fassung,
 bewahrt deren Bytes zusammen mit einer neu erfassten PNG-Unterschrift auf und
 erstellt nach dem Zurücklesen einen gebundenen Prüfbeleg. Dieser wird im lokalen

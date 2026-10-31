@@ -43,6 +43,15 @@ import { prepareSmcbPin, assertPreparedSmcbPin, maintainSmcbPin, assertMaintaine
 import { cardUrl, pinResponse, isPinStatus, isVerifyPin, isChangePin, isUnblockPin } from './connector-pin-fixture.mjs';
 import { authUrl, isAuthenticate, authResponse, signAuthRequest } from './connector-auth-fixture.mjs';
 import { signSmcbAuthentication, assertSmcbAuthentication, createSmcbKimAuth, assertSmcbKimAuth } from '../../services/kim/connector-auth.mjs';
+import {MonthlyComponentSigner} from '../../services/gkv/monthly-component-signer.mjs';
+import {MonthlyOriginalStore} from '../../services/gkv/monthly-original-store.mjs';
+import {MonthlyOriginalVerifier} from '../../services/gkv/monthly-original-verifier.mjs';
+import {MonthlyOriginalHost,createMonthlyHostServer} from '../../services/gkv/monthly-host.mjs';
+import {callMonthlyHost} from '../../api/_lib/monthly-host-transport.mjs';
+import {monthlyFactsFixture} from './monthly-facts-fixture.mjs';
+import {signingPng} from './monthly-host-fixture.mjs';
+import {generateCapturedMonthlyXml} from '../../services/gkv/monthly-captured-xml.mjs';
+import {openssl} from '../../services/gkv/openssl.mjs';
 
 const hash = b => createHash('sha256').update(b).digest('hex');
 const raw = c => new X509Certificate(c).raw;
@@ -2280,4 +2289,160 @@ test('VZD TLS: an unoffered ECDH group cannot reach certificate status or LDAP',
     await assert.rejects(lookupServer(directory, open()), code('KIM_VZD_CONNECTION'));
     assert.equal(requests.length, 0); assert.equal(leafCount(), 0);
   }, undefined, { tls: { ...vzdTls, minVersion: 'TLSv1.3', ecdhCurve: 'X25519' } });
+}));
+
+// The complete monthly path uses the existing synthetic mTLS + TSL/OCSP peer,
+// PostgreSQL review drafts and encrypted SQLite. It is not hardware/TI evidence.
+async function withMonthlyComponent(run, {transform,changeReply}={}) {
+  await fixture(async({open})=>withCms(async({connector,requests})=>{
+    const monthly=await monthlyFactsFixture(),statusClient=open();
+    const config={tenantId:monthly.f.tenant,store:monthly.store,connector,statusClient,
+      expectedTelematikId:'10-LOCAL-TEST',requiredRoles:['1.2.276.0.76.4.245']};
+    const signer=new MonthlyComponentSigner(config),worker=monthly.setComponentSigner(signer);
+    const v=await monthly.setup();await monthly.freeze(v);await monthly.prepare(v);
+    const png=Buffer.from(signingPng(1),'base64');
+    try{await run({...monthly,config,signer,worker,v,png,requests,connector,statusClient});}
+    finally{await monthly.close();}
+  },transform,changeReply));
+}
+test('monthly component: verified XML, real SOAP CMS and report are archived before receipt; retry and restart never sign twice',async()=>withMonthlyComponent(async m=>{
+  const originalIssue=m.database.issue;let issueCount=0;
+  m.database.issue=async receipt=>{const result=await originalIssue(receipt);if(++issueCount===1)throw Error('synthetic lost database response');return result;};
+  await assert.rejects(m.worker.verify(m.v.input,m.png),/lost database/);
+  const archive=m.store.getComponent(m.f.tenant,m.v.input.captureId);
+  assert.equal(archive.record.state,'complete');assert.equal(archive.record.dispatchReady,false);
+  assert.equal(archive.record.hardwareEvidence,'not-attested');assert.equal(archive.record.tiEvidence,'not-attested');
+  assert.deepEqual(await openssl(['cms','-verify','-inform','DER','-binary','-noverify'],{input:archive.cms}),archive.xml);
+  assert.equal(hash(archive.report),archive.record.documentVerification.reportSha256);
+  assert.ok(archive.xml.includes(m.png.toString('base64')));
+  const recovered=await m.worker.status(m.v.input);assert.equal(recovered.state,'verified');
+  const reopened=new MonthlyOriginalStore(m.storeOptions);
+  try{
+    const components=new MonthlyComponentSigner({...m.config,store:reopened});
+    const resumed=new MonthlyOriginalVerifier({database:m.database,store:reopened,componentSigner:components,requireComponents:true});
+    const receipt=await resumed.verify(m.v.input,m.png);
+    assert.equal(receipt.receiptId,recovered.receipt.receiptId);
+    assert.deepEqual(reopened.getComponent(m.f.tenant,m.v.input.captureId).cms,archive.cms);
+    const final=await m.f.command('confirm',{id:m.v.p.id,revision:m.v.p.revision,content_sha256:m.v.p.content_sha256,receipt_id:receipt.receiptId});
+    assert.equal(final.status,'final');
+    assert.deepEqual((await resumed.readArchivedOriginal({tenantId:m.f.tenant,proofId:final.id,captureId:m.v.input.captureId})).bytes,m.v.original.bytes);
+    const archived=await resumed.readArchivedComponent({tenantId:m.f.tenant,proofId:final.id,captureId:m.v.input.captureId});
+    assert.equal(archived.status,'final');assert.deepEqual(archived.cms,archive.cms);
+    await m.f.command('correct',{id:final.id,revision:final.revision,new_id:randomUUID(),reason:'Synthetische Korrektur'});
+    const invalidated=await resumed.readArchivedComponent({tenantId:m.f.tenant,proofId:final.id,captureId:m.v.input.captureId});
+    assert.equal(invalidated.status,'invalidated');assert.deepEqual(invalidated.cms,archive.cms);
+  }finally{reopened.close();}
+  assert.deepEqual(m.requests.map(q=>cmsOperation(q.bytes)).filter(Boolean),['GetJobNumber','SignDocument','VerifyDocument']);
+  assert.equal(m.requests.some(q=>isVerifyPin(q.bytes)),false);
+  for(const part of [archive.xml,archive.cms,archive.report,archive.certificate])assert.equal((await readFile(m.storeOptions.path)).includes(part),false);
+}));
+test('monthly component: response lost after card use stays held across restart and blocks a different capture',async()=>withMonthlyComponent(async m=>{
+  await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_HELD/);
+  const archive=m.store.getComponent(m.f.tenant,m.v.input.captureId);assert.equal(archive.record.state,'held');assert.equal(archive.cms,null);
+  await assert.rejects(m.worker.status(m.v.input),/MONTHLY_COMPONENT_HELD/);
+  const reopened=new MonthlyOriginalStore(m.storeOptions);
+  try{
+    const worker=new MonthlyOriginalVerifier({database:m.database,store:reopened,componentSigner:new MonthlyComponentSigner({...m.config,store:reopened}),requireComponents:true});
+    await assert.rejects(worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_HELD/);
+    const second=await m.setup();await m.freeze(second);
+    await assert.rejects(worker.prepare(second.input),/MONTHLY_COMPONENT_HELD/);
+  }finally{reopened.close();}
+  assert.equal(m.requests.filter(q=>cmsOperation(q.bytes)==='SignDocument').length,1);
+  assert.equal((await m.f.db.query('SELECT count(*)::int n FROM care_security.gkv_monthly_confirmation_receipts')).rows[0].n,0);
+},{changeReply(event){if(cmsOperation(event.bytes)!=='SignDocument')return false;event.response.destroy();return true;}}));
+test('monthly component: altered signature cannot issue receipt or overwrite captured XML',async()=>withMonthlyComponent(async m=>{
+  await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_HELD/);
+  const a=m.store.getComponent(m.f.tenant,m.v.input.captureId);assert.equal(a.record.state,'held');assert.equal(a.cms,null);
+  await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_HELD/);
+  assert.equal(m.requests.filter(q=>cmsOperation(q.bytes)==='SignDocument').length,1);
+},{transform(bytes,operation){const copy=Buffer.from(bytes);if(operation==='SignDocument')copy[copy.length-1]^=1;return copy;}}));
+test('monthly component: inconclusive report retains CMS but blocks receipt and key retry',async()=>withMonthlyComponent(async m=>{
+  await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_HELD/);
+  const a=m.store.getComponent(m.f.tenant,m.v.input.captureId);assert.equal(a.record.state,'held');assert.ok(a.cms);assert.equal(a.report,null);
+  await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_HELD/);
+  assert.equal(m.requests.filter(q=>cmsOperation(q.bytes)==='SignDocument').length,1);
+},{changeReply(event,result){if(cmsOperation(event.bytes)!=='VerifyDocument')return false;
+  cardsReply(event.response,result.replace('<c:HighLevelResult>VALID','<c:HighLevelResult>INCONCLUSIVE'));return true;}}));
+test('monthly component: source drift during SignDocument holds the saved CMS and never issues receipt',async()=>{
+  let monthly;
+  await withMonthlyComponent(async m=>{monthly=m;
+    await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_HELD/);
+    assert.equal(m.store.getComponent(m.f.tenant,m.v.input.captureId).record.state,'held');
+    assert.equal(m.requests.filter(q=>cmsOperation(q.bytes)==='SignDocument').length,1);
+    assert.equal(m.requests.filter(q=>cmsOperation(q.bytes)==='VerifyDocument').length,0);
+  },{changeReply(event,result){if(cmsOperation(event.bytes)!=='SignDocument')return false;
+    monthly.f.db.query("UPDATE clients SET insurance_number='B987654321' WHERE id=$1",[monthly.v.p.payload.clientId])
+      .then(()=>cardsReply(event.response,result),()=>event.response.destroy());return true;}});
+});
+test('monthly component: final card removal holds independently valid signature and report',async()=>withMonthlyComponent(async m=>{
+  await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_HELD/);
+  assert.equal(m.store.getComponent(m.f.tenant,m.v.input.captureId).record.state,'held');
+  assert.equal(m.requests.filter(q=>cmsOperation(q.bytes)==='VerifyDocument').length,1);
+},{changeReply(event){if(!isCards(event.bytes)||!event.requests.some(q=>cmsOperation(q.bytes)==='VerifyDocument'))return false;
+  cardsReply(event.response,cardsResponse([]));return true;}}));
+test('monthly component: missing PIN never prompts or reserves a key operation',async()=>withMonthlyComponent(async m=>{
+  await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_PIN_REQUIRED/);
+  assert.equal(m.store.getComponent(m.f.tenant,m.v.input.captureId).record.state,'prepared');
+  assert.equal(m.requests.some(q=>cmsOperation(q.bytes)||isVerifyPin(q.bytes)),false);
+},{changeReply(event){if(!isPinStatus(event.bytes))return false;cardsReply(event.response,pinResponse('GetPinStatus','VERIFIABLE',3));return true;}}));
+test('monthly component: a durable in-flight reservation cannot be replayed even without a connector latch',async()=>withMonthlyComponent(async m=>{
+  // Emulate a process dying immediately after its durable reservation.
+  const unsigned=new MonthlyOriginalVerifier({database:m.database,store:m.store,requireComponents:false});
+  await unsigned.verify(m.v.input,m.png);
+  const candidate=await generateCapturedMonthlyXml(m.store.get(m.f.tenant,m.v.input.captureId));
+  m.store.reserveComponent(m.f.tenant,m.v.input.captureId,candidate);m.store.beginComponent(m.f.tenant,m.v.input.captureId);
+  const reopened=new MonthlyOriginalStore(m.storeOptions);
+  try{
+    const signer=new MonthlyComponentSigner({...m.config,store:reopened});
+    await assert.rejects(signer.signCaptured({tenantId:m.f.tenant,captureId:m.v.input.captureId,candidate,assertCurrent:async()=>{}}),/MONTHLY_COMPONENT_HELD/);
+    assert.equal(m.requests.length,0);
+  }finally{reopened.close();}
+}));
+test('monthly component: host refuses frozen facts without signing configuration before patient capture',async()=>{
+ const m=await monthlyFactsFixture();
+ const host=new MonthlyOriginalHost({tenantId:m.f.tenant,store:m.store,supabase:m.f.config,workerKeyId:m.f.workerKeyId,workerKey:m.f.workerKey,http:m.f.http});
+ try{const v=await m.setup();await m.freeze(v);
+  await assert.rejects(host.execute({...v.input,action:'prepare'},'Bearer '+m.f.token()),/MONTHLY_UNCONFIGURED/);
+  assert.equal(m.store.get(m.f.tenant,v.input.captureId),null);
+ }finally{await m.close();}
+});
+test('monthly component: saved CMS resumes only read-only verification after a process interruption',async()=>withMonthlyComponent(async m=>{
+  const unsigned=new MonthlyOriginalVerifier({database:m.database,store:m.store,requireComponents:false});await unsigned.verify(m.v.input,m.png);
+  const candidate=await generateCapturedMonthlyXml(m.store.get(m.f.tenant,m.v.input.captureId));
+  m.store.reserveComponent(m.f.tenant,m.v.input.captureId,candidate);const reserved=m.store.beginComponent(m.f.tenant,m.v.input.captureId);
+  const prepared=await preparePin(m.connector,m.statusClient),c=prepared.bundle.certificates.find(c=>c.certRef==='C.SIG');
+  const signed=await m.connector.signSmcbComponent({status:prepared.status,certificate:c.certificate,verification:c.verification,data:candidate.bytes});
+  m.store.saveComponentSignature(m.f.tenant,m.v.input.captureId,reserved.record.attemptId,signed,c.certificate);
+  const reopened=new MonthlyOriginalStore(m.storeOptions);
+  try{
+    const worker=new MonthlyOriginalVerifier({database:m.database,store:reopened,componentSigner:new MonthlyComponentSigner({...m.config,store:reopened}),requireComponents:true});
+    await worker.verify(m.v.input,m.png);
+    assert.equal(reopened.getComponent(m.f.tenant,m.v.input.captureId).record.state,'complete');
+  }finally{reopened.close();}
+  assert.deepEqual(m.requests.map(q=>cmsOperation(q.bytes)).filter(Boolean),['GetJobNumber','SignDocument','VerifyDocument']);
+}));
+test('monthly component: quota or authenticated-state corruption prevents key use',async()=>withMonthlyComponent(async m=>{
+  const unsigned=new MonthlyOriginalVerifier({database:m.database,store:m.store,requireComponents:false});await unsigned.verify(m.v.input,m.png);
+  const candidate=await generateCapturedMonthlyXml(m.store.get(m.f.tenant,m.v.input.captureId));
+  const small=new MonthlyOriginalStore({...m.storeOptions,maxTenantBytes:1024});
+  try{assert.throws(()=>small.reserveComponent(m.f.tenant,m.v.input.captureId,candidate),/MONTHLY_STORE_QUOTA/);assert.equal(small.getComponent(m.f.tenant,m.v.input.captureId),null);}finally{small.close();}
+  m.store.reserveComponent(m.f.tenant,m.v.input.captureId,candidate);m.store.beginComponent(m.f.tenant,m.v.input.captureId);
+  const db=new DatabaseSync(m.storeOptions.path);try{db.prepare("UPDATE monthly_components SET state='prepared'").run();}finally{db.close();}
+  await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_INTEGRITY/);
+  assert.equal(m.requests.length,0);
+}));
+test('monthly component: authenticated mTLS host carries frozen capture through CMS and private receipt without exposing archive bytes',async()=>withMonthlyComponent(async m=>{
+ const host=new MonthlyOriginalHost({tenantId:m.f.tenant,store:m.store,supabase:m.f.config,
+  workerKeyId:m.f.workerKeyId,workerKey:m.f.workerKey,http:m.f.http,componentSigner:m.signer});
+ const listener=createMonthlyHostServer({host,tls:{...f.pki.tls,ca:f.pki.roots},clientSha256:hash(raw(f.pki.sender.certificate))});
+ listener.listen(0,'127.0.0.1');await once(listener,'listening');
+ const env={GKV_MONTHLY_HOST_URL:`https://localhost.test:${listener.address().port}/v1/monthly-originals`,GKV_MONTHLY_HOST_CONNECT_ADDRESS:'127.0.0.1',
+  GKV_MONTHLY_HOST_SHA256:hash(raw(f.pki.tls.cert)),GKV_MONTHLY_HOST_CA:f.pki.roots,GKV_MONTHLY_CLIENT_CERT:f.pki.sender.certificate,
+  GKV_MONTHLY_CLIENT_KEY:await readFile(f.pki.sender.privateKeyPath),GKV_MONTHLY_CLIENT_PASSPHRASE:f.pki.password.toString()};
+ try{
+  const result=await callMonthlyHost(env,{...m.v.input,action:'verify',pngBase64:m.png.toString('base64')},'Bearer '+m.f.token());
+  assert.equal(result.kind,'receipt');assert.equal(m.store.getComponent(m.f.tenant,m.v.input.captureId).record.state,'complete');
+  assert.equal(Object.hasOwn(result,'cms'),false);assert.equal(JSON.stringify(result).includes(m.png.toString('base64')),false);
+  const final=await m.f.command('confirm',{id:m.v.p.id,revision:m.v.p.revision,content_sha256:m.v.p.content_sha256,receipt_id:result.receipt.receiptId});assert.equal(final.status,'final');
+ }finally{listener.closeAllConnections();await new Promise(r=>listener.close(r));host.close();}
 }));

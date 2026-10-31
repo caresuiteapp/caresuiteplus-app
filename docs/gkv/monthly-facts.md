@@ -1,5 +1,7 @@
 # Fachangaben vor der Monatsbestätigung
 
+Aktualisierung 31.10.2026: [CMS-Komponentensignatur und Monatsarchiv](monthly-component-signature.md) verbindet den konfigurierten Host mit dem dauerhaften XML-/CMS-Archiv. Die dort beschriebenen Sperren und offenen Nachweise gelten zusätzlich zum folgenden ursprünglichen Stand.
+
 Stand: 29.10.2026. Review- und Implementierungsstand; kein produktiver Rollout,
 kein authentifizierter Herkunftsnachweis für GKV-Beschäftigtennummern und keine
 ITSG-/gematik-Freigabe. Android wurde nicht geändert.

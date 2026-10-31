@@ -1,6 +1,46 @@
 # Prüfprotokoll: GKV-Datenaustausch
 
-Stand: 29.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+Stand: 31.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+
+## CMS-Komponentensignatur und Archiv am 31.10.2026
+
+Der Arbeitsstand nach `59b3945f` ergänzt die
+[Signatur- und Archivkette](monthly-component-signature.md). Vollständige
+Fachnachweise durchlaufen im konfigurierten Host die tatsächliche XML-Prüfung,
+SMC-B-Signatur, unabhängige Prüfung der CMS-Bytes und VerifyDocument, bevor eine
+Bestätigungsquittung ausgegeben wird. XML, CMS, Kartenzertifikat und positiver
+Prüfbericht werden verschlüsselt gespeichert. Unklare Schlüsselaufrufe bleiben
+über Prozessneustarts gesperrt; gespeichertes CMS wird niemals neu signiert.
+
+- 65 Konnektor-CMS-/VerifyDocument-Prüfungen bestanden, darunter sechs neue
+  Komponententests. OpenSSL liefert aus dem mathematisch geprüften CMS exakt die
+  ursprünglichen XML-Bytes; TI-Vertrauen wird dabei ausdrücklich nicht behauptet.
+- Zwölf gezielte integrierte Monatsprüfungen bestanden: tatsächliches lokales
+  mTLS/SOAP, TSL/OCSP, PostgreSQL-Entwürfe, SQLite, verlorene Antwort, Wiederanlauf,
+  geänderte Quelle, Karte/PIN, abweichende Signatur, unklarer Prüfbericht,
+  verschlüsseltes Archiv, Korrektur/Entwertung und vollständiger mTLS-Hostablauf.
+- Das Monats-Web-Gate bestand mit 137 Prüfmeldungen einschließlich 23 DOM-Abläufen
+  bei ausdrücklich nicht verfügbarer Python-Ausführung. SQL-/Fachprüfungen
+  bleiben im Webbuild; die tatsächlichen Python/XSD-Integrationen bleiben im
+  vollständigen Dienstetest und im separaten XML-Gate. Keine Prüfung wurde durch
+  eine simulierte XML-Erfolgsmeldung ersetzt.
+- Der Scan-DOM-Test wartet jetzt auf den tatsächlichen Abschluss der asynchronen
+  WebCrypto-Verarbeitung. Eine Dateiauswahl allein ist kein abgeschlossener Upload.
+- Der erste große Dienstetest hatte 1.397 bestandene Meldungen und einen
+  `KIM_CONNECTOR_XML_TIMEOUT` unter paralleler Buildlast. Die gezielte Wiederholung
+  dieses Kartenwechseltests bestand. Für den abschließenden Gesamtlauf werden
+  höchstens zwei Testdateien parallel ausgeführt; die Schutzfristen bleiben gleich.
+- Der erste lokale Gesamt-Webbuild wurde beim TypeScript-Schritt vom Betriebssystem
+  mit `SIGKILL` beendet. Das ist kein erfolgreicher Gesamtbuild. Typprüfung und
+  abschließende Vercel-Builds werden getrennt nachgeprüft; deren aktuellen Stand
+  dokumentiert [Draft-PR #129](https://github.com/caresuiteapp/caresuiteplus-app/pull/129).
+
+Die normative Abnahme bleibt offen: keine produktive Migration/Provisionierung,
+keine echten Karten-/TI-/Annahmestellennachweise, keine neue visuelle Freigabe und
+kein Echtversand. Weiterhin fehlen unter anderem die ursprüngliche persönliche
+GKV-Nummernerfassung, Bereinigung der gesonderten Bildablage, unterstützte weitere
+CAdES-/XML-Profile, administrative Sperrklärung und vollständige Abrechnungsübergabe.
+
 
 ## Fachangaben und Originalbindung am 29.10.2026
 

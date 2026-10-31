@@ -108,4 +108,4 @@ def inspect(payload, mode, require, binary):
             'resultConsistent': consistent,
             'signatureSha256': hashlib.sha256(signature).hexdigest(), 'certificateSha256': fingerprints,
             'reportSha256': hashlib.sha256(canonical).hexdigest(),
-            **({} if consistent else {'reportBase64': base64.b64encode(canonical).decode('ascii')})}
+            'reportBase64': base64.b64encode(canonical).decode('ascii')}

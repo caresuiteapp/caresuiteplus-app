@@ -11,7 +11,8 @@ const fail=()=>{throw Error('MONTHLY_XML_CAPTURE_BINDING');};
 /** Host-internal conversion, called only after current SQL context, displayed
  * original, personal review and encrypted read-back. Not a browser endpoint.
  * Frozen mappings still lack upstream personal GKV-number capture attestation.
- * The candidate is checked, not persisted, CMS-signed, released or dispatched. */
+ * This helper returns a checked unsigned candidate. The configured host binds
+ * it to monthly-component-signer before issuing a confirmation receipt. */
 export async function generateCapturedMonthlyXml(value,scanInput,options={}){
  const stored=structuredClone(value),scan=scanInput&&structuredClone(scanInput);
  const s=stored?.snapshot,r=stored?.receipt;

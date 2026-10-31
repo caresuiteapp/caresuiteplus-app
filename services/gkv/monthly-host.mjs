@@ -9,7 +9,8 @@ import {readMonthlyOriginalCommand,readMonthlyOriginalResponse,monthlyBase64,MON
 
 export const monthlyError = error => {
   const code = error?.message;
-  if (['MONTHLY_AUTH','MONTHLY_FORBIDDEN','MONTHLY_STALE','MONTHLY_UNCONFIGURED','MONTHLY_BUSY','MONTHLY_FILE_SIZE','MONTHLY_PAPER_PROFILE'].includes(code)) return code;
+  if (['MONTHLY_AUTH','MONTHLY_FORBIDDEN','MONTHLY_STALE','MONTHLY_UNCONFIGURED','MONTHLY_BUSY','MONTHLY_FILE_SIZE','MONTHLY_PAPER_PROFILE','MONTHLY_COMPONENT_HELD','MONTHLY_COMPONENT_PIN_REQUIRED'].includes(code)) return code;
+  if(code==='MONTHLY_COMPONENT_BUSY')return 'MONTHLY_BUSY';
   if (code === 'MONTHLY_SIGNATURE_PNG' || code === 'MONTHLY_ORIGINAL_CONTRACT' || code === 'MONTHLY_PAPER_INPUT') return 'MONTHLY_INPUT';
   if (code === 'MONTHLY_SIGNATURE_REUSED') return code;
   if (code === 'MONTHLY_STORE_QUOTA') return 'MONTHLY_QUOTA';
@@ -18,15 +19,16 @@ export const monthlyError = error => {
 };
 export const monthlyHttpStatus = code => code === 'MONTHLY_AUTH' ? 401 : code === 'MONTHLY_FORBIDDEN' ? 403
   : ['MONTHLY_INPUT','MONTHLY_PAPER_PROFILE'].includes(code) ? 400 : code === 'MONTHLY_FILE_SIZE' ? 413
-  : ['MONTHLY_STALE','MONTHLY_SIGNATURE_REUSED','MONTHLY_QUOTA','MONTHLY_BUSY'].includes(code) ? 409 : 503;
+  : ['MONTHLY_STALE','MONTHLY_SIGNATURE_REUSED','MONTHLY_QUOTA','MONTHLY_BUSY','MONTHLY_COMPONENT_HELD','MONTHLY_COMPONENT_PIN_REQUIRED'].includes(code) ? 409 : 503;
 
 export class MonthlyOriginalHost {
-  #tenant; #store; #config; #keyId; #key; #http; #busy = false; #closed = false;
-  constructor({tenantId,store,supabase,workerKeyId,workerKey,http = fetch}) {
+  #tenant; #store; #config; #keyId; #key; #http; #components; #busy = false; #closed = false;
+  constructor({tenantId,store,supabase,workerKeyId,workerKey,componentSigner,http = fetch}) {
     if (!isUuid(tenantId) || !(store instanceof MonthlyOriginalStore) || !isUuid(workerKeyId)
       || !(workerKey instanceof Uint8Array) || workerKey.length !== 32) throw Error('MONTHLY_CONFIGURATION');
     this.#config = monthlySupabaseConfig(supabase); this.#tenant = tenantId; this.#store = store;
     this.#keyId = workerKeyId; this.#key = Buffer.from(workerKey); this.#http = http;
+    this.#components=componentSigner;
   }
   async execute(value, authorization) {
     const input = readMonthlyOriginalCommand(value);
@@ -39,7 +41,7 @@ export class MonthlyOriginalHost {
     try {
       database = monthlyRestDatabase({config: this.#config,tenantId: this.#tenant,principal,authorization,
         workerKeyId: this.#keyId,workerKey: this.#key,http: this.#http});
-      const verifier = new MonthlyOriginalVerifier({database,store: this.#store});
+      const verifier = new MonthlyOriginalVerifier({database,store: this.#store,componentSigner:this.#components,requireComponents:true});
       const {action,originalSha256,pngBase64,pdfBase64,page,scanSha256,review,...capture} = input;
       const envelope = {version: 1,...capture,actorId: principal.actorId};
       let result;

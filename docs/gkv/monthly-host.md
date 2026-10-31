@@ -1,5 +1,7 @@
 # Persönliche Monatsbestätigung: Webansicht, Gateway und Host
 
+Aktualisierung 31.10.2026: [CMS-Komponentensignatur und Monatsarchiv](monthly-component-signature.md) verbindet den konfigurierten Host mit dem dauerhaften XML-/CMS-Archiv. Die dort beschriebenen Sperren und offenen Nachweise gelten zusätzlich zum folgenden ursprünglichen Stand.
+
 Stand: 29.10.2026. Implementierung für Web/Desktop auf dem GKV-Entwicklungszweig.
 Die SQL-Entwürfe, Hostschlüssel und Zertifikate sind **nicht produktiv aktiviert**.
 Ohne diese Einrichtung zeigt die App einen ausdrücklichen Verbindungsfehler.

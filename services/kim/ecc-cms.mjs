@@ -129,16 +129,26 @@ function signedParts(bytes) {
  * This is NOT a certificate trust/OCSP validator or a general CAdES conformance check.
  */
 export function verifyEccKimSignedContent({ bytes, recipientEmails, expectedSignerCertificate, now = Date.now() }) {
+  return verifySignedContent({ bytes, recipientEmails, expectedSignerCertificate, now }, false);
+}
+/** Bounded SMC-B CAdES enveloping component profile. The KIM recipient attribute
+ * belongs to the message wrapper, never to an individual LNW/EDIFACT component.
+ * Mathematical validity is separate from TSL/OCSP and hardware attestation. */
+export function verifyEccComponentSignedContent({ bytes, expectedSignerCertificate, now = Date.now() }) {
+  return verifySignedContent({ bytes, expectedSignerCertificate, now }, true);
+}
+function verifySignedContent({ bytes, recipientEmails, expectedSignerCertificate, now }, component) {
   try {
     const { data, content } = signedParts(bytes);
     if (data[0].tag !== 2 || data[0].value.toString('hex') !== '01') throw new Error();
     hashAlgorithm(fields(data[1], 49, 1)[0]);
     const embedded = fields(data[3], 160, 1)[0].raw, signer = eccCmsCertificate(expectedSignerCertificate, 'osig', now);
+    if (component && (signer.certificateTypeOid !== '1.2.276.0.76.4.78' || !content.value.length || content.value.length > MAX_CONTENT)) throw new Error();
     if (!timingSafeEqual(digest(embedded), digest(signer.cert.raw)) || !embedded.equals(signer.cert.raw)) throw new Error();
     const info = fields(fields(data[4], 49, 1)[0], 48, 6);
     if (info[0].tag !== 2 || info[0].value.toString('hex') !== '01' || !info[1].raw.equals(signer.rid)) throw new Error();
     hashAlgorithm(info[2]); oid(fields(info[4], 48, 1)[0], OID.ecdsaSha256);
-    const attrs = fields(info[3], 160, 5), byOid = new Map();
+    const attrs = fields(info[3], 160, component ? 4 : 5), byOid = new Map();
     if (!isOrdered(attrs)) throw new Error();
     for (const a of attrs) {
       const f = fields(a, 48, 2), key = f[0].value.toString('hex');
@@ -148,7 +158,7 @@ export function verifyEccKimSignedContent({ bytes, recipientEmails, expectedSign
     oid(byOid.get(OID.contentType)?.value, OID.data);
     const hash = byOid.get(OID.messageDigest)?.value;
     if (hash?.tag !== 4 || hash.value.length !== 32 || !timingSafeEqual(hash.value, digest(content.value))) throw new Error();
-    if (!(recipientEmails instanceof Uint8Array) || !byOid.get(OID.emails)?.node.raw.equals(Buffer.from(recipientEmails))) throw new Error();
+    if (!component && (!(recipientEmails instanceof Uint8Array) || !byOid.get(OID.emails)?.node.raw.equals(Buffer.from(recipientEmails)))) throw new Error();
     // ESS SigningCertificateV2: one certificate hash, default SHA-256, no extra policy entries.
     const ess = fields(fields(fields(byOid.get(OID.signingCertificateV2)?.value, 48, 1)[0], 48, 1)[0], 48, 1)[0];
     if (ess.tag !== 4 || ess.value.length !== 32 || !timingSafeEqual(ess.value, digest(signer.cert.raw))) throw new Error();

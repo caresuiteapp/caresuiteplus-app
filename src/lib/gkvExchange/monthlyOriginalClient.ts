@@ -9,6 +9,8 @@ const messages: Record<string,string> = {
   MONTHLY_FILE_SIZE:'Diese Datei überschreitet die unterstützte Größe von 2 MiB.',
   MONTHLY_QUOTA:'Das Archiv hat seine Speichergrenze erreicht. Bitte die Administration informieren.',
   MONTHLY_BUSY:'Der Host bearbeitet gerade einen Vorgang. Bitte den Status später erneut prüfen.',
+  MONTHLY_COMPONENT_HELD:'Die elektronische Signatur ist zur Klärung gesperrt. Bitte die Administration informieren. Ein erneuter Kartenaufruf wird nicht automatisch gestartet.',
+  MONTHLY_COMPONENT_PIN_REQUIRED:'Die Institutionskarte muss am Kartenterminal freigeschaltet sein. Bitte die Administration informieren und anschließend den Erfassungsstatus prüfen.',
   MONTHLY_PAPER_PROFILE:'Für diesen Leistungsnachweis ist der Papierweg nur für eine geprüfte Vertretung verfügbar. Bitte direkt am Bildschirm unterschreiben oder die Vertretung auswählen.',
 };
 export async function monthlySha256(bytes: Uint8Array): Promise<string> {

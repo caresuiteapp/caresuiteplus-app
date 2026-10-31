@@ -7,6 +7,7 @@ import { inspectMonthlySignature } from './monthly-signature-png.mjs';
 import {inspectMonthlyScan,cropMonthlyScan} from './monthly-scan.mjs';
 import {readPaperReview} from '../../src/lib/gkvExchange/monthlyPaper.ts';
 import {generateCapturedMonthlyXml} from './monthly-captured-xml.mjs';
+import {MonthlyComponentSigner} from './monthly-component-signer.mjs';
 
 const canonical = value => JSON.stringify(value, function(_key, v) {
   return v && typeof v === 'object' && !Array.isArray(v) ? Object.fromEntries(Object.keys(v).sort().map(k => [k, v[k]])) : v;
@@ -51,16 +52,22 @@ export function monthlyOriginalDatabase(query) {
 }
 
 /** Personal patient/representative confirmation including reviewed paper scans.
- * Production provisioning and normative XML/CMS remain separate work packages.
+ * Configured normative captures require XML/CMS before a receipt is issued.
+ * Production provisioning and independent acceptance remain separate work.
  * No actual monthly record is finalized here: the existing actor-bound confirm
  * command consumes the private receipt and repeats current-source checks. */
 export class MonthlyOriginalVerifier {
-  #db; #store;
-  constructor({ database, store }) { this.#db = database; this.#store = store; }
+  #db; #store; #components; #requireComponents;
+  constructor({ database, store, componentSigner, requireComponents=true }) {
+    if(componentSigner!==undefined&&!(componentSigner instanceof MonthlyComponentSigner))fail('MONTHLY_COMPONENT_CONFIGURATION');
+    this.#db=database;this.#store=store;this.#components=componentSigner;this.#requireComponents=requireComponents;
+  }
   async #context(input) {
     const context = await this.#db.context(input);
     if (!context || !isUuid(context.actorId) || !instant(context.checkedAt)) fail('MONTHLY_VERIFIER_CONTEXT');
     const proof = readMonthlyProof(context.proof, input.tenantId);
+    if(proof.payload.xmlFacts&&this.#requireComponents&&!this.#components)fail('MONTHLY_UNCONFIGURED');
+    if(this.#components)this.#components.assertScope(input.tenantId,this.#store);
     if (proof.payload.xmlFacts && input.method === 'paper' && !input.authorityId) fail('MONTHLY_PAPER_PROFILE');
     if (proof.id !== input.proofId || proof.revision !== input.revision || proof.status !== 'open'
       || Date.parse(proof.updated_at) > Date.parse(context.checkedAt)) fail('MONTHLY_VERIFIER_CONTEXT');
@@ -98,6 +105,7 @@ export class MonthlyOriginalVerifier {
     const input = request(value), context = await this.#context(input);
     let stored = this.#store.get(input.tenantId, input.captureId);
     if (stored) return this.#original(this.#bound(input, context));
+    if(context.proof.payload.xmlFacts&&this.#components)this.#store.assertComponentAvailable(input.tenantId);
     const snapshot = { actorId: context.actorId, proof: context.proof, captureId: input.captureId, preparedAt: context.checkedAt,
       ...(input.method ? {method: input.method} : {}),
       ...(context.authority ? {authority: context.authority} : {}),
@@ -117,6 +125,7 @@ export class MonthlyOriginalVerifier {
     const input = request(value), context = await this.#context(input);
     if (!this.#store.get(input.tenantId, input.captureId)) return {state: 'absent', original: null, receipt: null};
     const stored = this.#bound(input, context), {bytes, ...original} = this.#original(stored);
+    if(['in-flight','held'].includes(this.#store.getComponent(input.tenantId,input.captureId)?.record.state))fail('MONTHLY_COMPONENT_HELD');
     const receipt = stored.receipt?.verified_at ? await this.#db.receiptStatus(structuredClone(stored.receipt)) : null;
     if (receipt !== null && canonical(receipt) !== canonical(this.#receipt(input, context, stored))) fail('MONTHLY_VERIFIER_RECEIPT');
     return {state: receipt ? 'verified' : stored.acknowledgedAt ? 'acknowledged' : 'prepared', original, receipt,
@@ -184,6 +193,15 @@ export class MonthlyOriginalVerifier {
       ||scan.meta.renderSha256!==paper.renderSha256||canonical(scan.meta.pages.map(p=>p.sha256))!==canonical(paper.pageSha256))fail('MONTHLY_ARCHIVE_BINDING');
     return {bytes:scan.bytes,paper,status:original.status,revision:original.revision};
   }
+  /** Private archive reader. Reuses current personal archive authorization and
+   * the database confirmation binding; an invalidated predecessor stays invalid.
+   * No browser download, billing release or dispatch permission is added. */
+  async readArchivedComponent(value){
+    const input=structuredClone(value),original=await this.readArchivedOriginal(input),archive=this.#store.getComponent(input.tenantId,input.captureId);
+    if(!archive||archive.record.state!=='complete'||archive.record.proofId!==input.proofId
+      ||archive.record.originalSha256!==original.originalSha256||archive.record.contentSha256!==original.contentSha256)fail('MONTHLY_ARCHIVE_BINDING');
+    return {...archive,status:original.status,revision:original.revision};
+  }
   async verifyPaper(value,reviewInput){
     const input=request(value),review=readPaperReview(reviewInput),context=await this.#context(input),original=this.#bound(input,context);
     const scan=this.#store.getScan(input.tenantId,input.captureId);
@@ -231,10 +249,13 @@ export class MonthlyOriginalVerifier {
     this.#bound(input, verified);
     stored = this.#store.sealVerification(input.tenantId, input.captureId, verified.checkedAt);
     if (context.proof.payload.xmlFacts) {
-      await generateCapturedMonthlyXml(stored, paper ? this.#store.getScan(input.tenantId,input.captureId) : undefined);
+      const candidate=await generateCapturedMonthlyXml(stored, paper ? this.#store.getScan(input.tenantId,input.captureId) : undefined);
       // The independent schema worker yields: repeat identity/source/authority
       // checks before issuing a receipt. The unsigned candidate is not released.
       this.#bound(input, await this.#context(input));
+      if(this.#components)await this.#components.signCaptured({tenantId:input.tenantId,captureId:input.captureId,candidate,
+        assertCurrent:async()=>{this.#bound(input,await this.#context(input));}});
+      this.#bound(input,await this.#context(input));
     }
     const result = await this.#db.issue(structuredClone(stored.receipt));
     const expected = this.#receipt(input, context, stored);
