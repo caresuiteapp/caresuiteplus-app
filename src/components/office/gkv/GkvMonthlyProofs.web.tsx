@@ -232,6 +232,7 @@ export function MonthlyProofContent({proof}: {proof: MonthlyProof}) {
     {proof.status === 'invalidated' && <p className="gx-notice" data-tone="error">Diese Fassung wurde durch eine Korrektur ungültig. Sie bleibt zur Nachvollziehbarkeit erhalten.</p>}
     {proof.payload.xmlFacts && <section className="gx-stack" aria-label="Übernommene Fachangaben">
       <h4>Übernommene Fachangaben</h4>
+      <p className="gx-subtle">{proof.payload.xmlFacts.captureProvenance==='personally-bound'?'Beschäftigtennummern bei der persönlichen Ursprungserfassung gebunden.':proof.payload.xmlFacts.captureProvenance==='partially-bound'?'Nur ein Teil der Leistungen besitzt eine persönliche Nummernzuordnung bei der Ursprungserfassung.':'Die Herkunft der Beschäftigtennummern ist für diese Leistungen noch nicht persönlich belegt.'}</p>
       <p>Leistungserbringer-IK: {proof.payload.xmlFacts.content.providerIk} · Versichertennummer: {proof.payload.xmlFacts.content.insuranceNumber}</p>
       <p>Vorname: {proof.payload.xmlFacts.content.firstName} · Nachname: {proof.payload.xmlFacts.content.lastName}</p>
       <p>Leistungsart: {proof.payload.xmlFacts.content.serviceType} · Verantwortliche Pflegefachperson: {proof.payload.xmlFacts.content.responsibleEmployeeNumber}</p>

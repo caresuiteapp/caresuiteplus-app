@@ -6,6 +6,14 @@ Stand: 29.10.2026. Review- und Implementierungsstand; kein produktiver Rollout,
 kein authentifizierter Herkunftsnachweis für GKV-Beschäftigtennummern und keine
 ITSG-/gematik-Freigabe. Android wurde nicht geändert.
 
+Aktualisierung: [Persönliche Beschäftigtenzuordnung](monthly-employees.md)
+führt die Nummernmeldung mit unabhängiger Prüfung und Ursprungserfassung ein.
+Bei solchen Quellen wird die ursprüngliche Nummer aus dem unveränderbaren
+persönlichen Beleg gelesen. Die Werte `personally-bound`, `partially-bound`
+und `not-attested` bleiben unterscheidbar. Alte private Zuordnungen ohne diesen
+Beleg bleiben `not-attested`. Die nachfolgenden Abschnitte beschreiben den
+älteren Stand; für Speicherung und CMS gelten die oben verlinkten Ergänzungen.
+
 ## Erfasste Fassung
 
 Die Webaktion **Fachangaben übernehmen** sendet ausschließlich Nachweis-ID,

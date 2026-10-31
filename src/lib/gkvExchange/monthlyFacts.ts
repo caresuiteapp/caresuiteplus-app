@@ -1,13 +1,14 @@
 import { readMonthlyXmlContent, monthlyXmlLocalTime, type MonthlyXmlContent } from './monthlyXml';
 import type { MonthlyProofPayload } from './monthlyProof';
 import { UUID } from './sources';
+import {readPersonalEmployeeCapture,type PersonalEmployeeCapture} from './monthlyEmployees';
 
 export type MonthlyFacts = {
   schema: 'gkv-monthly-facts-v1'; boundAt: string; responsibleActorId: string;
   providerReference: string; responsibleReference: string;
-  captureProvenance: 'not-attested'; content: MonthlyXmlContent;
+  captureProvenance: 'not-attested'|'personally-bound'|'partially-bound'; content: MonthlyXmlContent;
   sources: {recordId: string; recordUpdatedAt: string; employeeId: string; employeeNumber: string;
-    sourceReceiptSha256: string; mappingReference: string; date: string; sequence: number}[];
+    sourceReceiptSha256: string; mappingReference: string; date: string; sequence: number;personalCapture?:PersonalEmployeeCapture}[];
 };
 function fail(): never { throw new Error('Die Fachangaben passen nicht zur gespeicherten Leistungsfassung.'); }
 const row = (v: unknown): v is Record<string, unknown> => !!v && typeof v === 'object' && !Array.isArray(v);
@@ -15,7 +16,7 @@ const reference = (v: unknown) => typeof v === 'string' && v.trim() === v && v.l
 const stamp = (v: unknown): v is string => typeof v === 'string' && /^\d{4}-\d{2}-\d{2}T/.test(v) && Number.isFinite(Date.parse(v));
 export function readMonthlyFacts(value: unknown, payload: MonthlyProofPayload): MonthlyFacts {
   if (!row(value) || Object.keys(value).length !== 8 || value.schema !== 'gkv-monthly-facts-v1'
-    || value.captureProvenance !== 'not-attested' || !stamp(value.boundAt)
+    || !['not-attested','personally-bound','partially-bound'].includes(String(value.captureProvenance)) || !stamp(value.boundAt)
     || typeof value.responsibleActorId !== 'string' || !UUID.test(value.responsibleActorId)
     || !reference(value.providerReference) || !reference(value.responsibleReference)
     || !Array.isArray(value.sources) || value.sources.length !== payload.records.length) fail();
@@ -24,8 +25,9 @@ export function readMonthlyFacts(value: unknown, payload: MonthlyProofPayload): 
     || `${content.firstName} ${content.lastName}` !== payload.clientName
     || content.days.reduce((n,d) => n + d.visits.length, 0) !== value.sources.length) fail();
   const seen = new Set<string>(), visits = new Set<string>(), originalVisits = new Set<string>();
+  let personallyBound=0;
   for (const source of value.sources) {
-    if (!row(source) || Object.keys(source).length !== 8 || typeof source.recordId !== 'string' || seen.has(source.recordId)
+    if (!row(source) || Object.keys(source).length !== (source.personalCapture===undefined?8:9) || typeof source.recordId !== 'string' || seen.has(source.recordId)
       || !reference(source.mappingReference) || typeof source.sourceReceiptSha256 !== 'string'
       || !/^[a-f0-9]{64}$/.test(source.sourceReceiptSha256) || typeof source.employeeNumber !== 'string'
       || !/^[0-9]{9}$/.test(source.employeeNumber)) fail();
@@ -43,7 +45,15 @@ export function readMonthlyFacts(value: unknown, payload: MonthlyProofPayload): 
       || Date.parse(record.sourceReceipt.service_ended_at) > Date.parse(value.boundAt)
       || visit.lines.some(l => l.employeeNumbers.length !== 1 || l.employeeNumbers[0] !== source.employeeNumber)
       || visit.lines.reduce((n,l) => n + (l.minutes ?? 0), 0) > record.actualMinutes) fail();
+    if(source.personalCapture!==undefined){
+      const c=readPersonalEmployeeCapture(source.personalCapture),captured=Date.parse(c.capturedAt),ended=Date.parse(record.sourceReceipt.service_ended_at);
+      if(c.employeeId!==source.employeeId||c.employeeNumber!==source.employeeNumber||c.proofId!==record.sourceReceipt.proof_id
+        ||c.proofPayloadHash!==record.sourceReceipt.proof_payload_hash||captured<ended||captured-ended>15*60*1000
+        ||captured>Date.parse(value.boundAt)||Date.parse(c.reviewedAt)>Date.parse(record.sourceReceipt.service_started_at))fail();
+      personallyBound++;
+    }
     seen.add(source.recordId); visits.add(key); originalVisits.add(record.sourceReceipt.visit_id);
   }
+  if(value.captureProvenance!==(personallyBound===0?'not-attested':personallyBound===value.sources.length?'personally-bound':'partially-bound'))fail();
   return structuredClone(value) as MonthlyFacts;
 }

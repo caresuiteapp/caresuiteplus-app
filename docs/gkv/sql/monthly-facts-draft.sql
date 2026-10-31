@@ -38,7 +38,7 @@ CREATE FUNCTION care_security.gkv_monthly_build_facts(p public.gkv_monthly_proof
 DECLARE profile care_security.gkv_monthly_fact_profiles; mapping care_security.gkv_monthly_fact_sources; c public.clients;
  r jsonb; line jsonb; lines jsonb; days jsonb:='[]'; visits jsonb:='[]'; sources jsonb:='[]';
  day text; previous_day text; seq integer:=0; total_lines integer:=0; minutes integer;
- started timestamptz; ended timestamptz; stamp text;
+ started timestamptz; ended timestamptz; stamp text; personal jsonb; bound_employee_number text; personal_count integer:=0;
 BEGIN
  IF auth.uid() IS NULL OR care_security.gkv_monthly_writer(p.tenant_id) IS NOT TRUE THEN
   RAISE EXCEPTION 'Aktive persönliche Beauftragung erforderlich' USING ERRCODE='42501'; END IF;
@@ -70,9 +70,15 @@ BEGIN
    OR mapping.source_receipt_sha256 IS DISTINCT FROM encode(sha256(convert_to((r->'sourceReceipt')::text,'UTF8')),'hex')
    OR NOT care_security.gkv_monthly_fact_text(mapping.mapping_reference,500) THEN
    RAISE EXCEPTION 'Aktuelle Fachzuordnung zur Originalleistung fehlt' USING ERRCODE='22023'; END IF;
+  personal:=NULL;
+  IF to_regprocedure('care_security.gkv_employee_source(uuid,jsonb)') IS NOT NULL THEN
+   personal:=care_security.gkv_employee_source(p.tenant_id,r);
+  END IF;
+  bound_employee_number:=coalesce(personal->>'employeeNumber',mapping.employee_number);
+  IF personal IS NOT NULL THEN personal_count:=personal_count+1; END IF;
   IF EXISTS(SELECT 1 FROM care_security.gkv_monthly_fact_employee_locks l
     WHERE l.tenant_id=p.tenant_id AND l.series_id=p.series_id AND l.record_id=mapping.record_id
-     AND (l.employee_id IS DISTINCT FROM (r->>'employeeId')::uuid OR l.employee_number IS DISTINCT FROM mapping.employee_number)) THEN
+     AND (l.employee_id IS DISTINCT FROM (r->>'employeeId')::uuid OR l.employee_number IS DISTINCT FROM bound_employee_number)) THEN
    RAISE EXCEPTION 'Ursprüngliche Beschäftigtenzuordnung ist gesperrt' USING ERRCODE='40001'; END IF;
   stamp:=r->'sourceReceipt'->>'service_started_at';
   IF coalesce(stamp,'') !~ '^\d{4}-\d{2}-\d{2}T.*(Z|[+-]\d{2}:\d{2})$' THEN
@@ -112,19 +118,20 @@ BEGIN
     IF (line->>'minutes')::integer NOT BETWEEN 1 AND 1440 THEN RAISE EXCEPTION 'Leistungsminuten ungültig' USING ERRCODE='22023'; END IF;
     minutes:=minutes+(line->>'minutes')::integer;
    END IF;
-   lines:=lines||jsonb_build_array(line||jsonb_build_object('employeeNumbers',jsonb_build_array(mapping.employee_number)));
+   lines:=lines||jsonb_build_array(line||jsonb_build_object('employeeNumbers',jsonb_build_array(bound_employee_number)));
   END LOOP;
   IF minutes>(r->>'actualMinutes')::integer THEN RAISE EXCEPTION 'Minuten überschreiten die Originalleistung' USING ERRCODE='22023'; END IF;
   visits:=visits||jsonb_build_array(jsonb_build_object('sequence',seq,'startTime',to_char(started AT TIME ZONE 'Europe/Berlin','HH24MI'),'lines',lines));
   sources:=sources||jsonb_build_array(jsonb_build_object('recordId',r->>'recordId','recordUpdatedAt',r->>'updatedAt',
-   'employeeId',r->>'employeeId','employeeNumber',mapping.employee_number,'sourceReceiptSha256',mapping.source_receipt_sha256,
-   'mappingReference',mapping.mapping_reference,'date',day,'sequence',seq));
+   'employeeId',r->>'employeeId','employeeNumber',bound_employee_number,'sourceReceiptSha256',mapping.source_receipt_sha256,
+   'mappingReference',mapping.mapping_reference,'date',day,'sequence',seq)||CASE WHEN personal IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('personalCapture',personal) END);
  END LOOP;
  IF previous_day IS NULL THEN RAISE EXCEPTION 'Leistungen fehlen' USING ERRCODE='22023'; END IF;
  days:=days||jsonb_build_array(jsonb_build_object('date',previous_day,'visits',visits));
  RETURN jsonb_build_object('schema','gkv-monthly-facts-v1','boundAt',to_char(p_bound_at AT TIME ZONE 'UTC','YYYY-MM-DD"T"HH24:MI:SS.MS"Z"'),
   'responsibleActorId',p_responsible,'providerReference',profile.provider_reference,'responsibleReference',profile.responsible_reference,
-  'captureProvenance','not-attested','content',jsonb_build_object('providerIk',profile.provider_ik,'month',p.payload->>'month',
+  'captureProvenance',CASE WHEN personal_count=0 THEN 'not-attested' WHEN personal_count=jsonb_array_length(sources) THEN 'personally-bound' ELSE 'partially-bound' END,
+  'content',jsonb_build_object('providerIk',profile.provider_ik,'month',p.payload->>'month',
    'insuranceNumber',c.insurance_number,'lastName',c.last_name,'firstName',c.first_name,'serviceType',p.payload->>'serviceType',
    'responsibleEmployeeNumber',profile.responsible_employee_number,'days',days),'sources',sources);
 END $$;

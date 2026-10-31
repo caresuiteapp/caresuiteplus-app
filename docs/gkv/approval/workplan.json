@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "assessedAt": "2026-10-31",
-  "baselineCommit": "c8f402a23abadb755ae71e8f46d7d7958d89a11b",
+  "baselineCommit": "5248025e2e78bc38bc5661b9f704c7989671ed85",
   "productionReady": false,
   "scopeComplete": false,
   "scopeGaps": [
@@ -96,7 +96,12 @@
         "src/lib/gkvExchange/monthlyWriter.ts",
         "src/components/office/gkv/GkvMonthlyProofs.web.tsx",
         "docs/gkv/sql/monthly-facts-draft.sql",
-        "src/lib/gkvExchange/monthlyFacts.ts"
+        "src/lib/gkvExchange/monthlyFacts.ts",
+        "docs/gkv/sql/monthly-employees-draft.sql",
+        "src/lib/gkvExchange/monthlyEmployees.ts",
+        "src/lib/gkvExchange/monthlyEmployeeClient.web.ts",
+        "src/components/office/gkv/GkvEmployees.web.tsx",
+        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -104,9 +109,12 @@
         "tests/gkv-exchange/monthly-proofs.database.mjs",
         "tests/gkv-exchange/monthly-workspace.test.mjs",
         "tests/gkv-exchange/monthly-ui-check.mjs",
-        "tests/gkv-exchange/monthly-facts.test.mjs"
+        "tests/gkv-exchange/monthly-facts.test.mjs",
+        "tests/gkv-exchange/monthly-employees.test.mjs",
+        "tests/gkv-exchange/monthly-employees-ui-check.mjs",
+        "tests/gkv-exchange/tsl-ocsp.test.mjs"
       ],
-      "nextStep": "Private Fachzuordnungen, Originalzeiten und ursprüngliche Personenbindung werden vor Bestätigung eingefroren. Herkunft bleibt not-attested: produktiver, persönlich authentifizierter GKV-Nummernerfassungs-/Prüfablauf, Mehrpersonenleistungen und Vertrags-/Tarifprüfung fehlen. Interne Personalnummern werden nicht umgedeutet.",
+      "nextStep": "Persönliche Nummernmeldung, unabhängige Freigabe, Widerruf und Bindung beim Originalnachweis-INSERT sind mit sieben SQL-Entwürfen umgesetzt. Monatsdaten unterscheiden vollständige, teilweise und fehlende persönliche Herkunft. Reale Konto-/Registerprüfung, produktive Provisionierung, einzelne mobile Leistungserfassung vor dem Originalnachweis, Mehrpersonenleistungen sowie Vertrags-/Tarifprüfung bleiben offen.",
       "acceptance": "ITSG-Fälle 3.1 bis 3.5 und 4.1 mit mobilen Testkonten und gespeicherten Originalen vorführen.",
       "dependsOn": [
         "scope"
@@ -164,7 +172,12 @@
         "src/lib/gkvExchange/monthlyFacts.ts",
         "services/gkv/monthly-component-signer.mjs",
         "services/kim/connector-certificates.mjs",
-        "services/kim/ecc-cms.mjs"
+        "services/kim/ecc-cms.mjs",
+        "docs/gkv/sql/monthly-employees-draft.sql",
+        "src/lib/gkvExchange/monthlyEmployees.ts",
+        "src/lib/gkvExchange/monthlyEmployeeClient.web.ts",
+        "src/components/office/gkv/GkvEmployees.web.tsx",
+        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -180,9 +193,11 @@
         "tests/gkv-exchange/monthly-captured-xml.test.mjs",
         "tests/gkv-exchange/connector-cms.test.mjs",
         "tests/gkv-exchange/tsl-ocsp.test.mjs",
-        "tests/gkv-exchange/monthly-embedded-signature.test.mjs"
+        "tests/gkv-exchange/monthly-embedded-signature.test.mjs",
+        "tests/gkv-exchange/monthly-employees.test.mjs",
+        "tests/gkv-exchange/monthly-employees-ui-check.mjs"
       ],
-      "nextStep": "Neue Fachnachweise speichern XML und Quittungsbindung atomar ohne eigenständige PNG-Ablage; Wiederaufnahme erfolgt über die Erfassungskennung. Der konfigurierte Host bindet tatsächliche XML-Bytes an SMC-B-CMS, VerifyDocument und ein verschlüsseltes Journal; unklare Kartenaufrufe bleiben über Neustarts gesperrt. Persönliche Erfassungsherkunft, Bereinigung älterer Bildablagen und Sicherungskopien, Hardware-/TI-Nachweise, Provisionierung, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe und unabhängige Prüfung bleiben offen.",
+      "nextStep": "Neue Fachnachweise speichern XML und Quittungsbindung atomar ohne eigenständige PNG-Ablage; Wiederaufnahme erfolgt über die Erfassungskennung. Der konfigurierte Host bindet tatsächliche XML-Bytes an SMC-B-CMS, VerifyDocument und ein verschlüsseltes Journal; unklare Kartenaufrufe bleiben über Neustarts gesperrt. Persönliche Nummernzuordnung wird von der geprüften Meldung bis zur XML-/CMS-Kette synthetisch getestet; reale Konto-/Register- und zeitnahe mobile Erfassungsnachweise, Bereinigung älterer Bildablagen und Sicherungskopien, Hardware-/TI-Nachweise, Provisionierung, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe und unabhängige Prüfung bleiben offen.",
       "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",
       "dependsOn": [
         "proof-capture"
@@ -213,7 +228,12 @@
         "src/lib/gkvExchange/monthlyWriter.ts",
         "src/components/office/gkv/GkvMonthlyProofs.web.tsx",
         "docs/gkv/sql/monthly-facts-draft.sql",
-        "src/lib/gkvExchange/monthlyFacts.ts"
+        "src/lib/gkvExchange/monthlyFacts.ts",
+        "docs/gkv/sql/monthly-employees-draft.sql",
+        "src/lib/gkvExchange/monthlyEmployees.ts",
+        "src/lib/gkvExchange/monthlyEmployeeClient.web.ts",
+        "src/components/office/gkv/GkvEmployees.web.tsx",
+        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -221,7 +241,10 @@
         "tests/gkv-exchange/monthly-proofs.database.mjs",
         "tests/gkv-exchange/monthly-workspace.test.mjs",
         "tests/gkv-exchange/monthly-ui-check.mjs",
-        "tests/gkv-exchange/monthly-facts.test.mjs"
+        "tests/gkv-exchange/monthly-facts.test.mjs",
+        "tests/gkv-exchange/monthly-employees.test.mjs",
+        "tests/gkv-exchange/monthly-employees-ui-check.mjs",
+        "tests/gkv-exchange/tsl-ocsp.test.mjs"
       ],
       "nextStep": "Korrektur erhält die ursprüngliche Beschäftigtennummer ohne alte Bestätigung; der private XML-/CMS-Archivleser erhält den Entwertungsstatus der Vorgängerfassung. Reale Parallelverbindungen, Wiederherstellung/administrative Sperrklärung, produktive Berichtigung fehlerhafter Erstzuordnung und vollständige Abrechnungsübergabe bleiben offen.",
       "acceptance": "ITSG-Fälle 3.11 und 4.2 gegen parallele Änderung, alte Unterschrift und alte Exportfassung vorführen.",
@@ -261,7 +284,12 @@
         "services/gkv/monthly-component-signer.mjs",
         "services/gkv/monthly-original-store.mjs",
         "services/kim/connector-certificates.mjs",
-        "services/kim/ecc-cms.mjs"
+        "services/kim/ecc-cms.mjs",
+        "docs/gkv/sql/monthly-employees-draft.sql",
+        "src/lib/gkvExchange/monthlyEmployees.ts",
+        "src/lib/gkvExchange/monthlyEmployeeClient.web.ts",
+        "src/components/office/gkv/GkvEmployees.web.tsx",
+        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/transport.test.mjs",
@@ -270,9 +298,11 @@
         "tests/gkv-exchange/monthly-captured-xml.test.mjs",
         "tests/gkv-exchange/connector-cms.test.mjs",
         "tests/gkv-exchange/tsl-ocsp.test.mjs",
-        "tests/gkv-exchange/monthly-embedded-signature.test.mjs"
+        "tests/gkv-exchange/monthly-embedded-signature.test.mjs",
+        "tests/gkv-exchange/monthly-employees.test.mjs",
+        "tests/gkv-exchange/monthly-employees-ui-check.mjs"
       ],
-      "nextStep": "Neue Fachnachweise speichern XML und Quittungsbindung atomar ohne eigenständige PNG-Ablage; Wiederaufnahme erfolgt über die Erfassungskennung. Der konfigurierte Host bindet tatsächliche XML-Bytes an SMC-B-CMS, VerifyDocument und ein verschlüsseltes Journal; unklare Kartenaufrufe bleiben über Neustarts gesperrt. Persönliche Erfassungsherkunft, Bereinigung älterer Bildablagen und Sicherungskopien, Hardware-/TI-Nachweise, Provisionierung, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe und unabhängige Prüfung bleiben offen.",
+      "nextStep": "Neue Fachnachweise speichern XML und Quittungsbindung atomar ohne eigenständige PNG-Ablage; Wiederaufnahme erfolgt über die Erfassungskennung. Der konfigurierte Host bindet tatsächliche XML-Bytes an SMC-B-CMS, VerifyDocument und ein verschlüsseltes Journal; unklare Kartenaufrufe bleiben über Neustarts gesperrt. Persönliche Nummernzuordnung wird von der geprüften Meldung bis zur XML-/CMS-Kette synthetisch getestet; reale Konto-/Register- und zeitnahe mobile Erfassungsnachweise, Bereinigung älterer Bildablagen und Sicherungskopien, Hardware-/TI-Nachweise, Provisionierung, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe und unabhängige Prüfung bleiben offen.",
       "acceptance": "Unabhängige Prüfung der erzeugten Bytes, Negativfälle für Schema, Signatur, IMG-Zuordnung und zeitgültige PROD-/MOD-ID.",
       "dependsOn": [
         "proof-confirmation"

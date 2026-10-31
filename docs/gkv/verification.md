@@ -2,6 +2,31 @@
 
 Stand: 31.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
+## Persönliche Beschäftigtenzuordnung am 31.10.2026
+
+Der Arbeitsstand nach `5248025` ergänzt die
+[persönliche Nummernmeldung und Ursprungserfassung](monthly-employees.md).
+Eine zweite beauftragte Person prüft die Meldung; bei neuem Originalnachweis
+bindet der Server Nummer, Person, Sitzung, Zeitpunkt und tatsächlichen Inhalt.
+Monatsnachweis, PDF, XML und CMS verwenden den unveränderten Bezug. Widerruf
+während SignDocument verhindert die Quittung. Altquellen werden nicht nachträglich
+persönlich bestätigt. Der siebte SQL-Entwurf bleibt unaktiviert.
+
+Die gezielten Prüfungen umfassen 22 SQL-/Vertragsmeldungen, neun neue tatsächliche
+React-DOM-Abläufe und zwei zusätzliche integrierte Fälle von der persönlichen
+Meldung bis zur XML-/CMS-Kette. Auch die 24 vorhandenen Monats-DOM-Abläufe bestehen.
+Der vollständige Dienstetest verwendet jetzt regulär höchstens zwei Testdateien
+parallel, ebenso die speicherintensive Gruppe des Monats-Web-Gates. Die fachlichen
+Schutzfristen sind unverändert. Ein erster lokaler TypeScript-Lauf wurde vom
+Betriebssystem wegen Speicherknappheit beendet; er ist kein bestandener Typcheck.
+Abschließende Gate-, Typ-, Gesamt- und Vercel-Ergebnisse stehen im
+[Draft-PR #129](https://github.com/caresuiteapp/caresuiteplus-app/pull/129).
+
+Die Konto-/Office-Grenzen sind synthetisch. Keine produktiven Registrierungen,
+Datenbankänderungen, tatsächlichen Registerabfragen oder Karten-/TI-Nachweise.
+Die DOM-Prüfung belegt keine visuelle Abnahme breiter/schmaler Browseransichten.
+Die bestehenden allgemeinen Herkunfts- und Versandfreigaben bleiben false.
+
 ## Eingebettete Unterschrift und Wiederaufnahme am 31.10.2026
 
 Der Arbeitsstand nach `c8f402a2` ergänzt die

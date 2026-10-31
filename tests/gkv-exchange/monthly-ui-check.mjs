@@ -14,6 +14,7 @@ const apiNames=['checkMonthlyRequest','commandMonthlyProof','listMonthlyClients'
  'loadMonthlyWorkspace','readMonthlyProofHistory','command','downloadBytes','readBatch','readDirectory','readEvents','readInvoiceCase',
  'readInvoiceSources','readRevision','readRevisions','readWorkspace','requestTestExport','requestMonthlyOriginal','commandMonthlyAuthority'];
 const stubs={
+ '@/lib/gkvExchange/monthlyEmployeeClient.web':"export const loadEmployeeRegistrations=async()=>{throw Error('Nicht aktiviert');},commandEmployeeRegistration=async()=>{},employeeRequestStatus=async()=>{};",
  '@/components/inputs/CareSignatureCanvas.web':"import {createElement} from 'react'; export const CareSignatureCanvas=({onConfirm,disabled})=>createElement('button',{disabled,onClick:()=>onConfirm('data:image/png;base64,'+globalThis.monthlySignaturePng)},'Unterschrift im Test zeichnen');",
  '@/components/layout/ScreenShell.web':"import {createElement} from 'react'; export const ScreenShell=({children})=>createElement('main',null,children);",
  '@/components/office/gkv/GkvKimHost.web':'export const KimHostPanel=()=>null;',

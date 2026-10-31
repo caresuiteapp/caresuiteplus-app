@@ -49,6 +49,7 @@ import {MonthlyOriginalVerifier} from '../../services/gkv/monthly-original-verif
 import {MonthlyOriginalHost,createMonthlyHostServer} from '../../services/gkv/monthly-host.mjs';
 import {callMonthlyHost} from '../../api/_lib/monthly-host-transport.mjs';
 import {monthlyFactsFixture} from './monthly-facts-fixture.mjs';
+import {employeeFixture} from './monthly-employees-fixture.mjs';
 import {signingPng} from './monthly-host-fixture.mjs';
 import {generateCapturedMonthlyXml} from '../../services/gkv/monthly-captured-xml.mjs';
 import {openssl} from '../../services/gkv/openssl.mjs';
@@ -2293,13 +2294,15 @@ test('VZD TLS: an unoffered ECDH group cannot reach certificate status or LDAP',
 
 // The complete monthly path uses the existing synthetic mTLS + TSL/OCSP peer,
 // PostgreSQL review drafts and encrypted SQLite. It is not hardware/TI evidence.
-async function withMonthlyComponent(run, {transform,changeReply}={}) {
+async function withMonthlyComponent(run, {transform,changeReply,personal=false}={}) {
   await fixture(async({open})=>withCms(async({connector,requests})=>{
-    const monthly=await monthlyFactsFixture(),statusClient=open();
+    const monthly=await (personal?employeeFixture():monthlyFactsFixture()),statusClient=open();
     const config={tenantId:monthly.f.tenant,store:monthly.store,connector,statusClient,
       expectedTelematikId:'10-LOCAL-TEST',requiredRoles:['1.2.276.0.76.4.245']};
     const signer=new MonthlyComponentSigner(config),worker=monthly.setComponentSigner(signer);
-    const v=await monthly.setup();await monthly.freeze(v);await monthly.prepare(v);
+    const v=await monthly.setup();
+    if(personal){await monthly.approve(await monthly.submit());await monthly.capture(v);}
+    await monthly.freeze(v);await monthly.prepare(v);
     const png=Buffer.from(signingPng(1),'base64');
     try{await run({...monthly,config,signer,worker,v,png,requests,connector,statusClient});}
     finally{await monthly.close();}
@@ -2339,6 +2342,32 @@ test('monthly component: verified XML, real SOAP CMS and report are archived bef
   assert.equal(m.requests.some(q=>isVerifyPin(q.bytes)),false);
   for(const part of [archive.xml,archive.cms,archive.report,archive.certificate])assert.equal((await readFile(m.storeOptions.path)).includes(part),false);
 }));
+test('monthly component: reviewed personal origin survives XML/CMS, finalization and correction without changing employee number',async()=>withMonthlyComponent(async m=>{
+ const facts=m.v.p.payload.xmlFacts;assert.equal(facts.captureProvenance,'personally-bound');
+ const receipt=await m.worker.verify(m.v.input,m.png),archive=m.store.getComponent(m.f.tenant,m.v.input.captureId);
+ assert.ok(archive.xml.includes('<Beschaeftigtennummer>234567890</Beschaeftigtennummer>'));
+ assert.deepEqual(await openssl(['cms','-verify','-inform','DER','-binary','-noverify'],{input:archive.cms}),archive.xml);
+ const final=await m.f.command('confirm',{id:m.v.p.id,revision:m.v.p.revision,content_sha256:m.v.p.content_sha256,receipt_id:receipt.receiptId});
+ assert.deepEqual(final.payload.xmlFacts,facts);assert.equal(m.store.get(m.f.tenant,m.v.input.captureId).signature,null);
+ const correction=await m.f.command('correct',{id:final.id,revision:final.revision,new_id:randomUUID(),reason:'Persönlich gebundenen Nachweis berichtigen'});
+ assert.equal(correction.confirmation,null);assert.deepEqual(correction.payload.xmlFacts,facts);
+ const archived=await m.worker.readArchivedComponent({tenantId:m.f.tenant,proofId:final.id,captureId:m.v.input.captureId});
+ assert.equal(archived.status,'invalidated');assert.deepEqual(archived.cms,archive.cms);
+ assert.equal(m.requests.filter(q=>cmsOperation(q.bytes)==='SignDocument').length,1);
+},{personal:true}));
+test('monthly component: number revocation during card operation prevents final receipt and keeps the signed archive',async()=>{
+ let current;
+ await withMonthlyComponent(async m=>{current=m;await assert.rejects(m.worker.verify(m.v.input,m.png));
+  assert.equal(m.store.getComponent(m.f.tenant,m.v.input.captureId).record.state,'held');
+  assert.equal((await m.f.db.query('SELECT count(*)::int n FROM care_security.gkv_monthly_confirmation_receipts')).rows[0].n,0);
+  assert.equal(m.requests.filter(q=>cmsOperation(q.bytes)==='SignDocument').length,1);
+ },{personal:true,changeReply(event,result){
+   if(cmsOperation(event.bytes)!=='SignDocument')return false;
+   current.workspace().then(ws=>{const r=ws.items.find(r=>r.state==='approved');
+    return current.command({action:'revoke',input:{id:r.id,revision:r.revision,reason:'Testwiderruf während Kartenaufruf'}},undefined,current.reviewClaims());
+   }).then(()=>cardsReply(event.response,result),()=>event.response.destroy());return true;
+ }});
+});
 test('monthly component: response lost after card use stays held across restart and blocks a different capture',async()=>withMonthlyComponent(async m=>{
   await assert.rejects(m.worker.verify(m.v.input,m.png),/MONTHLY_COMPONENT_HELD/);
   const archive=m.store.getComponent(m.f.tenant,m.v.input.captureId);assert.equal(archive.record.state,'held');assert.equal(archive.cms,null);
