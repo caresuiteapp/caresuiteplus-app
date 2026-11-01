@@ -1,6 +1,31 @@
 # Prüfprotokoll: GKV-Datenaustausch
 
-Stand: 31.10.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+Stand: 01.11.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+
+## Assist-Abschlussoriginal am 01.11.2026
+
+Der [achte SQL-Entwurf und die Web-Anbindung](monthly-assist-originals.md) lösen
+den Konflikt zwischen früher Dokumentation und unveränderbarer Herkunft: Eine
+eigene finale Original-ID entsteht erst nach dem kanonisch bestätigten Abschluss.
+Arbeitsentwurf und Original bleiben erhalten. Der bestehende Byte-Dienst und die
+Monatsübernahme verwenden diese Originalfassung; Nachholung und Statusprüfung
+stehen im abgeschlossenen Web-Einsatz zur Verfügung.
+
+Gezielte Prüfungen verwenden die acht tatsächlichen SQL-Entwürfe und die
+vorhandene kanonische Einsatzmigration. Der separate lokale Byte-Lauf mit dem
+unveränderten Edge-Renderer (pdf-lib 1.17.1) besteht bis zum Monats-PDF. Die
+CI-PDF-Erzeugung ist ein ausdrücklich synthetisches Double; tatsächliche
+Unterschrifts-/PDF-Byteprüfung und kanonische Quellenvalidierung laufen unverändert.
+Web-Repository- und DOM-Prüfungen decken verlorene Antworten, Doppelbedienung,
+Sitzungswechsel und unbestätigte Übergaben ab. Gesamt-, Typ-, Build- und genaue
+Testzahlen werden im [Draft-PR #129](https://github.com/caresuiteapp/caresuiteplus-app/pull/129)
+für den veröffentlichten Stand festgehalten.
+
+Keine Datenbankaktivierung und keine externe Prüffreigabe. Reale Auth-/Storage-
+Integration, breite/schmale Browserabnahme, unabhängige PostgreSQL-Verbindungen,
+nachgereichte Portalunterschriften, Berichtigung des Assist-Ursprungs und mobile
+Einzelleistungen bleiben offen. Die vorhandenen umfassenden Bereitschaftsflags
+bleiben false.
 
 ## Persönliche Beschäftigtenzuordnung am 31.10.2026
 

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "assessedAt": "2026-10-31",
-  "baselineCommit": "5248025e2e78bc38bc5661b9f704c7989671ed85",
+  "assessedAt": "2026-11-01",
+  "baselineCommit": "d1e531670d670e195371ed564dd84e5746eb19e3",
   "productionReady": false,
   "scopeComplete": false,
   "scopeGaps": [
@@ -101,7 +101,11 @@
         "src/lib/gkvExchange/monthlyEmployees.ts",
         "src/lib/gkvExchange/monthlyEmployeeClient.web.ts",
         "src/components/office/gkv/GkvEmployees.web.tsx",
-        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx"
+        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx",
+        "docs/gkv/sql/monthly-assist-originals-draft.sql",
+        "src/lib/gkvExchange/assistOriginal.ts",
+        "src/lib/assist/repositories/assignmentRepository.supabase.web.ts",
+        "src/components/portal/GkvAssistCompletion.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -112,9 +116,13 @@
         "tests/gkv-exchange/monthly-facts.test.mjs",
         "tests/gkv-exchange/monthly-employees.test.mjs",
         "tests/gkv-exchange/monthly-employees-ui-check.mjs",
-        "tests/gkv-exchange/tsl-ocsp.test.mjs"
+        "tests/gkv-exchange/tsl-ocsp.test.mjs",
+        "tests/gkv-exchange/monthly-assist-originals.test.mjs",
+        "src/__tests__/assistWorkflow/gkvOriginalCompletion.web.test.ts",
+        "src/__tests__/assistWorkflow/gkvOriginalPanel.web.test.tsx",
+        "tests/gkv-exchange/monthly-assist-fixture.mjs"
       ],
-      "nextStep": "Persönliche Nummernmeldung, unabhängige Freigabe, Widerruf und Bindung beim Originalnachweis-INSERT sind mit sieben SQL-Entwürfen umgesetzt. Monatsdaten unterscheiden vollständige, teilweise und fehlende persönliche Herkunft. Reale Konto-/Registerprüfung, produktive Provisionierung, einzelne mobile Leistungserfassung vor dem Originalnachweis, Mehrpersonenleistungen sowie Vertrags-/Tarifprüfung bleiben offen.",
+      "nextStep": "Acht SQL-Entwürfe und ein Web-Hook trennen veränderbare Assist-Arbeitsentwürfe von persönlich abgeschlossenen Originalen; das Web-Panel bietet Statusprüfung und Wiederaufnahme der PDF-Übergabe. Reale Auth-/Storage-Abnahme, Parallelverbindungen, nachgereichte Portalunterschrift, Ursprungsberichtigung, mobile Einzelleistungen, Mehrpersonenleistungen und Aktivierung bleiben offen.",
       "acceptance": "ITSG-Fälle 3.1 bis 3.5 und 4.1 mit mobilen Testkonten und gespeicherten Originalen vorführen.",
       "dependsOn": [
         "scope"
@@ -177,7 +185,11 @@
         "src/lib/gkvExchange/monthlyEmployees.ts",
         "src/lib/gkvExchange/monthlyEmployeeClient.web.ts",
         "src/components/office/gkv/GkvEmployees.web.tsx",
-        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx"
+        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx",
+        "docs/gkv/sql/monthly-assist-originals-draft.sql",
+        "src/lib/gkvExchange/assistOriginal.ts",
+        "src/lib/assist/repositories/assignmentRepository.supabase.web.ts",
+        "src/components/portal/GkvAssistCompletion.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -195,7 +207,11 @@
         "tests/gkv-exchange/tsl-ocsp.test.mjs",
         "tests/gkv-exchange/monthly-embedded-signature.test.mjs",
         "tests/gkv-exchange/monthly-employees.test.mjs",
-        "tests/gkv-exchange/monthly-employees-ui-check.mjs"
+        "tests/gkv-exchange/monthly-employees-ui-check.mjs",
+        "tests/gkv-exchange/monthly-assist-originals.test.mjs",
+        "src/__tests__/assistWorkflow/gkvOriginalCompletion.web.test.ts",
+        "src/__tests__/assistWorkflow/gkvOriginalPanel.web.test.tsx",
+        "tests/gkv-exchange/monthly-assist-fixture.mjs"
       ],
       "nextStep": "Neue Fachnachweise speichern XML und Quittungsbindung atomar ohne eigenständige PNG-Ablage; Wiederaufnahme erfolgt über die Erfassungskennung. Der konfigurierte Host bindet tatsächliche XML-Bytes an SMC-B-CMS, VerifyDocument und ein verschlüsseltes Journal; unklare Kartenaufrufe bleiben über Neustarts gesperrt. Persönliche Nummernzuordnung wird von der geprüften Meldung bis zur XML-/CMS-Kette synthetisch getestet; reale Konto-/Register- und zeitnahe mobile Erfassungsnachweise, Bereinigung älterer Bildablagen und Sicherungskopien, Hardware-/TI-Nachweise, Provisionierung, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe und unabhängige Prüfung bleiben offen.",
       "acceptance": "ITSG-Fälle 3.6 bis 3.10 mit getrennten Nachweisfassungen und Wiederverwendungsversuchen vorführen.",
@@ -233,7 +249,11 @@
         "src/lib/gkvExchange/monthlyEmployees.ts",
         "src/lib/gkvExchange/monthlyEmployeeClient.web.ts",
         "src/components/office/gkv/GkvEmployees.web.tsx",
-        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx"
+        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx",
+        "docs/gkv/sql/monthly-assist-originals-draft.sql",
+        "src/lib/gkvExchange/assistOriginal.ts",
+        "src/lib/assist/repositories/assignmentRepository.supabase.web.ts",
+        "src/components/portal/GkvAssistCompletion.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -244,9 +264,13 @@
         "tests/gkv-exchange/monthly-facts.test.mjs",
         "tests/gkv-exchange/monthly-employees.test.mjs",
         "tests/gkv-exchange/monthly-employees-ui-check.mjs",
-        "tests/gkv-exchange/tsl-ocsp.test.mjs"
+        "tests/gkv-exchange/tsl-ocsp.test.mjs",
+        "tests/gkv-exchange/monthly-assist-originals.test.mjs",
+        "src/__tests__/assistWorkflow/gkvOriginalCompletion.web.test.ts",
+        "src/__tests__/assistWorkflow/gkvOriginalPanel.web.test.tsx",
+        "tests/gkv-exchange/monthly-assist-fixture.mjs"
       ],
-      "nextStep": "Korrektur erhält die ursprüngliche Beschäftigtennummer ohne alte Bestätigung; der private XML-/CMS-Archivleser erhält den Entwertungsstatus der Vorgängerfassung. Reale Parallelverbindungen, Wiederherstellung/administrative Sperrklärung, produktive Berichtigung fehlerhafter Erstzuordnung und vollständige Abrechnungsübergabe bleiben offen.",
+      "nextStep": "Monatskorrekturen erhalten die persönliche Originalnummer ohne alte Bestätigung. Die neue Assist-Abschlussfassung sperrt nachträgliche Inhaltsänderungen; eine fachliche Korrektur des Assist-Ursprungs selbst ist noch nicht implementiert. Reale Parallelverbindungen, Wiederherstellung, administrative Sperrklärung und vollständige Abrechnungsübergabe bleiben offen.",
       "acceptance": "ITSG-Fälle 3.11 und 4.2 gegen parallele Änderung, alte Unterschrift und alte Exportfassung vorführen.",
       "dependsOn": [
         "proof-confirmation"
@@ -289,7 +313,11 @@
         "src/lib/gkvExchange/monthlyEmployees.ts",
         "src/lib/gkvExchange/monthlyEmployeeClient.web.ts",
         "src/components/office/gkv/GkvEmployees.web.tsx",
-        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx"
+        "src/components/portal/profile/PortalEmployeeProfileTabContent.web.tsx",
+        "docs/gkv/sql/monthly-assist-originals-draft.sql",
+        "src/lib/gkvExchange/assistOriginal.ts",
+        "src/lib/assist/repositories/assignmentRepository.supabase.web.ts",
+        "src/components/portal/GkvAssistCompletion.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/transport.test.mjs",
@@ -300,7 +328,11 @@
         "tests/gkv-exchange/tsl-ocsp.test.mjs",
         "tests/gkv-exchange/monthly-embedded-signature.test.mjs",
         "tests/gkv-exchange/monthly-employees.test.mjs",
-        "tests/gkv-exchange/monthly-employees-ui-check.mjs"
+        "tests/gkv-exchange/monthly-employees-ui-check.mjs",
+        "tests/gkv-exchange/monthly-assist-originals.test.mjs",
+        "src/__tests__/assistWorkflow/gkvOriginalCompletion.web.test.ts",
+        "src/__tests__/assistWorkflow/gkvOriginalPanel.web.test.tsx",
+        "tests/gkv-exchange/monthly-assist-fixture.mjs"
       ],
       "nextStep": "Neue Fachnachweise speichern XML und Quittungsbindung atomar ohne eigenständige PNG-Ablage; Wiederaufnahme erfolgt über die Erfassungskennung. Der konfigurierte Host bindet tatsächliche XML-Bytes an SMC-B-CMS, VerifyDocument und ein verschlüsseltes Journal; unklare Kartenaufrufe bleiben über Neustarts gesperrt. Persönliche Nummernzuordnung wird von der geprüften Meldung bis zur XML-/CMS-Kette synthetisch getestet; reale Konto-/Register- und zeitnahe mobile Erfassungsnachweise, Bereinigung älterer Bildablagen und Sicherungskopien, Hardware-/TI-Nachweise, Provisionierung, vollständige EDIFACT-/IMG-/PRODMOD-Übergabe und unabhängige Prüfung bleiben offen.",
       "acceptance": "Unabhängige Prüfung der erzeugten Bytes, Negativfälle für Schema, Signatur, IMG-Zuordnung und zeitgültige PROD-/MOD-ID.",

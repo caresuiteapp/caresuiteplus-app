@@ -50,6 +50,7 @@ import {MonthlyOriginalHost,createMonthlyHostServer} from '../../services/gkv/mo
 import {callMonthlyHost} from '../../api/_lib/monthly-host-transport.mjs';
 import {monthlyFactsFixture} from './monthly-facts-fixture.mjs';
 import {employeeFixture} from './monthly-employees-fixture.mjs';
+import {assistOriginalFixture} from './monthly-assist-fixture.mjs';
 import {signingPng} from './monthly-host-fixture.mjs';
 import {generateCapturedMonthlyXml} from '../../services/gkv/monthly-captured-xml.mjs';
 import {openssl} from '../../services/gkv/openssl.mjs';
@@ -2294,13 +2295,19 @@ test('VZD TLS: an unoffered ECDH group cannot reach certificate status or LDAP',
 
 // The complete monthly path uses the existing synthetic mTLS + TSL/OCSP peer,
 // PostgreSQL review drafts and encrypted SQLite. It is not hardware/TI evidence.
-async function withMonthlyComponent(run, {transform,changeReply,personal=false}={}) {
+async function withMonthlyComponent(run, {transform,changeReply,personal=false,assist=false}={}) {
   await fixture(async({open})=>withCms(async({connector,requests})=>{
-    const monthly=await (personal?employeeFixture():monthlyFactsFixture()),statusClient=open();
+    const monthly=await (assist?assistOriginalFixture():personal?employeeFixture():monthlyFactsFixture()),statusClient=open();
     const config={tenantId:monthly.f.tenant,store:monthly.store,connector,statusClient,
       expectedTelematikId:'10-LOCAL-TEST',requiredRoles:['1.2.276.0.76.4.245']};
     const signer=new MonthlyComponentSigner(config),worker=monthly.setComponentSigner(signer);
-    const v=await monthly.setup();
+    let v;
+    if(assist){
+      await monthly.approve(await monthly.submit());const visit=await monthly.start();await monthly.finish(visit);
+      const context=await monthly.context(visit);await monthly.seal(visit,context.draft);
+      const response=await monthly.complete(visit);assert.equal(response.status,200,await response.clone().text());
+      v=await monthly.monthly(visit);
+    }else v=await monthly.setup();
     if(personal){await monthly.approve(await monthly.submit());await monthly.capture(v);}
     await monthly.freeze(v);await monthly.prepare(v);
     const png=Buffer.from(signingPng(1),'base64');
@@ -2342,6 +2349,18 @@ test('monthly component: verified XML, real SOAP CMS and report are archived bef
   assert.equal(m.requests.some(q=>isVerifyPin(q.bytes)),false);
   for(const part of [archive.xml,archive.cms,archive.report,archive.certificate])assert.equal((await readFile(m.storeOptions.path)).includes(part),false);
 }));
+test('monthly component: sealed Assist original reaches byte attestation, frozen facts, actual XML/CMS and separate confirmation',async()=>withMonthlyComponent(async m=>{
+ const facts=m.v.p.payload.xmlFacts,proofId=m.v.receipt.proof_id;
+ assert.equal(facts.captureProvenance,'personally-bound');assert.equal(facts.sources[0].personalCapture.proofId,proofId);
+ assert.equal(m.v.p.confirmation,null);
+ const receipt=await m.worker.verify(m.v.input,m.png);
+ m.v.p=await m.f.command('confirm',{id:m.v.p.id,revision:m.v.p.revision,content_sha256:m.v.p.content_sha256,receipt_id:receipt.receiptId});
+ assert.equal(m.v.p.status,'final');
+ assert.equal(m.v.p.payload.xmlFacts.sources[0].personalCapture.proofId,proofId);
+ assert.equal((await m.f.db.query('SELECT count(*)::int n FROM care_security.gkv_assist_originals')).rows[0].n,1);
+ assert.equal((await m.f.db.query('SELECT count(*)::int n FROM workflow_proof_attestations')).rows[0].n,1);
+},{assist:true}));
+
 test('monthly component: reviewed personal origin survives XML/CMS, finalization and correction without changing employee number',async()=>withMonthlyComponent(async m=>{
  const facts=m.v.p.payload.xmlFacts;assert.equal(facts.captureProvenance,'personally-bound');
  const receipt=await m.worker.verify(m.v.input,m.png),archive=m.store.getComponent(m.f.tenant,m.v.input.captureId);

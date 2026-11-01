@@ -5,6 +5,15 @@ Stand 31.10.2026, Entwicklung nach `5248025`. Der siebte
 Er ergänzt die sechs Monatsentwürfe, die bestehenden persönlichen Konten und
 den tatsächlichen Originalnachweis-INSERT. Android-Dateien bleiben unverändert.
 
+## Weiterführung am 01.11.2026
+
+Der [achte Entwurf mit Web-Anbindung](monthly-assist-originals.md) trennt den
+frühen veränderbaren Assist-Arbeitsentwurf von der persönlich abgeschlossenen
+Originalfassung. Er ersetzt den pauschalen INSERT-Trigger durch eine private
+Abschlussbindung. Siebten und achten Entwurf gemeinsam prüfen; der siebte allein
+ist nicht zur Aktivierung im bestehenden Live-Assist-Ablauf geeignet. Der folgende
+Abschnitt dokumentiert weiterhin den zugrunde liegenden Nummern-/Erfassungsvertrag.
+
 ## Meldung und unabhängige Prüfung
 
 Im Mitarbeitenden-Webprofil kann die eigene GKV-Beschäftigtennummer mit einer

@@ -3,6 +3,7 @@ import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { EmployeePortalVisitFabMenu } from '@/components/portal/EmployeePortalVisitFabMenu.web';
 import { EmployeePortalVisitDocumentationPanel } from '@/components/portal/EmployeePortalVisitDocumentationPanel.web';
 import { EmployeePortalVisitCompletionPanel } from '@/components/portal/EmployeePortalVisitCompletionPanel.web';
+import { GkvAssistCompletion } from '@/components/portal/GkvAssistCompletion.web';
 import { EmployeePortalVisitBottomBar } from '@/components/portal/EmployeePortalVisitBottomBar.web';
 import { PortalKeyboardScrollView } from '@/components/keyboard/PortalKeyboard';
 import { EmployeeOpenVisitTimeEditor } from '@/components/portal/EmployeeOpenVisitTimeEditor';
@@ -1196,7 +1197,7 @@ function EmployeePortalVisitExecutionContent() {
       }
       if (action === 'finalize_visit') {
         const r = await finalizeVisit();
-        if (r.ok) setLocalSuccess('Einsatz abgeschlossen — Leistungsnachweis erstellt.');
+        if (r.ok) setLocalSuccess('Einsatz abgeschlossen. Bitte den bestätigten Nachweisstand beachten.');
         else if (isWorkflowConfirmationPending(r.errorCode)) {
           setLocalWarning(
             'Der Abschluss wird im Hintergrund bestätigt. Bitte nicht erneut tippen; der Status aktualisiert sich automatisch.',
@@ -1700,7 +1701,7 @@ function EmployeePortalVisitExecutionContent() {
               canFinalizeDeferred={canFinalizeDeferred}
               onFinalize={async () => {
                 const r = await finalizeVisit();
-                if (r.ok) setLocalSuccess('Einsatz abgeschlossen — Leistungsnachweis erstellt.');
+                if (r.ok) setLocalSuccess('Einsatz abgeschlossen. Bitte den bestätigten Nachweisstand beachten.');
                 else if (isWorkflowConfirmationPending(r.errorCode)) {
                   setLocalWarning(
                     'Der Abschluss wird im Hintergrund bestätigt. Bitte nicht erneut tippen; der Status aktualisiert sich automatisch.',
@@ -1847,6 +1848,10 @@ function EmployeePortalVisitExecutionContent() {
           ) : localWarning || syncWarning ? <InfoBanner message={localWarning ?? formatExecutionSyncWarning(syncWarning!)} variant="warning" /> : null}
           {!isLocked && !readOnlyExecution ? <EmployeeOpenVisitTimeEditor key={visit.assignmentId} visit={visit} onSaved={refresh} disabled={actionLoading || driveLoading || startServiceLoading || workflowConfirmationPending} /> : null}
           {renderPhaseContent()}
+          {phase === 'completed' && portalTenantId && portalEmployeeId && user?.id ? (
+            <GkvAssistCompletion tenantId={portalTenantId} assignmentId={id} employeeId={portalEmployeeId} actorId={user.id}
+              disabled={actionLoading || workflowConfirmationPending || readOnlyExecution || !canExecute} />
+          ) : null}
 
           {(showSignature || (isServiceEnded && documentationSubmitted && signatureCaptured)) && !isLocked ? (
             <View

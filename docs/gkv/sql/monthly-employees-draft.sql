@@ -184,30 +184,33 @@ END $$;
 -- Capture only at original proof INSERT, before a service record is derived.
 -- No authenticated RPC can attach a capture to an existing proof. The 15-minute
 -- policy is a conservative product limit, not a claimed statutory time limit.
-CREATE FUNCTION care_security.gkv_employee_capture_insert() RETURNS trigger
+CREATE FUNCTION care_security.gkv_employee_capture_proof(p public.assist_visit_proofs) RETURNS void
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE employee uuid; registration care_security.gkv_employee_registrations; v public.assist_visits; captured timestamptz;
 BEGIN
- IF auth.uid() IS NULL OR auth.jwt()->>'role' IS DISTINCT FROM 'authenticated' THEN RETURN NEW; END IF;
- employee:=care_security.gkv_employee_self(NEW.tenant_id);
- IF employee IS NULL THEN RETURN NEW; END IF;
- SELECT * INTO registration FROM care_security.gkv_employee_registrations WHERE tenant_id=NEW.tenant_id
+ IF auth.uid() IS NULL OR auth.jwt()->>'role' IS DISTINCT FROM 'authenticated' THEN RETURN; END IF;
+ employee:=care_security.gkv_employee_self(p.tenant_id);
+ IF employee IS NULL THEN RETURN; END IF;
+ SELECT * INTO registration FROM care_security.gkv_employee_registrations WHERE tenant_id=p.tenant_id
   AND employee_id=employee AND actor_id=auth.uid() AND state='approved' AND valid_until>clock_timestamp() FOR SHARE;
- IF NOT FOUND THEN RETURN NEW; END IF;
- SELECT * INTO v FROM public.assist_visits WHERE tenant_id=NEW.tenant_id AND id=NEW.visit_id FOR SHARE;
+ IF NOT FOUND THEN RETURN; END IF;
+ SELECT * INTO v FROM public.assist_visits WHERE tenant_id=p.tenant_id AND id=p.visit_id FOR SHARE;
  captured:=clock_timestamp();
  IF NOT FOUND OR v.employee_id IS DISTINCT FROM employee OR v.actual_start_at IS NULL OR v.actual_end_at IS NULL
    OR NOT isfinite(v.actual_start_at) OR NOT isfinite(v.actual_end_at) OR v.actual_end_at<v.actual_start_at
    OR v.actual_end_at>captured OR v.actual_end_at<captured-interval '15 minutes'
    OR registration.valid_from>v.actual_start_at OR registration.valid_until<=captured
-   OR NEW.payload_hash IS DISTINCT FROM 'sha256:'||encode(sha256(convert_to(public.workflow_canonical_json(NEW.payload_snapshot),'UTF8')),'hex') THEN
+   OR p.payload_hash IS DISTINCT FROM 'sha256:'||encode(sha256(convert_to(public.workflow_canonical_json(p.payload_snapshot),'UTF8')),'hex') THEN
   RAISE EXCEPTION 'Zeitnahe persönliche Ursprungserfassung passt nicht zum Einsatz' USING ERRCODE='40001'; END IF;
  INSERT INTO care_security.gkv_employee_captures(tenant_id,proof_id,visit_id,employee_id,actor_id,session_id,registration_id,
    employee_number,proof_payload_hash,captured_at,service_started_at,service_ended_at,policy)
-  VALUES(NEW.tenant_id,NEW.id,NEW.visit_id,employee,auth.uid(),care_security.gkv_monthly_live_session(),registration.id,
-   registration.employee_number,NEW.payload_hash,captured,v.actual_start_at,v.actual_end_at,'personal-proof-insert-15m-v1');
- RETURN NEW;
+  VALUES(p.tenant_id,p.id,p.visit_id,employee,auth.uid(),care_security.gkv_monthly_live_session(),registration.id,
+   registration.employee_number,p.payload_hash,captured,v.actual_start_at,v.actual_end_at,'personal-proof-insert-15m-v1');
+ RETURN;
 END $$;
+CREATE FUNCTION care_security.gkv_employee_capture_insert() RETURNS trigger
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+ BEGIN PERFORM care_security.gkv_employee_capture_proof(NEW); RETURN NEW; END $$;
 CREATE TRIGGER gkv_employee_capture_insert AFTER INSERT ON public.assist_visit_proofs
  FOR EACH ROW EXECUTE FUNCTION care_security.gkv_employee_capture_insert();
 
@@ -217,6 +220,9 @@ CREATE FUNCTION care_security.gkv_employee_source(t uuid,source jsonb) RETURNS j
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE c care_security.gkv_employee_captures; r care_security.gkv_employee_registrations; original public.assist_visit_proofs;
 BEGIN
+ -- Optional eighth draft rejects mutable drafts at the monthly handoff.
+ IF to_regprocedure('care_security.gkv_assist_source_guard(uuid,jsonb)') IS NOT NULL THEN
+  PERFORM care_security.gkv_assist_source_guard(t,source); END IF;
  SELECT * INTO c FROM care_security.gkv_employee_captures WHERE tenant_id=t
   AND proof_id=(source->'sourceReceipt'->>'proof_id')::uuid FOR SHARE;
  IF NOT FOUND THEN RETURN NULL; END IF;
