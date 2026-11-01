@@ -1849,7 +1849,7 @@ function EmployeePortalVisitExecutionContent() {
           {!isLocked && !readOnlyExecution ? <EmployeeOpenVisitTimeEditor key={visit.assignmentId} visit={visit} onSaved={refresh} disabled={actionLoading || driveLoading || startServiceLoading || workflowConfirmationPending} /> : null}
           {renderPhaseContent()}
           {phase === 'completed' && portalTenantId && portalEmployeeId && user?.id ? (
-            <GkvAssistCompletion tenantId={portalTenantId} assignmentId={id} employeeId={portalEmployeeId} actorId={user.id}
+            <GkvAssistCompletion tenantId={portalTenantId} assignmentId={visit.assignmentId} employeeId={portalEmployeeId} actorId={user.id}
               disabled={actionLoading || workflowConfirmationPending || readOnlyExecution || !canExecute} />
           ) : null}
 
