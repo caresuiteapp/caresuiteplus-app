@@ -119,12 +119,16 @@ test('Assist originals: adversarial source, identity and stale revision checks',
    const {v}=await newReady();const r=await x.rpc('workflow_assignment_proof_source',{p_tenant_id:f.tenant,p_assignment_id:v.assignment});assert.equal(r.error,null);
    await assert.rejects(f.db.query('SELECT care_security.gkv_employee_source($1,$2::jsonb)',[f.tenant,JSON.stringify({employeeId:x.employee,sourceReceipt:r.data.receipt})]),conflict);
   });
-  await t.test('a previously derived service record cannot be retrofitted with personal provenance',async()=>{
+  await t.test('old clients and direct byte-worker calls cannot hand off a mutable source before personal sealing',async()=>{
    const {v,c}=await newReady();assert.equal((await x.complete(v)).status,200);
-   const record=await x.rpc('workflow_prepare_assignment_service_record',{p_tenant_id:f.tenant,p_assignment_id:v.assignment});assert.equal(record.error,null);
-   // The now-attested draft may still be pending review, but its prior handoff is final.
+   const record=await x.rpc('workflow_prepare_assignment_service_record',{p_tenant_id:f.tenant,p_assignment_id:v.assignment});assert.equal(record.error?.code,'40001');
+   assert.equal((await f.db.query('SELECT count(*)::int n FROM service_records WHERE assignment_id=$1',[v.assignment])).rows[0].n,0);
+   // An early PDF may exist, but no record was handed off. The normal personal
+   // finalization can still complete and the worker attests the new original.
    const current=await x.context(v);assert.notDeepEqual(current.draft.updatedAt,c.draft.updatedAt);
-   await assert.rejects(x.seal(v,current.draft),conflict);
+   const sealed=await x.seal(v,current.draft);assert.equal((await x.complete(v)).status,200);
+   const completed=await x.rpc('workflow_prepare_assignment_service_record',{p_tenant_id:f.tenant,p_assignment_id:v.assignment});
+   assert.equal(completed.error,null);assert.equal(completed.data.proof_id,sealed.original.proofId);
   });
   await t.test('expired registration before seal cannot silently return legacy or create a capture',async()=>{
    const {v,c}=await newReady();

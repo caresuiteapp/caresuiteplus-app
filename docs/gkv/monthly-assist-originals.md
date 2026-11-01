@@ -66,6 +66,12 @@ Die Monatsübernahme akzeptiert für persönlich geführte Einsätze nur diese f
 Original-ID. Eine direkt vorzeitig abgeleitete Quelle oder ein alter Entwurf kann
 keine persönliche Herkunft erhalten und nicht auf einen unbestätigten Bezug
 zurückfallen. Bereits übergebene Quellen werden nicht nachträglich umgebunden.
+Zusätzlich prüft ein Servertrigger die persönliche Herkunft schon beim Ableiten
+des Leistungsnachweises. Dadurch können ältere Clients und ein noch nicht
+aktualisierter PostgREST-Schemacache die neue Abschlussbindung nicht umgehen.
+Ein vorzeitig erzeugtes Entwurfs-PDF verhindert die spätere korrekte Fertigstellung
+nicht; es wird nicht als finaler Nachweis übergeben. Der SQL-Entwurf stößt nach
+Installation außerdem ausdrücklich die Aktualisierung des Schemacaches an.
 
 ## Prüfungen und Grenzen
 

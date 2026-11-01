@@ -86,6 +86,21 @@ BEGIN
  END IF;
 END $$;
 
+-- Protect the existing worker/record RPC even when an older client or a stale
+-- PostgREST schema cache does not yet know the optional finalization endpoint.
+-- No mutable source may be handed off first and then retroactively captured.
+CREATE FUNCTION care_security.gkv_assist_record_guard() RETURNS trigger
+ LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+BEGIN
+ IF NEW.source_receipt<>'{}'::jsonb AND (TG_OP='INSERT' OR NEW.source_receipt IS DISTINCT FROM OLD.source_receipt) THEN
+  PERFORM care_security.gkv_employee_source(NEW.tenant_id,
+   jsonb_build_object('employeeId',NEW.employee_id,'sourceReceipt',NEW.source_receipt));
+ END IF;
+ RETURN NEW;
+END $$;
+CREATE TRIGGER gkv_assist_record_guard BEFORE INSERT OR UPDATE ON public.service_records
+ FOR EACH ROW EXECUTE FUNCTION care_security.gkv_assist_record_guard();
+
 CREATE FUNCTION care_security.gkv_assist_original_context(t uuid,a_id uuid) RETURNS jsonb
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE a public.assignments; v public.assist_visits; d public.assist_visit_proofs;
@@ -201,4 +216,5 @@ DO $$ DECLARE name text; f regprocedure; BEGIN
 END $$;
 GRANT EXECUTE ON FUNCTION care_security.gkv_assist_original_context(uuid,uuid),public.gkv_assist_original_context(uuid,uuid),
  care_security.gkv_assist_original_seal(uuid,uuid,uuid,jsonb),public.gkv_assist_original_seal(uuid,uuid,uuid,jsonb) TO authenticated;
+NOTIFY pgrst,'reload schema';
 COMMIT;
