@@ -3,6 +3,7 @@ import type { RoleKey } from '@/types';
 import { SERVICE_TYPES, isMonth, type ServiceType } from '@/lib/gkvExchange/model';
 import { type MonthlyProof, type MonthlyProofCommand } from '@/lib/gkvExchange/monthlyProof';
 import { MonthlyProofWriter } from '@/lib/gkvExchange/monthlyWriter';
+import {deferredCaptureSummary} from '@/lib/gkvExchange/monthlyEmployees';
 import {GkvMonthlySignature} from './GkvMonthlySignature.web';
 import type {MonthlyOriginalReceipt} from '@/lib/gkvExchange/monthlyOriginalContract';
 import { MONTHLY_STATUS, monthlyDifferences, type MonthlyClient, type MonthlySource, type MonthlyWorkspace } from '@/lib/gkvExchange/monthlyWorkspace';
@@ -224,6 +225,7 @@ function MonthlyWorkspacePanel({tenantId, roleKey, canCreate, onWorkState}: Prop
 }
 
 export function MonthlyProofContent({proof}: {proof: MonthlyProof}) {
+  const captures=new Map(proof.payload.xmlFacts?.sources.map(source=>[source.recordId,deferredCaptureSummary(source.personalCapture)])??[]);
   return <section className="gx-card gx-stack gx-monthly-original" aria-label={`Gespeicherte Fassung ${proof.version}`}>
     <div className="gx-card-title"><h3>Gespeicherte Fassung {proof.version}</h3><span className="gx-badge">{MONTHLY_STATUS[proof.status]}</span></div>
     <p>{proof.payload.clientName} · {proof.payload.month} · {SERVICE_TYPES[proof.payload.serviceType]}</p>
@@ -244,6 +246,7 @@ export function MonthlyProofContent({proof}: {proof: MonthlyProof}) {
     </section>}
     <ol className="gx-monthly-records">{[...proof.payload.records].sort((a, b) => a.serviceDate.localeCompare(b.serviceDate) || a.recordId.localeCompare(b.recordId)).map(record => <li key={record.recordId}>
       <div className="gx-card-title"><strong>{day(record.serviceDate)} · {record.employeeName}</strong><span>{record.actualMinutes} Minuten</span></div>
+      {captures.get(record.recordId)?<p className="gx-subtle">{captures.get(record.recordId)}</p>:null}
       <p>{record.description}</p>{record.tasks.length > 0 && <ul>{record.tasks.map((task, i) => <li key={`${task.id}:${i}`}><strong>{task.title}</strong> · {({done: 'Erbracht', open: 'Offen', not_done: 'Nicht erbracht', not_requested: 'Nicht gewünscht', cancelled: 'Abgesagt'} as Record<string, string>)[task.status] || task.status}{task.completionNote && <p>{task.completionNote}</p>}</li>)}</ul>}
     </li>)}</ol>
   </section>;

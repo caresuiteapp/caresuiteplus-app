@@ -23,11 +23,17 @@ CREATE TABLE care_security.gkv_assist_requests (
 -- INSERTs (including live unsigned documentation) never acquire personal provenance.
 CREATE OR REPLACE FUNCTION care_security.gkv_employee_capture_insert() RETURNS trigger
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
+DECLARE bound boolean:=false;
 BEGIN
  IF EXISTS(SELECT 1 FROM care_security.gkv_assist_originals o WHERE o.tenant_id=NEW.tenant_id
    AND o.proof_id=NEW.id AND o.visit_id=NEW.visit_id AND o.actor_id=auth.uid()
    AND o.session_id=care_security.gkv_monthly_live_session()) THEN
-  PERFORM care_security.gkv_employee_capture_proof(NEW);
+  IF to_regprocedure('care_security.gkv_assist_deferred_bind(public.assist_visit_proofs)') IS NOT NULL THEN
+   bound:=care_security.gkv_assist_deferred_bind(NEW);
+  END IF;
+  IF NOT bound THEN
+   PERFORM care_security.gkv_employee_capture_proof(NEW);
+  END IF;
   IF NOT EXISTS(SELECT 1 FROM care_security.gkv_employee_captures WHERE tenant_id=NEW.tenant_id AND proof_id=NEW.id) THEN
    RAISE EXCEPTION 'Persönliche Ursprungsbindung fehlt' USING ERRCODE='40001'; END IF;
  END IF;
@@ -104,7 +110,7 @@ CREATE TRIGGER gkv_assist_record_guard BEFORE INSERT OR UPDATE ON public.service
 CREATE FUNCTION care_security.gkv_assist_original_context(t uuid,a_id uuid) RETURNS jsonb
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE a public.assignments; v public.assist_visits; d public.assist_visit_proofs;
- o care_security.gkv_assist_originals; employee uuid; result jsonb; receipt jsonb;
+ o care_security.gkv_assist_originals; employee uuid; result jsonb; receipt jsonb; deferred jsonb;
 BEGIN
  PERFORM care_security.gkv_monthly_live_session();
  SELECT * INTO a FROM public.assignments WHERE tenant_id=t AND id=a_id;
@@ -133,6 +139,10 @@ BEGIN
   PERFORM care_security.gkv_employee_source(t,jsonb_build_object('employeeId',employee,'sourceReceipt',receipt));
   RETURN result||jsonb_build_object('phase','sealed','original',jsonb_build_object('proofId',o.proof_id,
     'draftId',o.draft_id,'draftUpdatedAt',o.draft_updated_at,'payloadHash',o.payload_hash,'signatureId',o.signature_id,'sealedAt',o.sealed_at));
+ END IF;
+ IF to_regprocedure('care_security.gkv_assist_deferred_state(uuid,uuid)') IS NOT NULL THEN
+  deferred:=care_security.gkv_assist_deferred_state(t,a_id);
+  IF deferred IS NOT NULL THEN RETURN result||deferred; END IF;
  END IF;
  IF a.status::text<>'completed' OR v.canonical_status<>'completed' THEN
   RETURN result||jsonb_build_object('phase','working'); END IF;

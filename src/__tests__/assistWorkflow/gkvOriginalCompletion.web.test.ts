@@ -48,6 +48,12 @@ describe('Web assignment completion uses the immutable personal original',()=>{
   mocks.rpc.mockResolvedValue({data:null,error:{code:'PGRST202',message:'Could not find public.gkv_assist_original_context'}});
   expect((await repository.prepareServiceRecord(tenant,assignment)).ok).toBe(true);expect(mocks.basePrepare).toHaveBeenCalledOnce();
  });
+ it('keeps deferred signature pending without calling the byte worker or inventing an original',async()=>{
+  mocks.rpc.mockResolvedValue({data:{...ready,phase:'awaiting_signature',draft:null},error:null});
+  const result=await repository.prepareServiceRecord(tenant,assignment);
+  expect(result).toMatchObject({ok:false,error:expect.stringContaining('Unterschrift im Klient:innenportal steht noch aus')});
+  expect(mocks.rpc).toHaveBeenCalledOnce();expect(mocks.basePrepare).not.toHaveBeenCalled();
+ });
  it('after byte failure retries the same sealed original without another seal command',async()=>{
   mocks.rpc.mockResolvedValue({data:sealed,error:null});
   mocks.basePrepare.mockResolvedValueOnce({ok:false,error:'PDF noch nicht bestätigt'}).mockResolvedValueOnce({ok:true,data:{id:'record'}});

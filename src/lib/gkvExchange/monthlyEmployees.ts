@@ -14,7 +14,15 @@ export type EmployeeCommand={action:'submit';input:{id:string;employeeNumber:str
 export type EmployeeRequestStatus={state:'not-found';tenantId:string;requestId:string}
  | {state:'applied';tenantId:string;requestId:string;registration:EmployeeRegistration};
 export type PersonalEmployeeCapture={id:string;registrationId:string;actorId:string;employeeId:string;employeeNumber:string;
- proofId:string;proofPayloadHash:string;capturedAt:string;policy:'personal-proof-insert-15m-v1';reviewedBy:string;reviewedAt:string};
+ proofId:string;proofPayloadHash:string;capturedAt:string;reviewedBy:string;reviewedAt:string} & (
+ {policy:'personal-proof-insert-15m-v1';deferredSource?:never}
+ | {policy:'personal-deferred-source-15m-v1';deferredSource:{proofId:string;payloadHash:string;signedAt:string;sealedAt:string}});
+const captureTime=new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',dateStyle:'medium',timeStyle:'medium'});
+/** Identical explanation in the displayed monthly original and its server PDF. */
+export function deferredCaptureSummary(capture:PersonalEmployeeCapture|undefined):string|null{
+ if(capture?.policy!=='personal-deferred-source-15m-v1')return null;
+ return `Leistungsinhalt persönlich erfasst: ${captureTime.format(new Date(capture.capturedAt))}. Portalunterschrift nachgereicht: ${captureTime.format(new Date(capture.deferredSource.signedAt))}. Original abgeschlossen: ${captureTime.format(new Date(capture.deferredSource.sealedAt))}.`;
+}
 const object=(v:unknown):v is Record<string,unknown>=>!!v&&typeof v==='object'&&!Array.isArray(v);
 const uuid=(v:unknown):v is string=>typeof v==='string'&&UUID.test(v)&&v===v.toLowerCase();
 const stamp=(v:unknown):v is string=>typeof v==='string'&&/^\d{4}-\d{2}-\d{2}T/.test(v)&&Number.isFinite(Date.parse(v));
@@ -74,10 +82,18 @@ export function readEmployeeRequestStatus(v:unknown,tenantId:string,requestId:st
  return structuredClone(v) as EmployeeRequestStatus;
 }
 export function readPersonalEmployeeCapture(v:unknown):PersonalEmployeeCapture{
- if(!object(v)||!shape(v,['id','registrationId','actorId','employeeId','employeeNumber','proofId','proofPayloadHash','capturedAt','policy','reviewedBy','reviewedAt'])
+ if(!object(v)||!shape(v,['id','registrationId','actorId','employeeId','employeeNumber','proofId','proofPayloadHash','capturedAt','policy','reviewedBy','reviewedAt',
+  ...(v.policy==='personal-deferred-source-15m-v1'?['deferredSource']:[])])
   ||![v.id,v.registrationId,v.actorId,v.employeeId,v.proofId,v.reviewedBy].every(uuid)||v.reviewedBy===v.actorId
   ||typeof v.employeeNumber!=='string'||!/^\d{9}$/.test(v.employeeNumber)||typeof v.proofPayloadHash!=='string'||!/^sha256:[a-f0-9]{64}$/.test(v.proofPayloadHash)
-  ||!stamp(v.capturedAt)||!stamp(v.reviewedAt)||Date.parse(v.reviewedAt)>Date.parse(v.capturedAt)||v.policy!=='personal-proof-insert-15m-v1')fail();
+  ||!stamp(v.capturedAt)||!stamp(v.reviewedAt)||Date.parse(v.reviewedAt)>Date.parse(v.capturedAt)
+  ||!['personal-proof-insert-15m-v1','personal-deferred-source-15m-v1'].includes(String(v.policy)))fail();
+ if(v.policy==='personal-deferred-source-15m-v1'){
+  const d=v.deferredSource;
+  if(!object(d)||!shape(d,['proofId','payloadHash','signedAt','sealedAt'])||!uuid(d.proofId)||d.proofId===v.proofId
+   ||typeof d.payloadHash!=='string'||!/^sha256:[a-f0-9]{64}$/.test(d.payloadHash)||!stamp(d.signedAt)||!stamp(d.sealedAt)
+   ||Date.parse(d.signedAt)<Date.parse(v.capturedAt)||Date.parse(d.sealedAt)<Date.parse(d.signedAt))fail();
+ }
  return structuredClone(v) as PersonalEmployeeCapture;
 }
 export class EmployeeWriteError extends Error{readonly uncertain:boolean;constructor(message:string,uncertain:boolean){super(message);this.uncertain=uncertain;}}

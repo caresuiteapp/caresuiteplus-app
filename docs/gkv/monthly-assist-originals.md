@@ -1,6 +1,7 @@
 # Persönlicher Assist-Abschluss mit eigener Originalfassung
 
-Stand 01.11.2026, Weiterentwicklung von `d1e5316`. Der achte
+Stand 02.11.2026. Der ursprüngliche Abschlussweg entstand nach `d1e5316`; die
+[Portalnachsignatur](monthly-assist-deferred.md) ergänzt ihn ab `7c8699e`. Der achte
 [SQL-Entwurf](sql/monthly-assist-originals-draft.sql) ist **nicht aktiviert**.
 Er setzt die sieben Monatsentwürfe und die vorhandene Migration
 `20261013072827_verified_assignment_service_records.sql` voraus. Das Paket muss
@@ -100,9 +101,11 @@ Die unveränderte Android-Anwendung erhält durch den Web-Hook keinen eigenen
 Abschlussweg. Einzelne mobile Leistungen, Mehrpersonenleistungen, Ersatznummern,
 PDL-Provisionierung und Tarif-/Vertragsregeln bleiben gesonderte Aufgaben.
 
-Später im Klientenportal eingeholte Unterschriften und fachliche Berichtigungen
-des bereits abgeschlossenen Assist-Ursprungs benötigen einen eigenen Ablauf. Sie
-werden nicht nachträglich als zeitnahe persönliche Erfassung ausgegeben. Die
+Später im Klientenportal eingeholte Unterschriften sind im
+[neunten Entwurf](monthly-assist-deferred.md) mit einer vorher rechtzeitig
+erfassten persönlichen Quelle verbunden. Alte Quellen werden nicht rückwirkend
+aufgewertet. Fachliche Berichtigungen des abgeschlossenen Assist-Ursprungs
+benötigen weiterhin einen eigenen Ablauf. Die
 vorhandene **Monatskorrektur** ist davon zu unterscheiden: Sie erhält die Quelle,
 entwertet die alte Monatsfassung und verlangt eine neue Monatsbestätigung.
 

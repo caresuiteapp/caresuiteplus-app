@@ -1,6 +1,32 @@
 # Prüfprotokoll: GKV-Datenaustausch
 
-Stand: 01.11.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+Stand: 02.11.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+
+## Nachgereichte Assist-Portalunterschrift am 02.11.2026
+
+Die [Portalnachsignatur](monthly-assist-deferred.md) ergänzt eine rechtzeitige,
+unveränderbare persönliche Inhaltsfassung vor der späteren Klientenunterschrift.
+Der neunte SQL-Entwurf und die Anpassungen an sieben und acht bleiben unaktiviert.
+Die bestehende Portal-Freigabe speichert den Inhalt, die eigene aktive Sitzung
+und die vorher unabhängig geprüfte Beschäftigtennummer atomar. Die spätere
+Unterschrift ergänzt ausschließlich ihre Signaturfelder. Die abschließende
+Originalkopie und der bestehende Byte-Dienst führen zur Monatsübernahme.
+
+19 neue SQL-/Vertragsprüfmeldungen, 23 Web-Abschlussfälle und 25 Monats-DOM-Fälle
+bestanden. Die tatsächlichen bestehenden Portal-RPCs werden ausgeführt. Ein
+zusätzlicher integrierter Fall erreicht amtliche XSD, lokale SOAP-/CMS-Prüfung,
+gesonderte Monatsbestätigung und anschließende Monatskorrektur. Beide Assist-Wege
+bestanden den separaten Byte-Lauf mit dem unveränderten Edge-Renderer. Ein
+gerendertes A4-Monats-PDF wurde mit den getrennten Erfassungs-, Unterschrifts- und
+Abschlusszeiten optisch geprüft. Endgültige Typ-, Gesamt- und Vercel-Ergebnisse
+werden für den veröffentlichten Commit in PR #129 festgehalten.
+
+Auth-/Rollen-/Storage-Transport sind kontrollierte Doubles. Zeitlich frühere
+Erfassungsdaten werden ausschließlich in der isolierten Fixture angelegt.
+Kein Nachweis echter paralleler PostgreSQL-Verbindungen oder breiter/schmaler
+Browseransichten. Ursprungsberichtigung, reale Integrationsabnahme, Aktivierung,
+Hardware/TI und externe Prüfung bleiben offen; sämtliche Bereitschaftsflags
+bleiben false.
 
 ## Assist-Abschlussoriginal am 01.11.2026
 
@@ -23,7 +49,7 @@ für den veröffentlichten Stand festgehalten.
 
 Keine Datenbankaktivierung und keine externe Prüffreigabe. Reale Auth-/Storage-
 Integration, breite/schmale Browserabnahme, unabhängige PostgreSQL-Verbindungen,
-nachgereichte Portalunterschriften, Berichtigung des Assist-Ursprungs und mobile
+die Abnahme nachgereichter Portalunterschriften, Berichtigung des Assist-Ursprungs und mobile
 Einzelleistungen bleiben offen. Die vorhandenen umfassenden Bereitschaftsflags
 bleiben false.
 

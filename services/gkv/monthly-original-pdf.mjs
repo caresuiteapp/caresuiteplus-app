@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import { CENTURY_GOTHIC_REGULAR_BASE64 } from '../../src/design/fonts/centuryGothicData.ts';
 import { SERVICE_TYPES } from '../../src/lib/gkvExchange/model.ts';
 import { readMonthlyProof } from '../../src/lib/gkvExchange/monthlyProof.ts';
+import {deferredCaptureSummary} from '../../src/lib/gkvExchange/monthlyEmployees.ts';
 import { isUuid } from './storage.mjs';
 
 /** Server-owned visual original; no submitted HTML/PDF, existing signature or
@@ -78,6 +79,8 @@ export function renderMonthlyOriginalDocument({ proof: input, captureId, prepare
     ];
     if (facts) {
       const source = facts.sources.find(s => s.recordId === record.recordId);
+      const deferred=deferredCaptureSummary(source.personalCapture);
+      if(deferred)lines.push([deferred,9,'#406174',4]);
       const visit = facts.content.days.find(d => d.date === source.date).visits.find(v => v.sequence === source.sequence);
       lines.push([`Einsatz ${visit.sequence} · Beginn ${visit.startTime.slice(0,2)}:${visit.startTime.slice(2)} Uhr`, 10, '#173c52', 3]);
       for (const item of visit.lines) {

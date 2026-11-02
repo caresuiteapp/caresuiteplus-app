@@ -149,6 +149,16 @@ try{
   assert.equal(calls.filter(c=>c[0]==='write').length,1);assert.equal(calls.filter(c=>c[0]==='capture').length,0);
   assert.ok(container.textContent.includes('A123456789'));assert.equal(button('Fachangaben erneut übernehmen').disabled,false);
  });
+ await check('monthly view distinguishes captured service, later portal signing and original completion',async()=>{
+  p=withFacts(p);const source=p.payload.xmlFacts.sources[0];
+  source.personalCapture={id:randomUUID(),registrationId:randomUUID(),actorId:user,employeeId:source.employeeId,employeeNumber:source.employeeNumber,
+   proofId:randomUUID(),proofPayloadHash:'sha256:'+'a'.repeat(64),capturedAt:'2026-10-03T10:45:00Z',reviewedBy:randomUUID(),reviewedAt:'2026-10-01T10:00:00Z',
+   policy:'personal-deferred-source-15m-v1',deferredSource:{proofId:randomUUID(),payloadHash:'sha256:'+'b'.repeat(64),signedAt:'2026-10-04T11:00:00Z',sealedAt:'2026-10-05T12:00:00Z'}};
+  p.payload.xmlFacts.captureProvenance='personally-bound';ws=workspace(p);history=[p];await mount();await selectClient();
+  for(const text of ['Leistungsinhalt persönlich erfasst: 03.10.2026, 12:45:00','Portalunterschrift nachgereicht: 04.10.2026, 13:00:00','Original abgeschlossen: 05.10.2026, 14:00:00'])
+   assert.ok(container.textContent.includes(text),text);
+  assert.equal(calls.filter(c=>c[0]==='capture'||c[0]==='write').length,0);
+ });
  await check('StrictMode initialization, source selection, duplicate click and server-owned create',async()=>{
   await mount({strict:true});assert.ok(container.querySelector('.gx-monthly-client select option[value="'+client+'"]'));
   await selectClient();const source=container.querySelector('.gx-monthly-source input');await React.act(async()=>source.click());assert.equal(work.at(-1).dirty,true);

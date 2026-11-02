@@ -43,6 +43,7 @@ function Completion({disabled=false,...scope}:Props){
    ?'Originalfassung, PDF und Übergabe an die Nachweisverwaltung sind bestätigt.'
    :context?.phase==='sealed'?'Die unterschriebene Originalfassung ist gesichert. PDF und Übergabe können hier erneut geprüft werden.'
    :context?.phase==='ready'?'Der Einsatz ist beendet. Die persönliche Originalfassung muss noch abgeschlossen werden.'
+   :context?.phase==='awaiting_signature'?'Der Leistungsinhalt ist persönlich erfasst und gesichert. Die Unterschrift im Klient:innenportal steht noch aus. Nach der Unterschrift können Sie hier den Nachweis fertigstellen.'
    :context?.phase==='working'?'Der tatsächliche Einsatzabschluss ist noch nicht vollständig bestätigt. Bitte den Einsatzstatus prüfen.'
    :'Der gespeicherte Nachweisstand ist noch nicht bestätigt.'}</Text>
   {error?<InfoBanner message={error} variant="error"/>:null}

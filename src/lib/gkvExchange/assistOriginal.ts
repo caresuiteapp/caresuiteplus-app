@@ -7,7 +7,7 @@ export type AssistOriginal = { proofId: string; draftId: string; draftUpdatedAt:
 export type AssistOriginalScope = { tenantId: string; assignmentId: string; actorId: string; employeeId: string | null };
 export type AssistOriginalContext = AssistOriginalScope & {
   version: 'gkv-assist-original-v1'; visitId: string;
-  phase: 'legacy' | 'working' | 'ready' | 'sealed'; draft: AssistDraft | null; original: AssistOriginal | null;
+  phase: 'legacy' | 'working' | 'awaiting_signature' | 'ready' | 'sealed'; draft: AssistDraft | null; original: AssistOriginal | null;
 };
 export type AssistOriginalRpc = (name: string, input: Record<string, unknown>) => Promise<{ data: unknown; error: unknown }>;
 const object = (v: unknown): Record<string, unknown> | null => v && typeof v === 'object' && !Array.isArray(v) ? v as Record<string, unknown> : null;
@@ -25,7 +25,7 @@ export function readAssistOriginalContext(value: unknown, scope: AssistOriginalS
     || !uuid(scope.tenantId) || !uuid(scope.assignmentId) || !uuid(scope.actorId)
     || c.tenantId !== scope.tenantId || c.assignmentId !== scope.assignmentId || c.actorId !== scope.actorId
     || c.employeeId !== scope.employeeId || (c.employeeId !== null && !uuid(c.employeeId))) throw fail();
-  if (c.phase === 'legacy' || c.phase === 'working') {
+  if (c.phase === 'legacy' || c.phase === 'working' || c.phase === 'awaiting_signature') {
     if (c.draft !== null || c.original !== null) throw fail();
   } else if (c.phase === 'ready') {
     const d = object(c.draft);
@@ -60,6 +60,7 @@ export async function ensureAssistOriginal(rpc: AssistOriginalRpc, scope: Assist
   const load = (allowMissing = false) => loadAssistOriginalContext(rpc, scope, allowMissing);
   const context = await load(true);
   if (!context || context.phase === 'legacy' || context.phase === 'sealed') return context;
+  if (context.phase === 'awaiting_signature') throw new Error('Der Leistungsinhalt ist persönlich erfasst. Die Unterschrift im Klient:innenportal steht noch aus.');
   if (context.phase !== 'ready' || !context.draft) throw new Error('Der Einsatz ist für den persönlichen Originalabschluss noch nicht vollständig beendet.');
   const draft = context.draft;
   try {

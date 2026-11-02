@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "assessedAt": "2026-11-01",
-  "baselineCommit": "d1e531670d670e195371ed564dd84e5746eb19e3",
+  "assessedAt": "2026-11-02",
+  "baselineCommit": "7c8699ec9414d05f8c4b8c2e705d6122bb1bb505",
   "productionReady": false,
   "scopeComplete": false,
   "scopeGaps": [
@@ -105,7 +105,8 @@
         "docs/gkv/sql/monthly-assist-originals-draft.sql",
         "src/lib/gkvExchange/assistOriginal.ts",
         "src/lib/assist/repositories/assignmentRepository.supabase.web.ts",
-        "src/components/portal/GkvAssistCompletion.web.tsx"
+        "src/components/portal/GkvAssistCompletion.web.tsx",
+        "docs/gkv/sql/monthly-assist-deferred-draft.sql"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -120,9 +121,11 @@
         "tests/gkv-exchange/monthly-assist-originals.test.mjs",
         "src/__tests__/assistWorkflow/gkvOriginalCompletion.web.test.ts",
         "src/__tests__/assistWorkflow/gkvOriginalPanel.web.test.tsx",
-        "tests/gkv-exchange/monthly-assist-fixture.mjs"
+        "tests/gkv-exchange/monthly-assist-fixture.mjs",
+        "tests/gkv-exchange/monthly-assist-deferred.test.mjs",
+        "tests/gkv-exchange/monthly-assist-deferred-fixture.mjs"
       ],
-      "nextStep": "Acht SQL-Entwürfe und ein Web-Hook trennen veränderbare Assist-Arbeitsentwürfe von persönlich abgeschlossenen Originalen; das Web-Panel bietet Statusprüfung und Wiederaufnahme der PDF-Übergabe. Reale Auth-/Storage-Abnahme, Parallelverbindungen, nachgereichte Portalunterschrift, Ursprungsberichtigung, mobile Einzelleistungen, Mehrpersonenleistungen und Aktivierung bleiben offen.",
+      "nextStep": "Neun SQL-Entwürfe verbinden den persönlichen Assist-Abschluss und nachgereichte Portalunterschriften mit einer rechtzeitig erfassten, unveränderbaren Leistungsfassung. Web und Monats-PDF zeigen Erfassung, Unterschrift und Abschluss getrennt. Reale Auth-/Storage- und Browserabnahme, Parallelverbindungen, Ursprungsberichtigung, mobile Einzelleistungen, Mehrpersonenleistungen und Aktivierung bleiben offen.",
       "acceptance": "ITSG-Fälle 3.1 bis 3.5 und 4.1 mit mobilen Testkonten und gespeicherten Originalen vorführen.",
       "dependsOn": [
         "scope"

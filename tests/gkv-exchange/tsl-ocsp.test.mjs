@@ -51,6 +51,7 @@ import {callMonthlyHost} from '../../api/_lib/monthly-host-transport.mjs';
 import {monthlyFactsFixture} from './monthly-facts-fixture.mjs';
 import {employeeFixture} from './monthly-employees-fixture.mjs';
 import {assistOriginalFixture} from './monthly-assist-fixture.mjs';
+import {assistDeferredFixture} from './monthly-assist-deferred-fixture.mjs';
 import {signingPng} from './monthly-host-fixture.mjs';
 import {generateCapturedMonthlyXml} from '../../services/gkv/monthly-captured-xml.mjs';
 import {openssl} from '../../services/gkv/openssl.mjs';
@@ -2295,15 +2296,17 @@ test('VZD TLS: an unoffered ECDH group cannot reach certificate status or LDAP',
 
 // The complete monthly path uses the existing synthetic mTLS + TSL/OCSP peer,
 // PostgreSQL review drafts and encrypted SQLite. It is not hardware/TI evidence.
-async function withMonthlyComponent(run, {transform,changeReply,personal=false,assist=false}={}) {
+async function withMonthlyComponent(run, {transform,changeReply,personal=false,assist=false,deferred=false}={}) {
   await fixture(async({open})=>withCms(async({connector,requests})=>{
-    const monthly=await (assist?assistOriginalFixture():personal?employeeFixture():monthlyFactsFixture()),statusClient=open();
+    const monthly=await (deferred?assistDeferredFixture():assist?assistOriginalFixture():personal?employeeFixture():monthlyFactsFixture()),statusClient=open();
     const config={tenantId:monthly.f.tenant,store:monthly.store,connector,statusClient,
       expectedTelematikId:'10-LOCAL-TEST',requiredRoles:['1.2.276.0.76.4.245']};
     const signer=new MonthlyComponentSigner(config),worker=monthly.setComponentSigner(signer);
     let v;
-    if(assist){
-      await monthly.approve(await monthly.submit());const visit=await monthly.start();await monthly.finish(visit);
+    if(assist||deferred){
+      await monthly.approve(await monthly.submit());let visit;
+      if(deferred){visit=await monthly.prepareDeferred();await monthly.releaseDeferred(visit);await monthly.closeVisit(visit);await monthly.ageDeferred(visit);await monthly.signDeferred(visit);}
+      else{visit=await monthly.start();await monthly.finish(visit);}
       const context=await monthly.context(visit);await monthly.seal(visit,context.draft);
       const response=await monthly.complete(visit);assert.equal(response.status,200,await response.clone().text());
       v=await monthly.monthly(visit);
@@ -2360,6 +2363,22 @@ test('monthly component: sealed Assist original reaches byte attestation, frozen
  assert.equal((await m.f.db.query('SELECT count(*)::int n FROM care_security.gkv_assist_originals')).rows[0].n,1);
  assert.equal((await m.f.db.query('SELECT count(*)::int n FROM workflow_proof_attestations')).rows[0].n,1);
 },{assist:true}));
+
+test('monthly component: deferred portal origin reaches actual XSD/CMS and keeps distinct history through monthly correction',async()=>withMonthlyComponent(async m=>{
+ const facts=m.v.p.payload.xmlFacts,capture=facts.sources[0].personalCapture;
+ assert.equal(capture.policy,'personal-deferred-source-15m-v1');
+ assert.ok(Date.parse(capture.deferredSource.signedAt)-Date.parse(capture.capturedAt)>15*60_000);
+ const receipt=await m.worker.verify(m.v.input,m.png),archive=m.store.getComponent(m.f.tenant,m.v.input.captureId);
+ assert.ok(archive.xml.includes('<Beschaeftigtennummer>234567890</Beschaeftigtennummer>'));
+ assert.deepEqual(await openssl(['cms','-verify','-inform','DER','-binary','-noverify'],{input:archive.cms}),archive.xml);
+ assert.equal(archive.record.hardwareEvidence,'not-attested');assert.equal(archive.record.dispatchReady,false);
+ const final=await m.f.command('confirm',{id:m.v.p.id,revision:m.v.p.revision,content_sha256:m.v.p.content_sha256,receipt_id:receipt.receiptId});
+ assert.equal(final.status,'final');assert.deepEqual(final.payload.xmlFacts,facts);
+ const correction=await m.f.command('correct',{id:final.id,revision:final.revision,new_id:randomUUID(),reason:'Synthetische Monatskorrektur mit erhaltener Portalquelle'});
+ assert.equal(correction.confirmation,null);assert.deepEqual(correction.payload.xmlFacts,facts);
+ const old=await m.worker.readArchivedComponent({tenantId:m.f.tenant,proofId:final.id,captureId:m.v.input.captureId});
+ assert.equal(old.status,'invalidated');assert.deepEqual(old.cms,archive.cms);
+},{deferred:true}));
 
 test('monthly component: reviewed personal origin survives XML/CMS, finalization and correction without changing employee number',async()=>withMonthlyComponent(async m=>{
  const facts=m.v.p.payload.xmlFacts;assert.equal(facts.captureProvenance,'personally-bound');

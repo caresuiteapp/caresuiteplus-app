@@ -218,7 +218,7 @@ CREATE TRIGGER gkv_employee_capture_insert AFTER INSERT ON public.assist_visit_p
 -- captured but altered/revoked origin must fail, never downgrade to a legacy row.
 CREATE FUNCTION care_security.gkv_employee_source(t uuid,source jsonb) RETURNS jsonb
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
-DECLARE c care_security.gkv_employee_captures; r care_security.gkv_employee_registrations; original public.assist_visit_proofs;
+DECLARE c care_security.gkv_employee_captures; r care_security.gkv_employee_registrations; original public.assist_visit_proofs; result jsonb;
 BEGIN
  -- Optional eighth draft rejects mutable drafts at the monthly handoff.
  IF to_regprocedure('care_security.gkv_assist_source_guard(uuid,jsonb)') IS NOT NULL THEN
@@ -239,9 +239,13 @@ BEGIN
  IF NOT FOUND OR original.visit_id<>c.visit_id OR original.payload_hash IS DISTINCT FROM c.proof_payload_hash
   OR original.payload_hash IS DISTINCT FROM 'sha256:'||encode(sha256(convert_to(public.workflow_canonical_json(original.payload_snapshot),'UTF8')),'hex') THEN
   RAISE EXCEPTION 'Ursprünglicher Leistungsinhalt wurde verändert' USING ERRCODE='40001'; END IF;
- RETURN jsonb_build_object('id',c.id,'registrationId',c.registration_id,'actorId',c.actor_id,'employeeId',c.employee_id,
+ result:=jsonb_build_object('id',c.id,'registrationId',c.registration_id,'actorId',c.actor_id,'employeeId',c.employee_id,
   'employeeNumber',c.employee_number,'proofId',c.proof_id,'proofPayloadHash',c.proof_payload_hash,'capturedAt',c.captured_at,
   'policy',c.policy,'reviewedBy',r.reviewed_by,'reviewedAt',r.reviewed_at);
+ IF c.policy='personal-deferred-source-15m-v1' THEN
+  result:=result||jsonb_build_object('deferredSource',care_security.gkv_assist_deferred_provenance(t,c.proof_id));
+ END IF;
+ RETURN result;
 END $$;
 CREATE FUNCTION care_security.gkv_employee_immutable() RETURNS trigger
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$

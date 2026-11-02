@@ -37,6 +37,15 @@ describe('Personal Assist original completion panel',()=>{
   await render();expect(container.textContent).toContain('muss noch abgeschlossen werden');expect(button('Nachweis abschließen')).toBeDefined();
   expect(container.textContent).toContain('Monatsnachweises');expect(api.prepare).not.toHaveBeenCalled();
  });
+ it('shows captured content awaiting portal signature, then allows explicit completion after refresh',async()=>{
+  api.load.mockResolvedValue({...ready,phase:'awaiting_signature'});await render();
+  expect(container.textContent).toContain('Leistungsinhalt ist persönlich erfasst und gesichert');
+  expect(button('Nachweis abschließen')).toBeUndefined();expect(api.prepare).not.toHaveBeenCalled();
+  api.load.mockResolvedValue(ready);await click('Nachweisstand aktualisieren');expect(button('Nachweis abschließen')).toBeDefined();
+  expect(api.prepare).not.toHaveBeenCalled();
+  api.load.mockResolvedValueOnce(ready).mockResolvedValueOnce(sealed);await click('Nachweis abschließen');
+  expect(container.textContent).toContain('Nachweisverwaltung sind bestätigt');
+ });
  it('rechecks personal scope, completes and only then confirms bytes and handoff',async()=>{
   await render();api.load.mockResolvedValueOnce(ready).mockResolvedValueOnce(sealed);await click('Nachweis abschließen');
   expect(api.prepare).toHaveBeenCalledExactlyOnceWith(scope.tenantId,scope.assignmentId);
