@@ -2,7 +2,7 @@ import { beforeEach, afterEach, describe, expect, it, vi } from 'vitest';
 import type { WfmOfficeEmployeeTimeAccount, WfmOfficeTimeEntryStatus, WfmOfficePlannedVisit } from '@/types/modules/wfmOfficeTimekeeping';
 const state = vi.hoisted(() => ({
   rows: {} as Record<string, Record<string, unknown>[]>, errors: {} as Record<string, unknown>, reads: [] as string[],
-  accounts: [] as WfmOfficeEmployeeTimeAccount[], visits: [] as WfmOfficePlannedVisit[], accountError: '', denied: false, tenantDenied: false, connected: true,
+  accounts: [] as WfmOfficeEmployeeTimeAccount[], accountsByStart: {} as Record<string, WfmOfficeEmployeeTimeAccount[]>, visits: [] as WfmOfficePlannedVisit[], accountError: '', denied: false, tenantDenied: false, connected: true,
 }));
 vi.mock('@/lib/permissions', () => ({ enforcePermission: () => state.denied ? { ok: false, error: 'Kein Zugriff' } : null }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ guardServiceTenant: () => state.tenantDenied ? { ok: false, error: 'Falscher Mandant' } : null }));
@@ -10,11 +10,12 @@ vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => state.connected ? {} : null }));
 vi.mock('@/lib/supabase/errors', () => ({ toGermanSupabaseError: (error: { message?: string }) => error?.message ?? 'Lesefehler' }));
 vi.mock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: (_client: unknown, table: string) => {
-  const chain = { select: () => chain, eq: () => chain, in: () => chain, gte: () => chain, lte: () => chain, order: () => chain,
-    range: async (from: number, to: number) => { state.reads.push(`${table}:${from}`); return { data: (state.rows[table] ?? []).slice(from, to + 1), error: state.errors[`${table}:${from}`] ?? state.errors[table] ?? null }; } };
+  const filters: [string, unknown][] = [];
+  const chain = { select: () => chain, eq: (key: string, value: unknown) => { filters.push([key, value]); return chain; }, in: () => chain, gte: () => chain, lte: () => chain, order: () => chain,
+    range: async (from: number, to: number) => { state.reads.push(`${table}:${from}`); return { data: (state.rows[table] ?? []).filter(row => filters.every(([key,value]) => !['period_year','period_month'].includes(key) || row[key] === value)).slice(from, to + 1), error: state.errors[`${table}:${from}`] ?? state.errors[table] ?? null }; } };
   return chain;
 } }));
-vi.mock('@/lib/wfm/wfmOfficeZeitkontenService.web', () => ({ getWfmOfficeEmployeeTimeAccounts: async () => state.accountError ? { ok: false, error: state.accountError } : { ok: true, data: state.accounts } }));
+vi.mock('@/lib/wfm/wfmOfficeZeitkontenService.web', () => ({ getWfmOfficeEmployeeTimeAccounts: async (_tenant: string, _role: unknown, options: { fromDate: string }) => state.accountError ? { ok: false, error: state.accountError } : { ok: true, data: state.accountsByStart[options.fromDate] ?? state.accounts } }));
 vi.mock('@/lib/wfm/wfmOfficePlannedVisitRepository.web', () => ({ listPlannedVisitsForPeriod: async (_tenantId: string, fromDate: string, toDate: string) => ({ ok: true, data: state.visits.filter(visit => visit.workDate >= fromDate && visit.workDate <= toDate) }) }));
 vi.mock('@/lib/payroll/payrollMonthService.ts', () => ({ loadEmployeePayrollMonth: vi.fn(), decidePayrollStatement: vi.fn(), createExpenseClaim: vi.fn(), uploadExpenseReceipt: vi.fn(), getPayrollPdfUrl: vi.fn() }));
 vi.mock('@/lib/payroll/payrollOfficeActions.web', () => ({ publishPayrollStatement: vi.fn(), reviewExpenseClaim: vi.fn() }));
@@ -62,12 +63,40 @@ function seedMissingPastVisit() {
 }
 
 beforeEach(() => {
-  state.rows = {}; state.errors = {}; state.reads = []; state.accounts = []; state.visits = []; state.accountError = ''; state.denied = false; state.tenantDenied = false; state.connected = true;
+  state.rows = {}; state.errors = {}; state.reads = []; state.accounts = []; state.accountsByStart = {}; state.visits = []; state.accountError = ''; state.denied = false; state.tenantDenied = false; state.connected = true;
   vi.useFakeTimers(); vi.setSystemTime(new Date('2026-10-18T10:00:00Z'));
 });
 afterEach(() => { vi.useRealTimers(); });
 
 describe('Web payroll complete tenant-scoped reads', () => {
+  it('skips an unfinished month, includes its approved correction later and never pays it twice', async () => {
+    seedEmployee(); seedAccount('pending_review');
+    const october = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');
+    expect(october.ok).toBe(true); if (!october.ok) return;
+    const origin = october.data.employees[0];
+    expect(origin).toMatchObject({ actualWorkMinutes: 0, earnedGrossCents: 0, calculationReady: true });
+    state.rows.payroll_month_statements = [{ id: 'oct', tenant_id: 'tenant-1', employee_id: 'e1', period_year: 2026, period_month: 10, version: 1, status: 'published', snapshot_json: origin }];
+    const oldAccount = structuredClone(state.accounts[0]);
+    state.accountsByStart['2026-10-12'] = [oldAccount];
+    state.accounts[0].entries[0] = { ...state.accounts[0].entries[0], id: 'nov-entry', workDate: '2026-11-02', actualStartAt: '2026-11-02T08:00:00Z', actualEndAt: '2026-11-02T10:00:00Z', reviewStatus: 'approved' };
+    vi.setSystemTime(new Date('2026-11-04T10:00:00Z'));
+    const pending = await listPayrollMonthOverview('tenant-1', 2026, 11, 'business_admin');
+    expect(pending.ok && pending.data.employees[0]).toMatchObject({ actualWorkMinutes: 120, catchUpWorkMinutes: 0, unapprovedEntryCount: 1, calculationReady: true });
+    oldAccount.entries[0].reviewStatus = 'approved';
+    const november = await listPayrollMonthOverview('tenant-1', 2026, 11, 'business_admin');
+    expect(november.ok).toBe(true); if (!november.ok) return;
+    const settled = november.data.employees[0];
+    expect(settled).toMatchObject({ actualWorkMinutes: 240, currentPeriodWorkMinutes: 120, catchUpWorkMinutes: 120, payableMinutes: 60, overtimeTransferMinutes: 180, calculationReady: true, deferredTimeEntries: [] });
+    expect(settled.catchUpTimeEntries).toEqual([expect.objectContaining({ workDate: '2026-10-12', sourceEntryId: 'entry-1', minutes: 120 })]);
+    state.rows.payroll_month_statements.push({ id: 'nov', tenant_id: 'tenant-1', employee_id: 'e1', period_year: 2026, period_month: 11, version: 1, status: 'published', snapshot_json: settled });
+    state.accountsByStart['2026-10-01'] = [oldAccount];
+    const reissuedOrigin = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');
+    expect(reissuedOrigin.ok && reissuedOrigin.data.employees[0]).toMatchObject({ actualWorkMinutes: 0, catchUpWorkMinutes: 0, unapprovedEntryCount: 1 });
+    vi.setSystemTime(new Date('2026-12-04T10:00:00Z'));
+    const december = await listPayrollMonthOverview('tenant-1', 2026, 12, 'business_admin');
+    expect(december.ok && december.data.employees[0]).toMatchObject({ actualWorkMinutes: 120, catchUpWorkMinutes: 0, deferredTimeEntries: [], catchUpTimeEntries: [] });
+  });
+
   it('uses the same configured minijob basis as WFM without inventing contract hours or paying documented travel', async () => {
     vi.setSystemTime(new Date('2026-11-04T10:00:00Z'));
     seedEmployee('e1', { employment_type: 'mini_job' }); seedAccount();
@@ -118,12 +147,12 @@ describe('Web payroll complete tenant-scoped reads', () => {
     expect(result.data.employees).toHaveLength(1); expect(result.data.employees[0].statementHistory).toHaveLength(3);
     expect(result.data.employees[0].latestStatement?.id).toBe('s3');
   });
-  it('blocks publication for unapproved time without hiding the captured provisional amount', async () => {
+  it('skips unapproved time and allows publication of the approved amount', async () => {
     seedEmployee(); seedAccount('pending_review');
     const result = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');
     expect(result.ok).toBe(true); if (!result.ok) return;
-    expect(result.data.employees[0].calculationReady).toBe(true); expect(result.data.employees[0].actualWorkMinutes).toBe(120);
-    expect(result.data.employees[0].blockers.join(' ')).toContain('nicht freigegeben');
+    expect(result.data.employees[0]).toMatchObject({ calculationReady: true, actualWorkMinutes: 0, currentPeriodWorkMinutes: 0, earnedGrossCents: 0, blockers: [] });
+    expect(result.data.employees[0].deferredTimeEntries).toEqual([expect.objectContaining({ key: '2026-10:entry-1', reason: 'unapproved' })]);
   });
   it('reads pages beyond the server row limit', async () => {
     for (let index = 0; index < 501; index += 1) seedEmployee(`e${index}`);
@@ -164,7 +193,7 @@ describe('Web payroll complete tenant-scoped reads', () => {
     state.denied = false; state.tenantDenied = true; expect((await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin')).ok).toBe(false); expect(state.reads).toEqual([]);
     state.tenantDenied = false; state.connected = false; expect((await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin')).ok).toBe(false); expect(state.reads).toEqual([]);
   });
-  it('keeps full calculation unavailable when accounts or closed captures are missing', async () => {
+  it('requires a full account but skips unfinished individual captures', async () => {
     seedEmployee();
     let result = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');
     expect(result.ok).toBe(true); if (!result.ok) return;
@@ -172,7 +201,7 @@ describe('Web payroll complete tenant-scoped reads', () => {
     seedAccount(); state.accounts[0].entries[0].actualEndAt = null;
     result = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');
     expect(result.ok).toBe(true); if (!result.ok) return;
-    expect(result.data.employees[0].calculationReady).toBe(false); expect(result.data.totalsComplete).toBe(false);
+    expect(result.data.employees[0]).toMatchObject({ calculationReady: true, actualWorkMinutes: 0, unapprovedEntryCount: 1 }); expect(result.data.totalsComplete).toBe(true);
   });
 
   it('shows captured and remaining planned gross provisionally while a past booking is missing', async () => {
@@ -183,8 +212,9 @@ describe('Web payroll complete tenant-scoped reads', () => {
     const result = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');
     expect(result.ok).toBe(true); if (!result.ok) return;
     const employee = result.data.employees[0];
-    expect(employee.calculationReady).toBe(false); expect(employee.blockers.join(' ')).toContain('vergangene Einsätze');
-    expect(employee.preview.grossAvailable).toBe(true); expect(employee.preview.provisional).toBe(true);
+    expect(employee.calculationReady).toBe(true); expect(employee.blockers).toEqual([]);
+    expect(employee.preview.grossAvailable).toBe(true); expect(employee.preview.provisional).toBe(false);
+    expect(employee.deferredTimeEntries).toEqual([expect.objectContaining({ entryId: 'missing-1', reason: 'missing' })]);
     expect(employee.earnedGrossCents).toBe(4000); expect(employee.projectedGrossCents).toBe(8000);
     expect(employee.preview.notes.join(' ')).toContain('nicht geschätzt');
     expect(result.data.previewCounts.gross).toBe(1); expect(result.data.totals.projectedGrossCents).toBe(8000);
@@ -219,7 +249,7 @@ describe('Web payroll complete tenant-scoped reads', () => {
     const employee = result.data.employees[0];
     expect(employee.preview.grossAvailable).toBe(true); expect(employee.preview.timeAccountAvailable).toBe(true);
     expect(employee.targetWorkMinutes).toBe(0); expect(employee.maxPayoutMinutes).toBe(2412); expect(employee.projectedGrossCents).toBe(3000);
-    expect(employee.calculationReady).toBe(false);
+    expect(employee.calculationReady).toBe(true);
   });
   it('keeps configured fixed salary visible with a missing time account but marks time unavailable', async () => {
     seedEmployee(); state.rows.employee_payroll_settings[0].compensation_type = 'salary'; state.rows.employee_payroll_settings[0].compensation_amount = 2500;

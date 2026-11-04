@@ -79,6 +79,7 @@ beforeAll(async () => {
   await db.exec(officeActorSql);
   await db.exec('GRANT SELECT ON ALL TABLES IN SCHEMA public, storage TO authenticated;');
   await db.exec(sql('20261018050619_payroll_office_atomic_publication.sql'));
+  await db.exec(readFileSync(resolve('supabase/patches/payroll_open_time_carry_forward.sql'), 'utf8'));
   // Existing production server reads work; the missing receipt-table grant is
   // deliberately left absent until the upload regression below applies it.
   await db.exec('GRANT SELECT ON public.profiles, public.roles, public.employees TO service_role;');
@@ -112,8 +113,8 @@ function snapshot(overrides: Row = {}): Row {
   };
 }
 
-async function revision(employee = EMPLOYEE, tenant = TENANT): Promise<string> {
-  return (await db.query<{ revision: string }>('SELECT public.payroll_office_source_revision($1,$2,2026,10) AS revision', [tenant, employee])).rows[0].revision;
+async function revision(employee = EMPLOYEE, tenant = TENANT, year = 2026, month = 10): Promise<string> {
+  return (await db.query<{ revision: string }>('SELECT public.payroll_office_source_revision($1,$2,$3,$4) AS revision', [tenant, employee, year, month])).rows[0].revision;
 }
 
 type Publication = {
@@ -130,6 +131,7 @@ async function preparePublication(previous?: Row, overrides: Partial<Publication
     sourceRevision: await revision(), snapshot: snapshot(),
     path: `tenant/${TENANT}/generated/payroll-${id}/${PDF_HASH}.pdf`, hash: PDF_HASH, ...overrides,
   };
+  if (!overrides.sourceRevision) request.sourceRevision = await revision(request.employee, request.tenant, request.year, request.month);
   await asOwner(async () => {
     await db.query("INSERT INTO public.document_render_jobs(tenant_id,related_entity_table,related_entity_id,pdf_path,created_by) VALUES($1,'payroll_month_statements',$2,$3,$4)", [request.tenant, request.id, request.path, PROFILE]);
     await db.query("INSERT INTO storage.objects(bucket_id,name,metadata) VALUES('office-documents',$1,'{\"mimetype\":\"application/pdf\",\"size\":2000}')", [request.path]);
@@ -161,6 +163,35 @@ async function review(item: Row, overrides: Row = {}): Promise<Row> {
 }
 
 describe('Office payroll publication commits the version and receipt together', () => {
+  it('persists deferrals and freezes a later claim across reissues without allowing a second month to claim it', async () => {
+    const deferred = { key: '2026-10:open-1', entryId: 'open-1', originYear: 2026, originMonth: 10, workDate: '2026-10-12',
+      assignmentId: null, visitId: null, sessionId: null, plannedStartAt: null, clientLabel: null, assignmentTitle: 'Synthetic unfinished work', reason: 'unapproved' };
+    const origin = await publish(await preparePublication(undefined, { snapshot: snapshot({ currentPeriodWorkMinutes: 60, catchUpWorkMinutes: 0, deferredTimeEntries: [deferred], catchUpTimeEntries: [] }) }));
+    const caught = { ...deferred, sourceEntryId: 'actual-1', minutes: 60, travelMinutes: 0, actualStartAt: '2026-10-12T08:00:00Z', actualEndAt: '2026-10-12T09:00:00Z', reviewedAt: '2026-11-02T09:00:00Z' };
+    const novemberSnapshot = snapshot({ periodMonth: 11, currentPeriodWorkMinutes: 0, catchUpWorkMinutes: 60, deferredTimeEntries: [], catchUpTimeEntries: [caught] });
+    const november = await publish(await preparePublication(undefined, { month: 11, snapshot: novemberSnapshot }));
+    expect(november).toMatchObject({ period_month: 11, actual_work_minutes: 60, earned_gross_cents: 1500 });
+    await expect(publish(await preparePublication(undefined, { month: 12, snapshot: { ...novemberSnapshot, periodMonth: 12 } }))).rejects.toThrow(/bereits.*berücksichtigt/);
+    await expect(publish(await preparePublication(origin, { snapshot: snapshot({ currentPeriodWorkMinutes: 60, catchUpWorkMinutes: 0, deferredTimeEntries: [], catchUpTimeEntries: [] }) }))).rejects.toThrow(/Ursprungsmonat ausgeschlossen/);
+    await expect(publish(await preparePublication(november, { month: 11, snapshot: { ...novemberSnapshot, catchUpTimeEntries: [], catchUpWorkMinutes: 0, currentPeriodWorkMinutes: 60 } }))).rejects.toThrow(/Nachberechnungen fehlen/);
+    await expect(publish(await preparePublication(november, { month: 11, snapshot: { ...novemberSnapshot, catchUpTimeEntries: [{ ...caught, minutes: 61 }], catchUpWorkMinutes: 61, actualWorkMinutes: 61 } }))).rejects.toThrow(/bereits.*berücksichtigt/);
+    const reissue = await preparePublication(november, { month: 11, snapshot: novemberSnapshot });
+    const version2 = await publish(reissue);
+    expect(version2.version).toBe(2); expect(await publish(reissue)).toEqual(version2);
+    expect(await stored('payroll_month_statements')).toHaveLength(3); expect(await stored('payroll_month_audit_log')).toHaveLength(3);
+  });
+  it('rejects unregistered, duplicate and inconsistent catch-up claims atomically', async () => {
+    const deferred = { key: '2026-10:open-1', entryId: 'open-1', originYear: 2026, originMonth: 10, workDate: '2026-10-12' };
+    const caught = { ...deferred, sourceEntryId: 'actual-1', minutes: 60, travelMinutes: 0, actualStartAt: '2026-10-12T08:00:00Z', actualEndAt: '2026-10-12T09:00:00Z' };
+    const next = snapshot({ periodMonth: 11, currentPeriodWorkMinutes: 0, catchUpWorkMinutes: 60, deferredTimeEntries: [], catchUpTimeEntries: [caught] });
+    await expect(publish(await preparePublication(undefined, { month: 11, snapshot: next }))).rejects.toThrow(/nicht.*zurückgestellt/);
+    await publish(await preparePublication(undefined, { snapshot: snapshot({ deferredTimeEntries: [deferred] }) }));
+    await expect(publish(await preparePublication(undefined, { month: 11, snapshot: { ...next, catchUpTimeEntries: [caught, caught] } }))).rejects.toThrow(/doppelt/);
+    await expect(publish(await preparePublication(undefined, { month: 11, snapshot: { ...next, catchUpWorkMinutes: 59 } }))).rejects.toThrow(/stimmt nicht/);
+    await expect(publish(await preparePublication(undefined, { month: 11, snapshot: { ...next, catchUpWorkMinutes: 60.4 } }))).rejects.toThrow(/stimmt nicht/);
+    expect(await stored('payroll_month_statements')).toHaveLength(1); expect(await stored('payroll_month_audit_log')).toHaveLength(1);
+  });
+
   it('recovers the real PDF upload receipt under service_role and publishes it under the office actor', async () => {
     const id = randomUUID();
     const sourceRevision = await revision();

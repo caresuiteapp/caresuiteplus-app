@@ -86,6 +86,8 @@ export type PayrollExpenseClaim = {
 };
 
 export type PayrollAssignmentTimeLine = {
+  entryKey?: string;
+  payrollDisposition?: 'included' | 'deferred';
   assignmentId: string | null;
   workDate: string;
   clientLabel: string | null;
@@ -101,6 +103,30 @@ export type PayrollAssignmentTimeLine = {
   status: string | null;
 };
 
+/** Persisted in the published snapshot so a skipped source can be settled once. */
+export type PayrollDeferredTimeEntry = {
+  key: string;
+  entryId: string;
+  originYear: number;
+  originMonth: number;
+  workDate: string;
+  assignmentId: string | null;
+  visitId: string | null;
+  sessionId: string | null;
+  plannedStartAt: string | null;
+  clientLabel: string | null;
+  assignmentTitle: string;
+  reason: 'missing' | 'incomplete' | 'unapproved' | 'rejected' | 'deferred';
+};
+export type PayrollCatchUpTimeEntry = PayrollDeferredTimeEntry & {
+  sourceEntryId: string;
+  minutes: number;
+  travelMinutes: number;
+  actualStartAt: string;
+  actualEndAt: string;
+  reviewedAt: string | null;
+};
+
 export type PayrollNextMonthPreview = {
   periodYear: number;
   periodMonth: number;
@@ -109,6 +135,10 @@ export type PayrollNextMonthPreview = {
 };
 
 export type PayrollStatementSnapshot = {
+  currentPeriodWorkMinutes?: number;
+  catchUpWorkMinutes?: number;
+  deferredTimeEntries?: PayrollDeferredTimeEntry[];
+  catchUpTimeEntries?: PayrollCatchUpTimeEntry[];
   employeeId: string;
   employeeName: string;
   employeeNumber: string | null;

@@ -78,19 +78,20 @@ describe('Web payroll source assembly', () => {
     expect(payrollAbsenceWorkConflicts([absence], line)).toBe(true);
     expect(payrollAbsenceWorkConflicts([{ ...absence, all_day: false, starts_at: '2026-10-12T06:00:00Z', ends_at: '2026-10-12T08:00:00Z' }], line)).toBe(false);
   });
-  it('shows unapproved recorded time provisionally but blocks publication', () => {
+  it('defers unapproved recorded time without blocking the approved monthly statement', () => {
     const result = payrollTimeReadiness(account([entry({ reviewStatus: 'pending_review' })]), Date.parse('2026-10-18T12:00:00Z'));
-    expect(result.actualWorkMinutes).toBe(90); expect(result.unapprovedEntryCount).toBe(1); expect(result.blockers).not.toEqual([]);
+    expect(result.actualWorkMinutes).toBe(0); expect(result.unapprovedEntryCount).toBe(1); expect(result.blockers).toEqual([]);
+    expect(result.deferredEntries.map(item => item.id)).toEqual(['entry-1']);
   });
   it('excludes rejected and unfinished session amounts from payable time', () => {
     const result = payrollTimeReadiness(account([entry({ reviewStatus: 'rejected' }), entry({ id: 'open', actualEndAt: null, reviewStatus: 'open', netMinutes: 30 })], 120), Date.parse('2026-10-18T12:00:00Z'));
-    expect(result.actualWorkMinutes).toBe(0); expect(result.blockers.length).toBeGreaterThan(1);
+    expect(result.actualWorkMinutes).toBe(0); expect(result.deferredEntries).toHaveLength(2); expect(result.blockers).toEqual([]);
   });
-  it('marks missing accounts and malformed capture timestamps as uncomputable', () => {
+  it('blocks a missing account but defers malformed individual captures', () => {
     expect(payrollTimeReadiness(undefined, Date.parse('2026-10-18T12:00:00Z')).calculationIssues.length).toBeGreaterThan(0);
     const invalid = payrollTimeReadiness(account([entry({ actualEndAt: 'invalid' })]), Date.parse('2026-10-18T12:00:00Z'));
-    expect(invalid.calculationIssues.length).toBeGreaterThan(0);
-    expect(payrollTimeReadiness(account([entry({ actualEndAt: '2026-10-12T07:00:00Z' })]), Date.parse('2026-10-18T12:00:00Z')).calculationIssues.length).toBeGreaterThan(0);
+    expect(invalid.calculationIssues).toEqual([]); expect(invalid.deferredEntries).toHaveLength(1); expect(invalid.actualWorkMinutes).toBe(0);
+    expect(payrollTimeReadiness(account([entry({ actualEndAt: '2026-10-12T07:00:00Z' })]), Date.parse('2026-10-18T12:00:00Z')).deferredEntries).toHaveLength(1);
   });
 
 });

@@ -31,6 +31,17 @@ const base = () => calculatePayrollSnapshot({ employeeId: 'employee-a', employee
 beforeEach(() => { trace.text = []; });
 
 describe('monthly payroll PDF typesetting', () => {
+  it('prints original dates and reasons for excluded work and separately identifies included catch-up hours', () => {
+    const snapshot = base();
+    const pending = { key: '2026-10:open-1', entryId: 'open-1', originYear: 2026, originMonth: 10, workDate: '2026-10-12', assignmentId: null, visitId: null, sessionId: null, plannedStartAt: null, clientLabel: null, assignmentTitle: 'Offener Oktober-Einsatz', reason: 'incomplete' as const };
+    snapshot.currentPeriodWorkMinutes = 2776; snapshot.catchUpWorkMinutes = 60;
+    snapshot.deferredTimeEntries = [pending]; snapshot.catchUpTimeEntries = [{ ...pending, key: '2026-09:previous', entryId: 'previous', originMonth: 9, workDate: '2026-09-12', assignmentTitle: 'Nachgeholter September-Einsatz', sourceEntryId: 'actual-previous', minutes: 60, travelMinutes: 0, actualStartAt: '2026-09-12T08:00:00Z', actualEndAt: '2026-09-12T09:00:00Z', reviewedAt: null }];
+    const result = renderPayrollStatementPdf(snapshot, 1);
+    const all = trace.text.map(item => item.text).join('\n');
+    expect(result.pageCount).toBe(2);
+    for (const value of ['Zurückgestellte Zeiten', 'Offener Oktober-Einsatz', 'Abschluss fehlt oder ist ungültig', '12.09.2026', '12.10.2026', 'Nachberechnungen aus Vormonaten', '1:00 Std.']) expect(all).toContain(value);
+    expect(trace.text.every(item => item.x >= 15.8 && item.x + item.width <= 194.2 && item.y <= 290)).toBe(true);
+  });
   it('renders the checked amounts as vector text with an embedded font and leaves the snapshot unchanged', () => {
     const snapshot = base();
     const before = structuredClone(snapshot);
