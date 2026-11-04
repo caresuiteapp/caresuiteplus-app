@@ -1,7 +1,7 @@
 -- Real roles, temporary synthetic identity, no sign-in, no Storage rows/files. Run as a single rollback transaction.
 BEGIN;
 SET LOCAL lock_timeout='3s'; SET LOCAL statement_timeout='15s'; SET LOCAL search_path=pg_catalog,public;
-DO $seed$ DECLARE t uuid:=gen_random_uuid(); u uuid:=gen_random_uuid(); se uuid:=gen_random_uuid(); emp uuid:=gen_random_uuid();
+DO $seed$ DECLARE t uuid:=gen_random_uuid(); u uuid:=gen_random_uuid(); se uuid:=gen_random_uuid(); emp uuid:=gen_random_uuid(); snap jsonb;
  ac uuid:=gen_random_uuid(); c uuid:=gen_random_uuid(); v uuid:=gen_random_uuid(); p uuid:=gen_random_uuid();
 BEGIN
  IF NOT EXISTS(SELECT FROM supabase_migrations.schema_migrations WHERE version='20261104083006' AND name='gkv_staging_exchange_revisions_and_proof_helpers'
@@ -22,7 +22,10 @@ BEGIN
  INSERT INTO public.assist_visits(id,tenant_id,client_id,employee_id,title,assignment_date,planned_start_at,planned_end_at,planning_status)
  VALUES(v,t,c,emp,'Prüfeinsatz',current_date,current_date,current_date+interval '1 hour','draft');
  INSERT INTO public.assist_visit_proofs(id,tenant_id,visit_id) VALUES(p,t,v);
- PERFORM set_config('gkv_qa.pr',jsonb_build_object('t',t,'u',u,'se',se,'emp',emp,'ac',ac,'c',c,'v',v,'p',p)::text,true);
+ snap:=jsonb_build_object('visitId',v,'clientId',c,'employeeId',emp,'title','Pflegeprüfung','documentationNote','Synthetische Prüfung',
+   'tasks','[]'::jsonb,'plannedStartAt','2025-11-04T10:00:00.000Z','plannedEndAt','2025-11-04T11:00:00.000Z',
+   'signature',null,'signedAt',null,'signerName',null,'signatureDeferredToClientPortal',true);
+ PERFORM set_config('gkv_qa.pr',jsonb_build_object('snap',snap,'h','sha256:'||encode(sha256(convert_to(public.workflow_canonical_json(snap),'UTF8')),'hex'),'t',t,'u',u,'se',se,'emp',emp,'ac',ac,'c',c,'v',v,'p',p)::text,true);
  PERFORM set_config('request.jwt.claims',jsonb_build_object('sub',u,'session_id',se,'role','authenticated','aal','aal1','app_metadata',jsonb_build_object('portal_type','employee','portal_account_id',ac,'role_key','employee_portal'))::text,true);
 END $seed$;
 SET LOCAL ROLE authenticated;
@@ -30,7 +33,7 @@ DO $denied$ DECLARE f jsonb:=current_setting('gkv_qa.pr')::jsonb;
 BEGIN
  IF public.is_employee_portal_rls_context((f->>'t')::uuid) IS NOT TRUE THEN RAISE EXCEPTION 'Fixture must reproduce the still-valid portal role'; END IF;
  BEGIN
-  PERFORM public.employee_portal_release_deferred_signature((f->>'t')::uuid,(f->>'p')::uuid,(f->>'c')::uuid,'Prüfung','{}'::jsonb,encode(sha256(convert_to('{}','UTF8')),'hex'));
+  PERFORM public.employee_portal_release_deferred_signature((f->>'t')::uuid,(f->>'p')::uuid,(f->>'c')::uuid,'Prüfung',f->'snap',f->>'h');
   RAISE EXCEPTION 'A blocked personal account released a proof'; EXCEPTION WHEN insufficient_privilege THEN
   IF SQLERRM<>'employee_portal_release_deferred_signature: active personal portal account required' THEN RAISE; END IF;
  END;
@@ -47,12 +50,12 @@ DO $active$ DECLARE f jsonb:=current_setting('gkv_qa.pr')::jsonb; original jsonb
 BEGIN
  PERFORM set_config('request.jwt.claims',jsonb_set(original,'{app_metadata,portal_account_id}',to_jsonb(gen_random_uuid()))::text,true);
  BEGIN
-  PERFORM public.employee_portal_release_deferred_signature((f->>'t')::uuid,(f->>'p')::uuid,(f->>'c')::uuid,'Prüfung','{}'::jsonb,encode(sha256(convert_to('{}','UTF8')),'hex'));
+  PERFORM public.employee_portal_release_deferred_signature((f->>'t')::uuid,(f->>'p')::uuid,(f->>'c')::uuid,'Prüfung',f->'snap',f->>'h');
   RAISE EXCEPTION 'Wrong portal account released a proof'; EXCEPTION WHEN insufficient_privilege THEN
   IF SQLERRM<>'employee_portal_release_deferred_signature: active personal portal account required' THEN RAISE; END IF;
  END;
  PERFORM set_config('request.jwt.claims',original::text,true);
- result:=public.employee_portal_release_deferred_signature((f->>'t')::uuid,(f->>'p')::uuid,(f->>'c')::uuid,'Prüfung','{}'::jsonb,encode(sha256(convert_to('{}','UTF8')),'hex'));
+ result:=public.employee_portal_release_deferred_signature((f->>'t')::uuid,(f->>'p')::uuid,(f->>'c')::uuid,'Prüfung',f->'snap',f->>'h');
  IF result IS DISTINCT FROM (f->>'p')::uuid THEN RAISE EXCEPTION 'Active employee could not release own assigned proof'; END IF;
 END $active$;
 RESET ROLE;

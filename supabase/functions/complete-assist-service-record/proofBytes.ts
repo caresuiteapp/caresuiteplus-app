@@ -29,9 +29,9 @@ export async function verifyOriginalSignature(bytes: Uint8Array, expectedHash: s
   if (actual !== expectedHash) throw new Error('Die Originalsignatur stimmt nicht mit der gespeicherten Fassung überein.');
   return kind;
 }
-export function requireSignaturePath(path: unknown, tenant: string, visit: string): string {
+export function requireSignaturePath(path: unknown, tenant: string, visit: string, signatureId: string): string {
   const prefix = `tenant/${tenant}/assist/visits/${visit}/signatures/`;
-  if (typeof path !== 'string' || !path.startsWith(prefix) || !/^[0-9a-f-]{36}\.png$/.test(path.slice(prefix.length))) {
+  if (typeof path !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(signatureId) || path !== prefix + signatureId + '.png') {
     throw new Error('Signaturpfad gehört nicht zur bestätigten Einsatzfassung.');
   }
   return path;

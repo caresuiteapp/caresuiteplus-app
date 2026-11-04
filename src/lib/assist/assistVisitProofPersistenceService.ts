@@ -136,7 +136,9 @@ export async function fetchApprovedVisitProofForClient(
 }
 
 export async function computeVisitProofPayloadHash(snapshot: Record<string, unknown>): Promise<string> {
-  return computeSha256Hex(canonicalJsonStringify(snapshot));
+  // Hash the JSON the database receives (undefined optional object members do not travel over HTTP).
+  const wireSnapshot: unknown = JSON.parse(JSON.stringify(snapshot));
+  return computeSha256Hex(canonicalJsonStringify(wireSnapshot));
 }
 
 /** Generate proof from visit snapshot + persist JSON snapshot in Storage. */

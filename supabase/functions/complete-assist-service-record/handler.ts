@@ -1,4 +1,5 @@
-import { canonicalJson, hashBytes, requireSignaturePath, verifyOriginalSignature } from './proofBytes.ts';
+import { hashBytes, verifyOriginalSignature } from './proofBytes.ts';
+import { checkProofSource, sameProofForCommit } from './proofSource.ts';
 import type { ProofSource } from './visitProofPdf.ts';
 type Result = { data: unknown; error: unknown };
 type Client = {
@@ -32,12 +33,8 @@ export function createProofCompletionHandler(deps:Dependencies) {
   const read=await user.rpc('workflow_assignment_proof_source',{p_tenant_id:tenant,p_assignment_id:assignment});
   if(read.error)return reply({ok:false,error:'Die aktuelle signierte Einsatzfassung ist nicht freigegeben oder nicht vollständig. Bitte Einsatzzuordnung, Dokumentation und Unterschrift prüfen.'},409);
   try {
-   const source=read.data as ProofSource;const r=source?.receipt;
-   if(!r||r.version!=='workflow-assignment-record-v1'||r.tenant_id!==tenant||r.assignment_id!==assignment
-     ||!uuid.test(String(r.visit_id))||!uuid.test(String(r.proof_id))||source.signature_id!==r.signature_id
-     ||typeof source.signature_hash!=='string'||JSON.stringify(source.snapshot).length>256000)throw new Error('Quellfassung ungültig.');
-   if(await hashBytes(new TextEncoder().encode(canonicalJson(source.snapshot)))!==r.proof_payload_hash)throw new Error('Quellhash stimmt nicht überein.');
-   const signaturePath=requireSignaturePath(source.signature_storage_path,tenant,String(r.visit_id));
+   const source=await checkProofSource(read.data,tenant,assignment);
+   const r=source.receipt, signaturePath=source.signature_storage_path;
    const service=deps.serviceClient();const storage=service.storage.from('office-documents');
    const original=await storage.download(signaturePath);if(original.error||!original.data||original.data.size>2*1024*1024)throw new Error('Originalsignatur nicht verfügbar.');
    const signature=new Uint8Array(await original.data.arrayBuffer());await verifyOriginalSignature(signature,source.signature_hash);
@@ -54,10 +51,15 @@ export function createProofCompletionHandler(deps:Dependencies) {
    const stored=await storage.download(pdfPath);if(stored.error||!stored.data||stored.data.size>10*1024*1024)throw new Error('PDF-Speicherung nicht bestätigt.');
    const storedBytes=new Uint8Array(await stored.data.arrayBuffer());
    if(new TextDecoder().decode(storedBytes.slice(0,5))!=='%PDF-'||await hashBytes(storedBytes)!==pdfHash)throw new Error('Gespeicherte PDF-Bytes stimmen nicht überein.');
+   // Reading and rendering the files takes time. Re-check access and the exact
+   // source through the caller before the private database compare-and-set.
+   const latest=await user.rpc('workflow_assignment_proof_source',{p_tenant_id:tenant,p_assignment_id:assignment});
+   if(latest.error||!sameProofForCommit(source,await checkProofSource(latest.data,tenant,assignment),pdfPath,pdfHash))
+     throw new Error('Die Freigabe oder der Leistungsnachweis hat sich während der Dateiprüfung geändert.');
    const committed=await service.rpc('workflow_commit_proof_attestation',{t:tenant,a_id:assignment,p_id:r.proof_id,
     expected_payload_hash:r.proof_payload_hash,expected_signature_hash:source.signature_hash,pdf_path:pdfPath,pdf_sha:pdfHash});
    const receipt=committed.data as Record<string,unknown>|null;
-   if(committed.error||!receipt?.confirmed||receipt.proof_id!==r.proof_id||receipt.pdf_storage_path!==pdfPath||receipt.pdf_sha256!==pdfHash)throw new Error('Die Nachweisfassung wurde inzwischen geändert oder nicht bestätigt.');
+   if(committed.error||receipt?.confirmed!==true||receipt.proof_id!==r.proof_id||receipt.pdf_storage_path!==pdfPath||receipt.pdf_sha256!==pdfHash)throw new Error('Die Nachweisfassung wurde inzwischen geändert oder nicht bestätigt.');
    return reply({ok:true,data:{proofId:r.proof_id,pdfPath,pdfSha256:pdfHash}});
   }catch(cause){
    const message=cause instanceof Error?cause.message:'Nachweisabschluss nicht bestätigt.';

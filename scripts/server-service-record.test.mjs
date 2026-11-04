@@ -4,8 +4,7 @@ import vm from 'node:vm';
 import {readFileSync,writeFileSync} from 'node:fs';
 import {stripTypeScriptTypes,createRequire} from 'node:module';
 import {webcrypto} from 'node:crypto';
-const runtime=createRequire(`${process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES}/package.json`);
-const pdfLib=runtime('pdf-lib');
+const pdfLib=createRequire(import.meta.url)('pdf-lib');
 const context=vm.createContext({crypto:webcrypto,TextEncoder,TextDecoder,Uint8Array,DataView,Date,Array,Blob,Request,Response,btoa,atob,console});
 // pdf-lib and the isolated source share array identity, as in the Edge runtime.
 vm.runInContext("Object.setPrototypeOf(Object.getPrototypeOf([]), Array.prototype)",context);
@@ -31,23 +30,23 @@ const snapshot={visitId:visit,clientId:client,employeeId:id(2),title:'Alltagsbeg
  documentationNote:'Synthetische Prüfdaten: Unterstützung durchgeführt. Keine echte Leistung.',
  signature:{signerName:'Testperson',signerRole:'client',signedAt:at},visitTimes:{serviceStartedAt:'2026-10-12T08:00:00.000Z',serviceEndedAt:'2026-10-12T09:00:00.000Z',serviceSeconds:3600},generatedAt:at};
 const source={receipt:{version:'workflow-assignment-record-v1',tenant_id:tenant,assignment_id:assignment,visit_id:visit,proof_id:proof,signature_id:signatureId,
- actual_minutes:60,service_started_at:snapshot.visitTimes.serviceStartedAt,service_ended_at:snapshot.visitTimes.serviceEndedAt,
- proof_payload_hash:await bytes.hashBytes(new TextEncoder().encode(bytes.canonicalJson(snapshot)))},snapshot,signature_id:signatureId,
+ client_id:client,employee_id:id(2),signature_payload_hash:await bytes.hashBytes(new TextEncoder().encode(bytes.canonicalJson({visitId:visit,clientId:client,employeeId:id(2),plannedStartAt:snapshot.plannedStartAt,plannedEndAt:snapshot.plannedEndAt,taskStatuses:[],documentationNote:snapshot.documentationNote}))),actual_minutes:60,service_started_at:snapshot.visitTimes.serviceStartedAt,service_ended_at:snapshot.visitTimes.serviceEndedAt,
+ proof_payload_hash:await bytes.hashBytes(new TextEncoder().encode(bytes.canonicalJson(snapshot)))},snapshot,attested_pdf:false,signature_id:signatureId,
  signature_storage_path:`tenant/${tenant}/assist/visits/${visit}/signatures/${signatureId}.png`,
  signature_hash:await bytes.hashBytes(new TextEncoder().encode(`data:image/png;base64,${Buffer.from(png).toString('base64')}`)),
  tenant_name:'CareSuite Testmandant',client_name:'Testperson',employee_name:'Testkraft'};
 test('original PNG bytes reproduce the stored data-URL hash',async()=>{assert.equal(await bytes.verifyOriginalSignature(png,source.signature_hash),'png');});
 test('changed original bytes cannot be attested',async()=>{const changed=png.slice();changed[changed.length-1]^=1;await assert.rejects(bytes.verifyOriginalSignature(changed,source.signature_hash));});
-test('signature paths reject foreign visits and traversal',()=>{for(const path of [source.signature_storage_path.replace(visit,id(30)),source.signature_storage_path.replace(signatureId,'../secret')])assert.throws(()=>bytes.requireSignaturePath(path,tenant,visit));});
+test('signature paths reject foreign visits and traversal',()=>{for(const path of [source.signature_storage_path.replace(visit,id(30)),source.signature_storage_path.replace(signatureId,'../secret')])assert.throws(()=>bytes.requireSignaturePath(path,tenant,visit,signatureId));});
 test('oversized image dimensions are rejected before decoding',()=>{const changed=png.slice();new DataView(changed.buffer).setUint32(16,100000);assert.throws(()=>bytes.signatureImageKind(changed));});
 const pdf=await renderVisitProofPdf(source,png);
 writeFileSync('/tmp/caresuite-server-proof-qa.pdf',pdf);
 test('actual PDF engine embeds the signature and produces deterministic bytes',async()=>{assert.equal(new TextDecoder().decode(pdf.slice(0,5)),'%PDF-');assert.equal(await bytes.hashBytes(pdf),await bytes.hashBytes(await renderVisitProofPdf(source,png)));const parsed=await pdfLib.PDFDocument.load(pdf);assert.equal(parsed.getPageCount(),1);assert.equal(parsed.getTitle(),'Leistungsnachweis');});
 test('long documentation paginates without dropping the signature page',async()=>{const long={...source,snapshot:{...snapshot,documentationNote:'Ausführliche Prüfdokumentation. '.repeat(1200)}};const parsed=await pdfLib.PDFDocument.load(await renderVisitProofPdf(long,png));assert.ok(parsed.getPageCount()>1);});
-function fixture({auth=true,allowed=true,corruptSignature=false,corruptPdf=false,stale=false,lostUpload=false}={}){
- let privileged=false,commits=0,uploads=0;const objects=new Map([[source.signature_storage_path,corruptSignature?new Uint8Array([1,2,3]):png]]);
- const handler=createProofCompletionHandler({userClient:()=>({auth:{getUser:async()=>({data:{user:auth?{id:id(3)}:null},error:null})},rpc:async()=>allowed?{data:source,error:null}:{data:null,error:{code:'42501'}}}),
- serviceClient:()=>{privileged=true;return{storage:{from:()=>({download:async path=>({data:objects.has(path)?new Blob([objects.get(path)]):null,error:objects.has(path)?null:'missing'}),upload:async(path,value)=>{uploads++;objects.set(path,corruptPdf?new Uint8Array([1,2,3]):value);return{error:lostUpload?'lost reply':null};}})},rpc:async(_name,args)=>{commits++;return stale?{error:'stale',data:null}:{error:null,data:{confirmed:true,proof_id:proof,pdf_storage_path:args.pdf_path,pdf_sha256:args.pdf_sha}};}};},render:renderVisitProofPdf});
+function fixture({auth=true,allowed=true,corruptSignature=false,corruptPdf=false,stale=false,lostUpload=false,returned=source,secondRead=returned,revoked=false,confirmed=true}={}){
+ let privileged=false,commits=0,uploads=0,reads=0;const objects=new Map([[source.signature_storage_path,corruptSignature?new Uint8Array([1,2,3]):png]]);
+ const handler=createProofCompletionHandler({userClient:()=>({auth:{getUser:async()=>({data:{user:auth?{id:id(3)}:null},error:null})},rpc:async()=>{reads++;return allowed&&!(reads===2&&revoked)?{data:reads===1?returned:secondRead,error:null}:{data:null,error:{code:'42501'}};}}),
+ serviceClient:()=>{privileged=true;return{storage:{from:()=>({download:async path=>({data:objects.has(path)?new Blob([objects.get(path)]):null,error:objects.has(path)?null:'missing'}),upload:async(path,value)=>{uploads++;objects.set(path,corruptPdf?new Uint8Array([1,2,3]):value);return{error:lostUpload?'lost reply':null};}})},rpc:async(_name,args)=>{commits++;return stale?{error:'stale',data:null}:{error:null,data:{confirmed,proof_id:proof,pdf_storage_path:args.pdf_path,pdf_sha256:args.pdf_sha}};}};},render:renderVisitProofPdf});
  const call=(authorization='Bearer fake',body={tenantId:tenant,assignmentId:assignment})=>handler(new Request('https://example.invalid',{method:'POST',headers:{Authorization:authorization},body:JSON.stringify(body)}));
  return{call,status:()=>({privileged,commits,uploads})};
 }
@@ -60,3 +59,15 @@ test('stored PDF corruption cannot produce an attestation',async()=>{const f=fix
 test('changed server version fails completion after byte checks',async()=>{const f=fixture({stale:true});assert.equal((await f.call()).status,409);assert.equal(f.status().commits,1);});
 test('successful completion reads actual stored bytes before committing',async()=>{const f=fixture();const response=await f.call();assert.equal(response.status,200);assert.equal((await response.json()).ok,true);assert.equal(f.status().commits,1);});
 test('a lost upload reply is recoverable only when matching bytes are stored',async()=>{const f=fixture({lostUpload:true});assert.equal((await f.call()).status,200);assert.equal(f.status().commits,1);});
+
+for(const [name,returned] of [
+ ['foreign signature image with identical bytes',{...source,signature_storage_path:source.signature_storage_path.replace(signatureId,id(23))}],
+ ['other client',{...source,receipt:{...source.receipt,client_id:id(27)}}],
+ ['other employee',{...source,receipt:{...source.receipt,employee_id:id(28)}}],
+ ['changed billed minutes',{...source,receipt:{...source.receipt,actual_minutes:61}}],
+ ['different recorded end',{...source,receipt:{...source.receipt,service_ended_at:'2026-10-12T09:00:00.000001Z'}}],
+ ['wrong signed service content',{...source,receipt:{...source.receipt,signature_payload_hash:'sha256:'+'b'.repeat(64)}}],
+])test(name+' cannot reach privileged storage',async()=>{const f=fixture({returned});assert.equal((await f.call()).status,409);assert.equal(f.status().privileged,false);});
+test('revoked access during storage I/O cannot attest a PDF',async()=>{const f=fixture({revoked:true});assert.equal((await f.call()).status,409);assert.equal(f.status().uploads,1);assert.equal(f.status().commits,0);});
+test('changed rendered names cannot be committed to an older PDF',async()=>{const f=fixture({secondRead:{...source,employee_name:'Andere Testkraft'}});assert.equal((await f.call()).status,409);assert.equal(f.status().commits,0);});
+test('only a boolean database confirmation releases the result',async()=>{const f=fixture({confirmed:'false'});assert.equal((await f.call()).status,409);});

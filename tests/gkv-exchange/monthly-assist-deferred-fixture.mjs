@@ -29,6 +29,7 @@ export async function assistDeferredFixture(options={}){
  // staging bundle. Authentication and the Storage transport remain isolated.
  await db.transaction(async tx=>{await tx.exec(await portalStatements());});
  await db.exec(await readFile(new URL('../../supabase/migrations/20261104084500_bind_employee_proof_release_account.sql',import.meta.url),'utf8'));
+ await db.exec(await readFile(new URL('../../docs/gkv/sql/portal-source-integrity.sql',import.meta.url),'utf8'));
  if(options.monthlyCapture!==false) await db.exec(await readFile(new URL('../../docs/gkv/sql/monthly-assist-deferred-draft.sql',import.meta.url),'utf8'));
  const clientActor=randomUUID(),clientSession=randomUUID();
  await db.query('INSERT INTO auth.sessions VALUES($1,$2,NULL)',[clientSession,clientActor]);
@@ -52,16 +53,18 @@ export async function assistDeferredFixture(options={}){
   await db.query("UPDATE assist_visits SET canonical_status='completed' WHERE id=$1",[v.visit]);
  };
  const captured=async v=>(await db.query('SELECT * FROM care_security.gkv_assist_deferred_sources WHERE proof_id=$1',[v.draft])).rows[0];
- const sign=async(v,{identity=clientClaims(v),signatureMetadata={},signedAt}={})=>{
+ const sign=async(v,{identity=clientClaims(v),signatureMetadata={},signedAt,signedHash,signaturePayloadHash,signaturePath}={})=>{
   const p=(await db.query('SELECT * FROM assist_visit_proofs WHERE id=$1',[v.draft])).rows[0];
   v.signed=signedAt??await x.clock();v.png=Buffer.from(signingPng(),'base64');
-  v.signaturePath=`tenant/${f.tenant}/assist/visits/${v.visit}/signatures/${v.signature}.png`;
+  v.signaturePath=signaturePath??`tenant/${f.tenant}/assist/visits/${v.visit}/signatures/${v.signature}.png`;
   x.storage.set(v.signaturePath,v.png);
   const payload={visitId:v.visit,clientId:v.client,employeeId:x.employee,plannedStartAt:p.payload_snapshot.plannedStartAt,plannedEndAt:p.payload_snapshot.plannedEndAt,
    taskStatuses:p.payload_snapshot.tasks.map(t=>({taskId:t.id,status:t.status})),documentationNote:p.payload_snapshot.documentationNote};
   await db.query("INSERT INTO assist_visit_signatures(id,tenant_id,visit_id,storage_path,signature_hash,payload_hash,signed_at,signer_name,signer_role,metadata) VALUES($1,$2,$3,$4,$5,$6,$7,'Synthetische Person','client',$8) ON CONFLICT(id) DO NOTHING",
-   [v.signature,f.tenant,v.visit,v.signaturePath,'sha256:'+createHash('sha256').update('data:image/png;base64,'+v.png.toString('base64')).digest('hex'),await x.jsonHash(payload),v.signed,
+   [v.signature,f.tenant,v.visit,v.signaturePath,'sha256:'+createHash('sha256').update('data:image/png;base64,'+v.png.toString('base64')).digest('hex'),signaturePayloadHash??await x.jsonHash(payload),v.signed,
     JSON.stringify({proofId:v.draft,signedVia:'client_portal',proofPayloadHash:p.payload_hash,...signatureMetadata})]);
+  // The application uses the stored signature timestamp when resuming an upload.
+  v.signed=new Date((await db.query('SELECT signed_at FROM assist_visit_signatures WHERE id=$1',[v.signature])).rows[0].signed_at).toISOString();
   const snapshot={...p.payload_snapshot,signatureDeferredToClientPortal:false,clientPortalSignedAt:v.signed,signedViaClientPortal:true,
    clientPortalPdfSignatureId:v.signature,signerName:'Synthetische Person',signedAt:v.signed,
    signature:{signerName:'Synthetische Person',signedAt:v.signed,signerRole:'client'}};
@@ -70,7 +73,7 @@ export async function assistDeferredFixture(options={}){
   x.storage.set(pdfPath,pdf);
   await db.query('INSERT INTO storage.objects VALUES($1,$2),($1,$3)',['office-documents',v.signaturePath,pdfPath]);
   return (await f.as(identity,'SELECT public.client_portal_finalize_assist_proof($1,$2,$3,$4,$5,$6,$7) value',
-   [f.tenant,v.draft,v.signature,p.payload_hash,await x.jsonHash(snapshot),pdfPath,createHash('sha256').update(pdf).digest('hex')])).rows[0].value;
+   [f.tenant,v.draft,v.signature,p.payload_hash,signedHash??await x.jsonHash(snapshot),pdfPath,createHash('sha256').update(pdf).digest('hex')])).rows[0].value;
  };
  // Seed historical time ONLY inside this isolated fixture. Production has no
  // backdate endpoint. This models a later day without a wall-clock hour's wait.
