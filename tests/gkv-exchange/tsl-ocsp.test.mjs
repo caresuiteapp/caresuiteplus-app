@@ -2382,6 +2382,7 @@ test('monthly component: amended source needs fresh XML/CMS and invalidates the 
  const fresh=await m.worker.verify(next.input,Buffer.from(signingPng(4),'base64'));
  const final=await m.f.command('confirm',{id:next.p.id,revision:next.p.revision,content_sha256:next.p.content_sha256,receipt_id:fresh.receiptId});
  const current=await m.worker.readArchivedComponent({tenantId:m.f.tenant,proofId:final.id,captureId:next.input.captureId});
+ if(process.env.GKV_MONTHLY_XML_ENGINE==='libxml2-wasm')assert.equal(m.store.getComponent(m.f.tenant,next.input.captureId).record.verification.validationEngine,'libxml2-wasm/0.7.2');
  assert.notDeepEqual(current.cms,previous.cms);assert.notEqual(fresh.originalSha256,receipt.originalSha256);assert.notEqual(fresh.signatureSha256,receipt.signatureSha256);
  assert.deepEqual(await openssl(['cms','-verify','-inform','DER','-binary','-noverify'],{input:current.cms}),current.xml);
  assert.equal(m.requests.filter(q=>cmsOperation(q.bytes)==='SignDocument').length,2);

@@ -25,7 +25,12 @@ function signatureFile(document) {
   // active-content checks and authority belong to the existing paper verifier.
   return hash(bytes);
 }
-function worker(bytes, { python = 'python3', signal } = {}) {
+function worker(bytes, { python, signal, engine } = {}) {
+  // The private API never takes an executable or engine from a browser request.
+  // Keep the Python host default; never try another backend after a rejection.
+  const selected=engine??(python!==undefined?'python-lxml':process.env.GKV_MONTHLY_XML_ENGINE??'python-lxml');
+  if(!['python-lxml','libxml2-wasm'].includes(selected)||(selected==='libxml2-wasm'&&python!==undefined))
+    return Promise.reject(new MonthlyXmlError('MONTHLY_XML_UNAVAILABLE'));
   if (signal?.aborted) return Promise.reject(new MonthlyXmlError('MONTHLY_XML_ABORTED'));
   return new Promise((resolve, reject) => {
     let child, done = false, size = 0; const chunks = [];
@@ -38,7 +43,10 @@ function worker(bytes, { python = 'python3', signal } = {}) {
     const timer = setTimeout(() => finish('MONTHLY_XML_TIMEOUT'), 10000);
     signal?.addEventListener('abort', aborted, { once: true });
     try {
-      child = spawn(python, ['-I', '-B', fileURLToPath(new URL('./monthly-xml-worker.py', import.meta.url))], {
+      const wasm=selected==='libxml2-wasm';
+      const args=wasm?['--max-old-space-size=64','--wasm-max-mem-pages=1024',fileURLToPath(new URL('./monthly-xml-wasm-worker.mjs',import.meta.url))]
+        :['-I','-B',fileURLToPath(new URL('./monthly-xml-worker.py',import.meta.url))];
+      child = spawn(wasm?process.execPath:python??'python3', args, {
         shell: false, stdio: ['pipe','pipe','pipe'], env: { PATH: process.env.PATH, LANG: 'C.UTF-8' },
       });
       child.on('error', () => finish('MONTHLY_XML_UNAVAILABLE'));
@@ -63,16 +71,17 @@ function worker(bytes, { python = 'python3', signal } = {}) {
  * the immutable capture; this module does not authenticate a caller's model.
  * No CMS signature, PROD/MOD approval, persistence or send authorization here.
  */
-export async function verifyMonthlyXml(input, { expected, checkedAt, python, signal } = {}) {
+export async function verifyMonthlyXml(input, { expected, checkedAt, python, signal, engine } = {}) {
   if (!(input instanceof Uint8Array) || !input.length || input.length > MONTHLY_XML_LIMIT) monthlyXmlFail('LIMIT');
   const bytes = Buffer.from(input), document = readMonthlyXmlDocument(expected, checkedAt);
   const binarySha256 = signatureFile(document), digest = hash(bytes);
-  const result = await worker(bytes, { python, signal });
+  const result = await worker(bytes, { python, signal, engine });
   if (result.sha256 !== digest || result.schemaSha256 !== MONTHLY_XML_SCHEMA_SHA256) monthlyXmlFail('WORKER_BINDING');
   const parsed = readMonthlyXmlDocument(result.document, checkedAt);
   if (canonical(parsed) !== canonical(document)) monthlyXmlFail('CONTENT_BINDING');
   return Object.freeze({ schema: 'gkv-lnw-xml-check-v1', logicalVersion: MONTHLY_XML_PROFILE.logicalVersion, xsd: 'PFL_LNW_2.2.0.xsd',
     schemaSha256: MONTHLY_XML_SCHEMA_SHA256, sha256: digest, embeddedFileSha256: binarySha256,
+    ...(result.engine==='libxml2-wasm/0.7.2'?{validationEngine:result.engine}:{}),
     checkedAt, schemaValid: true, fieldRulesValid: true, expectedContentMatches: true,
     sourceBindingVerified: false, componentSignatureVerified: false, dispatchReady: false });
 }

@@ -1,7 +1,7 @@
 import test, { before } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { mkdtemp, cp, readFile, writeFile, rm, mkdir } from 'node:fs/promises';
+import { mkdtemp, cp, readFile, writeFile, rm, mkdir, symlink } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
@@ -166,12 +166,14 @@ test('LNW: bounded arrays, fields and byte sizes',async()=>{
 test('LNW: a changed official XSD or its manifest cannot attest a result',async()=>{
   const folder=await mkdtemp(join(tmpdir(),'cs-lnw-xsd-'));
   try {
-    const worker=join(folder,'monthly-xml-worker.py'), schemas=join(folder,'pfl-schema','1.2.0');
-    await cp(new URL('../../services/gkv/monthly-xml-worker.py',import.meta.url),worker);
+    const wasm=process.env.GKV_MONTHLY_XML_ENGINE==='libxml2-wasm';
+    const name=wasm?'monthly-xml-wasm-worker.mjs':'monthly-xml-worker.py',worker=join(folder,name), schemas=join(folder,'pfl-schema','1.2.0');
+    await cp(new URL('../../services/gkv/'+name,import.meta.url),worker);
+    if(wasm)await symlink(new URL('../../node_modules',import.meta.url),join(folder,'node_modules'),'dir');
     await mkdir(join(folder,'pfl-schema'));
     await cp(new URL('../../services/gkv/pfl-schema/1.2.0/',import.meta.url),schemas,{recursive:true});
     const run=()=>new Promise((resolve,reject)=>{
-      const child=spawn('python3',['-I','-B',worker],{stdio:['pipe','pipe','pipe']}), chunks=[];
+      const child=spawn(wasm?process.execPath:'python3',wasm?['--max-old-space-size=64','--wasm-max-mem-pages=1024',worker]:['-I','-B',worker],{stdio:['pipe','pipe','pipe']}), chunks=[];
       child.on('error',reject);child.stdout.on('data',b=>chunks.push(b));child.stderr.resume();
       child.on('close',code=>code===0?resolve(JSON.parse(Buffer.concat(chunks))):reject(Error('worker exited')));child.stdin.end(generated.bytes);
     });

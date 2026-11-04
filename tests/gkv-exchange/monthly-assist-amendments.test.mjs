@@ -4,7 +4,6 @@ import {randomUUID} from 'node:crypto';
 import {readFile} from 'node:fs/promises';
 import {getDocument} from 'pdfjs-dist/legacy/build/pdf.mjs';
 import {assistDeferredFixture} from './monthly-assist-deferred-fixture.mjs';
-import {signingPng} from './monthly-host-fixture.mjs';
 import {readMonthlyProof} from '../../src/lib/gkvExchange/monthlyProof.ts';
 import {monthlyDifferences} from '../../src/lib/gkvExchange/monthlyWorkspace.ts';
 import {readAmendmentState} from '../../src/lib/gkvExchange/assistAmendment.ts';
@@ -31,8 +30,10 @@ async function fixture(deferred=false){
  }catch(e){await x.close();throw e;}
 }
 
-test('Personal Assist amendment: retained original, open month, stale capture and fresh confirmation',async t=>{
- const {x,f,v,scope,state,save,input,row}=await fixture();let one,two,monthly,oldReceipt,old,archive;
+// Web gate: real SQL, PDF and verifier-context checks. End-to-end XSD/CMS
+// confirmation of amended sources is a separate strict private-host test.
+test('Personal Assist amendment: retained original, open month, stale capture and archived predecessor',async t=>{
+ const {x,f,v,scope,state,save,input,row}=await fixture();let one,two,monthly,old,oldPdf;
  try{
   await t.test('amend before monthly handoff; replay and scoped status recover exactly one entry',async()=>{
    const head=await state();assert.equal(head.revision,0);assert.equal(head.originalText,v.snapshot.documentationNote);
@@ -45,7 +46,7 @@ test('Personal Assist amendment: retained original, open month, stale capture an
    const record=monthly.p.payload.records[0];assert.deepEqual(record.amendment,one);assert.equal(record.description,head.originalText);
    assert.equal(record.sourceReceipt.proof_id,scope.proofId);assert.equal(record.sourceReceipt.proof_payload_hash,scope.proofHash);
    await x.freeze(monthly);await x.prepare(monthly);old=monthly.p;
-   oldReceipt=await x.worker.verify(monthly.input,Buffer.from(signingPng(7),'base64'));
+   oldPdf=monthly.original.originalSha256;assert.equal((await x.worker.status(monthly.input)).state,'acknowledged');
   });
   await t.test('open month changes atomically; old capture, missing-signature fallback and stale revision cannot finalize it',async()=>{
    two=await save(input(1,one.id));monthly.p=await row(old.id);assert.equal(monthly.p.revision,old.revision+1);
@@ -54,30 +55,43 @@ test('Personal Assist amendment: retained original, open month, stale capture an
    assert.throws(()=>readMonthlyProof({...monthly.p,payload:{...monthly.p.payload,schema:'gkv-monthly-source-v1'}},f.tenant));
    await assert.rejects(x.worker.prepare({tenantId:f.tenant,proofId:monthly.p.id,revision:monthly.p.revision,captureId:randomUUID()}));
    assert.deepEqual(monthly.p.payload.records[0].amendment,two);assert.ok(monthlyDifferences(old,monthly.p).some(d=>d.key.endsWith(':amendment')));
-   const confirm=(p)=>f.command('confirm',{id:p.id,revision:p.revision,content_sha256:p.content_sha256,receipt_id:oldReceipt.receiptId});
+   const confirm=(p)=>f.command('confirm',{id:p.id,revision:p.revision,content_sha256:p.content_sha256,receipt_id:randomUUID()});
    await assert.rejects(confirm(old),conflict);await assert.rejects(confirm(monthly.p));await assert.rejects(x.worker.status(monthly.input));
    await assert.rejects(f.command('finalize_missing',{id:monthly.p.id,revision:monthly.p.revision,content_sha256:monthly.p.content_sha256,reason:'Keine neue Unterschrift'}),invalid);
    const active=(await x.context(v)).original;assert.equal(active.proofId,scope.proofId);assert.equal(active.payloadHash,scope.proofHash);
   });
-  await t.test('new PDF contains the original, corrected description and reason; a fresh signature confirms only this revision',async()=>{
+  await t.test('new PDF contains the original, corrected description and reason and remains unconfirmed',async()=>{
    monthly.input={tenantId:f.tenant,proofId:monthly.p.id,revision:monthly.p.revision,captureId:randomUUID()};
    await x.freeze(monthly);await x.prepare(monthly);
    const pdf=await getDocument({data:new Uint8Array(monthly.original.bytes),useSystemFonts:true,disableFontFace:true}).promise;
    try{let actual='';for(let i=1;i<=pdf.numPages;i++)actual+=' '+(await(await pdf.getPage(i)).getTextContent()).items.map(r=>r.str).join(' ');
     for(const value of [v.snapshot.documentationNote,'Berichtigung 2',two.description,two.reason])assert.ok(actual.replace(/\s+/g,' ').includes(value),value);}
    finally{await pdf.destroy();}
-   const final=await x.confirm(monthly);assert.equal(final.confirmation.kind,'signature');assert.notEqual(final.confirmation.receiptId,oldReceipt.receiptId);
-   archive=await x.worker.readArchivedOriginal({tenantId:f.tenant,proofId:final.id,captureId:monthly.input.captureId});assert.equal(archive.status,'final');
+   assert.notEqual(monthly.original.originalSha256,oldPdf);assert.equal(monthly.p.confirmation,null);
+   assert.equal((await x.worker.status(monthly.input)).state,'acknowledged');
   });
   await t.test('another correction invalidates the signed predecessor, opens an unsigned replacement and preserves original PDF bytes',async()=>{
-   const final=monthly.p,three=await save(input(2,two.id)),invalidated=await row(final.id);
+   // A separately signed, non-XML legacy-format month can be produced with
+   // the real existing PDF/PNG verifier on this Web runner, without imitating
+   // any XSD check. The new version does require the private XML host.
+   const another=await x.finish(await x.start()),sealed=await x.seal(another,(await x.context(another)).draft);
+   assert.equal((await x.complete(another)).status,200);const archivedMonth=await x.monthly(another);
+   await x.prepare(archivedMonth);const final=await x.confirm(archivedMonth);
+   const archiveInput={tenantId:f.tenant,proofId:final.id,captureId:archivedMonth.input.captureId};
+   const archive=await x.worker.readArchivedOriginal(archiveInput);assert.equal(archive.status,'final');
+   const command={...input(),proofId:sealed.original.proofId,proofHash:sealed.original.payloadHash};
+   const three=(await f.as(x.personal(),'SELECT public.gkv_assist_amend_description($1,$2,$3,$4::jsonb) v',
+    [f.tenant,another.assignment,randomUUID(),JSON.stringify(command)])).rows[0].v;
+   const invalidated=await row(final.id);
    assert.equal(invalidated.status,'invalidated');assert.deepEqual(invalidated.confirmation,final.confirmation);
    assert.deepEqual(invalidated.payload,final.payload);assert.equal(invalidated.content_sha256,final.content_sha256);
    const id=(await f.db.query("SELECT id FROM public.gkv_monthly_proofs WHERE series_id=$1 AND status='open'",[final.series_id])).rows[0].id;
    const next=await row(id);assert.equal(next.predecessor_id,final.id);assert.equal(next.version,final.version+1);
    assert.equal(next.confirmation,null);assert.equal(next.payload.xmlFacts,undefined);assert.deepEqual(next.payload.records[0].amendment,three);
    assert.deepEqual(next.payload.records[0].sourceReceipt,final.payload.records[0].sourceReceipt);
-   const reread=await x.worker.readArchivedOriginal({tenantId:f.tenant,proofId:final.id,captureId:monthly.input.captureId});
+   const successor={p:next,input:{tenantId:f.tenant,proofId:next.id,revision:next.revision,captureId:randomUUID()}};await x.freeze(successor);
+   await assert.rejects(f.command('confirm',{id:next.id,revision:successor.p.revision,content_sha256:successor.p.content_sha256,receipt_id:final.confirmation.receiptId}));
+   const reread=await x.worker.readArchivedOriginal(archiveInput);
    assert.equal(reread.status,'invalidated');assert.deepEqual(reread.bytes,archive.bytes);
    assert.equal((await f.db.query("SELECT count(*)::int n FROM public.gkv_monthly_proof_events WHERE action='invalidate_for_amendment' AND proof_id=$1",[final.id])).rows[0].n,1);
   });
