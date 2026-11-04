@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { beforeEach, expect, it, vi } from 'vitest';
 const f = vi.hoisted(() => ({ released: vi.fn(), load: vi.fn(), prior: vi.fn(), save: vi.fn(), render: vi.fn(), upload: vi.fn(), rpc: vi.fn(), invalidate: vi.fn(), image: vi.fn() }));
 vi.mock('expo-crypto', () => ({ randomUUID: () => 'native-upload-uuid' }));
@@ -6,7 +7,6 @@ vi.mock('@/lib/portal/assist/portalAssistVisitProofService', () => ({ getRelease
 vi.mock('@/lib/assist/assistVisitProofPersistenceService', () => ({ fetchVisitProofById: f.load, computeVisitProofPayloadHash: async () => 'signed-hash' }));
 vi.mock('@/lib/assist/assistVisitSignaturePersistenceService', () => ({ computeSignatureDataHash: async () => 'image-hash', computeVisitSignaturePayloadHash: async () => 'signature-payload', saveVisitSignaturePersistent: f.save, fetchValidVisitSignature: f.prior }));
 vi.mock('@/lib/assist/assistProofPdfService', () => ({ renderAssistProofPdfBytes: f.render }));
-vi.mock('@/lib/assist/assistExecutionHashService', () => ({ computeSha256Hex: async () => 'pdf-hash' }));
 vi.mock('@/lib/assist/visitSignatureImageService', () => ({ resolveVisitSignatureImageUrl: f.image }));
 vi.mock('@/lib/portal/portalProofCacheSignal', () => ({ invalidatePortalProofCache: f.invalidate }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({ rpc: f.rpc, storage: { from: () => ({ upload: f.upload }) } }) }));
@@ -18,7 +18,7 @@ beforeEach(() => {
   f.released.mockResolvedValue({ ok: true, data: { signatureRequired: true, portalReleaseStatus: 'pending_client_signature' } });
   f.load.mockResolvedValue({ ok: true, data: { id: 'proof', tenantId: 'tenant', visitId: 'visit', payloadHash: 'original-hash', createdAt: '2026-09-11T09:00:00Z', payloadSnapshot: { title: 'Haushalt', tasks: [] } } });
   f.prior.mockResolvedValue({ ok: true, data: null }); f.save.mockResolvedValue({ ok: true, data: signature });
-  f.image.mockResolvedValue('https://example.test/signed-image'); f.render.mockResolvedValue(new Uint8Array([1, 2, 3])); f.upload.mockResolvedValue({ error: null });
+  f.image.mockResolvedValue('https://example.test/signed-image'); f.render.mockResolvedValue(new Uint8Array([0, 37, 80, 68, 70, 0, 128, 254, 255, 10, 33]).subarray(1,10)); f.upload.mockResolvedValue({ error: null });
   f.rpc.mockResolvedValue({ error: null, data: { proofId: 'proof', signatureId: 'sig', signedAt: '2026-09-11T10:00:00.000Z', proofPersisted: true } });
 });
 it('renders and uploads the signed PDF before the atomic completion and checks its receipt', async () => {
@@ -26,6 +26,9 @@ it('renders and uploads the signed PDF before the atomic completion and checks i
   expect(f.render.mock.invocationCallOrder[0]).toBeLessThan(f.upload.mock.invocationCallOrder[0]);
   expect(f.upload.mock.invocationCallOrder[0]).toBeLessThan(f.rpc.mock.invocationCallOrder[0]);
   expect(f.rpc).toHaveBeenCalledWith('client_portal_finalize_assist_proof', expect.objectContaining({ p_expected_payload_hash: 'original-hash', p_signature_id: 'sig' }));
+  const uploaded = new Uint8Array(f.upload.mock.calls[0][1] as ArrayBuffer);
+  expect([...uploaded]).toEqual([37, 80, 68, 70, 0, 128, 254, 255, 10]);
+  expect(f.rpc.mock.calls[0][1].p_pdf_hash).toBe('sha256:' + createHash('sha256').update(uploaded).digest('hex'));
   expect(f.render.mock.calls[0][0].payloadSnapshot.signedAt).toBe('2026-09-11T10:00:00.000Z');
 });
 it('resumes a captured signature without capturing a second one', async () => {

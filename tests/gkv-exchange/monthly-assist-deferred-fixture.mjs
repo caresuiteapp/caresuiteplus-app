@@ -3,6 +3,7 @@
 import {readFile} from 'node:fs/promises';
 import {createHash,randomUUID} from 'node:crypto';
 import {assistOriginalFixture} from './monthly-assist-fixture.mjs';
+import {portalStatements} from '../../scripts/build-gkv-staging-portal.mjs';
 import {signingPng} from './monthly-host-fixture.mjs';
 export async function assistDeferredFixture(options={}){
  const x=await assistOriginalFixture(options),{f}=x,db=f.db;
@@ -14,7 +15,9 @@ export async function assistDeferredFixture(options={}){
    storage_path text,portal_visible boolean,status text,sensitivity text,source text,uploaded_by uuid,signed_at timestamptz,signature_required boolean,updated_at timestamptz);
   CREATE TABLE assist_visit_execution_state(tenant_id uuid,visit_id uuid,current_step text,assignment_status text,signature_complete boolean,
    proof_generated boolean,finalized_at timestamptz,updated_at timestamptz,PRIMARY KEY(tenant_id,visit_id));
-  CREATE TABLE audit_logs(tenant_id uuid,action text,record_id uuid,table_name text,title text,new_data jsonb);
+  CREATE TYPE public.product_key AS ENUM ('office','assist','pflege','stationaer','beratung','akademie');
+  ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+  GRANT USAGE ON SCHEMA storage TO authenticated; GRANT SELECT,INSERT ON storage.objects TO authenticated;
   CREATE FUNCTION public.is_employee_portal_rls_context(t uuid) RETURNS boolean LANGUAGE sql AS $$
    SELECT public.current_tenant_id()=t AND public.current_portal_type()='employee' $$;
   CREATE FUNCTION public.is_client_portal_rls_context(t uuid) RETURNS boolean LANGUAGE sql AS $$
@@ -22,12 +25,10 @@ export async function assistDeferredFixture(options={}){
   CREATE FUNCTION public.resolve_current_profile_id() RETURNS uuid LANGUAGE sql AS $$ SELECT id FROM public.profiles WHERE auth_user_id=auth.uid() $$;
   CREATE FUNCTION public.current_client_id() RETURNS uuid LANGUAGE sql AS $$ SELECT (auth.jwt()->>'client_id')::uuid $$;
  `);
- await db.exec(await readFile(new URL('../../supabase/migrations/20260905170000_employee_direct_deferred_signature_release.sql',import.meta.url),'utf8'));
- const clientSql=await readFile(new URL('../../supabase/migrations/20260911120000_client_portal_signature_completion.sql',import.meta.url),'utf8');
- // Execute the complete unmodified completion RPC and grants; unrelated Storage
- // policies below it are not replaced by assertions of live RLS coverage.
- await db.exec(clientSql.slice(clientSql.indexOf('CREATE OR REPLACE FUNCTION public.client_portal_finalize_assist_proof'),clientSql.indexOf('-- A captured signature')));
- await db.exec(await readFile(new URL('../../docs/gkv/sql/monthly-assist-deferred-draft.sql',import.meta.url),'utf8'));
+ // Same portal SQL, two Storage policies, ACL checks and typed audit table as the
+ // staging bundle. Authentication and the Storage transport remain isolated.
+ await db.transaction(async tx=>{await tx.exec(await portalStatements());});
+ if(options.monthlyCapture!==false) await db.exec(await readFile(new URL('../../docs/gkv/sql/monthly-assist-deferred-draft.sql',import.meta.url),'utf8'));
  const clientActor=randomUUID(),clientSession=randomUUID();
  await db.query('INSERT INTO auth.sessions VALUES($1,$2,NULL)',[clientSession,clientActor]);
  const personal=()=>x.claims({portal:'employee',account_id:x.account});

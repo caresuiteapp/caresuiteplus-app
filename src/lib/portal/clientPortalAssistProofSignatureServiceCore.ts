@@ -8,7 +8,7 @@ import { invalidatePortalProofCache } from '@/lib/portal/portalProofCacheSignal'
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { ASSIST_EXECUTION_STORAGE_BUCKET, buildAssistVisitProofStoragePath } from '@/lib/assist/assistStoragePaths';
-import { computeSha256Hex } from '@/lib/assist/assistExecutionHashService';
+import { sha256FileHex } from '@/lib/crypto/sha256Hex';
 import { resolveVisitSignatureImageUrl } from '@/lib/assist/visitSignatureImageService';
 
 export type ClientPortalAssistProofSignResult = {
@@ -129,7 +129,7 @@ async function sign(input: SignInput): Promise<ServiceResult<ClientPortalAssistP
   const signedProof = { ...proof, signatureId: signature.id, payloadSnapshot: snapshot, status: 'pending_review' as const };
   const { renderAssistProofPdfBytes } = await import('@/lib/assist/assistProofPdfService');
   const pdf = await renderAssistProofPdfBytes(signedProof, { signatureImageUrl: imageUrl });
-  const pdfHash = await computeSha256Hex(Array.from(pdf, (byte) => String.fromCharCode(byte)).join(''));
+  const pdfHash = `sha256:${sha256FileHex(pdf)}`;
   // Unique immutable upload while the proof is still pending; retries never overwrite a signed PDF.
   const pdfPath = buildAssistVisitProofStoragePath(input.tenantId, proof.visitId, `${proof.id}-${signature.id}-${randomUUID()}`, 'pdf');
   const upload = await supabase.storage.from(ASSIST_EXECUTION_STORAGE_BUCKET).upload(pdfPath, pdf.slice().buffer as ArrayBuffer, { contentType: 'application/pdf', upsert: false });

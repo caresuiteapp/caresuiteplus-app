@@ -6,7 +6,6 @@ vi.mock('@/lib/portal/assist/portalAssistVisitProofService', () => ({ getRelease
 vi.mock('@/lib/assist/assistVisitProofPersistenceService', () => ({ fetchVisitProofById: f.load, computeVisitProofPayloadHash: async () => 'signed-hash' }));
 vi.mock('@/lib/assist/assistVisitSignaturePersistenceService', () => ({ computeSignatureDataHash: async () => 'image-hash', computeVisitSignaturePayloadHash: async () => 'payload-hash', fetchValidVisitSignature: async () => ({ ok: true, data: null }), saveVisitSignaturePersistent: f.save }));
 vi.mock('@/lib/assist/assistProofPdfService', () => ({ renderAssistProofPdfBytes: async () => new Uint8Array([37, 80, 68, 70]) }));
-vi.mock('@/lib/assist/assistExecutionHashService', () => ({ computeSha256Hex: async () => 'pdf-hash' }));
 vi.mock('@/lib/assist/visitSignatureImageService', () => ({ resolveVisitSignatureImageUrl: vi.fn() }));
 vi.mock('@/lib/portal/portalProofCacheSignal', () => ({ invalidatePortalProofCache: vi.fn() }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({ rpc: f.rpc, storage: { from: () => ({ upload: f.upload }) } }) }));

@@ -6,7 +6,7 @@
 import { Platform } from 'react-native';
 import type { ServiceResult } from '@/types';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
-import { computeSha256Hex } from '@/lib/assist/assistExecutionHashService';
+import { sha256FileHex } from '@/lib/crypto/sha256Hex';
 import {
   buildAssistProofPdfPayload,
   type AssistProofPdfPayload,
@@ -275,9 +275,7 @@ export async function generateAssistProofPdf(
     };
   }
 
-  const pdfHash = await computeSha256Hex(
-    Array.from(pdfBytes, (byte) => String.fromCharCode(byte)).join(''),
-  );
+  const pdfHash = `sha256:${sha256FileHex(pdfBytes)}`;
 
   const pdfStoragePath =
     proof.pdfStoragePath ??

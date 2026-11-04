@@ -29,3 +29,20 @@ FROM wanted w ORDER BY w.version;
 ```
 
 Für den Paralleltest der Berichtigung müssen zwei **nachweislich gleichzeitig laufende** Datenbanktransaktionen dieselbe simulierte Mandantenkennung verwenden. Am 04.11. liefen die Anfragen über den bestehenden Verwaltungszugang mit unterschiedlichen Backend-IDs, aber zeitlich nacheinander. Daraus ergibt sich kein Nachweis, dass eine Berichtigung den parallelen Monatsabschluss im Betrieb sperrt. Dafür bleiben zwei überlappende Fachtransaktionen auf einer geeigneten Testdatenbank erforderlich. Der Katalogbefund und die isolierten PGlite-Tests ersetzen auch keine Portal-, RLS- oder Storage-Abnahme. Bei dieser Bestandsaufnahme wurden keine Migrationen durchgeführt.
+
+## Nach dem Portalpaket am 04.11.2026
+
+Auf `caresuiteplus-staging` ist die gesonderte Migration `20261104072159` (`gkv_staging_assist_portal_prerequisites`) eingetragen. Der Vorabcheck findet jetzt **32 von 38** Voraussetzungen. Die persönliche Freigabe und der Klientenabschluss sind vorhanden. Weiterhin fehlen die vier Workflow-Funktionen aus `20261013072827` sowie die Office- und GKV-Funktion aus `20261018075737` und `20261019214752`. Keine der elf Objektmarken für die zehn Monatsentwürfe ist sichtbar. Die Portal-Teilmigration ersetzt keine der fünf vollständigen historischen Migrationen.
+
+Die [Anschlussprüfung](checks/staging-portal-smoke.sql) bestand auf dem tatsächlichen PostgreSQL-Server: Berechtigungen für vier Funktionen, beide Storage-Regeln, RLS und kein direkter Audit-Tabellenzugriff der drei App-Rollen. Unter der Rolle `authenticated` ohne Benutzeridentität lehnten beide Portalaktionen den Aufruf ab; beide Storage-Hilfsfunktionen lieferten `false`. Das ist kein abgeschlossener Portalvorgang mit angemeldeten Testpersonen.
+
+Für die sieben zuvor fehlenden Tabellen enthält die [Referenz](checks/upstream-schema-reference.json) die tatsächlich vorgefundenen 142 Spalten, 54 Constraints, 27 Indizes, 11 eigenen Trigger und 19 Regeln für den Zeilenschutz. Zu den Referenzdaten gehören auch Datentypen und Tabellenrechte. Der [nur lesende Strukturvergleich](checks/monthly-upstream-schema.sql) prüft sieben Merkmale pro Tabelle. Auf der Referenz stimmten alle 49 überein. Er gibt auch bei zwei gleich großen, aber abweichenden Definitionen `differs` aus. Funktionen, auf die Trigger und Regeln verweisen, muss man gesondert untersuchen; ein übereinstimmender Name belegt nicht die Implementierung.
+
+| Gegenstand | Beobachtung auf Staging nach der Teilmigration |
+| --- | --- |
+| `audit_logs` | 14 Spalten, drei Constraints, drei Indizes, Tabellenart, RLS und Triggerstand stimmen mit der Referenz überein. Bewusste Abweichung: keine direkten App-Rechte und keine Audit-Lesepolitik, da unter anderem der Academy-Schutz fehlt. |
+| `documentation_entries`, `signatures`, `time_entries` | Noch nicht vorhanden. Der Workflow für Bestandsbelege braucht diese Tabellen. Unter anderem fehlen die zugehörigen Enum-Typen und die Referenzfunktion für Audit-Trigger. |
+| `invoice_items`, `payments` | Noch nicht vorhanden. Der Office-Ablauf setzt die Positions- und Zahlungstabellen einschließlich Schreibschutz voraus. |
+| `payroll_month_statements` | Noch nicht vorhanden. Die Storage-Regel des Office-Arbeitsplatzes verweist darauf. Die unveränderte Migration 0264 umfasst auch weitere Lohnfunktionen. |
+
+[Nutzungsumfang, Audit-Sperre und Bau des Portalpakets](staging-portal-signature.md). Die Bestandsaufnahme und der Staging-Einbau verwendeten keine Produktions-Fachdaten. Auf Produktion wurde nichts eingespielt.

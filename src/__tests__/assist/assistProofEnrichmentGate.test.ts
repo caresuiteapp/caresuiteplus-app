@@ -1,14 +1,21 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 
 import { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
-import { buildEnrichedAssistProofPdfPayload } from '@/lib/assist/assistProofPdfService';
+import { buildEnrichedAssistProofPdfPayload, generateAssistProofPdf } from '@/lib/assist/assistProofPdfService';
 
 vi.mock('react-native', () => ({
   Platform: { OS: 'web' },
 }));
+
+const pdfIo = vi.hoisted(() => ({ fetch: vi.fn(), update: vi.fn(), upload: vi.fn(), print: vi.fn() }));
+vi.mock('@/lib/assist/assistVisitProofPersistenceService', () => ({ fetchVisitProofById: pdfIo.fetch, updateVisitProofRow: pdfIo.update }));
+vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({ storage: { from: () => ({ upload: pdfIo.upload }) } }) }));
+vi.mock('expo-print', () => ({ printToFileAsync: pdfIo.print }));
+vi.mock('expo-file-system', () => ({ File: class { delete() {} } }));
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -163,6 +170,20 @@ describe('buildEnrichedAssistProofPdfPayload', () => {
     expect(mockEnrichVisitProofForPreview).toHaveBeenCalled();
     expect(payload.html).toContain('Kevin Reinhardt');
     expect(payload.html).not.toContain('Nicht dokumentiert');
+  });
+  it('persists the digest of exactly the bytes uploaded by the ordinary Assist PDF export', async () => {
+    const proof = sampleProof({ pdfStoragePath: null, portalVisible: false });
+    const raw = Buffer.from([0x25,0x50,0x44,0x46,0x2d,0x00,0x80,0xa4,0xfe,0xff]);
+    pdfIo.fetch.mockResolvedValue({ ok: true, data: proof });
+    pdfIo.print.mockResolvedValue({ uri: 'file:///synthetic.pdf', base64: raw.toString('base64') });
+    pdfIo.upload.mockResolvedValue({ error: null });
+    pdfIo.update.mockResolvedValue({ ok: true, data: proof });
+    expect((await generateAssistProofPdf(proof.tenantId,proof.id)).ok).toBe(true);
+    const [path, bytes] = pdfIo.upload.mock.calls[0];
+    expect(Buffer.from(bytes)).toEqual(raw);
+    expect(pdfIo.update).toHaveBeenCalledWith(proof.tenantId,proof.id,expect.objectContaining({
+      pdf_storage_path: path, pdf_hash: 'sha256:' + createHash('sha256').update(raw).digest('hex'),
+    }));
   });
 });
 
