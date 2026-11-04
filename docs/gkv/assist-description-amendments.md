@@ -24,6 +24,8 @@ Die neue Formatkennung schützt vor gemischten Programmversionen: Frühere Web- 
 
 Die Änderung deckt die GKV-Monatsnachweise ab. Sie ändert weder bereits ausgestellte Rechnungen noch versandte Abrechnungen und löst keine Nachricht an einen Kostenträger aus.
 
+Der [Staging-Vorabcheck mit Befund](monthly-staging-preflight.md) ordnet die tatsächlich fehlenden Datenbankfunktionen den vorhandenen Migrationen zu.
+
 ## Reproduzierbare Prüfung
 
 - `npm run verify:gkv:monthly-web` führt die bestehenden Prüfgruppen sowie die neuen PGlite-, Portal- und Katalogfälle aus. Danach prüft ein eigener Prozess die tatsächlichen XML-Bytes mit der bereits im Lockfile enthaltenen libxml2-wasm 0.7.2 und führt den synthetischen CMS-Fall aus.

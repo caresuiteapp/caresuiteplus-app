@@ -6,6 +6,8 @@ Stand: 04.11.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
 
 Der [Berichtigungsablauf](assist-description-amendments.md) erhält Tagesoriginal und frühere Unterschrift, führt einen unveränderbaren Verlauf und berücksichtigt offene und bestätigte Monatsfassungen. Ein bestätigter Vorgänger wird entwertet; sein PDF und die zugehörige Bestätigung bleiben im Archiv. Die neue Monatsfassung benötigt neue Fachangaben und eine neue Unterschrift. Die zehn SQL-Entwürfe sind nicht aktiviert. Prüfläufe und Vorschauen werden dem tatsächlichen Commit in [PR #129](https://github.com/caresuiteapp/caresuiteplus-app/pull/129) zugeordnet.
 
+Die [lesende Bestandsaufnahme auf Staging](monthly-staging-preflight.md) fand 30 von 38 Voraussetzungen. Acht benötigte Funktionssignaturen aus fünf Migrationen und alle elf Objektmarken der Monatsentwürfe fehlten. Eine echte zeitliche Überlappung von zwei Fachtransaktionen wurde nicht nachgewiesen.
+
 ## Nachgereichte Assist-Portalunterschrift am 02.11.2026
 
 Die [Portalnachsignatur](monthly-assist-deferred.md) ergänzt eine rechtzeitige,
