@@ -50,10 +50,34 @@ describe('Calendar workspace restoration', () => {
   });
 
   it('still opens when browser storage is blocked', () => {
-    vi.spyOn(window.sessionStorage, 'getItem').mockImplementation(() => { throw new Error('blocked'); });
-    vi.spyOn(window.sessionStorage, 'setItem').mockImplementation(() => { throw new Error('blocked'); });
-    expect(readCalendarWorkspace('state', 'month', now).restored).toBe(false);
-    expect(saveCalendarWorkspace('state', saved)).toBe(false);
+    const key = 'blocked-state';
+    sessionStorage.setItem(key, JSON.stringify(saved));
+    // Browsers can deny access to the Storage object itself. Mock that getter
+    // rather than methods on a Web Storage proxy that may ignore replacements.
+    const blocked = vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => {
+      throw new DOMException('Access denied', 'SecurityError');
+    });
+    expect(readCalendarWorkspace(key, 'month', now)).toEqual({
+      restored: false, state: { view: 'month', anchor: '2026-10-17', employeeId: '', query: '', status: 'all' },
+    });
+    expect(saveCalendarWorkspace(key, saved)).toBe(false);
+    expect(blocked).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the previous state when reading works but the browser rejects a write', () => {
+    const key = 'quota-state';
+    const values = new Map([[key, JSON.stringify(saved)]]);
+    const full: Storage = {
+      get length() { return values.size; },
+      clear: () => values.clear(), key: i => [...values.keys()][i] ?? null,
+      getItem: k => values.get(k) ?? null, removeItem: k => { values.delete(k); },
+      setItem: vi.fn(() => { throw new DOMException('Storage full', 'QuotaExceededError'); }),
+    };
+    vi.spyOn(window, 'sessionStorage', 'get').mockReturnValue(full);
+    expect(readCalendarWorkspace(key, 'month', now)).toEqual({ restored: true, state: saved });
+    expect(saveCalendarWorkspace(key, { ...saved, query: 'changed' })).toBe(false);
+    expect(full.setItem).toHaveBeenCalledOnce();
+    expect(readCalendarWorkspace(key, 'month', now).state.query).toBe(saved.query);
   });
 
   it('uses stable local noon through both daylight-saving transitions', () => {
