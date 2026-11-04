@@ -5372,9 +5372,15 @@
       "environment": []
     },
     {
+      "web": "src/lib/payroll/payrollStatementPdf.web.ts",
+      "native": "src/lib/payroll/payrollStatementPdf.native.ts",
+      "sourceHash": "949ef631978c89f467871be59edfd89f07c01fbd23151f0456de475d73bbe7c7",
+      "environment": []
+    },
+    {
       "web": "src/lib/payroll/payrollOfficeActions.web.ts",
       "native": "src/lib/payroll/payrollOfficeActions.native.ts",
-      "sourceHash": "0ee5c2a2cf9e084d6b7b82e8279ef1d47a1912977b3d114cad902e18fa00ee12",
+      "sourceHash": "0131b2e8fdfcd17176c3f7ce62afa1cdc805e4fa02791a4d10d0f77b821e00dc",
       "environment": [
         "crypto"
       ]

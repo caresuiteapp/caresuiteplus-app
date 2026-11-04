@@ -10,9 +10,8 @@ vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({ rpc: mock.
 vi.mock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: mock.from }));
 vi.mock('@/lib/supabase/errors', () => ({ toGermanSupabaseError: (error: { message?: string }) => error?.message || 'Datenfehler' }));
 vi.mock('@/lib/supabase/edgeFunctions', () => ({ invokeEdgeFunction: mock.upload }));
-vi.mock('@/lib/documents/documentPdfService', () => ({ renderHtmlToPdfBytes: mock.render }));
+vi.mock('@/lib/payroll/payrollStatementPdf.web', () => ({ renderPayrollStatementPdf: mock.render }));
 vi.mock('@/lib/payroll/payrollMonthService.web', () => ({ listPayrollMonthOverview: mock.read }));
-vi.mock('@/lib/payroll/payrollCalculator.web', () => ({ buildPayrollStatementHtml: () => '<html>Geprüfte Monatsübersicht</html>' }));
 
 const tenant = '10000000-0000-4000-8000-000000000001';
 const employeeId = '20000000-0000-4000-8000-000000000001';
@@ -49,7 +48,7 @@ beforeEach(async () => {
   mock.rpc.mockImplementation(async (name: string, input: Record<string, unknown>) => name === 'payroll_office_source_revision'
     ? { data: 'a'.repeat(32), error: null } : name === 'review_office_payroll_expense' ? { data: claimRow, error: null }
       : { data: publishedRow(input), error: null });
-  mock.render.mockResolvedValue(new Uint8Array([37, 80, 68, 70, 45, 49]));
+  mock.render.mockResolvedValue({ bytes: new Uint8Array([37, 80, 68, 70, 45, 49]), pageCount: 1 });
   mock.upload.mockImplementation(async (_name: string, input: { tenantId: string; documentId: string; pdfBase64: string }) => {
     const bytes = Uint8Array.from(atob(input.pdfBase64), character => character.charCodeAt(0));
     const hash = Array.from(new Uint8Array(await webcrypto.subtle.digest('SHA-256', bytes)), value => value.toString(16).padStart(2, '0')).join('');
