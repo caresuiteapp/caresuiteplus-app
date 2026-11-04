@@ -46,3 +46,7 @@ Für die sieben zuvor fehlenden Tabellen enthält die [Referenz](checks/upstream
 | `payroll_month_statements` | Noch nicht vorhanden. Die Storage-Regel des Office-Arbeitsplatzes verweist darauf. Die unveränderte Migration 0264 umfasst auch weitere Lohnfunktionen. |
 
 [Nutzungsumfang, Audit-Sperre und Bau des Portalpakets](staging-portal-signature.md). Die Bestandsaufnahme und der Staging-Einbau verwendeten keine Produktions-Fachdaten. Auf Produktion wurde nichts eingespielt.
+
+## Nach dem Kassenarbeitsplatz am 04.11.2026
+
+Migration `20261104083006` bringt den Arbeitsplatz mit Versionsverlauf und drei direkte Workflow-Voraussetzungen auf Staging. Damit sind **36 von 38** vorhanden. Es fehlen die Prüfung des unterschriebenen Ursprungsbelegs und die Rechnungsquellenprüfung. Alle elf Objektmarken für die zehn Monatsentwürfe bleiben aus. Der [Staging-Bericht](staging-exchange.md) verlinkt die wiederholbaren Rechte-, Mandanten- und Aufgabentests und beschreibt die Abweichung der Leistungsnachweistabelle.
