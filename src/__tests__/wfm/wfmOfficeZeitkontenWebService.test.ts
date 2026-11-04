@@ -76,6 +76,14 @@ describe('Office web persisted time accounts', () => {
     expect(result.ok && result.data[0]).toMatchObject({ targetMinutes: 2412, saldoMinutes: 0, undertimeMinutes: 0 });
   });
 
+  it('retains October overtime when November stays below its own hourly payout limit', async () => {
+    seedMiniJob();
+    state.period.toDate = '2026-11-30';
+    state.entries = [booking({ netMinutes: 2836 }), booking({ id: 'november', workDate: '2026-11-19', actualStartAt: '2026-11-19T08:00:00Z', actualEndAt: '2026-11-19T09:00:00Z' })];
+    const result = await getWfmOfficeEmployeeTimeAccounts('tenant', 'business_manager');
+    expect(result.ok && result.data[0]).toMatchObject({ targetMinutes: 4824, actualMinutes: 2896, saldoMinutes: 424, overtimeMinutes: 424, undertimeMinutes: 0 });
+  });
+
   it('preserves positive contract hours and only adds travel permitted by the current policy', async () => {
     seedMiniJob(); state.entries = [booking()];
     state.tables.employee_contract_settings[0].work_days = { mon: 2 };

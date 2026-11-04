@@ -78,7 +78,7 @@ export async function getWfmOfficeEmployeeTimeAccounts(
       byEmployee.set(entry.employeeId, account);
     }
 
-    const targets = new Map<string, { contract: number | null; saved: number | null; payoutBasis: number | null }>();
+    const targets = new Map<string, { contract: number | null; saved: number | null; payoutBasis: number | null; payoutSaldo: number | null }>();
     if (getServiceMode() === 'supabase') {
       const supabase = getSupabaseClient();
       if (!supabase) return { ok: false, error: 'Die Verbindung für Zeitkonten ist nicht verfügbar. Bitte erneut anmelden oder laden.' };
@@ -162,6 +162,7 @@ export async function getWfmOfficeEmployeeTimeAccounts(
             payoutBasis: miniJobAccountBasisMinutes({
               employee: employeesById.get(account.employeeId), payroll, workDays: contract?.work_days, fromDate, toDate,
             }),
+            payoutSaldo: null,
           });
           if (contract?.annual_vacation_days != null) account.annualVacationDays = numberValue(contract.annual_vacation_days);
           account.absenceMinutes = calculateOfficeAbsenceCredit(absencesByEmployee.get(account.employeeId) ?? [], contract?.work_days, fromDate, toDate);
@@ -175,6 +176,22 @@ export async function getWfmOfficeEmployeeTimeAccounts(
           account.creditedTravelMinutes = creditedTravel.travelMinutes;
           account.logbookAdditionalMinutes = creditedTravel.additionalMinutes;
           account.actualMinutes += creditedTravel.additionalMinutes;
+          const target = targets.get(account.employeeId)!;
+          if (target.payoutBasis != null) {
+            // Unused hourly payout capacity in one month cannot erase another month's earned credit.
+            target.payoutSaldo = 0;
+            for (const month = new Date(`${fromDate}T00:00:00Z`); month <= new Date(`${toDate}T00:00:00Z`); month.setUTCMonth(month.getUTCMonth() + 1)) {
+              const first = month.toISOString().slice(0, 10);
+              const last = new Date(Date.UTC(month.getUTCFullYear(), month.getUTCMonth() + 1, 0)).toISOString().slice(0, 10);
+              const entries = account.entries.filter(entry => entry.workDate >= first && entry.workDate <= last);
+              const monthlyTrips = trips.filter(trip => routes.includes(stringValue(trip.route_type)) && isLogbookTripInBerlinRange(stringValue(trip.started_at), first, last));
+              const monthlyTravel = calculateOfficeLogbookTime(monthlyTrips.map(trip => ({ started_at: trip.started_at, ended_at: trip.ended_at, status: trip.status, counts_as_work_time: trip.counts_as_work_time })), entries);
+              const basis = miniJobAccountBasisMinutes({ employee: employeesById.get(account.employeeId), payroll, workDays: contract?.work_days, fromDate: first, toDate: last })!;
+              const actual = entries.reduce((sum, entry) => sum + officeAccountRecordedMinutes(entry), 0) + monthlyTravel.additionalMinutes;
+              const absence = calculateOfficeAbsenceCredit(absencesByEmployee.get(account.employeeId) ?? [], contract?.work_days, first, last);
+              target.payoutSaldo += Math.max(0, actual + absence - basis);
+            }
+          }
           account.payrollStatements = (statementsByEmployee.get(account.employeeId) ?? []).map(row => ({
             id: stringValue(row.id), periodYear: numberValue(row.period_year), periodMonth: numberValue(row.period_month),
             version: numberValue(row.version), status: stringValue(row.status), pdfPath: stringValue(row.pdf_path) || null,
@@ -191,7 +208,7 @@ export async function getWfmOfficeEmployeeTimeAccounts(
         : resolveOfficeAccountTarget(target?.contract ?? null, target?.saved ?? null, account.plannedMinutes);
       const creditedMinutes = account.actualMinutes + account.absenceMinutes;
       const difference = creditedMinutes - resolved.targetMinutes;
-      const saldoMinutes = resolved.targetSource === 'payout_limit' ? Math.max(0, difference) : difference;
+      const saldoMinutes = resolved.targetSource === 'payout_limit' ? target?.payoutSaldo ?? Math.max(0, difference) : difference;
       return { ...account, ...resolved, saldoMinutes,
         overtimeMinutes: Math.max(0, saldoMinutes), undertimeMinutes: Math.max(0, -saldoMinutes),
         remainingVacationDays: account.annualVacationDays == null ? null : account.annualVacationDays - account.vacationDaysUsed,
