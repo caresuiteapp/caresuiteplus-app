@@ -23,6 +23,10 @@ const groups = {
     'payroll/payrollWorkspaceWebInteraction.test.tsx',
   ],
   'Existing payroll, expense and portal contracts': [
+    'portal/employeeDeferredTimes.test.ts',
+    'portal/employeeDeferredTimeService.test.ts',
+    'portal/employeeDeferredTimeSql.test.ts',
+    'portal/employeeDeferredTimeInteraction.test.tsx',
     'payroll/payrollCalculator.test.ts',
     'payroll/payrollExpenseApproval.test.ts',
     'payroll/payrollWfmConsistency.test.ts',

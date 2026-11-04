@@ -75,12 +75,15 @@ export function projectWorktimePlannedVisits(input: {
   return [...result.values()].sort((a, b) => (a.plannedStartAt ?? '').localeCompare(b.plannedStartAt ?? '') || a.assignmentId.localeCompare(b.assignmentId));
 }
 
-export async function listPlannedVisitsForPeriod(tenantId: string, fromDate: string, toDate: string): Promise<ServiceResult<WfmOfficePlannedVisit[]>> {
+export async function listPlannedVisitsForPeriod(tenantId: string, fromDate: string, toDate: string, options?: { employeeId?: string }): Promise<ServiceResult<WfmOfficePlannedVisit[]>> {
   const denied = guardServiceTenant(tenantId); if (denied) return denied;
   if (!validAssistDate(fromDate) || !validAssistDate(toDate) || toDate < fromDate || Date.parse(toDate) - Date.parse(fromDate) > 366 * 86400000) return { ok: false, error: 'Bitte einen gültigen Zeitraum von höchstens einem Jahr wählen.' };
   if (getServiceMode() !== 'supabase') return listDemoVisits(tenantId, fromDate, toDate);
   const db = getSupabaseClient(); if (!db) return { ok: false, error: 'Die Datenverbindung ist nicht verfügbar.' };
-  const query = (table: string, select: string) => fromUnknownTable(db, table).select(select).eq('tenant_id', tenantId);
+  const query = (table: string, select: string) => {
+    const scoped = fromUnknownTable(db, table).select(select).eq('tenant_id', tenantId);
+    return table === 'assist_visits' && options?.employeeId ? scoped.eq('employee_id', options.employeeId) : scoped;
+  };
   try {
     const [concrete, recurring, displaced] = await Promise.all([
       pages((from, to) => query('assist_visits', COLUMNS).gte('planned_start_at', assistBerlinTimestamp(fromDate)).lt('planned_start_at', assistBerlinTimestamp(addAssistDays(toDate, 1))).order('id').range(from, to)),
