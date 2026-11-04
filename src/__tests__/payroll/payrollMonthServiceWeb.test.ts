@@ -71,6 +71,7 @@ afterEach(() => { vi.useRealTimers(); });
 describe('Web payroll complete tenant-scoped reads', () => {
   it('skips an unfinished month, includes its approved correction later and never pays it twice', async () => {
     seedEmployee(); seedAccount('pending_review');
+    state.accounts[0].entries[0].assignmentId = 'corrected-visit';
     const october = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');
     expect(october.ok).toBe(true); if (!october.ok) return;
     const origin = october.data.employees[0];
@@ -92,6 +93,12 @@ describe('Web payroll complete tenant-scoped reads', () => {
     state.accountsByStart['2026-10-01'] = [oldAccount];
     const reissuedOrigin = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');
     expect(reissuedOrigin.ok && reissuedOrigin.data.employees[0]).toMatchObject({ actualWorkMinutes: 0, catchUpWorkMinutes: 0, unapprovedEntryCount: 1 });
+    // A correction may replace a planned placeholder with more than one
+    // candidate. Reopening October must not accidentally pay either alias.
+    oldAccount.entries = [oldAccount.entries[0], { ...oldAccount.entries[0], id: 'replacement' }].map((entry, index) => ({ ...entry, id: `replacement-${index}`, assignmentId: 'corrected-visit' }));
+    oldAccount.actualMinutes = 240;
+    const ambiguousOrigin = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');
+    expect(ambiguousOrigin.ok && ambiguousOrigin.data.employees[0]).toMatchObject({ actualWorkMinutes: 0, catchUpWorkMinutes: 0, unapprovedEntryCount: 1 });
     vi.setSystemTime(new Date('2026-12-04T10:00:00Z'));
     const december = await listPayrollMonthOverview('tenant-1', 2026, 12, 'business_admin');
     expect(december.ok && december.data.employees[0]).toMatchObject({ actualWorkMinutes: 120, catchUpWorkMinutes: 0, deferredTimeEntries: [], catchUpTimeEntries: [] });

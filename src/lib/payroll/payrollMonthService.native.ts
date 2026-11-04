@@ -148,7 +148,10 @@ function buildEmployee(input: {
     const targetAvailable = (hasSchedule || payoutBasis != null) && validEmploymentDates && employmentRange.fromDate <= employmentRange.toDate;
     const fullMonthTarget = payoutBasis ?? (targetAvailable ? calculateContractTargetMinutesForRange(contract!.work_days, employmentRange.fromDate, employmentRange.toDate) : 0);
     const currentDeferred = [...input.timeRegistry.deferred.values()].filter(item => payrollPeriodNumber(item.originYear, item.originMonth) === payrollPeriodNumber(year, month));
-    const forcedExcludedIds = new Set(currentDeferred.flatMap(item => { const entry = matchDeferredPayrollEntry(item, account?.entries ?? []); return entry ? [entry.id] : []; }));
+    // On reissue, exclude every possible replacement for a deferred source. An
+    // ambiguous occurrence must not become payable in its original month either.
+    const forcedExcludedIds = new Set(currentDeferred.flatMap(item => (account?.entries ?? [])
+        .filter(entry => matchDeferredPayrollEntry(item, [entry])).map(entry => entry.id)));
     const times = payrollTimeReadiness(account, now, forcedExcludedIds);
     const deferredById = new Map(currentDeferred.map(item => [item.entryId, item]));
     for (const entry of times.deferredEntries) {
