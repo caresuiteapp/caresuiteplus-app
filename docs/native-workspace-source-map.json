@@ -5394,7 +5394,7 @@
     {
       "web": "src/components/payroll/PayrollEmployeeDetail.web.tsx",
       "native": "src/components/payroll/PayrollEmployeeDetail.native.tsx",
-      "sourceHash": "d09c66b103ef22a4ac72d1d0707981e934ca0652418f9a8beba6c493d6993a65",
+      "sourceHash": "0c0bb30e7e57a86f8e2cc2803b5faacf7f573eba167bbacc15dd1791eb683ba0",
       "environment": []
     },
     {
