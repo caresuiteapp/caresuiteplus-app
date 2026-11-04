@@ -128,7 +128,8 @@
         "tests/gkv-exchange/monthly-assist-deferred.test.mjs",
         "tests/gkv-exchange/monthly-assist-deferred-fixture.mjs",
         "tests/gkv-exchange/monthly-assist-amendments.test.mjs",
-        "src/__tests__/assistWorkflow/gkvAmendmentPanel.web.test.tsx"
+        "src/__tests__/assistWorkflow/gkvAmendmentPanel.web.test.tsx",
+        "tests/gkv-exchange/monthly-amendment-crypto.test.mjs"
       ],
       "nextStep": "Zehn SQL-Entwürfe verbinden persönlichen Assist-Abschluss, Portalnachsignatur und versionierte Berichtigung der Leistungsbeschreibung. Betroffene Monatsfassungen brauchen neue Fachangaben und eine neue Bestätigung. Berichtigung von Zeiten und Positionen, reale Auth-/Storage-/Browserabnahme, Parallelverbindungen, mobile Einzelleistungen, Mehrpersonenleistungen und Aktivierung bleiben offen.",
       "acceptance": "ITSG-Fälle 3.1 bis 3.5 und 4.1 mit mobilen Testkonten und gespeicherten Originalen vorführen.",
