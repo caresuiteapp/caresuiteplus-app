@@ -94,12 +94,18 @@ CREATE FUNCTION care_security.gkv_monthly_writer(p_tenant uuid) RETURNS boolean
     WHERE r.tenant_id=p_tenant AND r.actor_id=auth.uid() AND r.revoked_at IS NULL AND r.valid_until>now()),false)
 $$;
 
+-- The tenth review draft supplies an append-only description amendment. Until
+-- then older sources retain their exact payload shape and hash.
+CREATE FUNCTION care_security.gkv_assist_monthly_amendment(t uuid,p_id uuid,h text) RETURNS jsonb
+ LANGUAGE sql STABLE SET search_path=pg_catalog AS $$ SELECT NULL::jsonb $$;
+REVOKE ALL ON FUNCTION care_security.gkv_assist_monthly_amendment(uuid,uuid,text) FROM PUBLIC,anon,authenticated,service_role;
+
 -- Reads original identities and receipts from canonical records. There is no
 -- caller-supplied employee, source hash, signature, or claimed source attestation.
 CREATE FUNCTION care_security.gkv_monthly_payload(p_series public.gkv_monthly_proof_series,p_ids uuid[]) RETURNS jsonb
  LANGUAGE plpgsql SECURITY DEFINER SET search_path=pg_catalog AS $$
 DECLARE s public.service_records; e public.employees; c public.clients; proof public.assist_visit_proofs;
- v_id uuid; v_rows jsonb:='[]'; v_tasks jsonb; v_description text;
+ v_id uuid; v_rows jsonb:='[]'; v_tasks jsonb; v_description text; amendment jsonb;
 BEGIN
  IF coalesce(cardinality(p_ids),0) NOT BETWEEN 1 AND 500 OR array_position(p_ids,NULL) IS NOT NULL
  OR cardinality(p_ids)<>(SELECT count(DISTINCT x) FROM unnest(p_ids) x) THEN RAISE EXCEPTION 'Eindeutige Leistungsreferenzen erforderlich'; END IF;
@@ -134,11 +140,15 @@ BEGIN
   SELECT coalesce(jsonb_agg(jsonb_build_object('id',t->>'id','title',t->>'title','status',t->>'status',
    'completionNote',coalesce(t->>'completionNote',t->>'note')) ORDER BY n),'[]') INTO v_tasks
    FROM jsonb_array_elements(proof.payload_snapshot->'tasks') WITH ORDINALITY a(t,n);
+  amendment:=care_security.gkv_assist_monthly_amendment(p_series.tenant_id,proof.id,proof.payload_hash);
   v_rows:=v_rows||jsonb_build_array(jsonb_build_object('recordId',s.id,'updatedAt',s.updated_at,
    'serviceDate',s.service_date,'employeeId',s.employee_id,'employeeName',btrim(e.first_name||' '||e.last_name),
-   'actualMinutes',s.actual_minutes,'description',v_description,'tasks',v_tasks,'sourceReceipt',s.source_receipt));
+   'actualMinutes',s.actual_minutes,'description',v_description,'tasks',v_tasks,'sourceReceipt',s.source_receipt)
+   || CASE WHEN amendment IS NULL THEN '{}'::jsonb ELSE jsonb_build_object('amendment',amendment) END);
  END LOOP;
- RETURN jsonb_build_object('schema','gkv-monthly-source-v1','tenantId',p_series.tenant_id,'clientId',c.id,
+ -- Older Web/host readers must not silently render only the originally signed text.
+ RETURN jsonb_build_object('schema',CASE WHEN EXISTS(SELECT 1 FROM jsonb_array_elements(v_rows) r WHERE r?'amendment')
+  THEN 'gkv-monthly-amended-source-v1' ELSE 'gkv-monthly-source-v1' END,'tenantId',p_series.tenant_id,'clientId',c.id,
   'clientName',btrim(c.first_name||' '||c.last_name),'month',to_char(p_series.month,'YYYY-MM'),
   'serviceType',p_series.service_type,'records',v_rows);
 END $$;
@@ -182,6 +192,9 @@ DECLARE p public.gkv_monthly_proofs; old public.gkv_monthly_proofs; s public.gkv
  v_hash text; v_ids uuid[]; v_keys text[]; v_payload jsonb; v_reason text; v_before jsonb; v_id uuid;
 BEGIN
  IF care_security.gkv_monthly_writer(p_tenant_id) IS NOT TRUE THEN RAISE EXCEPTION 'Aktive Beauftragung der verantwortlichen Pflegefachperson erforderlich' USING ERRCODE='42501'; END IF;
+ -- Shared among ordinary writers; an amendment takes the exclusive counterpart
+ -- before touching any month. Both follow tenant -> series -> proof lock order.
+ PERFORM pg_advisory_xact_lock_shared(hashtextextended(p_tenant_id::text||':gkv-assist-amendment',0));
  IF p_request_id IS NULL OR p_action IS NULL OR p_action NOT IN ('create','replace_sources','freeze_facts','confirm','finalize_missing','correct')
  OR jsonb_typeof(p_input) IS DISTINCT FROM 'object' OR octet_length(p_input::text)>50000 THEN RAISE EXCEPTION 'Ungültiger Monatsnachweisauftrag'; END IF;
  v_keys:=CASE p_action WHEN 'create' THEN ARRAY['new_id','client_id','month','service_type','source_ids']
@@ -257,6 +270,8 @@ BEGIN
     IF p_input->>'content_sha256' IS DISTINCT FROM p.content_sha256 THEN RAISE EXCEPTION 'Bestätigung gehört zu einer anderen Originalfassung' USING ERRCODE='40001'; END IF;
     PERFORM care_security.gkv_monthly_assert_current_sources(p,s);
     IF p_action='confirm' THEN
+     IF p.payload->>'schema'='gkv-monthly-amended-source-v1' AND NOT (p.payload?'xmlFacts') THEN
+      RAISE EXCEPTION 'Fachangaben für die berichtigte Monatsfassung erneut übernehmen' USING ERRCODE='40001'; END IF;
      SELECT * INTO receipt FROM care_security.gkv_monthly_confirmation_receipts WHERE tenant_id=p_tenant_id AND id=(p_input->>'receipt_id')::uuid FOR UPDATE;
      IF NOT FOUND OR receipt.proof_id<>p.id OR receipt.proof_revision<>p.revision OR receipt.content_sha256<>p.content_sha256
       OR receipt.actor_id<>auth.uid() OR receipt.consumed_at IS NOT NULL OR receipt.captured_at<p.updated_at
@@ -274,6 +289,9 @@ BEGIN
       p.confirmation:=p.confirmation||care_security.gkv_monthly_receipt_paper(receipt.id);
      END IF;
     ELSE
+     IF EXISTS(SELECT 1 FROM jsonb_array_elements(p.payload->'records') r WHERE r?'amendment') THEN
+      RAISE EXCEPTION 'Berichtigte Leistungsbeschreibung benötigt eine neue persönliche Monatsbestätigung' USING ERRCODE='22023';
+     END IF;
      -- This is an explicit missing-signature exception, never a deferred portal signature.
      p.confirmation:=jsonb_build_object('kind','missing_signature','reason',v_reason,'recordedBy',auth.uid(),'contentSha256',p.content_sha256);
     END IF;

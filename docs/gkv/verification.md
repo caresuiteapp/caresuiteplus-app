@@ -1,6 +1,10 @@
 # Prüfprotokoll: GKV-Datenaustausch
 
-Stand: 02.11.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+Stand: 04.11.2026. Reine Beispieldaten; keine Übermittlung an eine Pflegekasse.
+
+## Berichtigung einer persönlich abgeschlossenen Leistungsbeschreibung am 04.11.2026
+
+Der [Berichtigungsablauf](assist-description-amendments.md) erhält Tagesoriginal und frühere Unterschrift, führt einen unveränderbaren Verlauf und berücksichtigt offene und bestätigte Monatsfassungen. Ein bestätigter Vorgänger wird entwertet; sein PDF und die zugehörige Bestätigung bleiben im Archiv. Die neue Monatsfassung benötigt neue Fachangaben und eine neue Unterschrift. Die zehn SQL-Entwürfe sind nicht aktiviert. Prüfläufe und Vorschauen werden dem tatsächlichen Commit in [PR #129](https://github.com/caresuiteapp/caresuiteplus-app/pull/129) zugeordnet.
 
 ## Nachgereichte Assist-Portalunterschrift am 02.11.2026
 

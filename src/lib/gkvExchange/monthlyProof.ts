@@ -3,6 +3,7 @@ import {readPaperReceipt,type PaperReceipt} from './monthlyPaper';
  * A final monthly record is NOT an XSD-validated or CMS-signed XML document.
  * Hashes are computed by PostgreSQL over its bound original, never by the UI.
  */
+import {readAssistAmendment,type AssistAmendment} from './assistAmendment';
 import { UUID } from './sources';
 import { isDate, isMonth, SERVICE_TYPES, type ServiceType } from './model';
 import {readMonthlyFacts, type MonthlyFacts} from './monthlyFacts';
@@ -12,10 +13,10 @@ export type MonthlyProofRecord = {
   recordId: string; updatedAt: string; serviceDate: string; employeeId: string;
   employeeName: string; actualMinutes: number; description: string;
   tasks: {id: string; title: string; status: string; completionNote: string | null}[];
-  sourceReceipt: Row;
+  sourceReceipt: Row; amendment?: AssistAmendment;
 };
 export type MonthlyProofPayload = {
-  schema: 'gkv-monthly-source-v1'; tenantId: string; clientId: string; clientName: string;
+  schema: 'gkv-monthly-source-v1' | 'gkv-monthly-amended-source-v1'; tenantId: string; clientId: string; clientName: string;
   month: string; serviceType: ServiceType; records: MonthlyProofRecord[];
   xmlFacts?: MonthlyFacts;
 };
@@ -64,7 +65,7 @@ export function readMonthlyProof(value: unknown, tenantId: string): MonthlyProof
     || !hash(value.content_sha256) || (value.replayed !== undefined && typeof value.replayed !== 'boolean')
     || (value.version === 1 ? value.predecessor_id !== null : !uuid(value.predecessor_id) || value.predecessor_id === value.id)) invalid();
   const payload = value.payload;
-  if (!object(payload) || payload.schema !== 'gkv-monthly-source-v1' || payload.tenantId !== tenantId
+  if (!object(payload) || !['gkv-monthly-source-v1','gkv-monthly-amended-source-v1'].includes(String(payload.schema)) || payload.tenantId !== tenantId
     || !uuid(payload.clientId) || !text(payload.clientName) || !isMonth(payload.month)
     || !Object.hasOwn(SERVICE_TYPES, String(payload.serviceType)) || !Array.isArray(payload.records)
     || payload.records.length < 1 || payload.records.length > 500) invalid();
@@ -77,8 +78,14 @@ export function readMonthlyProof(value: unknown, tenantId: string): MonthlyProof
         || !text(t.status) || !(t.completionNote === null || typeof t.completionNote === 'string'))
       || !object(row.sourceReceipt) || row.sourceReceipt.tenant_id !== tenantId
       || row.sourceReceipt.client_id !== payload.clientId || row.sourceReceipt.employee_id !== row.employeeId) invalid();
+    if (row.amendment !== undefined) {
+      const a=readAssistAmendment(row.amendment,row.sourceReceipt.proof_id,row.sourceReceipt.proof_payload_hash,row.employeeId);
+      if(Date.parse(a.recordedAt)>Date.parse(String(value.updated_at)))invalid();
+    }
     ids.add(row.recordId);
   }
+  const amended=payload.records.some(r=>r.amendment!==undefined);
+  if ((payload.schema==='gkv-monthly-amended-source-v1')!==amended || (amended&&value.status!=='open'&&payload.xmlFacts===undefined)) invalid();
   if (payload.xmlFacts !== undefined) {
     const facts = readMonthlyFacts(payload.xmlFacts, payload as MonthlyProofPayload);
     if (Date.parse(facts.boundAt) > Date.parse(String(value.updated_at))) invalid();
@@ -90,7 +97,7 @@ export function readMonthlyProof(value: unknown, tenantId: string): MonthlyProof
     if (!timestamp(value.finalized_at) || (value.status === 'final' ? value.invalidated_at !== null : !timestamp(value.invalidated_at))
       || !object(confirmation) || confirmation.contentSha256 !== value.content_sha256) invalid();
     if (confirmation.kind === 'missing_signature') {
-      if (!uuid(confirmation.recordedBy) || !text(confirmation.reason) || confirmation.reason.trim().length < 3) invalid();
+      if (payload.records.some(r=>r.amendment!==undefined) || !uuid(confirmation.recordedBy) || !text(confirmation.reason) || confirmation.reason.trim().length < 3) invalid();
     } else if (confirmation.kind === 'signature') {
       if (!uuid(confirmation.receiptId) || !uuid(confirmation.captureId) || !text(confirmation.signerName)
         || !['patient','representative'].includes(String(confirmation.signerRole))

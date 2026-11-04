@@ -1,3 +1,4 @@
+import {GkvAssistAmendments} from './GkvAssistAmendments.web';
 import {useEffect,useRef,useState} from 'react';
 import {StyleSheet,Text,View} from 'react-native';
 import {PremiumButton,PremiumCard,InfoBanner} from '@/components/ui';
@@ -51,6 +52,8 @@ function Completion({disabled=false,...scope}:Props){
    {canComplete&&!confirmed?<PremiumButton title={context?.phase==='ready'?'Nachweis abschließen':'PDF und Übergabe prüfen'} fullWidth disabled={busy||disabled} loading={busy} onPress={()=>void run(true)}/>:null}
    <PremiumButton title="Nachweisstand aktualisieren" variant="secondary" fullWidth disabled={busy||disabled} onPress={()=>void run()}/>
   </View>
+  {context?.phase==='sealed'&&context.original&&scope.employeeId?<GkvAssistAmendments key={context.original.proofId+context.original.payloadHash}
+   scope={{...scope,employeeId:scope.employeeId,proofId:context.original.proofId,proofHash:context.original.payloadHash}} disabled={busy||disabled}/>:null}
   <Text style={styles.note}>Die Bestätigung des Monatsnachweises erfolgt anschließend gesondert.</Text>
  </PremiumCard>;
 }

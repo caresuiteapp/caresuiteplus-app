@@ -4,6 +4,7 @@ import { jsPDF } from 'jspdf';
 import { CENTURY_GOTHIC_REGULAR_BASE64 } from '../../src/design/fonts/centuryGothicData.ts';
 import { SERVICE_TYPES } from '../../src/lib/gkvExchange/model.ts';
 import { readMonthlyProof } from '../../src/lib/gkvExchange/monthlyProof.ts';
+import {amendmentHeading} from '../../src/lib/gkvExchange/assistAmendment.ts';
 import {deferredCaptureSummary} from '../../src/lib/gkvExchange/monthlyEmployees.ts';
 import { isUuid } from './storage.mjs';
 
@@ -75,8 +76,10 @@ export function renderMonthlyOriginalDocument({ proof: input, captureId, prepare
     const lines = [
       [`${++number}. Leistung am ${day(record.serviceDate)} · ${record.actualMinutes} Minuten`, 11, '#173c52', 2],
       [`Erbracht von: ${record.employeeName}`, 10, '#1d3344', 3],
-      [record.description, 10, '#1d3344', 3],
+      [record.amendment ? 'Ursprünglich unterschrieben: '+record.description : record.description, 10, '#1d3344', 3],
     ];
+    if(record.amendment)lines.push([amendmentHeading(record.amendment),10,'#173c52',2],
+      [record.amendment.description,10,'#1d3344',2],['Begründung: '+record.amendment.reason,9,'#406174',4]);
     if (facts) {
       const source = facts.sources.find(s => s.recordId === record.recordId);
       const deferred=deferredCaptureSummary(source.personalCapture);

@@ -98,10 +98,10 @@ nachträglich aufgewertet. Eine Freigabe durch eine andere Verwaltungsperson kan
 die Erfassung der eingesetzten Pflegekraft nicht ersetzen. Reale Konten, Storage,
 konkurrierende Verbindungen und die anschließende Aktivierung benötigen Abnahme.
 
-Die fachliche Berichtigung der bereits erfassten Assist-Ursprungsfassung bleibt
-ein eigener offener Ablauf. Der neue Schutz weist Inhaltsänderungen ab; er
-liefert noch keinen neuen Korrekturauftrag für diese Quelle. Die vorhandene
-Monatskorrektur ist davon zu unterscheiden. Mobile Einzelleistungserfassung,
+Der [zehnte Entwurf](assist-description-amendments.md) ergänzt eine gesonderte
+Berichtigung der Leistungsbeschreibung nach dem persönlichen Originalabschluss.
+Die Portalquelle selbst bleibt gesperrt. Änderungen an Zeiten, Aufgaben und
+Leistungspositionen sind weiterhin offen. Mobile Einzelleistungserfassung,
 Mehrpersonenleistungen und weitere Sonderprofile bleiben ebenfalls offen.
 
 Android wurde nicht verändert. Keine echten Patientendaten, keine produktiven

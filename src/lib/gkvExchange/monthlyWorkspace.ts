@@ -91,6 +91,10 @@ export function monthlyDifferences(before: MonthlyProof, after: MonthlyProof): M
     if (!a || !b) { changes.push({key: id, label, before: a ? a.description : 'Nicht enthalten', after: b ? b.description : 'Entfernt'}); continue; }
     for (const [field, title] of [['serviceDate','Leistungsdatum'],['employeeName','Pflegekraft'],['actualMinutes','Dauer in Minuten'],['description','Leistungsbeschreibung']] as const)
       if (a[field] !== b[field]) changes.push({key: `${id}:${field}`, label: `${label} · ${title}`, before: String(a[field]), after: String(b[field])});
+    if (a.amendment?.id !== b.amendment?.id) {
+      const describe=(r:typeof a)=>r.amendment ? r.amendment.description+' · '+r.amendment.reason : r.description;
+      changes.push({key:id+':amendment',label:label+' · Berichtigte Leistungsbeschreibung',before:describe(a),after:describe(b)});
+    }
     if (a.employeeId !== b.employeeId && a.employeeName === b.employeeName) changes.push({key: `${id}:employee`, label: `${label} · Personenbindung`, before: a.employeeId, after: b.employeeId});
     const tasks = (r: typeof a) => r.tasks.map(t => `${t.title} · ${t.status}${t.completionNote ? ': ' + t.completionNote : ''}`).join('\n');
     if (JSON.stringify(a.tasks) !== JSON.stringify(b.tasks)) changes.push({key: `${id}:tasks`, label: `${label} · Einzelne Leistungen`, before: tasks(a), after: tasks(b)});

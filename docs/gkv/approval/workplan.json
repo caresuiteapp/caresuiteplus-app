@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "assessedAt": "2026-11-02",
-  "baselineCommit": "7c8699ec9414d05f8c4b8c2e705d6122bb1bb505",
+  "assessedAt": "2026-11-04",
+  "baselineCommit": "2bece18a6d5c7cfd5ad12c38388baabbe361ef2d",
   "productionReady": false,
   "scopeComplete": false,
   "scopeGaps": [
@@ -106,7 +106,10 @@
         "src/lib/gkvExchange/assistOriginal.ts",
         "src/lib/assist/repositories/assignmentRepository.supabase.web.ts",
         "src/components/portal/GkvAssistCompletion.web.tsx",
-        "docs/gkv/sql/monthly-assist-deferred-draft.sql"
+        "docs/gkv/sql/monthly-assist-deferred-draft.sql",
+        "docs/gkv/sql/monthly-assist-amendments-draft.sql",
+        "src/lib/gkvExchange/assistAmendment.ts",
+        "src/components/portal/GkvAssistAmendments.web.tsx"
       ],
       "tests": [
         "tests/gkv-exchange/sources.test.mjs",
@@ -123,9 +126,11 @@
         "src/__tests__/assistWorkflow/gkvOriginalPanel.web.test.tsx",
         "tests/gkv-exchange/monthly-assist-fixture.mjs",
         "tests/gkv-exchange/monthly-assist-deferred.test.mjs",
-        "tests/gkv-exchange/monthly-assist-deferred-fixture.mjs"
+        "tests/gkv-exchange/monthly-assist-deferred-fixture.mjs",
+        "tests/gkv-exchange/monthly-assist-amendments.test.mjs",
+        "src/__tests__/assistWorkflow/gkvAmendmentPanel.web.test.tsx"
       ],
-      "nextStep": "Neun SQL-Entwürfe verbinden den persönlichen Assist-Abschluss und nachgereichte Portalunterschriften mit einer rechtzeitig erfassten, unveränderbaren Leistungsfassung. Web und Monats-PDF zeigen Erfassung, Unterschrift und Abschluss getrennt. Reale Auth-/Storage- und Browserabnahme, Parallelverbindungen, Ursprungsberichtigung, mobile Einzelleistungen, Mehrpersonenleistungen und Aktivierung bleiben offen.",
+      "nextStep": "Zehn SQL-Entwürfe verbinden persönlichen Assist-Abschluss, Portalnachsignatur und versionierte Berichtigung der Leistungsbeschreibung. Betroffene Monatsfassungen brauchen neue Fachangaben und eine neue Bestätigung. Berichtigung von Zeiten und Positionen, reale Auth-/Storage-/Browserabnahme, Parallelverbindungen, mobile Einzelleistungen, Mehrpersonenleistungen und Aktivierung bleiben offen.",
       "acceptance": "ITSG-Fälle 3.1 bis 3.5 und 4.1 mit mobilen Testkonten und gespeicherten Originalen vorführen.",
       "dependsOn": [
         "scope"

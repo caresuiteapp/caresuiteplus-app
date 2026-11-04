@@ -71,6 +71,7 @@ DECLARE p public.gkv_monthly_proofs; s public.gkv_monthly_proof_series; v_series
 BEGIN
  IF auth.uid() IS NULL OR care_security.gkv_monthly_writer(p_tenant) IS NOT TRUE THEN
   RAISE EXCEPTION 'Aktive persönliche Beauftragung erforderlich' USING ERRCODE='42501'; END IF;
+ PERFORM pg_advisory_xact_lock_shared(hashtextextended(p_tenant::text||':gkv-assist-amendment',0));
  SELECT series_id INTO v_series FROM public.gkv_monthly_proofs WHERE tenant_id=p_tenant AND id=p_proof;
  -- Same lock order as the existing edit/confirm/correct command.
  SELECT * INTO s FROM public.gkv_monthly_proof_series WHERE tenant_id=p_tenant AND id=v_series FOR UPDATE;
@@ -79,6 +80,8 @@ BEGIN
   RAISE EXCEPTION 'Offene Originalfassung wurde geändert' USING ERRCODE='40001'; END IF;
  IF p.content_sha256 IS DISTINCT FROM care_security.gkv_monthly_hash(p.id,p.series_id,p.version,p.payload) THEN
   RAISE EXCEPTION 'Inhaltsbindung der Originalfassung ist ungültig' USING ERRCODE='40001'; END IF;
+ IF p.payload->>'schema'='gkv-monthly-amended-source-v1' AND NOT (p.payload?'xmlFacts') THEN
+  RAISE EXCEPTION 'Berichtigte Fassung benötigt erneut übernommene Fachangaben' USING ERRCODE='40001'; END IF;
  PERFORM care_security.gkv_monthly_assert_current_sources(p,s);
  authority:=care_security.gkv_monthly_resolve_authority(p_tenant,p_proof,p_authority);
  RETURN jsonb_build_object('actorId',auth.uid(),'checkedAt',clock_timestamp(),'proof',to_jsonb(p))

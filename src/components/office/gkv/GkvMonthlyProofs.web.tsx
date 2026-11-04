@@ -3,6 +3,7 @@ import type { RoleKey } from '@/types';
 import { SERVICE_TYPES, isMonth, type ServiceType } from '@/lib/gkvExchange/model';
 import { type MonthlyProof, type MonthlyProofCommand } from '@/lib/gkvExchange/monthlyProof';
 import { MonthlyProofWriter } from '@/lib/gkvExchange/monthlyWriter';
+import {amendmentHeading} from '@/lib/gkvExchange/assistAmendment';
 import {deferredCaptureSummary} from '@/lib/gkvExchange/monthlyEmployees';
 import {GkvMonthlySignature} from './GkvMonthlySignature.web';
 import type {MonthlyOriginalReceipt} from '@/lib/gkvExchange/monthlyOriginalContract';
@@ -20,6 +21,7 @@ const currentMonth = () => {
   return `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}`;
 };
 const eventLabels: Record<string, string> = {create: 'Monatsnachweis angelegt', replace_sources: 'Quellen mit Begründung abgeglichen', freeze_facts: 'Fachangaben übernommen',
+  assist_description_amended:'Leistungsbeschreibung durch die eingesetzte Pflegekraft berichtigt', invalidate_for_amendment:'Monatsfassung wegen berichtigter Beschreibung entwertet',
   finalize_missing: 'Ausnahme ohne Unterschrift dokumentiert', confirm: 'Monatsnachweis bestätigt', correct: 'Korrekturfassung angelegt', invalidate_for_correction: 'Vorgänger für Korrektur entwertet'};
 
 export function GkvMonthlyProofs(props: Props) {
@@ -198,10 +200,12 @@ function MonthlyWorkspacePanel({tenantId, roleKey, canCreate, onWorkState}: Prop
             onClick={() => void write({action:'freeze_facts',input:{id:proof.id,revision:proof.revision}})}>{proof.payload.xmlFacts ? 'Fachangaben erneut übernehmen' : 'Fachangaben übernehmen'}</button></div>
         </section>}
         <MonthlyProofContent proof={proof} />
-        <GkvMonthlySignature proof={proof} roleKey={roleKey} canSign={writable && !sourceChanged && !mode && !reason.trim()}
+        {proof.status==='open'&&proof.payload.schema==='gkv-monthly-amended-source-v1'&&!proof.payload.xmlFacts&&<p className="gx-notice">Für die berichtigte Monatsfassung müssen die Fachangaben vor der nächsten Unterschrift erneut übernommen werden.{!['01','07','10'].includes(proof.payload.serviceType)&&' Für diese Leistungsart ist die Übernahme noch nicht verfügbar.'}</p>}
+        <GkvMonthlySignature proof={proof} roleKey={roleKey} canSign={writable && !sourceChanged && !mode && !reason.trim() && (proof.payload.schema!=='gkv-monthly-amended-source-v1'||!!proof.payload.xmlFacts)}
           disabled={!!busy || !!writer.pending} onWorkState={setCaptureWork} onConfirm={confirmSignature}/>
         {writable && proof.status !== 'invalidated' && <section className="gx-card gx-stack" aria-label="Fassung bearbeiten">
           {!mode ? <div className="gx-actions">{proof.status === 'final' ? <button type="button" disabled={locked} onClick={() => { setMode('correct'); setReason(''); setReviewed(false); }}>Korrektur beginnen</button>
+            : proof.payload.records.some(r=>r.amendment) ? <p className="gx-subtle">Die berichtigte Leistungsbeschreibung benötigt eine neue persönliche Monatsbestätigung.</p>
             : <button type="button" disabled={locked || sourceChanged} onClick={() => { setMode('missing'); setReason(''); setReviewed(false); }}>Ausnahme ohne Unterschrift dokumentieren</button>}</div> : <>
             <h3>{mode === 'correct' ? 'Neue Korrekturfassung' : 'Begründetes Fehlen der Unterschrift'}</h3>
             <p>{mode === 'correct' ? 'Mit dem Anlegen wird die bisherige endgültige Fassung sofort ungültig. Ihre Daten bleiben archiviert. Die neue Fassung ist offen und muss erneut bestätigt werden.' : 'Dieser Abschluss gilt nur für einen dokumentierten Ausnahmefall. Eine Unterschrift, die noch im Klientenportal eingeholt werden soll, ist kein solcher Abschluss.'}</p>
@@ -247,7 +251,7 @@ export function MonthlyProofContent({proof}: {proof: MonthlyProof}) {
     <ol className="gx-monthly-records">{[...proof.payload.records].sort((a, b) => a.serviceDate.localeCompare(b.serviceDate) || a.recordId.localeCompare(b.recordId)).map(record => <li key={record.recordId}>
       <div className="gx-card-title"><strong>{day(record.serviceDate)} · {record.employeeName}</strong><span>{record.actualMinutes} Minuten</span></div>
       {captures.get(record.recordId)?<p className="gx-subtle">{captures.get(record.recordId)}</p>:null}
-      <p>{record.description}</p>{record.tasks.length > 0 && <ul>{record.tasks.map((task, i) => <li key={`${task.id}:${i}`}><strong>{task.title}</strong> · {({done: 'Erbracht', open: 'Offen', not_done: 'Nicht erbracht', not_requested: 'Nicht gewünscht', cancelled: 'Abgesagt'} as Record<string, string>)[task.status] || task.status}{task.completionNote && <p>{task.completionNote}</p>}</li>)}</ul>}
+      {record.amendment?<section className="gx-stack" aria-label="Berichtigte Leistungsbeschreibung"><p><strong>Ursprünglich unterschrieben:</strong> {record.description}</p><div className="gx-subtle"><strong>{amendmentHeading(record.amendment)}</strong><p>{record.amendment.description}</p><p>Begründung: {record.amendment.reason}</p></div></section>:<p>{record.description}</p>}{record.tasks.length > 0 && <ul>{record.tasks.map((task, i) => <li key={`${task.id}:${i}`}><strong>{task.title}</strong> · {({done: 'Erbracht', open: 'Offen', not_done: 'Nicht erbracht', not_requested: 'Nicht gewünscht', cancelled: 'Abgesagt'} as Record<string, string>)[task.status] || task.status}{task.completionNote && <p>{task.completionNote}</p>}</li>)}</ul>}
     </li>)}</ol>
   </section>;
 }

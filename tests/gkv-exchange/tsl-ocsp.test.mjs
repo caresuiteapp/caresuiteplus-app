@@ -2364,6 +2364,29 @@ test('monthly component: sealed Assist original reaches byte attestation, frozen
  assert.equal((await m.f.db.query('SELECT count(*)::int n FROM workflow_proof_attestations')).rows[0].n,1);
 },{assist:true}));
 
+test('monthly component: amended source needs fresh XML/CMS and invalidates the former signed archive',async()=>withMonthlyComponent(async m=>{
+ await m.f.db.exec(await readFile(new URL('../../docs/gkv/sql/monthly-assist-amendments-draft.sql',import.meta.url),'utf8'));
+ const receipt=await m.worker.verify(m.v.input,m.png);
+ const old=await m.f.command('confirm',{id:m.v.p.id,revision:m.v.p.revision,content_sha256:m.v.p.content_sha256,receipt_id:receipt.receiptId});
+ const r=old.payload.records[0],source=r.sourceReceipt;
+ const input={proofId:source.proof_id,proofHash:source.proof_payload_hash,revision:0,previousId:null,
+  description:'Synthetisch berichtigte Leistungsbeschreibung.',reason:'Fehler in der ursprünglichen Beschreibung.'};
+ const a=(await m.f.as(m.personal(),'SELECT public.gkv_assist_amend_description($1,$2,$3,$4::jsonb) v',
+  [m.f.tenant,source.assignment_id,randomUUID(),JSON.stringify(input)])).rows[0].v;
+ const previous=await m.worker.readArchivedComponent({tenantId:m.f.tenant,proofId:old.id,captureId:m.v.input.captureId});
+ assert.equal(previous.status,'invalidated');
+ const p=(await m.f.db.query("SELECT to_jsonb(p) v FROM public.gkv_monthly_proofs p WHERE predecessor_id=$1 AND status='open'",[old.id])).rows[0].v;
+ assert.deepEqual(p.payload.records[0].amendment,a);assert.equal(p.confirmation,null);assert.equal(p.payload.xmlFacts,undefined);
+ const next={p,input:{tenantId:m.f.tenant,proofId:p.id,revision:p.revision,captureId:randomUUID()}};
+ await m.freeze(next);await m.prepare(next);
+ const fresh=await m.worker.verify(next.input,Buffer.from(signingPng(4),'base64'));
+ const final=await m.f.command('confirm',{id:next.p.id,revision:next.p.revision,content_sha256:next.p.content_sha256,receipt_id:fresh.receiptId});
+ const current=await m.worker.readArchivedComponent({tenantId:m.f.tenant,proofId:final.id,captureId:next.input.captureId});
+ assert.notDeepEqual(current.cms,previous.cms);assert.notEqual(fresh.originalSha256,receipt.originalSha256);assert.notEqual(fresh.signatureSha256,receipt.signatureSha256);
+ assert.deepEqual(await openssl(['cms','-verify','-inform','DER','-binary','-noverify'],{input:current.cms}),current.xml);
+ assert.equal(m.requests.filter(q=>cmsOperation(q.bytes)==='SignDocument').length,2);
+},{deferred:true}));
+
 test('monthly component: deferred portal origin reaches actual XSD/CMS and keeps distinct history through monthly correction',async()=>withMonthlyComponent(async m=>{
  const facts=m.v.p.payload.xmlFacts,capture=facts.sources[0].personalCapture;
  assert.equal(capture.policy,'personal-deferred-source-15m-v1');

@@ -52,7 +52,8 @@ BEGIN
  -- Candidate list only. The mutation re-reads and verifies every selected source.
  WITH candidates AS (
   SELECT r.id,r.updated_at,r.service_date,r.employee_id,btrim(e.first_name||' '||e.last_name) employee_name,
-   r.actual_minutes,btrim(coalesce(p.payload_snapshot->>'documentationNote',p.payload_snapshot->>'documentation','')) description,
+   r.actual_minutes,coalesce('Berichtigt: '||(care_security.gkv_assist_monthly_amendment(r.tenant_id,p.id,p.payload_hash)->>'description'),
+    btrim(coalesce(p.payload_snapshot->>'documentationNote',p.payload_snapshot->>'documentation',''))) description,
    claim.series_id FROM public.service_records r
   JOIN public.employees e ON e.tenant_id=r.tenant_id AND e.id=r.employee_id
   JOIN public.assist_visit_proofs p ON p.tenant_id=r.tenant_id AND p.id::text=r.source_receipt->>'proof_id'
