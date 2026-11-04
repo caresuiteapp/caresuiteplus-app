@@ -5368,13 +5368,19 @@
     {
       "web": "src/lib/payroll/payrollOfficeReadModel.web.ts",
       "native": "src/lib/payroll/payrollOfficeReadModel.native.ts",
-      "sourceHash": "e556ab4dfba01ff4467fe569b596e0f2f4e3a1254c098b67e4c02599b0827184",
+      "sourceHash": "a335f48c3e2afdc505a6e4cb8faaa350e3f50a3af1ddcfe9b991ceaca096c00b",
+      "environment": []
+    },
+    {
+      "web": "src/lib/payroll/payrollTimeDeferral.web.ts",
+      "native": "src/lib/payroll/payrollTimeDeferral.native.ts",
+      "sourceHash": "6e5b460cf24f4e3a1156929c5dfc1321f5603ecf00555ec5aef04f2655543cad",
       "environment": []
     },
     {
       "web": "src/lib/payroll/payrollStatementPdf.web.ts",
       "native": "src/lib/payroll/payrollStatementPdf.native.ts",
-      "sourceHash": "949ef631978c89f467871be59edfd89f07c01fbd23151f0456de475d73bbe7c7",
+      "sourceHash": "11306483851b90e5861b9fffe9da617d809a04c2d4ae53bad9f53b41fed50cc2",
       "environment": []
     },
     {
@@ -5388,7 +5394,7 @@
     {
       "web": "src/lib/payroll/payrollMonthService.web.ts",
       "native": "src/lib/payroll/payrollMonthService.native.ts",
-      "sourceHash": "026ed2ce64c22c49d08325863783d5328d534dc6682be458322ea6edecfa13dd",
+      "sourceHash": "e85773c2c18fe4b8c4baad4a2f4869093e1051bac46da52f8eb3ff5226ebf5cc",
       "environment": []
     },
     {
@@ -5400,7 +5406,7 @@
     {
       "web": "src/components/payroll/PayrollEmployeeDetail.web.tsx",
       "native": "src/components/payroll/PayrollEmployeeDetail.native.tsx",
-      "sourceHash": "0c0bb30e7e57a86f8e2cc2803b5faacf7f573eba167bbacc15dd1791eb683ba0",
+      "sourceHash": "4d682de9d876d6aa7bc2708d2a06c81120d1c0814f0c8bfda61a9ff1628f95a7",
       "environment": []
     },
     {
@@ -5412,7 +5418,7 @@
     {
       "web": "src/screens/office/PayrollMonthOverviewScreen.web.tsx",
       "native": "src/screens/office/PayrollMonthOverviewScreen.native.tsx",
-      "sourceHash": "d920c79e45724dd5e27796202cf6ea62cb68f3e67a53cc9cf12696527ea80d75",
+      "sourceHash": "c18b0919a182eecb4882683c95901f3da86d6840f23bbbf786fe932f2278c750",
       "environment": [
         "window",
         "URL"

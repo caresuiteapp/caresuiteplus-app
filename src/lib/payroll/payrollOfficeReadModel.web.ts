@@ -1,4 +1,4 @@
-import type { PayrollAssignmentTimeLine, PayrollEmployeeMonth, PayrollMonthOverview, PayrollStatement } from '@/types/modules/payrollMonth';
+import type { PayrollAssignmentTimeLine, PayrollEmployeeMonth, PayrollMonthOverview, PayrollStatement, PayrollDeferredTimeEntry } from '@/types/modules/payrollMonth';
 import type { WfmOfficeEmployeeTimeAccount, WfmOfficePlannedVisit, WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import { calculateOfficeAbsenceCredit, hasOfficeContractSchedule, officeAccountRecordedMinutes } from '@/lib/wfm/wfmOfficeAccountTotals';
 
@@ -105,7 +105,7 @@ function plannedDuration(visit: WfmOfficePlannedVisit): number {
 export function payrollPlannedVisitLine(visit: WfmOfficePlannedVisit): PayrollAssignmentTimeLine {
   const plannedMinutes = plannedDuration(visit);
   const actualMinutes = resolvePayrollPerformedMinutes({ status: visit.assignmentStatus, actualStartAt: visit.assignmentActualStartAt, actualEndAt: visit.assignmentActualEndAt, plannedMinutes });
-  return { assignmentId: visit.assignmentId, workDate: visit.workDate, clientLabel: visit.clientLabel,
+  return { entryKey: `planned:${visit.visitId ?? visit.assignmentId}:${visit.workDate}:${visit.plannedStartAt ?? ''}`, assignmentId: visit.assignmentId, workDate: visit.workDate, clientLabel: visit.clientLabel,
     assignmentTitle: visit.assignmentTitle?.trim() || 'Einsatz', plannedStartAt: visit.plannedStartAt, plannedEndAt: visit.plannedEndAt,
     actualStartAt: visit.assignmentActualStartAt ?? null, actualEndAt: visit.assignmentActualEndAt ?? null,
     plannedMinutes, actualMinutes, travelMinutes: 0, differenceMinutes: actualMinutes - plannedMinutes, status: visit.assignmentStatus };
@@ -135,7 +135,7 @@ export function employeeAssignmentTimeLines(account: WfmOfficeEmployeeTimeAccoun
     const actualEndAt = entry.actualEndAt ?? entry.assignmentActualEndAt ?? existing?.actualEndAt ?? null;
     const actualMinutes = entry.reviewStatus === 'rejected' ? 0 : entry.actualStartAt || entry.actualEndAt
       ? officeAccountRecordedMinutes(entry) : resolvePayrollPerformedMinutes({ status: entry.assignmentStatus, actualStartAt, actualEndAt, plannedMinutes });
-    const line: PayrollAssignmentTimeLine = { assignmentId: entry.assignmentId ?? existing?.assignmentId ?? null, workDate: entry.workDate,
+    const line: PayrollAssignmentTimeLine = { entryKey: entry.id, assignmentId: entry.assignmentId ?? existing?.assignmentId ?? null, workDate: entry.workDate,
       clientLabel: entry.clientLabel ?? existing?.clientLabel ?? null, assignmentTitle: entry.assignmentTitle?.trim() || existing?.assignmentTitle || 'Arbeitszeit',
       plannedStartAt: entry.plannedStartAt ?? existing?.plannedStartAt ?? null, plannedEndAt: entry.plannedEndAt ?? existing?.plannedEndAt ?? null,
       actualStartAt, actualEndAt, plannedMinutes: Math.max(0, plannedMinutes), actualMinutes,
@@ -168,29 +168,26 @@ export function payrollAbsenceCredits(rows: PayrollRow[], workDays: unknown, fro
   const totalMinutes = calculateOfficeAbsenceCredit(rows, workDays, fromDate, toDate);
   return { vacationMinutes, sickMinutes, otherPaidAbsenceMinutes, totalMinutes, overlap: vacationMinutes + sickMinutes + otherPaidAbsenceMinutes > totalMinutes };
 }
-export function payrollTimeReadiness(account: WfmOfficeEmployeeTimeAccount | undefined, now: number) {
+export function payrollDeferredReason(entry: WfmOfficeTimeEntry, now: number): PayrollDeferredTimeEntry['reason'] | null {
+  if (entry.rowKind === 'planned_upcoming' || entry.flags?.includes('upcoming')) return null;
+  if (!entry.actualStartAt && !entry.actualEndAt) return entry.rowKind === 'planned_missing_actual' || isPayrollConductedAssignmentStatus(entry.assignmentStatus) ? 'missing' : null;
+  const start = Date.parse(entry.actualStartAt ?? ''), end = Date.parse(entry.actualEndAt ?? '');
+  if (!Number.isFinite(start) || !Number.isFinite(end) || end < start || end > now || start > now
+    || !Number.isFinite(entry.netMinutes) || entry.netMinutes < 0 || !Number.isFinite(entry.pauseMinutes) || entry.pauseMinutes < 0) return 'incomplete';
+  if (entry.reviewStatus === 'rejected') return 'rejected';
+  return ['approved', 'exported', 'locked'].includes(entry.reviewStatus) ? null : 'unapproved';
+}
+export function payrollTimeReadiness(account: WfmOfficeEmployeeTimeAccount | undefined, now: number, forcedExcludedIds: ReadonlySet<string> = new Set()) {
   const blockers: string[] = [];
   const calculationIssues: string[] = [];
   const entries = account?.entries ?? [];
   if (!account) calculationIssues.push('Für diesen Monat konnte kein vollständiges Arbeitszeitkonto zugeordnet werden.');
   if (account && (!Number.isFinite(account.actualMinutes) || account.actualMinutes < 0 || !Number.isFinite(account.travelMinutes ?? 0))) calculationIssues.push('Das Arbeitszeitkonto enthält ungültige Zeitwerte.');
-  const recorded = entries.filter(entry => Boolean(entry.actualStartAt || entry.actualEndAt));
-  const unapproved = recorded.filter(entry => !['approved', 'exported', 'locked', 'rejected'].includes(entry.reviewStatus));
-  if (unapproved.length) blockers.push(`${unapproved.length} Zeiterfassung${unapproved.length === 1 ? '' : 'en'} noch nicht freigegeben.`);
-  const incomplete = recorded.filter(entry => {
-    const start = Date.parse(entry.actualStartAt ?? ''), end = Date.parse(entry.actualEndAt ?? '');
-    return !Number.isFinite(start) || !Number.isFinite(end) || end < start || end > now || start > now
-      || !Number.isFinite(entry.netMinutes) || entry.netMinutes < 0 || !Number.isFinite(entry.pauseMinutes) || entry.pauseMinutes < 0;
-  });
-  if (incomplete.length) calculationIssues.push(`${incomplete.length} Zeiterfassung${incomplete.length === 1 ? '' : 'en'} ohne gültigen Abschluss.`);
-  const missing = entries.filter(entry => entry.rowKind === 'planned_missing_actual' && !entry.actualStartAt && !entry.actualEndAt);
-  if (missing.length) calculationIssues.push(`${missing.length} vergangene Einsätze ohne abgeschlossene Zeiterfassung.`);
-  const rejected = recorded.filter(entry => entry.reviewStatus === 'rejected');
-  if (rejected.length) calculationIssues.push(`${rejected.length} abgelehnte Zeiterfassung${rejected.length === 1 ? '' : 'en'} klären; diese Zeit ist nicht eingerechnet.`);
-  const excluded = new Set<WfmOfficeTimeEntry>([...rejected, ...incomplete]);
+  const deferredEntries = entries.filter(entry => forcedExcludedIds.has(entry.id) || payrollDeferredReason(entry, now) != null);
+  const excluded = new Set(deferredEntries);
   const excludedMinutes = [...excluded].reduce((sum, entry) => sum + officeAccountRecordedMinutes(entry), 0);
   const actual = account?.actualMinutes;
-  return { blockers: [...blockers, ...calculationIssues], calculationIssues, unapprovedEntryCount: unapproved.length + missing.length + rejected.length,
+  return { blockers: [...blockers, ...calculationIssues], calculationIssues, deferredEntries, unapprovedEntryCount: deferredEntries.length,
     actualWorkMinutes: actual != null && Number.isFinite(actual) ? Math.max(0, actual - excludedMinutes) : 0 };
 }
 

@@ -14,7 +14,8 @@ import { listPlannedVisitsForPeriod } from '@/lib/wfm/wfmOfficePlannedVisitRepos
 import { getWfmOfficeEmployeeTimeAccounts } from '@/lib/wfm/wfmOfficeZeitkontenService.web';
 import { calculatePayrollSnapshot, calculatePayrollTimeAccountBalance, payrollExpenseTotals } from './payrollCalculator.web';
 import { isMiniJobEmploymentType, resolvePayrollMaxPayoutHours } from './payrollPayoutPolicy.web';
-import { employeeAssignmentTimeLines, isPayrollConductedAssignmentStatus, isPayrollEmployeeInPeriod, payrollAbsenceCredits, payrollAbsenceWorkConflicts, payrollBerlinDay, payrollEmploymentRange, isPayrollDate, payrollNumber, payrollPeriodRange, payrollPlannedVisitLine, payrollRemainingPlannedMinutes, payrollSettingsIssues, payrollTimeReadiness, nextPayrollDay, type PayrollOfficeEmployeeMonth, type PayrollOfficeMonthOverview, type PayrollRow } from './payrollOfficeReadModel.web';
+import { deferredPayrollEntry, matchDeferredPayrollEntry, payrollPeriodNumber, payrollTimeRegistry, resolvePayrollCatchUp, type PayrollTimeRegistry } from './payrollTimeDeferral.web';
+import { employeeAssignmentTimeLines, isPayrollConductedAssignmentStatus, isPayrollEmployeeInPeriod, payrollAbsenceCredits, payrollAbsenceWorkConflicts, payrollBerlinDay, payrollDeferredReason, payrollEmploymentRange, isPayrollDate, payrollNumber, payrollPeriodRange, payrollPlannedVisitLine, payrollRemainingPlannedMinutes, payrollSettingsIssues, payrollTimeReadiness, nextPayrollDay, type PayrollOfficeEmployeeMonth, type PayrollOfficeMonthOverview, type PayrollRow } from './payrollOfficeReadModel.web';
 
 // Metro resolves this module for the employee portal too. Keep its established, independently secured APIs.
 export { loadEmployeePayrollMonth, decidePayrollStatement, createExpenseClaim, uploadExpenseReceipt, getPayrollPdfUrl } from './payrollMonthService.ts';
@@ -111,6 +112,7 @@ function buildEmployee(input: {
   absences: Row[]; expenses: PayrollExpenseClaim[]; uploads: PayrollPortalUpload[];
   statements: PayrollStatement[]; visits: WfmOfficePlannedVisit[]; nextVisits: WfmOfficePlannedVisit[];
   year: number; month: number; now: number;
+  timeRegistry: PayrollTimeRegistry; historicalEntries: import('@/types/modules/wfmOfficeTimekeeping').WfmOfficeTimeEntry[];
 }): PayrollOfficeEmployeeMonth {
   const { employee, payroll, contract, account, year, month, now } = input;
   const employeeId = asString(employee.id), { fromDate, toDate } = payrollPeriodRange(year, month);
@@ -134,16 +136,37 @@ function buildEmployee(input: {
   if (fullAbsences.overlap) blockers.push('Verschiedene bezahlte Abwesenheiten überschneiden sich. Bitte die Abwesenheiten zuerst klären.');
   const targetAvailable = (hasSchedule || payoutBasis != null) && validEmploymentDates && employmentRange.fromDate <= employmentRange.toDate;
   const fullMonthTarget = payoutBasis ?? (targetAvailable ? calculateContractTargetMinutesForRange(contract!.work_days, employmentRange.fromDate, employmentRange.toDate) : 0);
-  const times = payrollTimeReadiness(account, now);
+  const currentDeferred = [...input.timeRegistry.deferred.values()].filter(item => payrollPeriodNumber(item.originYear, item.originMonth) === payrollPeriodNumber(year, month));
+  const forcedExcludedIds = new Set(currentDeferred.flatMap(item => { const entry = matchDeferredPayrollEntry(item, account?.entries ?? []); return entry ? [entry.id] : []; }));
+  const times = payrollTimeReadiness(account, now, forcedExcludedIds);
+  const deferredById = new Map(currentDeferred.map(item => [item.entryId, item]));
+  for (const entry of times.deferredEntries) {
+    const prior = currentDeferred.find(item => matchDeferredPayrollEntry(item, [entry]));
+    const item = prior ?? deferredPayrollEntry(entry, payrollDeferredReason(entry, now) ?? 'deferred');
+    deferredById.set(item.entryId, item);
+  }
+  const resolved = resolvePayrollCatchUp(input.timeRegistry, input.historicalEntries, year, month, now);
+  const catchUpWorkMinutes = resolved.catchUp.reduce((sum, item) => sum + item.minutes, 0);
+  const currentPeriodWorkMinutes = times.actualWorkMinutes;
+  const actualWorkMinutes = currentPeriodWorkMinutes + catchUpWorkMinutes;
   blockers.push(...times.calculationIssues);
   const accountAvailable = Boolean(account && Number.isFinite(account.actualMinutes) && account.actualMinutes >= 0 && Number.isFinite(account.travelMinutes) && account.travelMinutes >= 0);
   const salaryOutsideEmployment = employmentRange.fromDate > employmentRange.toDate && payroll?.compensation_type === 'salary';
   if (salaryOutsideEmployment) blockers.push('Der Monat liegt außerhalb des Beschäftigungszeitraums. Ein Monatslohn kann dafür nicht verlässlich angesetzt werden.');
-  const lines: PayrollAssignmentTimeLine[] = employeeAssignmentTimeLines(account, input.visits, employeeId);
-  const absenceConflict = payrollAbsenceWorkConflicts(absences, lines);
+  const lines: PayrollAssignmentTimeLine[] = employeeAssignmentTimeLines(account, input.visits, employeeId).map(line => ({ ...line,
+    payrollDisposition: times.deferredEntries.some(entry => entry.id === line.entryKey) ? 'deferred' : 'included' }));
+  const absenceConflict = payrollAbsenceWorkConflicts(absences, lines.filter(line => line.payrollDisposition !== 'deferred'));
   if (absenceConflict) blockers.push('Bezahlte Abwesenheiten überschneiden sich mit Einsatzplanung oder Arbeitszeit. Bitte zuerst die Einträge abgleichen.');
   const completedWithoutCapture = lines.some(line => isPayrollConductedAssignmentStatus(line.status) && !line.actualStartAt && !line.actualEndAt);
-  if (completedWithoutCapture) blockers.push('Abgeschlossene Einsätze ohne erfasste Ist-Zeit müssen in Arbeitszeit geprüft werden.');
+  for (const line of lines.filter(line => isPayrollConductedAssignmentStatus(line.status) && !line.actualStartAt && !line.actualEndAt)) {
+    if (times.deferredEntries.some(entry => entry.id === line.entryKey)) continue;
+    const entryId = line.entryKey || `planned:${line.assignmentId}:${line.workDate}:${line.plannedStartAt ?? ''}`;
+    deferredById.set(entryId, { key: `${line.workDate.slice(0, 7)}:${entryId}`, entryId, originYear: year, originMonth: month,
+      workDate: line.workDate, assignmentId: line.assignmentId, visitId: null, sessionId: null, plannedStartAt: line.plannedStartAt,
+      clientLabel: line.clientLabel, assignmentTitle: line.assignmentTitle, reason: 'missing' });
+    line.payrollDisposition = 'deferred';
+  }
+  const deferredTimeEntries = [...deferredById.values(), ...resolved.pending];
   if (lines.some(line => (line.actualStartAt || line.actualEndAt) && (line.workDate < employmentRange.fromDate || line.workDate > employmentRange.toDate))) {
     blockers.push('Erfasste Arbeitszeit liegt außerhalb des Beschäftigungszeitraums. Bitte Personalakte und Zeitbuchungen abgleichen.');
   }
@@ -155,7 +178,8 @@ function buildEmployee(input: {
       ? 'Ein- oder Austritt im Monat: Der hinterlegte Monatslohn wird vollständig gezeigt. Einen abweichenden Teilmonatsbetrag bitte vor Veröffentlichung in der Personalakte klären.'
       : 'Das vertragliche Soll und Abwesenheiten sind auf den Beschäftigungszeitraum begrenzt.');
   }
-  if (times.unapprovedEntryCount) warnings.push('Die erfassten Zeiten sind vorläufig. Veröffentlichung erst nach Klärung und Freigabe.');
+  if (deferredTimeEntries.length) warnings.push(`${deferredTimeEntries.length} offene oder ungeprüfte Zeit${deferredTimeEntries.length === 1 ? '' : 'en'} ${deferredTimeEntries.length === 1 ? 'wird' : 'werden'} für diesen Monat übersprungen. Nach Korrektur und Freigabe können sie in einem Folgemonat nachberechnet werden.`);
+  if (catchUpWorkMinutes) warnings.push('Freigegebene Nachberechnungen aus Vormonaten sind separat ausgewiesen und in der Auszahlungsgrenze berücksichtigt.');
   const amount = payrollNumber(payroll?.compensation_amount);
   const compensationCents = amount == null ? 0 : Math.round((amount + Number.EPSILON * Math.max(1, amount)) * 100);
   const compensationAvailable = (payroll?.compensation_type === 'hourly' || payroll?.compensation_type === 'salary')
@@ -178,12 +202,12 @@ function buildEmployee(input: {
   const otherPaidAbsenceMinutes = absenceAvailable ? accruedAbsences.otherPaidAbsenceMinutes : 0;
   const projectedPaidAbsenceMinutes = absenceAvailable ? Math.max(0, fullAbsences.totalMinutes - accruedAbsences.totalMinutes) : 0;
   if (!absenceAvailable) previewNotes.push('Die Vorschau enthält keine unklaren bezahlten Abwesenheiten. Diese werden nach Klärung ergänzt.');
-  if (times.calculationIssues.length || completedWithoutCapture) previewNotes.push('Die Vorschau verwendet nur vorhandene abgeschlossene Zeiterfassungen. Fehlende, offene oder abgelehnte Zeiten werden nicht geschätzt.');
+  if (deferredTimeEntries.length || times.calculationIssues.length || completedWithoutCapture) previewNotes.push('Nur abgeschlossene und freigegebene Zeiterfassungen sind eingerechnet. Zurückgestellte Zeiten werden nicht geschätzt.');
   if (!hasSchedule && payoutBasis == null) previewNotes.push('Der hinterlegte Lohn kann angezeigt werden. Für das Zeitkonto fehlt die vertragliche Sollzeit.');
   if (payoutBasis != null) previewNotes.push('Der Monatsübertrag verwendet die hinterlegte Auszahlungsgrenze. Daraus entstehen keine vertraglichen Sollstunden oder Minusstunden.');
   if (!accountAvailable) previewNotes.push('Ein vollständiges Arbeitszeitkonto fehlt. Eine Vergütung nach Stunden lässt sich daraus noch nicht berechnen.');
   const timeAccountAvailable = accountAvailable && targetAvailable && absenceAvailable;
-  const differenceMinutes = timeAccountAvailable ? calculatePayrollTimeAccountBalance({ actualWorkMinutes: times.actualWorkMinutes,
+  const differenceMinutes = timeAccountAvailable ? calculatePayrollTimeAccountBalance({ actualWorkMinutes,
     vacationMinutes, sickMinutes, otherPaidAbsenceMinutes, targetMinutes: fullMonthTarget }) : 0;
   const timeAccountBalanceMinutes = payoutBasis == null ? differenceMinutes : Math.max(0, differenceMinutes);
   let expensesAvailable = true;
@@ -198,7 +222,7 @@ function buildEmployee(input: {
     compensationType: (payroll?.compensation_type === 'hourly' ? 'hourly' : 'salary') as 'hourly' | 'salary',
     compensationAmount: compensationAvailable ? amount! : 0, maxPayoutHours,
     overflowToTimeAccount: isMiniJobEmploymentType(employee.employment_type) || payroll?.overflow_to_time_account !== false,
-    actualWorkMinutes: times.actualWorkMinutes, travelMinutes: accountAvailable ? account!.creditedTravelMinutes ?? account!.travelMinutes : 0,
+    actualWorkMinutes, travelMinutes: accountAvailable ? account!.creditedTravelMinutes ?? account!.travelMinutes : 0,
     vacationMinutes, sickMinutes, otherPaidAbsenceMinutes, projectedPaidAbsenceMinutes, targetWorkMinutes: fullMonthTarget,
     ...(payoutBasis == null ? {} : { targetWorkSource: 'payout_limit' as const }),
     monthlyPlannedMinutes: input.visits.filter(visit => visit.employeeId === employeeId).reduce((sum, visit) => sum + payrollPlannedVisitLine(visit).plannedMinutes, 0),
@@ -220,13 +244,13 @@ function buildEmployee(input: {
     try { snapshot = { ...calculatePayrollSnapshot(calculateInput), expenseClaims: expenses }; }
     catch (cause) { grossAvailable = false; blockers.push(cause instanceof Error ? cause.message : 'Die Bruttovorschau konnte nicht verlässlich berechnet werden.'); }
   }
-  const calculationReady = blockers.length === 0 && grossAvailable && expensesAvailable && timeAccountAvailable;
   const finalBlockers = [...new Set([...blockers, ...times.blockers])];
-  return { ...snapshot, ...expenseTotals,
+  const calculationReady = finalBlockers.length === 0 && grossAvailable && expensesAvailable && timeAccountAvailable;
+  return { ...snapshot, ...expenseTotals, currentPeriodWorkMinutes, catchUpWorkMinutes, deferredTimeEntries, catchUpTimeEntries: resolved.catchUp,
     projectedTotalPayoutCents: grossAvailable && expensesAvailable ? snapshot.projectedTotalPayoutCents : 0,
     calculationReady, preview: { compensationAvailable, actualTimeAvailable: accountAvailable, grossAvailable, expensesAvailable, timeAccountAvailable, absenceAvailable,
       provisional: !calculationReady || finalBlockers.length > 0, notes: previewNotes },
-    blockers: finalBlockers, warnings, unapprovedEntryCount: times.unapprovedEntryCount,
+    blockers: finalBlockers, warnings, unapprovedEntryCount: deferredTimeEntries.length,
     employmentStatus: asString(employee.status), statementHistory: history,
     latestStatement: history.find(statement => statement.status !== 'superseded' && statement.status !== 'draft') ?? history[0] ?? null,
     pendingPortalUploads: input.uploads.filter(upload => upload.employeeId === employeeId) };
@@ -248,7 +272,7 @@ export async function listPayrollMonthOverview(tenantId: string, year: number, m
     const lower = new Date(`${fromDate}T00:00:00Z`); lower.setUTCDate(lower.getUTCDate() - 1);
     const upper = `${nextPayrollDay(toDate)}T23:59:59Z`;
     const scoped = (table: string, select: string) => fromUnknownTable(client, table).select(select).eq('tenant_id', tenantId);
-    const [employeesRes, payrollRes, contractRes, accountsRes, absencesRes, expensesRes, statementsRes, plannedRes, nextPlannedRes, uploadsRes] = await Promise.all([
+    const [employeesRes, payrollRes, contractRes, accountsRes, absencesRes, expensesRes, statementsRes, plannedRes, nextPlannedRes, uploadsRes, timeHistoryRes] = await Promise.all([
       readAllOfficeAccountRows((from, to) => scoped('employees', 'id,tenant_id,first_name,last_name,employee_number,employment_type,status,entry_date,exit_date').order('id').range(from, to)),
       readAllOfficeAccountRows((from, to) => scoped('employee_payroll_settings', 'tenant_id,employee_id,compensation_type,compensation_amount,max_payout_hours_month,overflow_to_time_account,mileage_rate_cents').order('employee_id').range(from, to)),
       readAllOfficeAccountRows((from, to) => scoped('employee_contract_settings', 'tenant_id,employee_id,work_days').order('employee_id').range(from, to)),
@@ -259,6 +283,8 @@ export async function listPayrollMonthOverview(tenantId: string, year: number, m
       listPlannedVisitsForPeriod(tenantId, fromDate, toDate), listPlannedVisitsForPeriod(tenantId, nextRange.fromDate, nextRange.toDate),
       // A receipt uploaded later can still concern the selected month. Show every pending employee upload with its original upload date.
       readAllOfficeAccountRows((from, to) => scoped('portal_uploads', 'id,tenant_id,employee_id,file_name,storage_path,category,status,created_at').eq('upload_context', 'mitarbeiter').in('status', ['hochgeladen', 'wird_geprueft']).order('created_at', { ascending: false }).order('id').range(from, to)),
+      // Only the small carry-forward fields are needed across periods, not full historical PDFs or snapshots.
+      readAllOfficeAccountRows((from, to) => scoped('payroll_month_statements', 'id,tenant_id,employee_id,period_year,period_month,version,status,deferred_time_entries:snapshot_json->deferredTimeEntries,catch_up_time_entries:snapshot_json->catchUpTimeEntries').order('id').range(from, to)),
     ]);
     if (!accountsRes.ok) return accountsRes;
     if (!plannedRes.ok) return plannedRes;
@@ -270,17 +296,29 @@ export async function listPayrollMonthOverview(tenantId: string, year: number, m
     const expenseRows = requiredRows(expensesRes, tenantId, 'Auslagen'); validExpenseRows(expenseRows);
     const expenses = expenseRows.map(mapPayrollOfficeExpense);
     const statements = requiredRows(statementsRes, tenantId, 'Monatsübersichten').map(mapPayrollOfficeStatement);
+    const timeHistory = requiredRows(timeHistoryRes, tenantId, 'Zeitnachberechnungen');
+    const registries = new Map(employees.map(employee => { const id = asString(employee.id); return [id, payrollTimeRegistry(timeHistory, id)] as const; }));
+    const outstanding = [...registries.values()].flatMap(registry => [...registry.deferred.values()].filter(item => payrollPeriodNumber(item.originYear, item.originMonth) < payrollPeriodNumber(year, month) && !registry.settled.has(item.key)));
+    let historicalAccounts: WfmOfficeEmployeeTimeAccount[] = [];
+    if (outstanding.length) {
+      const days = outstanding.map(item => item.workDate).sort();
+      const loaded = await getWfmOfficeEmployeeTimeAccounts(tenantId, actorRoleKey ?? null, { preset: 'custom', fromDate: days[0], toDate: days[days.length - 1] });
+      if (!loaded.ok) return loaded;
+      historicalAccounts = loaded.data;
+    }
     const uploadRows = requiredRows(uploadsRes, tenantId, 'Belegeingang');
     if (uploadRows.some(row => !asString(row.id) || !asString(row.employee_id) || !asString(row.file_name) || !asString(row.storage_path))) throw new Error('Ein offener Beleg besitzt keine vollständige Dateizuordnung. Bitte den Belegeingang prüfen.');
     const uploads = uploadRows.map(mapPayrollPortalUpload);
     const accounts = new Map(accountsRes.data.map(account => [account.employeeId, account]));
     const employeeIds = new Set(employees.map(employee => asString(employee.id)));
     if (employeeIds.size !== employees.length || employeeIds.has('') || [...accounts.keys(), ...expenses.map(expense => expense.employeeId), ...statements.map(statement => statement.employeeId)].some(id => !employeeIds.has(id))) throw new Error('Abrechnungsdaten konnten keinem eindeutigen Mitarbeiterprofil zugeordnet werden.');
-    const evidence = new Set([...accountsRes.data.filter(account => account.entries.length || account.actualMinutes || account.absenceMinutes).map(account => account.employeeId), ...expenses.map(expense => expense.employeeId), ...statements.map(statement => statement.employeeId)]);
+    const rolloverEmployees = [...registries].filter(([, registry]) => [...registry.deferred.values()].some(item => payrollPeriodNumber(item.originYear, item.originMonth) <= payrollPeriodNumber(year, month) && (!registry.settled.has(item.key) || registry.settled.get(item.key)?.period === payrollPeriodNumber(year, month)))).map(([id]) => id);
+    const evidence = new Set([...accountsRes.data.filter(account => account.entries.length || account.actualMinutes || account.absenceMinutes).map(account => account.employeeId), ...expenses.map(expense => expense.employeeId), ...statements.map(statement => statement.employeeId), ...rolloverEmployees]);
     const now = Date.now();
     const result = employees.filter(employee => isPayrollEmployeeInPeriod(employee, fromDate, toDate, evidence.has(asString(employee.id)))).map(employee => buildEmployee({
       employee, payroll: payroll.get(asString(employee.id)), contract: contracts.get(asString(employee.id)), account: accounts.get(asString(employee.id)),
       absences, expenses, statements, uploads, visits: plannedRes.data, nextVisits: nextPlannedRes.data, year, month, now,
+      timeRegistry: registries.get(asString(employee.id))!, historicalEntries: historicalAccounts.filter(account => account.employeeId === asString(employee.id)).flatMap(account => account.entries),
     })).sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'de'));
     const grossPreviews = result.filter(employee => employee.preview.grossAvailable);
     const expensePreviews = result.filter(employee => employee.preview.expensesAvailable);

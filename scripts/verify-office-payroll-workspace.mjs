@@ -16,6 +16,7 @@ const groups = {
     'payroll/payrollStatementPdfWeb.test.ts',
     'payroll/payrollMonthServiceWeb.test.ts',
     'payroll/payrollOfficeReadModelWeb.test.ts',
+    'payroll/payrollTimeDeferralWeb.test.ts',
     'payroll/payrollOfficeActionsWeb.test.ts',
     'payroll/payrollOfficeSqlWeb.test.ts',
     'payroll/payrollWorkspaceModelWeb.test.ts',

@@ -74,7 +74,7 @@ export function renderPayrollStatementPdf(snapshot: PayrollWebStatementSnapshot,
   // Long identity text may use continuation pages; keep the summary together.
   room(175);
   const cards = [
-    ['Arbeitszeit erfasst', formatPayrollMinutes(snapshot.actualWorkMinutes)],
+    [snapshot.catchUpWorkMinutes ? 'Abrechnungsrelevante Zeit' : snapshot.currentPeriodWorkMinutes != null ? 'Freigegebene Arbeitszeit' : 'Arbeitszeit erfasst', formatPayrollMinutes(snapshot.actualWorkMinutes)],
     ['Vergütbare Zeit', formatPayrollMinutes(snapshot.payableMinutes)],
     [snapshot.compensationType === 'salary' ? 'Festgehalt des Monats' : 'Monatsbrutto', formatPayrollMoney(snapshot.earnedGrossCents)],
     ['Vorgesehener Übertrag', formatPayrollMinutes(snapshot.overtimeTransferMinutes)],
@@ -110,6 +110,10 @@ export function renderPayrollStatementPdf(snapshot: PayrollWebStatementSnapshot,
   const credited = snapshot.creditedActualMinutes ?? snapshot.actualWorkMinutes + snapshot.vacationMinutes + snapshot.sickMinutes + snapshot.otherPaidAbsenceMinutes;
   const target = snapshot.targetWorkMinutes;
   const leftBottom = summary(margin, 'Arbeitszeit und Zeitkonto', [
+    ...(snapshot.catchUpWorkMinutes ? [
+      { label: 'Freigegebene Zeit dieses Monats', value: formatPayrollMinutes(snapshot.currentPeriodWorkMinutes ?? 0) },
+      { label: 'Nachberechnung aus Vormonaten', value: formatPayrollMinutes(snapshot.catchUpWorkMinutes) },
+    ] : []),
     { label: 'Davon angerechnete Fahrzeit', value: formatPayrollMinutes(snapshot.travelMinutes) },
     { label: 'Angerechneter Urlaub', value: formatPayrollMinutes(snapshot.vacationMinutes) },
     { label: 'Angerechnete Krankheit', value: formatPayrollMinutes(snapshot.sickMinutes) },
@@ -136,8 +140,12 @@ export function renderPayrollStatementPdf(snapshot: PayrollWebStatementSnapshot,
   paragraph('Diese Übersicht zeigt Bruttowerte und Auslagen. Sie ersetzt keine Lohnabrechnung und weist keinen Nettoauszahlungsbetrag aus. Bereits erstattete Auslagen werden nicht erneut hinzugerechnet.', 8);
   paragraph('Geplante Zeiten und Vergütungen sind Prognosen. Nur nach der hinterlegten Regel anrechenbare Fahrzeit ist enthalten. Vorgesehene Überträge sind noch keine Zeitkontobuchung.', 8);
 
-  const table = (title: string, subtitle: string, introduction: string, columns: Column[], rows: Cell[][]) => {
-    sectionPage(title, subtitle);
+  const table = (title: string, subtitle: string, introduction: string, columns: Column[], rows: Cell[][], continuePage = false) => {
+    if (continuePage) {
+      room(42); y += 8;
+      paragraph(title, 11, BLUE, 5, true);
+      pageTitle = title; pageSubtitle = subtitle;
+    } else sectionPage(title, subtitle);
     const leading = 3.6, padding = 1.5, size = 8.3;
     const offsets = columns.map((_, index) => columns.slice(0, index).reduce((sum, column) => sum + column.width, 0));
     const tableHeader = () => {
@@ -188,7 +196,7 @@ export function renderPayrollStatementPdf(snapshot: PayrollWebStatementSnapshot,
       times(line.plannedStartAt, line.plannedEndAt, line.plannedMinutes),
       ...(actual ? [times(line.actualStartAt, line.actualEndAt, line.actualMinutes, actualPresent),
         ...(travel ? [cell(formatPayrollMinutes(line.travelMinutes), true)] : []),
-        cell(actualPresent ? formatPayrollBalanceMinutes(line.differenceMinutes) : '—', true)] : []), cell(status(line.status))];
+        cell(actualPresent ? formatPayrollBalanceMinutes(line.differenceMinutes) : '—', true)] : []), cell(line.payrollDisposition === 'deferred' ? 'Zurückgestellt' : status(line.status))];
   };
   const current = snapshot.assignmentTimeLines ?? [];
   const hasTravel = current.some(line => line.travelMinutes > 0);
@@ -197,6 +205,16 @@ export function renderPayrollStatementPdf(snapshot: PayrollWebStatementSnapshot,
     hasTravel ? [{ label: 'Datum', width: 19 }, { label: 'Klient:in / Einsatz', width: 50 }, { label: 'Plan', width: 25 }, { label: 'Erfasst', width: 25 }, { label: 'Fahrt', width: 16, right: true }, { label: 'Differenz', width: 20, right: true }, { label: 'Status', width: 23 }]
       : [{ label: 'Datum', width: 19 }, { label: 'Klient:in / Einsatz', width: 61 }, { label: 'Plan', width: 26 }, { label: 'Erfasst', width: 26 }, { label: 'Differenz', width: 21, right: true }, { label: 'Status', width: 25 }],
     current.map(line => assignmentCells(line, true, hasTravel)));
+  if (snapshot.catchUpTimeEntries?.length) table('Nachberechnungen aus Vormonaten', `${period} · ${snapshot.catchUpTimeEntries.length} Einträge`,
+    'Die folgenden Zeiten wurden im Ursprungsmonat zurückgestellt und nach Korrektur und Freigabe in dieser Monatsübersicht berücksichtigt. Sie sind in der Arbeitszeit und der Auszahlungsgrenze dieses Monats enthalten.',
+    [{ label: 'Arbeitstag', width: 24 }, { label: 'Klient:in / Einsatz', width: 91 }, { label: 'Erfasste Zeit', width: 35 }, { label: 'Nachberechnet', width: 28, right: true }],
+    snapshot.catchUpTimeEntries.map(item => [cell(date(item.workDate)), { blocks: [{ text: item.clientLabel || item.assignmentTitle, bold: true }, ...(item.clientLabel ? [{ text: item.assignmentTitle, muted: true }] : [])] },
+      cell(`${time(item.actualStartAt)}–${time(item.actualEndAt)}`), cell(formatPayrollMinutes(item.minutes), true)]), true);
+  if (snapshot.deferredTimeEntries?.length) table('Zurückgestellte Zeiten', `${period} · ${snapshot.deferredTimeEntries.length} Einträge`,
+    'Diese Zeiten sind für diesen Monat übersprungen und nicht eingerechnet. Die Einträge bleiben zur Nachbearbeitung offen. Nach Korrektur und Freigabe können sie in einem Folgemonat nachberechnet werden.',
+    [{ label: 'Arbeitstag', width: 24 }, { label: 'Klient:in / Einsatz', width: 94 }, { label: 'Grund der Zurückstellung', width: 60 }],
+    snapshot.deferredTimeEntries.map(item => [cell(date(item.workDate)), { blocks: [{ text: item.clientLabel || item.assignmentTitle, bold: true }, ...(item.clientLabel ? [{ text: item.assignmentTitle, muted: true }] : [])] },
+      cell(({ missing: 'Zeiterfassung fehlt', incomplete: 'Abschluss fehlt oder ist ungültig', unapproved: 'Freigabe fehlt', rejected: 'Korrektur erforderlich', deferred: 'Bereits zurückgestellt' })[item.reason] || 'Nachbearbeitung offen')]), true);
   if (expenses.length) table('Auslagen und Erstattungen', `${period} · ${expenses.length} Belege`,
     'Eingereichte und genehmigte Beträge sind getrennt ausgewiesen. Der Status zeigt auch bereits erstattete Auslagen. Die steuerliche Behandlung ist anhand der Belege zu prüfen.',
     [{ label: 'Datum', width: 19 }, { label: 'Beschreibung / Zweck', width: 99 }, { label: 'Status', width: 22 }, { label: 'Eingereicht', width: 19, right: true }, { label: 'Genehmigt', width: 19, right: true }],
