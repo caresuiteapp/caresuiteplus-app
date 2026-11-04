@@ -252,3 +252,29 @@ test('Staging portal before monthly activation: lost response, missing hash and 
   });
  }finally{await x.close();}
 });
+
+test('Employee release without monthly drafts: a role claim cannot outlive the bound personal account',async()=>{
+ const x=await assistDeferredFixture({monthlyCapture:false}),{f}=x,db=f.db;
+ try {
+  const v=await x.prepareDeferred(), tenant=f.tenant;
+  const unchanged=async()=>{
+   const proof=(await db.query('SELECT portal_visible,signature_id FROM public.assist_visit_proofs WHERE tenant_id=$1 AND id=$2',[tenant,v.draft])).rows[0];
+   assert.notEqual(proof.portal_visible,true);assert.equal(proof.signature_id,null);
+   assert.equal((await db.query('SELECT count(*)::int n FROM public.client_documents WHERE tenant_id=$1 AND id=$2',[tenant,v.draft])).rows[0].n,0);
+  };
+  for(const status of ['blocked','pending_first_login','password_reset_required','expired','archived']){
+   await db.query('UPDATE employee_portal_accounts SET status=$1 WHERE id=$2',[status,x.account]);
+   await assert.rejects(x.releaseDeferred(v),error=>error.code==='42501'&&/active personal portal account required/.test(error.message));
+   await unchanged();
+  }
+  await db.query("UPDATE employee_portal_accounts SET status='active' WHERE id=$1",[x.account]);
+  for(const bad of [randomUUID(),null]){
+   await assert.rejects(x.releaseDeferred(v,{identity:{...x.personal(),account_id:bad}}),error=>error.code==='42501');await unchanged();
+  }
+  await db.query('UPDATE employee_portal_accounts SET auth_user_id=$1 WHERE id=$2',[randomUUID(),x.account]);
+  await assert.rejects(x.releaseDeferred(v),error=>error.code==='42501');await unchanged();
+  await db.query('UPDATE employee_portal_accounts SET auth_user_id=$1 WHERE id=$2',[f.actorId,x.account]);
+  assert.equal(await x.releaseDeferred(v),v.draft);
+  assert.equal((await db.query('SELECT signature_required FROM public.client_documents WHERE tenant_id=$1 AND id=$2',[tenant,v.draft])).rows[0].signature_required,true);
+ } finally {await db.close();}
+});

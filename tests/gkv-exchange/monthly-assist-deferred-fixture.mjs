@@ -28,6 +28,7 @@ export async function assistDeferredFixture(options={}){
  // Same portal SQL, two Storage policies, ACL checks and typed audit table as the
  // staging bundle. Authentication and the Storage transport remain isolated.
  await db.transaction(async tx=>{await tx.exec(await portalStatements());});
+ await db.exec(await readFile(new URL('../../supabase/migrations/20261104084500_bind_employee_proof_release_account.sql',import.meta.url),'utf8'));
  if(options.monthlyCapture!==false) await db.exec(await readFile(new URL('../../docs/gkv/sql/monthly-assist-deferred-draft.sql',import.meta.url),'utf8'));
  const clientActor=randomUUID(),clientSession=randomUUID();
  await db.query('INSERT INTO auth.sessions VALUES($1,$2,NULL)',[clientSession,clientActor]);
