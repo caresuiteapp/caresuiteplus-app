@@ -116,6 +116,8 @@ for(const file of files.filter(file=>/\.web\.tsx$/.test(file)&&/^src\/(?:screens
 port('src/liquid-command/screens/DesktopAppsWidgetsCenter.web.tsx');
 port('src/liquid-command/screens/DesktopWeatherLocationDialog.web.tsx');
 port('src/ai/robot/neoConversation.web.ts');
+port('src/lib/portal/employeeDeferredTimeService.web.ts');
+port('src/lib/portal/employeeDeferredTimeModel.web.ts');
 for(const file of ['src/screens/help/HelpCenterScreen.web.tsx','src/components/googleWorkspace/GoogleWorkspaceWidget.web.tsx','src/components/googleWorkspace/WorkspaceDashboard.web.tsx','src/components/googleWorkspace/WorkspaceServicePanel.web.tsx','src/components/googleWorkspace/WorkspaceActionForm.web.tsx']){generated.add(sibling(file,'.native'));port(file);}
 const operatorIndex=port('src/screens/platformConsole/index.web.ts');
 if(operatorIndex!=='src/screens/platformConsole/index.native.ts'||!modules.has('src/screens/platformConsole/index.web.ts'))throw Error('Current operator console cannot be represented natively: '+JSON.stringify([...blocked.values()]));

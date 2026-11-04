@@ -306,25 +306,21 @@ function buildSessionEntry(
   };
 }
 
-async function buildEntriesForDate(
-  tenantId: string,
-  workDate: string,
-  profiles: Map<string, EmployeeProfile>,
-): Promise<WfmOfficeTimeEntry[]> {
-  const sessionsResult = await listSessionsForDate(tenantId, workDate);
-  if (!sessionsResult.ok) throw new Error(sessionsResult.error);
-
+/** Shared Office/employee projection; callers control which sessions are permitted. */
+export function buildOfficeEntriesFromSessions(
+  tenantId: string, workDate: string, sessions: WfmWorkSession[],
+  eventsBySession: ReadonlyMap<string, WfmTimeEvent[]>,
+  profiles: Map<string, EmployeeProfile> = new Map(),
+): WfmOfficeTimeEntry[] {
   const entries: WfmOfficeTimeEntry[] = [];
   const visitIdsHandled = new Set<string>();
 
-  for (const session of sessionsResult.data) {
+  for (const session of sessions) {
     const profile = profiles.get(session.employeeId) ?? {
       id: session.employeeId,
       name: `Mitarbeitende ${session.employeeId.slice(0, 8)}`,
     };
-    const eventsResult = await fetchSessionEvents(tenantId, session.id);
-    if (!eventsResult.ok) throw new Error(eventsResult.error);
-    const events = eventsResult.data;
+    const events = eventsBySession.get(session.id) ?? [];
 
     const visitStartEvents = events.filter((e) => e.eventType === 'visit_started');
     for (const startEvent of visitStartEvents) {
@@ -362,11 +358,24 @@ async function buildEntriesForDate(
     }
   }
 
-  for (const manual of listManualEntries(tenantId)) {
-    if (manual.workDate === workDate) entries.push(manual);
-  }
-
   return entries;
+}
+
+async function buildEntriesForDate(
+  tenantId: string, workDate: string, profiles: Map<string, EmployeeProfile>,
+): Promise<WfmOfficeTimeEntry[]> {
+  const sessions = await listSessionsForDate(tenantId, workDate);
+  if (!sessions.ok) throw new Error(sessions.error);
+  const eventsBySession = new Map<string, WfmTimeEvent[]>();
+  for (const session of sessions.data) {
+    const events = await fetchSessionEvents(tenantId, session.id);
+    if (!events.ok) throw new Error(events.error);
+    eventsBySession.set(session.id, events.data);
+  }
+  return [
+    ...buildOfficeEntriesFromSessions(tenantId, workDate, sessions.data, eventsBySession, profiles),
+    ...listManualEntries(tenantId).filter(entry => entry.workDate === workDate),
+  ];
 }
 
 function computeKpis(

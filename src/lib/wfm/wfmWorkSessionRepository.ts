@@ -60,7 +60,7 @@ function sessionKey(tenantId: string, employeeId: string, workDate: string): str
   return `${tenantId}:${employeeId}:${workDate}`;
 }
 
-function mapSessionRow(row: SessionRow): WfmWorkSession {
+export function mapSessionRow(row: SessionRow): WfmWorkSession {
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -82,7 +82,7 @@ function mapSessionRow(row: SessionRow): WfmWorkSession {
   };
 }
 
-function mapEventRow(row: EventRow): WfmTimeEvent {
+export function mapEventRow(row: EventRow): WfmTimeEvent {
   return {
     id: row.id,
     tenantId: row.tenant_id,
