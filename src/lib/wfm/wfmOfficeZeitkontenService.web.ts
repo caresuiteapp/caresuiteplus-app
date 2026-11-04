@@ -11,9 +11,10 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { resolveWfmOfficeTimeDisplay } from './wfmOfficeTimeDisplayResolver';
 import { getWfmOfficeTimeOverview } from './wfmOfficeTimekeepingService.web';
 import { calculateContractTargetMinutesForRange } from './wfmContractTarget';
+import { miniJobAccountBasisMinutes } from './wfmMiniJobAccountBasis.web';
 import {
   calculateOfficeAbsenceCredit, hasOfficeContractSchedule, isOfficeAccountOpenReview,
-  officeAccountRecordedMinutes, readOfficeEmployeeAccountRows, resolveOfficeAccountTarget,
+  officeAccountRecordedMinutes, readAllOfficeAccountRows, readOfficeEmployeeAccountRows, resolveOfficeAccountTarget,
 } from './wfmOfficeAccountTotals';
 
 export { calculateContractTargetMinutesForRange } from './wfmContractTarget';
@@ -77,7 +78,7 @@ export async function getWfmOfficeEmployeeTimeAccounts(
       byEmployee.set(entry.employeeId, account);
     }
 
-    const targets = new Map<string, { contract: number | null; saved: number | null }>();
+    const targets = new Map<string, { contract: number | null; saved: number | null; payoutBasis: number | null }>();
     if (getServiceMode() === 'supabase') {
       const supabase = getSupabaseClient();
       if (!supabase) return { ok: false, error: 'Die Verbindung für Zeitkonten ist nicht verfügbar. Bitte erneut anmelden oder laden.' };
@@ -85,7 +86,7 @@ export async function getWfmOfficeEmployeeTimeAccounts(
         const employeeIds = [...byEmployee.keys()];
         const lower = new Date(`${fromDate}T00:00:00Z`); lower.setUTCDate(lower.getUTCDate() - 1);
         const upper = new Date(`${toDate}T00:00:00Z`); upper.setUTCDate(upper.getUTCDate() + 1);
-        const [accountsResult, contractsResult, statementsResult, absencesResult, tripsResult] = await Promise.all([
+        const [accountsResult, contractsResult, statementsResult, absencesResult, tripsResult, employeesResult, payrollResult, travelPoliciesResult] = await Promise.all([
           readOfficeEmployeeAccountRows(employeeIds, (batch, first, last) => fromUnknownTable(supabase, 'workforce_time_accounts')
             .select('employee_id, period_year, period_month, target_minutes, vacation_days_used, sick_days')
             .eq('tenant_id', tenantId).in('employee_id', batch)
@@ -105,18 +106,33 @@ export async function getWfmOfficeEmployeeTimeAccounts(
             .lte('starts_at', upper.toISOString()).gte('ends_at', lower.toISOString())
             .order('starts_at').order('id').range(first, last)),
           readOfficeEmployeeAccountRows(employeeIds, (batch, first, last) => fromUnknownTable(supabase, 'employee_logbook_trips')
-            .select('id, employee_id, started_at, ended_at, status, counts_as_work_time')
+            .select('id, employee_id, started_at, ended_at, status, counts_as_work_time, route_type')
             .eq('tenant_id', tenantId).in('employee_id', batch)
             .gte('started_at', lower.toISOString()).lte('started_at', `${toDate}T23:59:59Z`)
             .order('started_at').order('id').range(first, last)),
+          readOfficeEmployeeAccountRows(employeeIds, (batch, first, last) => fromUnknownTable(supabase, 'employees')
+            .select('id, employment_type, entry_date, exit_date').eq('tenant_id', tenantId).in('id', batch)
+            .order('id').range(first, last)),
+          readOfficeEmployeeAccountRows(employeeIds, (batch, first, last) => fromUnknownTable(supabase, 'employee_payroll_settings')
+            .select('employee_id, compensation_type, compensation_amount, max_payout_hours_month, overflow_to_time_account, travel_policy_override')
+            .eq('tenant_id', tenantId).in('employee_id', batch).order('employee_id').range(first, last)),
+          readAllOfficeAccountRows((first, last) => fromUnknownTable(supabase, 'tenant_service_catalog')
+            .select('id, travel_policy_json').eq('tenant_id', tenantId).eq('category', 'travel').eq('is_active', true)
+            .order('id').range(first, last)),
         ]);
-        const error = [accountsResult, contractsResult, statementsResult, absencesResult, tripsResult].find(result => result.error)?.error;
+        const error = [accountsResult, contractsResult, statementsResult, absencesResult, tripsResult, employeesResult, payrollResult, travelPoliciesResult].find(result => result.error)?.error;
         if (error) return { ok: false, error: error instanceof Error ? error.message : toGermanSupabaseError(error) };
         const savedByEmployee = rowsByEmployee(accountsResult.data);
         const contractsByEmployee = rowsByEmployee(contractsResult.data);
         const absencesByEmployee = rowsByEmployee(absencesResult.data);
         const tripsByEmployee = rowsByEmployee(tripsResult.data);
         const statementsByEmployee = rowsByEmployee(statementsResult.data);
+        const employeesById = new Map(employeesResult.data.map(row => [stringValue(row.id), row]));
+        const payrollByEmployee = rowsByEmployee(payrollResult.data);
+        const companyTravelRoutes = [...new Set(travelPoliciesResult.data.flatMap(row => {
+          const policy = row.travel_policy_json as Row | null;
+          return Array.isArray(policy?.workTimeRouteTypes) ? policy.workTimeRouteTypes.filter((route): route is string => typeof route === 'string') : [];
+        }))];
         const fromMonth = Number(fromDate.slice(0, 4)) * 12 + Number(fromDate.slice(5, 7));
         const toMonth = vacationYear * 12 + Number(toDate.slice(5, 7));
         const finalMonthEnd = new Date(Date.UTC(vacationYear, Number(toDate.slice(5, 7)), 0)).getUTCDate();
@@ -138,18 +154,27 @@ export async function getWfmOfficeEmployeeTimeAccounts(
           const saved = coversWholeMonths && selectedMonths.size === toMonth - fromMonth + 1
             ? [...selectedMonths.values()].reduce((sum, value) => sum + value, 0) : null;
           const contract = contractsByEmployee.get(account.employeeId)?.[0];
+          const payroll = payrollByEmployee.get(account.employeeId)?.[0];
           const hasSchedule = hasOfficeContractSchedule(contract?.work_days);
           targets.set(account.employeeId, {
             contract: hasSchedule ? calculateContractTargetMinutesForRange(contract!.work_days, fromDate, toDate) : null,
             saved,
+            payoutBasis: miniJobAccountBasisMinutes({
+              employee: employeesById.get(account.employeeId), payroll, workDays: contract?.work_days, fromDate, toDate,
+            }),
           });
           if (contract?.annual_vacation_days != null) account.annualVacationDays = numberValue(contract.annual_vacation_days);
           account.absenceMinutes = calculateOfficeAbsenceCredit(absencesByEmployee.get(account.employeeId) ?? [], contract?.work_days, fromDate, toDate);
           const trips = (tripsByEmployee.get(account.employeeId) ?? []).filter(trip => isLogbookTripInBerlinRange(stringValue(trip.started_at), fromDate, toDate));
           const travel = calculateOfficeLogbookTime(trips.map(trip => ({ started_at: trip.started_at, ended_at: trip.ended_at, status: trip.status, counts_as_work_time: trip.counts_as_work_time })), account.entries);
+          const override = payroll?.travel_policy_override as Row | null;
+          const routes = Array.isArray(override?.workTimeRouteTypes) ? override.workTimeRouteTypes : companyTravelRoutes;
+          const creditedTravel = calculateOfficeLogbookTime(trips.filter(trip => routes.includes(stringValue(trip.route_type)))
+            .map(trip => ({ started_at: trip.started_at, ended_at: trip.ended_at, status: trip.status, counts_as_work_time: trip.counts_as_work_time })), account.entries);
           account.travelMinutes = travel.travelMinutes;
-          account.logbookAdditionalMinutes = travel.additionalMinutes;
-          account.actualMinutes += travel.additionalMinutes;
+          account.creditedTravelMinutes = creditedTravel.travelMinutes;
+          account.logbookAdditionalMinutes = creditedTravel.additionalMinutes;
+          account.actualMinutes += creditedTravel.additionalMinutes;
           account.payrollStatements = (statementsByEmployee.get(account.employeeId) ?? []).map(row => ({
             id: stringValue(row.id), periodYear: numberValue(row.period_year), periodMonth: numberValue(row.period_month),
             version: numberValue(row.version), status: stringValue(row.status), pdfPath: stringValue(row.pdf_path) || null,
@@ -161,9 +186,12 @@ export async function getWfmOfficeEmployeeTimeAccounts(
 
     const accounts = [...byEmployee.values()].map(account => {
       const target = targets.get(account.employeeId);
-      const resolved = resolveOfficeAccountTarget(target?.contract ?? null, target?.saved ?? null, account.plannedMinutes);
+      const resolved = target?.payoutBasis != null
+        ? { targetMinutes: target.payoutBasis, targetSource: 'payout_limit' as const }
+        : resolveOfficeAccountTarget(target?.contract ?? null, target?.saved ?? null, account.plannedMinutes);
       const creditedMinutes = account.actualMinutes + account.absenceMinutes;
-      const saldoMinutes = creditedMinutes - resolved.targetMinutes;
+      const difference = creditedMinutes - resolved.targetMinutes;
+      const saldoMinutes = resolved.targetSource === 'payout_limit' ? Math.max(0, difference) : difference;
       return { ...account, ...resolved, saldoMinutes,
         overtimeMinutes: Math.max(0, saldoMinutes), undertimeMinutes: Math.max(0, -saldoMinutes),
         remainingVacationDays: account.annualVacationDays == null ? null : account.annualVacationDays - account.vacationDaysUsed,

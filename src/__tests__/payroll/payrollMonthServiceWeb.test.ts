@@ -68,6 +68,25 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); });
 
 describe('Web payroll complete tenant-scoped reads', () => {
+  it('uses the same configured minijob basis as WFM without inventing contract hours or paying documented travel', async () => {
+    vi.setSystemTime(new Date('2026-11-04T10:00:00Z'));
+    seedEmployee('e1', { employment_type: 'mini_job' }); seedAccount();
+    state.rows.employee_payroll_settings[0] = { tenant_id: 'tenant-1', employee_id: 'e1', compensation_type: 'hourly', compensation_amount: '15.00', max_payout_hours_month: '40.20', overflow_to_time_account: true };
+    state.rows.employee_contract_settings[0].work_days = { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, sun: 0 };
+    const account = state.accounts[0];
+    account.actualMinutes = account.approvedMinutes = account.entries[0].netMinutes = 2836;
+    account.travelMinutes = 307; account.creditedTravelMinutes = 0;
+    account.targetMinutes = 2412; account.targetSource = 'payout_limit'; account.saldoMinutes = 424;
+    const result = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');
+    expect(result.ok).toBe(true); if (!result.ok) return;
+    expect(result.data.employees[0]).toMatchObject({ calculationReady: true, actualWorkMinutes: 2836, travelMinutes: 0,
+      targetWorkMinutes: 2412, targetWorkSource: 'payout_limit', timeAccountBalanceMinutes: 424,
+      payableMinutes: 2412, overtimeTransferMinutes: 424, earnedGrossCents: 60300 });
+    account.actualMinutes = account.approvedMinutes = account.entries[0].netMinutes = 120;
+    const below = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');
+    expect(below.ok && below.data.employees[0]).toMatchObject({ timeAccountBalanceMinutes: 0, targetActualDifferenceMinutes: 0, overtimeTransferMinutes: 0, earnedGrossCents: 3000 });
+  });
+
   it('uses contractual work days independently of payout cap and accepts persisted numeric strings', async () => {
     seedEmployee(); seedAccount();
     const result = await listPayrollMonthOverview('tenant-1', 2026, 10, 'business_admin');

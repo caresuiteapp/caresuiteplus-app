@@ -10,6 +10,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { readAllOfficeAccountRows, hasOfficeContractSchedule } from '@/lib/wfm/wfmOfficeAccountTotals';
 import { calculateContractTargetMinutesForRange } from '@/lib/wfm/wfmContractTarget';
+import { miniJobAccountBasisMinutes } from "../wfm/wfmMiniJobAccountBasis.native.ts";
 import { listPlannedVisitsForPeriod } from "../wfm/wfmOfficePlannedVisitRepository.native.ts";
 import { getWfmOfficeEmployeeTimeAccounts } from "../wfm/wfmOfficeZeitkontenService.native.ts";
 import { calculatePayrollSnapshot, calculatePayrollTimeAccountBalance, payrollExpenseTotals } from "./payrollCalculator.native.ts";
@@ -134,14 +135,15 @@ function buildEmployee(input: {
     if (!validEmploymentDates)
         blockers.push('Ein- oder Austrittsdatum ist ungültig. Bitte die Personalakte korrigieren.');
     const hasSchedule = hasOfficeContractSchedule(contract?.work_days);
-    if (!hasSchedule)
+    const payoutBasis = miniJobAccountBasisMinutes({ employee, payroll, workDays: contract?.work_days, fromDate, toDate });
+    if (!hasSchedule && payoutBasis == null)
         blockers.push('Die vertraglichen Arbeitstage fehlen. Sollzeit und bezahlte Abwesenheiten sind nicht verlässlich berechenbar.');
     const fullAbsences = payrollAbsenceCredits(absences, contract?.work_days, employmentRange.fromDate, employmentRange.toDate);
     const accruedAbsences = payrollAbsenceCredits(absences, contract?.work_days, employmentRange.fromDate, today < employmentRange.toDate ? today : employmentRange.toDate);
     if (fullAbsences.overlap)
         blockers.push('Verschiedene bezahlte Abwesenheiten überschneiden sich. Bitte die Abwesenheiten zuerst klären.');
-    const targetAvailable = hasSchedule && validEmploymentDates && employmentRange.fromDate <= employmentRange.toDate;
-    const fullMonthTarget = targetAvailable ? calculateContractTargetMinutesForRange(contract!.work_days, employmentRange.fromDate, employmentRange.toDate) : 0;
+    const targetAvailable = (hasSchedule || payoutBasis != null) && validEmploymentDates && employmentRange.fromDate <= employmentRange.toDate;
+    const fullMonthTarget = payoutBasis ?? (targetAvailable ? calculateContractTargetMinutesForRange(contract!.work_days, employmentRange.fromDate, employmentRange.toDate) : 0);
     const times = payrollTimeReadiness(account, now);
     blockers.push(...times.calculationIssues);
     const accountAvailable = Boolean(account && Number.isFinite(account.actualMinutes) && account.actualMinutes >= 0 && Number.isFinite(account.travelMinutes) && account.travelMinutes >= 0);
@@ -189,9 +191,11 @@ function buildEmployee(input: {
     if (isMiniJobEmploymentType(employee.employment_type))
         warnings.push('Die monatliche Begrenzung ersetzt keine Prüfung von Jahresverdienst und Sonderzahlungen.');
     const hasPaidAbsences = absences.some(row => ['approved', 'active', 'completed'].includes(asString(row.status)) && !['unpaid_leave', 'parental_leave'].includes(asString(row.absence_type)));
+    if (payoutBasis != null && hasPaidAbsences)
+        blockers.push('Für bezahlte Abwesenheiten fehlen vertragliche Tagesstunden. Die Auszahlungsgrenze ersetzt diese Angaben nicht.');
     // A confirmed empty absence result is a real zero even when no contract schedule exists.
     // Conflicting or unquantifiable absences are omitted from the preview, never silently credited twice.
-    const absenceAvailable = !hasPaidAbsences || (targetAvailable && !fullAbsences.overlap && !absenceConflict);
+    const absenceAvailable = !hasPaidAbsences || (payoutBasis == null && targetAvailable && !fullAbsences.overlap && !absenceConflict);
     const vacationMinutes = absenceAvailable ? accruedAbsences.vacationMinutes : 0;
     const sickMinutes = absenceAvailable ? accruedAbsences.sickMinutes : 0;
     const otherPaidAbsenceMinutes = absenceAvailable ? accruedAbsences.otherPaidAbsenceMinutes : 0;
@@ -200,13 +204,16 @@ function buildEmployee(input: {
         previewNotes.push('Die Vorschau enthält keine unklaren bezahlten Abwesenheiten. Diese werden nach Klärung ergänzt.');
     if (times.calculationIssues.length || completedWithoutCapture)
         previewNotes.push('Die Vorschau verwendet nur vorhandene abgeschlossene Zeiterfassungen. Fehlende, offene oder abgelehnte Zeiten werden nicht geschätzt.');
-    if (!hasSchedule)
+    if (!hasSchedule && payoutBasis == null)
         previewNotes.push('Der hinterlegte Lohn kann angezeigt werden. Für das Zeitkonto fehlt die vertragliche Sollzeit.');
+    if (payoutBasis != null)
+        previewNotes.push('Der Monatsübertrag verwendet die hinterlegte Auszahlungsgrenze. Daraus entstehen keine vertraglichen Sollstunden oder Minusstunden.');
     if (!accountAvailable)
         previewNotes.push('Ein vollständiges Arbeitszeitkonto fehlt. Eine Vergütung nach Stunden lässt sich daraus noch nicht berechnen.');
     const timeAccountAvailable = accountAvailable && targetAvailable && absenceAvailable;
-    const timeAccountBalanceMinutes = timeAccountAvailable ? calculatePayrollTimeAccountBalance({ actualWorkMinutes: times.actualWorkMinutes,
+    const differenceMinutes = timeAccountAvailable ? calculatePayrollTimeAccountBalance({ actualWorkMinutes: times.actualWorkMinutes,
         vacationMinutes, sickMinutes, otherPaidAbsenceMinutes, targetMinutes: fullMonthTarget }) : 0;
+    const timeAccountBalanceMinutes = payoutBasis == null ? differenceMinutes : Math.max(0, differenceMinutes);
     let expensesAvailable = true;
     let expenseTotals = { approvedExpensesCents: 0, pendingExpensesCents: 0, reimbursedExpensesCents: 0 };
     try {
@@ -224,8 +231,9 @@ function buildEmployee(input: {
         compensationType: (payroll?.compensation_type === 'hourly' ? 'hourly' : 'salary') as 'hourly' | 'salary',
         compensationAmount: compensationAvailable ? amount! : 0, maxPayoutHours,
         overflowToTimeAccount: isMiniJobEmploymentType(employee.employment_type) || payroll?.overflow_to_time_account !== false,
-        actualWorkMinutes: times.actualWorkMinutes, travelMinutes: accountAvailable ? account!.travelMinutes : 0,
+        actualWorkMinutes: times.actualWorkMinutes, travelMinutes: accountAvailable ? account!.creditedTravelMinutes ?? account!.travelMinutes : 0,
         vacationMinutes, sickMinutes, otherPaidAbsenceMinutes, projectedPaidAbsenceMinutes, targetWorkMinutes: fullMonthTarget,
+        ...(payoutBasis == null ? {} : { targetWorkSource: 'payout_limit' as const }),
         monthlyPlannedMinutes: input.visits.filter(visit => visit.employeeId === employeeId).reduce((sum, visit) => sum + payrollPlannedVisitLine(visit).plannedMinutes, 0),
         plannedMinutes, timeAccountBalanceMinutes, expenses: expensesAvailable ? expenses : [], assignmentTimeLines: lines,
         nextMonthPreview: nextMonthPreviewForEmployee(input.nextVisits, employeeId, next.year, next.month), now: new Date(now).toISOString(),

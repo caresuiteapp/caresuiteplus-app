@@ -228,12 +228,14 @@ export interface WfmOfficeEmployeeTimeAccount {
   openReviewCount: number;
   targetMinutes: number;
   /** Available on the Office web account; a contractual zero is an explicit target. */
-  targetSource?: 'contract' | 'saved_account' | 'planned';
+  targetSource?: 'contract' | 'saved_account' | 'planned' | 'payout_limit';
   /** Year to which vacationDaysUsed and sickDays belong. */
   vacationYear?: number;
   overtimeMinutes: number;
   undertimeMinutes: number;
   travelMinutes: number;
+  /** Documented logbook time that the current employee/company policy actually credits. */
+  creditedTravelMinutes?: number;
   logbookAdditionalMinutes?: number;
   absenceMinutes: number;
   vacationDaysUsed: number;

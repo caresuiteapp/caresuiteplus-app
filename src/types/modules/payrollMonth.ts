@@ -125,6 +125,8 @@ export type PayrollStatementSnapshot = {
   otherPaidAbsenceMinutes: number;
   /** Vertragliches Soll des ausgewählten Monats. */
   targetWorkMinutes?: number;
+  /** A payout comparison basis must not be presented as contractual working time. */
+  targetWorkSource?: 'payout_limit';
   /** Arbeitszeit plus bezahlte Abwesenheiten. */
   creditedActualMinutes?: number;
   /** Anrechenbare Ist-Zeit abzüglich vertraglichem Soll. */
