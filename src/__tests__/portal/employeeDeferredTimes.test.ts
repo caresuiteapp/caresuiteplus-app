@@ -20,7 +20,7 @@ function entry(i: number, extra: Partial<WfmOfficeTimeEntry> = {}): WfmOfficeTim
 }
 function review(selected: WfmOfficeTimeEntry, extra: Partial<WfmTimeEntryReview> = {}): WfmTimeEntryReview {
   const identity = officeReviewIdentity(selected);
-  return { id: id(80), tenantId, employeeId, workDate: selected.workDate, ...identity, referenceId: identity.referenceId,
+  return { id: id(80), tenantId, ...identity, referenceId: identity.referenceId,
     reviewStatus: 'approved', exportStatus: 'export_ready', exportBlocking: false, updatedAt: revision,
     reviewNote: null, officeComment: null, reviewedAt: revision, reviewedBy: id(99), ...extra };
 }
