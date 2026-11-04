@@ -12,7 +12,7 @@ export function deferredPayrollEntry(entry: WfmOfficeTimeEntry, reason: PayrollD
 }
 export function matchDeferredPayrollEntry(item: PayrollDeferredTimeEntry, entries: WfmOfficeTimeEntry[]): WfmOfficeTimeEntry | undefined {
     const sameDay = entries.filter(entry => entry.workDate === item.workDate);
-    const exact = sameDay.filter(entry => entry.id === item.entryId || item.sessionId && entry.sessionId === item.sessionId);
+    const exact = sameDay.filter(entry => entry.id === item.entryId);
     if (exact.length === 1)
         return exact[0];
     if (exact.length > 1)
@@ -20,7 +20,12 @@ export function matchDeferredPayrollEntry(item: PayrollDeferredTimeEntry, entrie
     // A missing planned row receives a new source ID when the employee adds time.
     const occurrence = sameDay.filter(entry => (item.visitId && entry.visitId === item.visitId || item.assignmentId && entry.assignmentId === item.assignmentId)
         && (!item.plannedStartAt || Date.parse(entry.plannedStartAt ?? '') === Date.parse(item.plannedStartAt)));
-    return occurrence.length === 1 ? occurrence[0] : undefined;
+    if (item.visitId || item.assignmentId)
+        return occurrence.length === 1 ? occurrence[0] : undefined;
+    // A daily session can contain several visits. Its ID cannot identify one of
+    // those visits, even when only a different visit remains in the read model.
+    const session = sameDay.filter(entry => item.sessionId && entry.sessionId === item.sessionId && !entry.visitId && !entry.assignmentId);
+    return session.length === 1 ? session[0] : undefined;
 }
 export type PayrollTimeRegistry = {
     deferred: Map<string, PayrollDeferredTimeEntry>;

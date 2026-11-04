@@ -32,6 +32,26 @@ describe('deferred payroll sources across publication periods', () => {
     const result = resolvePayrollCatchUp(registry, [entry()], 2026, 11, now);
     expect(result.catchUp).toHaveLength(1); expect(result.catchUp[0].minutes).toBe(110); expect(result.pending).toHaveLength(1);
   });
+  it('resolves distinct deferred visits in the same daily session exactly once each', () => {
+    const first = entry({ sessionId: 'shared-session', visitId: 'visit-1' });
+    const second = entry({ id: 'source-2', sessionId: 'shared-session', visitId: 'visit-2', assignmentId: 'second-assignment' });
+    const registry = payrollTimeRegistry([history([deferredPayrollEntry(first, 'incomplete'), deferredPayrollEntry(second, 'incomplete')])], 'e1');
+    expect(matchDeferredPayrollEntry(deferredPayrollEntry(first, 'incomplete'), [first, second])).toBe(first);
+    expect(matchDeferredPayrollEntry(deferredPayrollEntry(second, 'incomplete'), [first, second])).toBe(second);
+    expect(resolvePayrollCatchUp(registry, [first, second], 2026, 11, now).catchUp.map(item => item.sourceEntryId)).toEqual(['source-1', 'source-2']);
+    expect(matchDeferredPayrollEntry(deferredPayrollEntry(first, 'incomplete'), [second])).toBeUndefined();
+  });
+  it('matches occurrence aliases before session identity and keeps standalone work separate', () => {
+    const first = entry({ sessionId: 'shared-session', visitId: 'visit-1' });
+    const second = entry({ id: 'source-2', sessionId: 'shared-session', visitId: 'visit-2', assignmentId: 'second-assignment' });
+    const alias = deferredPayrollEntry({ ...first, id: 'planned-placeholder' }, 'missing');
+    expect(matchDeferredPayrollEntry(alias, [first, second])).toBe(first);
+    const standalone = entry({ id: 'session:shared-session', sessionId: 'shared-session', visitId: null, assignmentId: null });
+    const oldStandalone = deferredPayrollEntry({ ...standalone, id: 'old-session-alias' }, 'incomplete');
+    expect(matchDeferredPayrollEntry(oldStandalone, [first, standalone])).toBe(standalone);
+    expect(matchDeferredPayrollEntry(oldStandalone, [first])).toBeUndefined();
+    expect(matchDeferredPayrollEntry(alias, [first, { ...first, id: 'duplicate-source' }, second])).toBeUndefined();
+  });
   it('retains frozen claims on reissue and excludes them from every other month, including older reopened periods', () => {
     const origin = history();
     const claimed = resolvePayrollCatchUp(payrollTimeRegistry([origin], 'e1'), [entry()], 2026, 12, now).catchUp;

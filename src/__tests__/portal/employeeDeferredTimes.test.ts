@@ -78,4 +78,18 @@ describe('employee follow-up uses the payroll source identities', () => {
     input.statements=[{tenant_id:tenantId,employee_id:employeeId,period_year:2026,period_month:10,version:1,status:'published',deferred_time_entries:[pending]}];
     expect(employeeDeferredTimes(input)).toHaveLength(1);
   });
+  it('shows published visits sharing a session once and retains an orphan source for Office', () => {
+    const sharedSession = id(40);
+    const rows = [entry(1, { sessionId: sharedSession }), entry(2, { sessionId: sharedSession })];
+    const orphan = entry(3, { sessionId: sharedSession, assignmentId: null, clientLabel: null, assignmentTitle: 'Arbeitszeit',
+      rowKind: 'session_only', plannedStartAt: null, plannedEndAt: null });
+    const input = fixture([...rows, orphan]);
+    input.visitSources = input.visitSources.filter(source => source.id !== orphan.visitId);
+    input.statements = [{ tenant_id: tenantId, employee_id: employeeId, period_year: 2026, period_month: 10, version: 1,
+      status: 'published', deferred_time_entries: [...rows, orphan].map(row => deferredPayrollEntry(row, 'incomplete')) }];
+    const tasks = employeeDeferredTimes(input);
+    expect(tasks).toHaveLength(3);
+    expect(tasks.filter(task => task.state === 'correction_needed')).toHaveLength(2);
+    expect(tasks.find(task => task.id === orphan.id)).toMatchObject({ label: 'Arbeitszeit', state: 'office_required' });
+  });
 });

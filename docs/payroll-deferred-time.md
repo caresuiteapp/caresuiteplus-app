@@ -12,6 +12,8 @@ Mitarbeitende reichen tatsächlichen Beginn, Ende, Pause und Begründung zur Zei
 
 In einem späteren Monat werden noch nicht berücksichtigte Quellen erneut aus dem WFM gelesen. Erst ein gültiger Abschluss mit `approved`, `exported` oder `locked` macht die tatsächlichen Minuten zur Nachberechnung verfügbar. Geplante Dauer wird nicht ersatzweise vergütet. Für geplante Platzhalter ohne Erfassungskennung wird nur eine eindeutig zuordenbare spätere Erfassung desselben Einsatzes und Arbeitstags übernommen. Mehrdeutige Zuordnungen bleiben offen.
 
+Eine exakte Zeilenkennung hat beim Abgleich Vorrang. Mehrere Einsätze innerhalb derselben täglichen Arbeitszeitsitzung bleiben eigenständige Quellen; die gemeinsame Sitzungskennung allein ordnet keinen Einsatz zu. Für Arbeitszeiten ohne Einsatzbezug ist der Sitzungsabgleich auf andere Arbeitszeiten ohne Einsatzbezug beschränkt. Dadurch erscheinen veröffentlichte Zurückstellungen neben ihren aktuellen Quellen nicht doppelt.
+
 `currentPeriodWorkMinutes` enthält die freigegebene Zeit des gewählten Monats. `catchUpWorkMinutes` und `catchUpTimeEntries` weisen Nachberechnungen gesondert aus; zusammen ergeben sie `actualWorkMinutes` der Abrechnung. Die hinterlegte aktuelle Vergütung und Auszahlungsgrenze gelten auch für die nachberechneten Minuten. Dies ist keine historische Vergütungsneuberechnung oder steuerliche Lohnabrechnung. Dokumentierte, nach der Firmenregel nicht anrechenbare Fahrzeit wird nicht nachvergütet.
 
 ## Schutz vor mehrfacher Anrechnung
