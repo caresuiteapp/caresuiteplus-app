@@ -147,6 +147,12 @@ bleiben sichtbar und werden ausdrücklich als früherer Prüfumfang gekennzeichn
 und Verlassen der Ansicht verwerfen ausstehende UI-Antworten. Ein gestarteter
 Hostauftrag wird dadurch nicht automatisch abgebrochen oder wiederholt.
 
+## Startprüfung der Webanbindung
+
+`npm run verify:gkv:kim-host-web` startet den für Vercel vorgesehenen TypeScript-Einstieg als CommonJS ohne das experimentelle Laden von ES-Modulen via `require()`. Die gemeinsam genutzten Statusprüfer werden wie beim DTA-Testexport kompiliert. Die Webfunktion und der private ESM-Adapter benutzen denselben Handler und denselben mTLS-Transport. Der Starttest prüft einen Leseaufruf, einen nicht angemeldeten Aufruf und einen vom Aufrufer eingeschleusten Host. Keiner darf einen Netzaufruf auslösen. Anschließend laufen die bestehenden KIM-Hosttests mit einer lokalen mTLS-Gegenstelle und synthetischen Zertifikaten.
+
+Ein direkter `GET /api/gkv/kim-host` auf der bereitgestellten Vorschau muss `405`, `Allow: POST` und `KIM_HOST_METHOD` liefern. Das weist nach, dass die Webfunktion startet. Es ist kein Zugriff auf einen privaten Konnektor und kein TI- oder Hardwarebefund.
+
 ## Was die Nachweise aussagen
 
 Das Protokoll enthält Challenge-/Inhalts-/Container-Hashes, Zertifikat-Hashes,
