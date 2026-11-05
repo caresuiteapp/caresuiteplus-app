@@ -112,7 +112,7 @@ export function renderPayrollStatementPdf(snapshot: PayrollWebStatementSnapshot,
   const leftBottom = summary(margin, 'Arbeitszeit und Zeitkonto', [
     ...(snapshot.catchUpWorkMinutes ? [
       { label: 'Freigegebene Zeit dieses Monats', value: formatPayrollMinutes(snapshot.currentPeriodWorkMinutes ?? 0) },
-      { label: 'Nachberechnung aus Vormonaten', value: formatPayrollMinutes(snapshot.catchUpWorkMinutes) },
+      { label: snapshot.catchUpTimeEntries?.some(item => item.originYear === snapshot.periodYear && item.originMonth === snapshot.periodMonth) ? 'Nachträglich angenommene Zeit' : 'Nachberechnung aus Vormonaten', value: formatPayrollMinutes(snapshot.catchUpWorkMinutes) },
     ] : []),
     { label: 'Davon angerechnete Fahrzeit', value: formatPayrollMinutes(snapshot.travelMinutes) },
     { label: 'Angerechneter Urlaub', value: formatPayrollMinutes(snapshot.vacationMinutes) },
@@ -205,7 +205,7 @@ export function renderPayrollStatementPdf(snapshot: PayrollWebStatementSnapshot,
     hasTravel ? [{ label: 'Datum', width: 19 }, { label: 'Klient:in / Einsatz', width: 50 }, { label: 'Plan', width: 25 }, { label: 'Erfasst', width: 25 }, { label: 'Fahrt', width: 16, right: true }, { label: 'Differenz', width: 20, right: true }, { label: 'Status', width: 23 }]
       : [{ label: 'Datum', width: 19 }, { label: 'Klient:in / Einsatz', width: 61 }, { label: 'Plan', width: 26 }, { label: 'Erfasst', width: 26 }, { label: 'Differenz', width: 21, right: true }, { label: 'Status', width: 25 }],
     current.map(line => assignmentCells(line, true, hasTravel)));
-  if (snapshot.catchUpTimeEntries?.length) table('Nachberechnungen aus Vormonaten', `${period} · ${snapshot.catchUpTimeEntries.length} Einträge`,
+  if (snapshot.catchUpTimeEntries?.length) table(snapshot.catchUpTimeEntries.some(item => item.originYear === snapshot.periodYear && item.originMonth === snapshot.periodMonth) ? 'Nachträglich angenommene Zeiten' : 'Nachberechnungen aus Vormonaten', `${period} · ${snapshot.catchUpTimeEntries.length} Einträge`,
     'Die folgenden Zeiten wurden im Ursprungsmonat zurückgestellt und nach Korrektur und Freigabe in dieser Monatsübersicht berücksichtigt. Sie sind in der Arbeitszeit und der Auszahlungsgrenze dieses Monats enthalten.',
     [{ label: 'Arbeitstag', width: 24 }, { label: 'Klient:in / Einsatz', width: 91 }, { label: 'Erfasste Zeit', width: 35 }, { label: 'Nachberechnet', width: 28, right: true }],
     snapshot.catchUpTimeEntries.map(item => [cell(date(item.workDate)), { blocks: [{ text: item.clientLabel || item.assignmentTitle, bold: true }, ...(item.clientLabel ? [{ text: item.assignmentTitle, muted: true }] : [])] },

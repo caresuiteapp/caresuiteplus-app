@@ -5368,25 +5368,31 @@
     {
       "web": "src/lib/payroll/payrollOfficeReadModel.web.ts",
       "native": "src/lib/payroll/payrollOfficeReadModel.native.ts",
-      "sourceHash": "a335f48c3e2afdc505a6e4cb8faaa350e3f50a3af1ddcfe9b991ceaca096c00b",
+      "sourceHash": "4e281c55c7edbea14221a5e2f656ed85ec028df50f1659f42b456706cc7ad7eb",
       "environment": []
     },
     {
       "web": "src/lib/payroll/payrollTimeDeferral.web.ts",
       "native": "src/lib/payroll/payrollTimeDeferral.native.ts",
-      "sourceHash": "24ae0b10dec1639369097c443f74ba573dd900729220ab3d1f31eaddcad0f19f",
+      "sourceHash": "7c72d585bd8a713a5f3d8c1bb3f279a2bb26d7de293d8d830f0466205d0065ec",
+      "environment": []
+    },
+    {
+      "web": "src/lib/payroll/payrollTimeAcceptance.web.ts",
+      "native": "src/lib/payroll/payrollTimeAcceptance.native.ts",
+      "sourceHash": "8e39c1e28adb3d70aecd426c1a86625513c03024cf1400a4e798a17290596b75",
       "environment": []
     },
     {
       "web": "src/lib/payroll/payrollStatementPdf.web.ts",
       "native": "src/lib/payroll/payrollStatementPdf.native.ts",
-      "sourceHash": "11306483851b90e5861b9fffe9da617d809a04c2d4ae53bad9f53b41fed50cc2",
+      "sourceHash": "9dc94f2f631a1b11dd62fc45c110a04f769cb7ce49ea0e1f206d27d730072a57",
       "environment": []
     },
     {
       "web": "src/lib/payroll/payrollOfficeActions.web.ts",
       "native": "src/lib/payroll/payrollOfficeActions.native.ts",
-      "sourceHash": "0131b2e8fdfcd17176c3f7ce62afa1cdc805e4fa02791a4d10d0f77b821e00dc",
+      "sourceHash": "d26f71599b487a8db69a4b44860763c23c17f7dca4a621e7f9de9aec6af4ee1c",
       "environment": [
         "crypto"
       ]
@@ -5394,7 +5400,7 @@
     {
       "web": "src/lib/payroll/payrollMonthService.web.ts",
       "native": "src/lib/payroll/payrollMonthService.native.ts",
-      "sourceHash": "768f2e9dc4d9aaa585865a9467ecbd05991964a05bbe971e461715ba500b3084",
+      "sourceHash": "61b422e6c094a0c8f73eea6fbab58b9d91d28bad46f8f0d576f2545fe1c99ac3",
       "environment": []
     },
     {
@@ -5406,7 +5412,7 @@
     {
       "web": "src/components/payroll/PayrollEmployeeDetail.web.tsx",
       "native": "src/components/payroll/PayrollEmployeeDetail.native.tsx",
-      "sourceHash": "4d682de9d876d6aa7bc2708d2a06c81120d1c0814f0c8bfda61a9ff1628f95a7",
+      "sourceHash": "24d4f399637d041be6e9989adc2839f27465d519d1591d895774ba87c6769fad",
       "environment": []
     },
     {
@@ -5418,7 +5424,7 @@
     {
       "web": "src/screens/office/PayrollMonthOverviewScreen.web.tsx",
       "native": "src/screens/office/PayrollMonthOverviewScreen.native.tsx",
-      "sourceHash": "c18b0919a182eecb4882683c95901f3da86d6840f23bbbf786fe932f2278c750",
+      "sourceHash": "de77c26b96df4692a926c3318c19ec9f9b92c8d4a9d016cb14260258276af94d",
       "environment": [
         "window",
         "URL"

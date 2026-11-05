@@ -119,12 +119,26 @@ export type PayrollDeferredTimeEntry = {
   reason: 'missing' | 'incomplete' | 'unapproved' | 'rejected' | 'deferred';
 };
 export type PayrollCatchUpTimeEntry = PayrollDeferredTimeEntry & {
+  acceptanceId?: string;
   sourceEntryId: string;
   minutes: number;
   travelMinutes: number;
   actualStartAt: string;
   actualEndAt: string;
   reviewedAt: string | null;
+};
+
+export type PayrollTimeAcceptance = {
+  id: string; employeeId: string; deferredKey: string; targetYear: number; targetMonth: number;
+  reviewId: string; reviewUpdatedAt: string; updatedAt: string;
+  entry: import('./wfmOfficeTimekeeping').WfmOfficeTimeEntry;
+};
+export type PayrollTimeAcceptanceOption = {
+  item: PayrollDeferredTimeEntry;
+  entry: import('./wfmOfficeTimekeeping').WfmOfficeTimeEntry | null;
+  reviewId: string | null; reviewUpdatedAt: string | null;
+  acceptance: PayrollTimeAcceptance | null;
+  currentBlock: string | null; nextBlock: string | null;
 };
 
 export type PayrollNextMonthPreview = {

@@ -55,7 +55,7 @@ describe('employee follow-up uses the payroll source identities', () => {
     input.reviews=[review(original,{officeEntry:{...saved,reviewStatus:'approved'}})];
     expect(employeeDeferredTimes(input)).toEqual([]);
     const approved={...saved,reviewStatus:'approved' as const};
-    expect(resolvePayrollCatchUp(registry,[approved],2026,11,now).catchUp).toEqual([expect.objectContaining({minutes:90,workDate:'2026-10-31'})]);
+    expect(resolvePayrollCatchUp(registry,[approved],2026,11,now,[{id:id(70),employeeId,deferredKey:deferred.key,targetYear:2026,targetMonth:11,reviewId:id(80),reviewUpdatedAt:revision,updatedAt:revision,entry:approved}]).catchUp).toEqual([expect.objectContaining({minutes:90,workDate:'2026-10-31'})]);
     expect(resolvePayrollCatchUp(registry,[approved],2026,10,now).catchUp).toEqual([]);
   });
   it('does not confuse another tenant, employee or repeated occurrence with the selected work', () => {

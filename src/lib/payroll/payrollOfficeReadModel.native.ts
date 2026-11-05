@@ -23,6 +23,7 @@ export type PayrollOfficeEmployeeMonth = PayrollEmployeeMonth & {
     statementHistory: PayrollStatement[];
     projectedPaidAbsenceMinutes?: number;
     reimbursedExpensesCents?: number;
+    timeAcceptanceOptions?: import('@/types/modules/payrollMonth').PayrollTimeAcceptanceOption[];
 };
 export type PayrollOfficeMonthOverview = Omit<PayrollMonthOverview, 'employees'> & {
     employees: PayrollOfficeEmployeeMonth[];
