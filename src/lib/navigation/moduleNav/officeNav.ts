@@ -52,6 +52,7 @@ export const officeNav: ModuleNavConfig = {
     {
       title: 'Organisation',
       items: [
+        { key: 'documentation', label: 'Dokumentation', icon: '📋', href: '/office/dokumentation' },
         { key: 'notes', label: 'Notizen', icon: '📝', href: '/office/notizen' },
         { key: 'qm', label: 'Qualitätsmanagement', icon: '✅', href: '/business/office/qm' },
         { key: 'reporting', label: 'Office Reporting', icon: '📈', href: '/business/office/reporting' },

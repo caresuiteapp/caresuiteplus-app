@@ -1,0 +1,45 @@
+// @vitest-environment happy-dom
+import { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { DocumentationWorkspace, berlinInputToIso } from '@/components/office/documentation/DocumentationWorkspace.web';
+import type { DocumentationEntry, DocumentationPage } from '@/lib/office/documentation/model';
+
+Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+const api=vi.hoisted(()=>({list:vi.fn(),create:vi.fn()}));
+vi.mock('@/lib/office/documentation/service',()=>({listDocumentation:api.list,createDocumentation:api.create}));
+vi.mock('@/hooks/useUnsavedWebChanges.web',()=>({useUnsavedWebChanges:()=>async()=>true}));
+const actor={tenantId:'11111111-1111-4111-8111-111111111111',userId:'22222222-2222-4222-8222-222222222222'};
+const entry:DocumentationEntry={id:'33333333-3333-4333-8333-333333333333',tenant_id:actor.tenantId,source:'visit',area:'client',client_id:'44444444-4444-4444-8444-444444444444',employee_id:null,category:'care',priority:'normal',title:'Abgeschlossener Einsatz',body:'Gespeicherte Beobachtung',occurred_at:'2026-11-04T17:00:00Z',created_at:'2026-11-04T17:05:00Z',author_name:'Team Test',client_name:'Client Test',employee_name:'',visit_id:'55555555-5555-4555-8555-555555555555'};
+let host:HTMLDivElement,root:Root;
+const page:DocumentationPage={items:[entry],total:1,months:['2026-11'],clients:[{id:entry.client_id!,name:entry.client_name}],employees:[]};
+beforeEach(()=>{vi.clearAllMocks();api.list.mockResolvedValue({ok:true,data:structuredClone(page)});api.create.mockResolvedValue({ok:true,data:{id:entry.id}});host=document.createElement('div');document.body.append(host);root=createRoot(host);});
+afterEach(async()=>{await act(async()=>root.unmount());host.remove();});
+const render=async()=>{await act(async()=>root.render(<DocumentationWorkspace actor={actor}/>));};
+const click=async(label:string)=>{const el=[...host.querySelectorAll('button')].find(b=>b.textContent?.trim()===label||b.getAttribute('aria-label')===label);expect(el,label).toBeTruthy();await act(async()=>el!.click());};
+const input=async(label:string,value:string)=>{const el=[...host.querySelectorAll('label')].find(l=>l.childNodes[0]?.textContent?.trim()===label)?.querySelector('input,textarea,select') as HTMLInputElement;expect(el,label).toBeTruthy();await act(async()=>{const proto=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:el.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(proto,'value')!.set!.call(el,value);el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}));});};
+describe('shared documentation workspace',()=>{
+ it('opens completed report details, creates a linked-context addition and persists without an assignment',async()=>{
+  await render();await act(async()=>host.querySelector<HTMLButtonElement>('.cs-doc-card')!.click());expect(host.querySelector('.cs-doc-copy')?.textContent).toBe(entry.body);
+  await click('Ergänzung erfassen');expect(host.querySelector('textarea')?.value).toContain('Bezug: Abgeschlossener Einsatz');
+  await input('Dokumentation *','Neue Beobachtung');await click('Eintrag speichern');
+  expect(api.create).toHaveBeenCalledOnce();expect(api.create.mock.calls[0][2]).toMatchObject({area:'client',clientId:entry.client_id,body:'Neue Beobachtung'});
+  expect(api.create.mock.calls[0][2]).not.toHaveProperty('assignmentId');expect(host.textContent).toContain('Dokumentation gespeichert');
+ });
+ it('keeps content and request identity frozen when a save receipt is uncertain',async()=>{
+  await render();await click('＋ Neuer Eintrag');await input('Titel *','Teamabsprache');await input('Dokumentation *','Rückmeldung dokumentiert');
+  api.create.mockResolvedValueOnce({ok:false,uncertain:true,error:'Speicherbestätigung fehlt'});await click('Eintrag speichern');
+  const first=structuredClone(api.create.mock.calls[0]);expect(host.querySelector('fieldset')?.disabled).toBe(true);expect(host.querySelector('textarea')?.value).toBe('Rückmeldung dokumentiert');
+  await click('Speicherbestätigung prüfen');expect(api.create.mock.calls[1]).toEqual(first);expect(host.textContent).toContain('Dokumentation gespeichert');
+ });
+ it('sends filters to the server and recovers from a load error',async()=>{
+  await render();api.list.mockResolvedValueOnce({ok:false,error:'Verbindung unterbrochen'});await click('Gesundheit');
+  expect(api.list.mock.calls.at(-1)?.[1]).toMatchObject({category:'health',offset:0});expect(host.querySelector('[role=alert]')?.textContent).toContain('Verbindung unterbrochen');expect(host.querySelector('.cs-doc-card')).toBeNull();
+  await click('Erneut laden');expect(host.querySelector('.cs-doc-card')).toBeTruthy();
+ });
+ it('converts Berlin wall time independently of device zone and rejects nonexistent DST time',()=>{
+  expect(berlinInputToIso('2026-11-01T12:00')).toBe('2026-11-01T11:00:00.000Z');
+  expect(berlinInputToIso('2026-07-01T12:00')).toBe('2026-07-01T10:00:00.000Z');
+  expect(berlinInputToIso('2026-03-29T02:30')).toBe('');expect(berlinInputToIso('')).toBe('');
+ });
+});

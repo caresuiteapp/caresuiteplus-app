@@ -2210,6 +2210,18 @@
       "environment": []
     },
     {
+      "web": "src/components/office/documentation/documentationCss.web.ts",
+      "native": "src/components/office/documentation/documentationCss.native.ts",
+      "sourceHash": "2f96a81790613bedf27f2addb6650cb5d36d625825ea3a64d743953bf5c877a1",
+      "environment": []
+    },
+    {
+      "web": "src/components/office/documentation/DocumentationWorkspace.web.tsx",
+      "native": "src/components/office/documentation/DocumentationWorkspace.native.tsx",
+      "sourceHash": "3c70df8206f97d240cb16b06703d4cc712d6898b9214fbde03dc78202ef04e15",
+      "environment": []
+    },
+    {
       "web": "src/lib/office/createPersonnelProfile.web.ts",
       "native": "src/lib/office/createPersonnelProfile.native.ts",
       "sourceHash": "904f947023418d094f23154a891cc9754794384420d47283f33c69006d6d8633",
@@ -5569,6 +5581,12 @@
       ]
     },
     {
+      "web": "src/screens/office/OfficeDocumentationScreen.web.tsx",
+      "native": "src/screens/office/OfficeDocumentationScreen.native.tsx",
+      "sourceHash": "d4c6ecdb2d0087c7becceb31c6156100fe1a8b62867617781ef1ea2139bdc6d1",
+      "environment": []
+    },
+    {
       "web": "src/screens/office/OfficeDocumentsDetailListScreen.web.tsx",
       "native": "src/screens/office/OfficeDocumentsDetailListScreen.native.tsx",
       "sourceHash": "1692180c218a1d760bf19b8878a37ba50470bf52d8dd53836d751a79fd7df469",
@@ -7549,6 +7567,12 @@
       "environment": []
     },
     {
+      "web": "app/office/dokumentation.web.tsx",
+      "native": "app/office/dokumentation.native.tsx",
+      "sourceHash": "b6714c188ed3d22b4e49d63bb677b857af92d165f207a8e0b8ab764e396962b8",
+      "environment": []
+    },
+    {
       "web": "app/office/inventory/assignments.web.tsx",
       "native": "app/office/inventory/assignments.native.tsx",
       "sourceHash": "b0e0c79109b29077cc2e557cde369ab9066b695b020f6efc17ddf122a4470f1a",
@@ -7732,6 +7756,12 @@
       "web": "app/portal/employee/beratung/[id].web.tsx",
       "native": "app/portal/employee/beratung/[id].native.tsx",
       "sourceHash": "2d9834622e8b60cc63071e50e5dd806065e319120e019d30c7537775cd9cc24c",
+      "environment": []
+    },
+    {
+      "web": "app/portal/employee/dokumentation.web.tsx",
+      "native": "app/portal/employee/dokumentation.native.tsx",
+      "sourceHash": "b6714c188ed3d22b4e49d63bb677b857af92d165f207a8e0b8ab764e396962b8",
       "environment": []
     },
     {
@@ -8553,6 +8583,10 @@
       "native": "app/office/documents/upload.native.tsx"
     },
     {
+      "web": "app/office/dokumentation.web.tsx",
+      "native": "app/office/dokumentation.native.tsx"
+    },
+    {
       "web": "app/office/employees/[id]/edit.tsx",
       "native": "app/office/employees/[id]/edit.native.tsx"
     },
@@ -8847,6 +8881,10 @@
     {
       "web": "app/portal/employee/documents/signatures/[id].tsx",
       "native": "app/portal/employee/documents/signatures/[id].native.tsx"
+    },
+    {
+      "web": "app/portal/employee/dokumentation.web.tsx",
+      "native": "app/portal/employee/dokumentation.native.tsx"
     },
     {
       "web": "app/portal/employee/tasks/index.web.tsx",

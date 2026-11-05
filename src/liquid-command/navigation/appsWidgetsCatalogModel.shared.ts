@@ -161,6 +161,7 @@ const RULES: Readonly<Record<string, CatalogRule>> = {
   '/business/subscription': { module: 'office', all: ['business.subscription.view'] },
   '/office': OFFICE, '/unternehmen': OFFICE, '/business/office/dashboard': OFFICE,
   '/office/notizen': OFFICE,
+  '/office/dokumentation': OFFICE,
   '/business/office/clients': { module: 'office', all: ['office.clients.view'] },
   '/office/clients': { module: 'office', all: ['office.clients.view'] },
   '/business/office/clients/new': { module: 'office', all: ['office.clients.create'] },

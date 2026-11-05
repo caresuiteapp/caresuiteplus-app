@@ -240,6 +240,7 @@ export const WIDGETS: readonly WidgetDefinition[] = [
   { id: 'pflege-handover', label: 'Übergaben', description: 'Pflegerelevante Informationen für die nächste Übergabe.', category: 'Versorgung', route: '/pflege/uebergaben' },
   { id: 'pflege-tours', label: 'Pflegetouren', description: 'Versorgungswege und Pflegeeinsätze organisieren.', category: 'Versorgung', route: '/pflege/tourenplanung' },
   { id: 'pflege-quality', label: 'Pflegequalität', description: 'Risiken, Evaluationen und Qualitätsprüfung öffnen.', category: 'Versorgung', route: '/pflege/risiken' },
+  { id: 'documentation', label: 'Dokumentation', description: 'Gemeinsame Dokumentation und Berichte aus abgeschlossenen Einsätzen.', category: 'Verwaltung', route: '/office/dokumentation' },
   { id: 'notes', label: 'Notizen', description: 'Persönliche Notizen, Ideen und Aufgaben sammeln und wiederfinden.', category: 'Verwaltung', route: '/office/notizen', ...(notesArtwork ? { images: { small: notesArtwork, medium: notesArtwork, large: notesArtwork } } : {}) },
   { id: 'document-catalog', label: 'Dokumentenkatalog', description: '450 Vorlagen für Pflege, Betreuung, Personal und Verwaltung. Daten übernehmen, PDF erstellen und in der Akte ablegen.', category: 'Verwaltung', route: '/business/office/document-catalog', permission: 'office.documents.view', images: {
     small: require('../../../assets/healthos/widgets-premium/document-catalog.png'),
@@ -341,6 +342,7 @@ export const WIDGETS: readonly WidgetDefinition[] = [
 ] as const;
 
 export const DEFAULT_DESKTOP_IDS = [
+  'documentation',
   'notes',
   "clients", "messages", "live", "proofs",
   "office", "people", "calendar", "assignments",

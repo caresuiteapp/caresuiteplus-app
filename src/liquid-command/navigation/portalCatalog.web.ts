@@ -31,6 +31,7 @@ export const liquidPortalNavigation: Record<
     { id: 'home', label: 'Heute', glyph: '⌂', route: '/portal/employee', compact: true, group: 'overview' },
     { id: 'assignments', label: 'Einsätze', glyph: '◇', route: '/portal/employee/assignments', compact: true, group: 'work' },
     { id: 'open-assignments', label: 'Offene Einsätze', glyph: '◷', route: '/portal/employee/offene-einsaetze', group: 'work' },
+    { id: 'documentation', label: 'Dokumentation', glyph: '▤', route: '/portal/employee/dokumentation', group: 'work' },
     { id: 'clients', label: 'Klient:innen', glyph: '○', route: '/portal/employee/clients', group: 'work' },
     { id: 'calendar', label: 'Kalender', glyph: '□', route: '/portal/employee/calendar', group: 'work' },
     { id: 'time', label: 'Arbeitszeit', glyph: '◷', route: '/portal/employee/arbeitszeit', group: 'work' },

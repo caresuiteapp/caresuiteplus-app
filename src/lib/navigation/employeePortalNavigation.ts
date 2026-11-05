@@ -12,6 +12,7 @@ export const EMPLOYEE_PORTAL_NAV_TABS: ShellTabConfig[] = [
   { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/employee/messages' },
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
   { key: 'uploads', label: 'Uploads', icon: '📤', href: '/portal/employee/uploads' },
+  { key: 'documentation', label: 'Dokumentation', icon: '📋', href: '/portal/employee/dokumentation' },
   { key: 'clients', label: 'Klientenakten', icon: '👥', href: '/portal/employee/clients' },
   {
     key: 'time-tracking',
@@ -61,6 +62,7 @@ export const EMPLOYEE_PORTAL_DRAWER_TAB_KEYS = [
   'open-assignments',
   'uploads',
   'clients',
+  'documentation',
   'time-tracking',
   'logbook',
   'payroll',

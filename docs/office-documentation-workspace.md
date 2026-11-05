@@ -1,0 +1,15 @@
+# Gemeinsame Office-Dokumentation
+
+Office: `/office/dokumentation`. Mitarbeitendenportal: `/portal/employee/dokumentation`.
+
+Die neue Dokumentation ist ein gemeinsamer interner Teamverlauf pro Unternehmen. Freie Einträge benötigen keinen Einsatz. Sie können Klienten, Mitarbeitenden oder der Verwaltung zugeordnet werden. Kategorien, Dringlichkeit, Suche, Quelle und Berliner Kalendermonate werden serverseitig gefiltert. Die Liste lädt jeweils 50 Einträge und bietet eine kompakte Darstellung. Auf schmalen Geräten lassen sich die Filter einklappen.
+
+Gespeicherte Berichte aus `assist_visit_documentation` werden automatisch eingebunden, sobald der zugehörige Einsatz `execution_status=completed` erreicht hat. Nicht eingereichte, leere oder stornierte Berichte erscheinen nicht. Der Verlauf liest das Original über einen privaten View; es entstehen keine separaten Kopien oder doppelten Importdatensätze. Spätere Änderungen am Original werden beim nächsten Laden angezeigt. Dies ersetzt keine Pflege-Freigabe, Signatur oder Rechnungsprüfung.
+
+Freie Einträge bleiben unverändert gespeichert. Ergänzungen können Titel, Datum und Zuordnung eines geöffneten Eintrags übernehmen. Eine einmal erzeugte Request-ID verhindert beim erneuten Prüfen einer unklaren Speicherbestätigung doppelte Einträge. Der Browser speichert keine Dokumentationsinhalte in Local Storage. Bei einem Konto- oder Unternehmenswechsel wird der Arbeitsbereich neu aufgebaut.
+
+Aktive Office-Zugänge folgen den vorhandenen Unternehmensberechtigungen und Einschränkungen. Ein aktiver, eindeutig zugeordneter Mitarbeitendenportalzugang darf den gemeinsamen Teamverlauf lesen und ergänzen. Klienten- und Angehörigenportale haben keinen Zugriff. Bestehende vertrauliche Personalakten, persönliche Notizen und private Nachrichten werden nicht in diesen Verlauf übernommen. Der Editor weist auf die gemeinsame Sichtbarkeit hin.
+
+Die Tabelle und der View liegen im privaten Schema `care_security`, sind nicht direkt für `authenticated` oder `anon` freigegeben und haben RLS. Die bewusst fehlende direkte Tabellenpolicy bewirkt vollständige Sperrung außerhalb der kontrollierten RPCs. Die öffentlichen RPCs sind Security Invoker; die privaten Implementierungen prüfen Anmeldung, Firma, aktiven Zugang und Zuordnungen erneut. Ältere Staging-Schemas ohne Unternehmenshelfer verwenden eine eng begrenzte Prüfung des aktiven Geschäftsprofils und der vorhandenen Office-Berechtigung.
+
+Prüfung: `npm run verify:office-documentation:release` führt isolierte PostgreSQL-Szenarien sowie Service- und Oberflächentests aus. Die SQL-Szenarien umfassen Berechtigungen, Mandantentrennung, idempotentes Speichern, Monatsgrenzen, Filter, Seitennavigation und die automatische Anzeige abgeschlossener Einsätze. Browserprüfungen verwenden ausschließlich synthetische Beispieldaten. Sie belegen Layout und Bedienung der gemeinsamen Komponente, keinen angemeldeten produktiven Ende-zu-Ende-Ablauf. Die native Darstellung wird aus derselben Webquelle generiert; ein physischer Gerätetest ist ein eigener Nachweis.

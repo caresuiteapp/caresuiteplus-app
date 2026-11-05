@@ -11,7 +11,7 @@ const CALENDAR = '/business/connect/google-workspace?service=calendar';
 // These are ordering hints, never a source of widgets or access. In particular,
 // prepared Pflege/Stationär pages only qualify after the caller's release checks.
 const OWN_ROUTE_PRIORITY: Readonly<Record<DesktopAreaKey, readonly string[]>> = {
-  office: [CLIENTS, NOTES, TEMPLATES, MESSAGES, PEOPLE, CALENDAR, DOCUMENTS,
+  office: [CLIENTS, '/office/dokumentation', NOTES, TEMPLATES, MESSAGES, PEOPLE, CALENDAR, DOCUMENTS,
     '/business/office/invoices', '/business/office/time-tracking', '/unternehmen'],
   assist: ['/assist/assignments', '/assist/calendar', '/assist/live-status',
     '/assist/zugeordnete-klienten', '/assist/nachweise', '/assist/tourenplanung',

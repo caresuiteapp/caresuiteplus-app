@@ -58,6 +58,7 @@ export function desktopCatalogIconName(route: string): DesktopCatalogIconName {
   if (has('catalogs|kataloge')) return 'catalog';
   if (has('settings|einstellungen') && path !== '/settings/tenant') return 'settings';
   if (has('access|portals|portale|employee-portal|client-portal')) return 'key';
+  if (has('dokumentation')) return 'document';
   if (has('notizen|notes')) return 'notes';
   if (has('fahrtenbuch|logbook')) return 'car';
   if (has('time-tracking|timekeeping|arbeitszeit|wiedervorlagen')) return 'clock';
