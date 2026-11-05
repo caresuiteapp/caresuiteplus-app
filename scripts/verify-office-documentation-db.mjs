@@ -9,6 +9,8 @@ const ids = Object.fromEntries(['tenant','foreignTenant','admin','staff','client
 const sql = readFileSync('supabase/patches/office_documentation_workspace.sql','utf8');
 const migration = readFileSync('supabase/migrations/20261105090254_office_documentation_workspace.sql','utf8');
 assert.equal(sql,migration);
+const registeredClientsSql = readFileSync('supabase/patches/office_documentation_registered_clients.sql','utf8');
+assert.equal(registeredClientsSql,readFileSync('supabase/migrations/20261105102248_office_documentation_registered_clients.sql','utf8'));
 const result = async (q,params=[]) => (await db.query(q,params)).rows[0]?.result;
 const owner = async (q,params=[]) => { await db.exec('RESET ROLE'); return db.query(q,params); };
 async function actor(user=ids.admin,portal='business',tenant=ids.tenant) {
@@ -29,6 +31,7 @@ try {
     CREATE TABLE public.assist_visits(id uuid PRIMARY KEY,tenant_id uuid,client_id uuid,employee_id uuid,title text,service_name text,actual_end_at timestamptz,execution_status text,canonical_status text);
     CREATE TABLE public.assist_visit_documentation(id uuid PRIMARY KEY,tenant_id uuid,visit_id uuid,short_description text,special_notes text,deviations text,deviation_justification text,referral_required boolean,emergency_or_problem boolean,sis_notes text,vitals_summary text,body_map_notes text,medication_notes text,care_report_notes text,submitted_at timestamptz,submitted_by uuid,created_at timestamptz DEFAULT now());`);
   await db.exec(sql);
+  await db.exec(registeredClientsSql);
   await db.query('INSERT INTO public.tenants(id) VALUES($1),($2)',[ids.tenant,ids.foreignTenant]);
   await db.query('INSERT INTO auth.users(id) VALUES($1),($2),($3)',[ids.admin,ids.staff,ids.clientUser]);
   await db.query("INSERT INTO public.roles(id,key,is_admin_role) VALUES($1,'business_admin',true)",[ids.role]);
@@ -46,6 +49,36 @@ try {
   await pass('entity isolation, required content, future dates and priorities are enforced on server',async()=>{
     for(const patch of [{clientId:ids.foreignClient},{employeeId:ids.foreignEmployee},{title:''},{body:' '},{priority:'fake'},{area:'client',clientId:''},{occurredAt:'2099-01-01T00:00:00Z'}]) await denied(create(payload(patch)),'22023');
     await denied(list({},ids.foreignTenant));assert.equal((await list()).total,1);
+  });
+  await pass('client choices exclude intake drafts and deleted records but retain registered lifecycle states',async()=>{
+    const registered=['active','paused','inactive','archived','deceased','blocked'];
+    const candidates=[];
+    for(const status of [...registered,'lead','deleted']) {
+      const clientId=randomUUID();candidates.push({clientId,status});
+      // A fully named draft may share a name with the actual registered client.
+      await owner('INSERT INTO public.clients(id,tenant_id,first_name,last_name,status) VALUES($1,$2,$3,$4,$5)',[clientId,ids.tenant,'Client','Test',status]);
+    }
+    const removedId=randomUUID();
+    await owner("INSERT INTO public.clients(id,tenant_id,first_name,last_name,status,deleted_at) VALUES($1,$2,'Deleted','Client','active',now())",[removedId,ids.tenant]);
+    for(const [user,portal] of [[ids.admin,'business'],[ids.staff,'employee']]) {
+      await actor(user,portal);
+      const choices=(await list()).clients.map(c=>c.id);
+      assert.ok(choices.includes(ids.client));assert.ok(!choices.includes(ids.foreignClient));assert.ok(!choices.includes(removedId));
+      for(const {clientId,status} of candidates) assert.equal(choices.includes(clientId),registered.includes(status),status);
+      for(const {clientId,status} of candidates.filter(c=>!registered.includes(c.status))) {
+        await denied(create(payload({clientId})),'22023');
+        await denied(create(payload({area:'administration',clientId})),'22023');
+      }
+    }
+    await owner('DELETE FROM public.clients WHERE id=ANY($1::uuid[])',[[removedId,...candidates.map(c=>c.clientId)]]);
+    await actor();assert.equal((await list()).total,1);
+  });
+  await pass('a client reverted to intake is rejected at save time while existing documentation stays readable',async()=>{
+    await owner("UPDATE public.clients SET status='lead' WHERE id=$1",[ids.client]);
+    await actor();const before=await list();assert.equal(before.total,1);assert.equal(before.items[0].id,id);
+    assert.ok(!before.clients.some(c=>c.id===ids.client));await denied(create(),'22023');
+    await owner("UPDATE public.clients SET status='active' WHERE id=$1",[ids.client]);
+    await actor();assert.ok((await list()).clients.some(c=>c.id===ids.client));assert.deepEqual(await create(payload(),id),receipt);
   });
   await pass('month boundaries use Berlin summer time and search treats wildcards literally',async()=>{
     assert.equal((await list({month:'2026-04'})).total,1);assert.equal((await list({month:'2026-03'})).total,0);
