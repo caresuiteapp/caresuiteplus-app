@@ -1,32 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { PortalRequest } from '@/types/portal/assist';
 import { listTenantPortalRequests } from '@/lib/portal/assist';
+import { useAsyncQuery } from './core';
+import { useVisibilityAwarePolling } from '@/lib/polling/useVisibilityAwarePolling';
 
-export function useTenantPortalRequests(tenantId: string | null, enabled = true) {
-  const [requests, setRequests] = useState<PortalRequest[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  const refresh = useCallback(async () => {
-    if (!tenantId || !enabled) {
-      setRequests([]);
-      return;
-    }
-    setLoading(true);
-    setError(null);
-    const result = await listTenantPortalRequests(tenantId, { limit: 20 });
-    if (result.ok) {
-      setRequests(result.data);
-    } else {
-      setError(result.error);
-      setRequests([]);
-    }
-    setLoading(false);
-  }, [tenantId, enabled]);
-
-  useEffect(() => {
-    void refresh();
-  }, [refresh]);
-
-  return { requests, loading, error, refresh };
+export function useTenantPortalRequests(tenantId: string | null, enabled = true, clientId?: string) {
+  const active = enabled && Boolean(tenantId);
+  const query = useAsyncQuery(
+    () => listTenantPortalRequests(tenantId!, { clientId }),
+    [tenantId, clientId],
+    { enabled: active, queryKey: `portal-requests:${tenantId}:${clientId ?? 'all'}`, refreshOnAppFocus: true },
+  );
+  useVisibilityAwarePolling({ enabled: active, intervalMs: 12_000, onPoll: () => { void query.refresh(); } });
+  return { requests: active ? query.data ?? [] : [], loading: active && query.loading,
+    error: query.error ?? query.refreshError, refresh: query.refresh };
 }

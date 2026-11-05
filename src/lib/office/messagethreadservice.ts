@@ -90,18 +90,23 @@ async function fetchNavBadgeThreadsLive(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  const { data, error } = await fromUnknownTable(supabase, 'message_threads')
+  const rows: Record<string, unknown>[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await fromUnknownTable(supabase, 'message_threads')
     .select(
       'id, tenant_id, thread_type, status, office_unread_count, last_message_at, created_at, updated_at',
     )
     .eq('tenant_id', tenantId)
     .in('thread_type', ['client', 'employee', 'employee_group', 'internal'])
     .order('last_message_at', { ascending: false, nullsFirst: false })
-    .limit(120);
+    .order('id', { ascending: false })
+    .range(offset, offset + 499);
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    rows.push(...(data ?? []) as Record<string, unknown>[]);
+    if ((data ?? []).length < 500) break;
+  }
 
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
-
-  const threads = (data ?? [])
+  const threads = rows
     .map((row) => mapThreadRow(row as Record<string, unknown>))
     .filter((thread): thread is OfficeMessageThread => thread !== null);
 
@@ -112,16 +117,21 @@ async function fetchThreadsLive(tenantId: string): Promise<ServiceResult<OfficeM
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  const { data, error } = await fromUnknownTable(supabase, 'message_threads')
+  const rows: Record<string, unknown>[] = [];
+  for (let offset = 0; ; offset += 500) {
+    const { data, error } = await fromUnknownTable(supabase, 'message_threads')
     .select('*')
     .eq('tenant_id', tenantId)
     .in('thread_type', ['client', 'employee', 'employee_group', 'internal'])
     .order('last_message_at', { ascending: false, nullsFirst: false })
-    .limit(200);
+    .order('id', { ascending: false })
+    .range(offset, offset + 499);
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    rows.push(...(data ?? []) as Record<string, unknown>[]);
+    if ((data ?? []).length < 500) break;
+  }
 
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
-
-  const threads = (data ?? [])
+  const threads = rows
     .map((row) => mapThreadRow(row as Record<string, unknown>))
     .filter((thread): thread is OfficeMessageThread => thread !== null);
 

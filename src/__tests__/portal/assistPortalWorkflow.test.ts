@@ -10,11 +10,13 @@ import { createPortalRequest } from '@/lib/portal/assist/portalRequestService';
 const mockInsert = vi.fn();
 const mockSelect = vi.fn();
 const mockSingle = vi.fn();
+const mockSubmit = vi.fn();
 
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({
     auth: { getUser: vi.fn().mockResolvedValue({ data: { user: { id: 'auth-user-1' } }, error: null }) },
-    rpc: vi.fn(async (name: string) => {
+    rpc: vi.fn(async (name: string,args:Record<string,unknown>) => {
+      if(name==='portal_submit_request') return mockSubmit(args);
       if (name === 'resolve_current_profile_id') return { data: 'user-1', error: null };
       if (name === 'current_tenant_id') return { data: 'tenant-1', error: null };
       throw new Error(`Unexpected identity RPC ${name}`);
@@ -46,9 +48,6 @@ vi.mock('@/lib/portal/assist/portalActivityService', () => ({
   logPortalActivity: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('@/lib/portal/assist/portalAssistEvents', () => ({
-  stubEmployeeNotificationForRequest: vi.fn().mockResolvedValue(undefined),
-}));
 
 describe('assist portal navigation', () => {
   it('includes assist feature nav when assist is primary', () => {
@@ -94,9 +93,12 @@ describe('createPortalRequest', () => {
       },
       error: null,
     });
+    mockSubmit.mockImplementation(async(args:Record<string,unknown>)=>({data:{id:args.p_request_id,
+      tenant_id:args.p_tenant_id,client_id:args.p_client_id,portal_user_id:'user-1',request_type:args.p_request_type,
+      title:args.p_title,payload:args.p_payload,office_thread_id:'thread-1',office_message_id:'msg-1',office_delivered_at:'2026-11-05T09:00:00Z'},error:null}));
   });
 
-  it('creates a portal request via supabase insert', async () => {
+  it('creates a portal request with a confirmed Office receipt', async () => {
     const result = await createPortalRequest({
       tenantId: 'tenant-1',
       clientId: 'client-1',
@@ -109,13 +111,13 @@ describe('createPortalRequest', () => {
 
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data.id).toBe('req-1');
+      expect(result.data.officeThreadId).toBe('thread-1');
       expect(result.data.portalUserId).toBe('user-1');
       expect(result.data.requestType).toBe('rueckruf');
       expect(result.data.payload).toMatchObject({ thema: 'termin' });
     }
-    expect(mockInsert).toHaveBeenCalledWith(expect.objectContaining({
-      tenant_id: 'tenant-1', client_id: 'client-1', portal_user_id: 'user-1',
+    expect(mockSubmit).toHaveBeenCalledWith(expect.objectContaining({
+      p_tenant_id: 'tenant-1', p_client_id: 'client-1',
     }));
   });
 });

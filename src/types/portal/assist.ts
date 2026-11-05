@@ -42,6 +42,10 @@ export type PortalRequest = {
   payload: Record<string, unknown>;
   createdAt: string;
   updatedAt: string;
+  clientName?: string | null;
+  officeThreadId?: string | null;
+  officeMessageId?: string | null;
+  officeDeliveredAt?: string | null;
 };
 
 export type PortalActivity = {
@@ -104,6 +108,8 @@ export type AssistDashboardData = {
 };
 
 export type CreatePortalRequestInput = {
+  /** Stable submission ID when a caller already owns a persistent draft. */
+  requestId?: string;
   tenantId: string;
   clientId: string;
   portalUserId?: string | null;
