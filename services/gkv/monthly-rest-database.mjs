@@ -16,7 +16,7 @@ export function monthlyRestDatabase({config, tenantId, principal, authorization,
       headers: {Authorization: authorization, apikey: key, 'Content-Type': 'application/json', Accept: 'application/json', 'Accept-Encoding': 'identity'},
       signal: AbortSignal.timeout(15000), body: JSON.stringify({p_envelope: envelope, p_mac: mac})});
     const result = await monthlyJson(response);
-    if (!response.ok) throw Error(result?.code === '42501' ? 'MONTHLY_FORBIDDEN' : result?.code === '40001' ? 'MONTHLY_STALE'
+    if (!response.ok) throw Error(result?.code === '42501' ? 'MONTHLY_FORBIDDEN' : ['40001','PT409'].includes(result?.code) ? 'MONTHLY_STALE'
       : result?.code === '23505' ? 'MONTHLY_SIGNATURE_REUSED' : 'MONTHLY_UNAVAILABLE');
     return result;
   }

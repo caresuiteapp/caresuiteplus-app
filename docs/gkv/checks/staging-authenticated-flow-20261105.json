@@ -1,0 +1,158 @@
+{
+  "schema": "gkv-staging-http-evidence-v1",
+  "project": "shwpweerzsfkqaivmaoc",
+  "runId": "959a5b4e-3de5-4b3f-aa1c-22025ee03f48",
+  "startedAt": "2026-11-05T06:22:11.772Z",
+  "retiredAt": "2026-11-05T07:06:25.319Z",
+  "synthetic": true,
+  "browserAcceptance": false,
+  "hardwareTiAcceptance": false,
+  "productionChanged": false,
+  "tenantId": "4600fdff-2d83-4c94-9aca-b8d515922065",
+  "assignmentId": "fbb22964-9a32-4299-8169-e91d711ed6e6",
+  "visitId": "fbb22964-9a32-4299-8169-e91d711ed6e6",
+  "portalProofId": "b74d55ca-3d46-472c-88b8-e71048cdda9a",
+  "sealedProofId": "3f919b7f-8ec5-4feb-bf88-ae42b5af223e",
+  "sourceRecordId": "b78255f4-70a9-4a5e-aaa9-758baf1ff47f",
+  "originalSha256": "sha256:49c65400c873bb49fdc1078ffe7683093072867f11311eb1bdc187f6697ad72b",
+  "monthlyProofId": "e73c2281-08f4-4a6e-a25d-3f3bd32cec1f",
+  "monthlyStatus": "final",
+  "monthlyReceiptId": "9c59107b-6d88-4fe3-9c3f-9a86d79fb2fe",
+  "monthlyOriginalSha256": "32c93c52dfc414e5d114aef97ae9f2fe83baed39c3d12bfba459b3ee00611d47",
+  "monthlyHost": "existing host implementation in private local test store with real hosted Auth and RPC; no deployed mTLS or XML/CMS proof",
+  "invoiceId": "3d8aade6-f3b2-4b02-9949-58b8d05ec043",
+  "invoiceStatus": "draft",
+  "checks": [
+    {
+      "check": "real_auth_office",
+      "at": "2026-11-05T06:24:22.571Z",
+      "passed": true
+    },
+    {
+      "check": "real_auth_employee",
+      "at": "2026-11-05T06:24:23.162Z",
+      "passed": true
+    },
+    {
+      "check": "real_auth_client",
+      "at": "2026-11-05T06:24:23.521Z",
+      "passed": true
+    },
+    {
+      "check": "real_auth_otherClient",
+      "at": "2026-11-05T06:24:24.075Z",
+      "passed": true
+    },
+    {
+      "check": "employee_registration_separate_authenticated_reviewer",
+      "passed": true,
+      "at": "2026-11-05T06:25:41.650Z"
+    },
+    {
+      "check": "employee_started_assigned_visit_over_http",
+      "passed": true,
+      "at": "2026-11-05T06:25:42.871Z"
+    },
+    {
+      "check": "employee_released_bound_content_to_client",
+      "passed": true,
+      "at": "2026-11-05T06:26:53.023Z"
+    },
+    {
+      "check": "client_signature_upload_readback",
+      "passed": true,
+      "at": "2026-11-05T06:33:32.730Z"
+    },
+    {
+      "check": "client_signed_and_completed_actual_stored_pdf",
+      "passed": true,
+      "at": "2026-11-05T06:33:44.174Z"
+    },
+    {
+      "check": "employee_sealed_exact_original",
+      "passed": true,
+      "at": "2026-11-05T06:39:16.133Z"
+    },
+    {
+      "check": "hosted_edge_rendered_and_verified_original_pdf",
+      "passed": true,
+      "at": "2026-11-05T06:39:19.971Z"
+    },
+    {
+      "check": "canonical_service_record_references_byte_receipt",
+      "passed": true,
+      "at": "2026-11-05T06:39:20.155Z"
+    },
+    {
+      "check": "office_retrieved_exact_server_verified_original",
+      "passed": true,
+      "at": "2026-11-05T06:41:27.108Z"
+    },
+    {
+      "check": "confirmed_original_hash_cannot_be_replaced",
+      "passed": true,
+      "at": "2026-11-05T06:41:27.525Z"
+    },
+    {
+      "check": "independent_office_approved_signed_source_and_billing",
+      "passed": true,
+      "at": "2026-11-05T06:41:28.097Z"
+    },
+    {
+      "check": "other_client_cannot_read_original_or_signature",
+      "passed": true,
+      "at": "2026-11-05T06:49:29.267Z"
+    },
+    {
+      "check": "monthly_record_contains_exact_approved_source",
+      "passed": true,
+      "at": "2026-11-05T06:42:58.686Z"
+    },
+    {
+      "check": "monthly_original_retrieved_and_acknowledged_against_live_session",
+      "passed": true,
+      "at": "2026-11-05T06:45:53.832Z"
+    },
+    {
+      "check": "monthly_confirmation_consumed_host_verified_receipt",
+      "passed": true,
+      "at": "2026-11-05T06:46:31.040Z"
+    },
+    {
+      "check": "confirmed_monthly_original_retrieved_unchanged",
+      "passed": true,
+      "at": "2026-11-05T06:46:37.377Z"
+    },
+    {
+      "check": "own_original_readable_but_direct_client_overwrite_denied",
+      "passed": true,
+      "at": "2026-11-05T06:49:35.958Z"
+    },
+    {
+      "check": "invoice_rejects_amount_different_from_approved_source",
+      "passed": true,
+      "at": "2026-11-05T07:00:53.855Z"
+    },
+    {
+      "check": "invoice_bound_once_to_approved_signed_source",
+      "passed": true,
+      "at": "2026-11-05T07:00:54.210Z"
+    },
+    {
+      "check": "legacy_and_canonical_invoice_references_agree",
+      "passed": true,
+      "at": "2026-11-05T07:00:54.374Z"
+    },
+    {
+      "check": "final_hosted_invoice_monthly_source_and_original_chain_agree",
+      "passed": true,
+      "at": "2026-11-05T07:04:28.484Z"
+    },
+    {
+      "check": "four_test_users_banned_and_old_client_session_denied",
+      "passed": true,
+      "at": "2026-11-05T07:06:25.319Z"
+    }
+  ],
+  "baseCommit": "8252c6ab4a896d8cff9a8246d85edcbe837f4c05"
+}

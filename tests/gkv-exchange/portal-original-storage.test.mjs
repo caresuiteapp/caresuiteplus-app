@@ -23,7 +23,7 @@ test('Original file policies intersect broad tenant policies on actual SELECT, I
     CREATE FUNCTION is_client_portal_rls_context(uuid) RETURNS boolean LANGUAGE sql STABLE AS $$ SELECT public.current_role_key() IN ('client_portal','family_portal') $$;
     CREATE TABLE client_portal_access(id uuid,tenant_id uuid,client_id uuid,auth_user_id uuid,status text,portal_enabled boolean);
     CREATE TABLE client_portal_codes(id uuid,tenant_id uuid,client_id uuid,auth_user_id uuid,status text,blocked_at timestamptz,expires_at timestamptz);
-    CREATE TABLE assist_visits(id uuid,tenant_id uuid,client_id uuid);
+    CREATE TABLE assist_visits(id uuid,tenant_id uuid,client_id uuid,planning_status text DEFAULT 'published');
     CREATE TABLE assist_visit_proofs(id uuid,tenant_id uuid,visit_id uuid,portal_visible boolean,portal_release_status text,signature_id uuid,payload_hash text,pdf_storage_path text,pdf_hash text,payload_snapshot jsonb);
     CREATE TABLE assist_visit_signatures(id uuid,tenant_id uuid,visit_id uuid,is_valid boolean,invalidated_at timestamptz,storage_path text,signer_role text,metadata jsonb);
     CREATE TABLE storage.objects(bucket_id text,name text,marker text DEFAULT 'original',PRIMARY KEY(bucket_id,name));
@@ -35,7 +35,7 @@ test('Original file policies intersect broad tenant policies on actual SELECT, I
   await db.query('INSERT INTO client_portal_access VALUES($1,$2,$3,$4,$5,true)',[account,ten,client,owner,'aktiv']);
   await db.query("INSERT INTO client_portal_codes VALUES($1,$2,$3,$4,'active',NULL,now()+interval '1 hour')",[code,ten,client,owner]);
   for(const [v,p,s,c,path] of [[visit,proof,sig,client,img],[v2,p2,s2,other,img2]]){
-   await db.query('INSERT INTO assist_visits VALUES($1,$2,$3)',[v,ten,c]);
+   await db.query('INSERT INTO assist_visits(id,tenant_id,client_id) VALUES($1,$2,$3)',[v,ten,c]);
    await db.query("INSERT INTO assist_visit_proofs VALUES($1,$2,$3,true,'pending_client_signature',NULL,$4,NULL,NULL,'{}')",[p,ten,v,hash]);
    await db.query("INSERT INTO assist_visit_signatures VALUES($1,$2,$3,true,NULL,$4,'client',$5)",[s,ten,v,path,{proofId:p,signedVia:'client_portal',proofPayloadHash:hash}]);
   }
@@ -45,6 +45,22 @@ test('Original file policies intersect broad tenant policies on actual SELECT, I
   const as=async(typ='client',role='client_portal',ac=account)=>{await db.exec('RESET ROLE');for(const [k,v] of Object.entries({uid:owner,client,account:ac,tenant:ten,role,type:typ}))await db.query('SELECT set_config($1,$2,false)',['test.'+k,v]);await db.exec('SET ROLE authenticated');};
   await as();assert.equal(await visible(img2),true);await db.exec('RESET ROLE');
   await db.exec(await readFile(new URL('../../supabase/migrations/20261104141643_guard_portal_assist_original_storage.sql',import.meta.url),'utf8'));await as();
+  await t.test('proof and signature rows cannot bypass client scope through tenant policy',async()=>{
+   await db.exec('RESET ROLE');
+   await db.exec("ALTER TABLE assist_visit_proofs ENABLE ROW LEVEL SECURITY; ALTER TABLE assist_visit_signatures ENABLE ROW LEVEL SECURITY; GRANT SELECT,INSERT,UPDATE,DELETE ON assist_visit_proofs,assist_visit_signatures TO authenticated; CREATE POLICY broad_tenant_proof ON assist_visit_proofs FOR ALL TO authenticated USING(tenant_id=current_tenant_id()) WITH CHECK(tenant_id=current_tenant_id()); CREATE POLICY broad_tenant_signature ON assist_visit_signatures FOR ALL TO authenticated USING(tenant_id=current_tenant_id()) WITH CHECK(tenant_id=current_tenant_id());");
+   await as();assert.equal((await db.query('SELECT id FROM assist_visit_proofs')).rows.length,2);
+   await db.exec('RESET ROLE');await db.exec(await readFile(new URL('../../supabase/migrations/20261105064400_guard_portal_original_rows.sql',import.meta.url),'utf8'));await as();
+   assert.deepEqual((await db.query('SELECT id FROM assist_visit_proofs')).rows,[{id:proof}]);
+   assert.deepEqual((await db.query('SELECT id FROM assist_visit_signatures')).rows,[{id:sig}]);
+   assert.equal((await db.query("UPDATE assist_visit_proofs SET portal_release_status='released' RETURNING id")).rows.length,0);
+   assert.equal((await db.query('DELETE FROM assist_visit_signatures RETURNING id')).rows.length,0);
+   const newSig=randomUUID();
+   await db.query("INSERT INTO assist_visit_signatures(id,tenant_id,visit_id,signer_role,metadata) VALUES($1,$2,$3,'client',$4)",[newSig,ten,visit,{proofId:proof,signedVia:'client_portal',proofPayloadHash:hash}]);
+   for(const [v,p] of [[v2,p2],[visit,p2]])await assert.rejects(db.query("INSERT INTO assist_visit_signatures(id,tenant_id,visit_id,signer_role,metadata) VALUES($1,$2,$3,'client',$4)",[randomUUID(),ten,v,{proofId:p,signedVia:'client_portal',proofPayloadHash:hash}]),e=>e.code==='42501');
+   await as('client','client_portal',randomUUID());assert.equal((await db.query('SELECT id FROM assist_visit_proofs')).rows.length,0);
+   await as('business','admin');assert.equal((await db.query('SELECT id FROM assist_visit_proofs')).rows.length,2);
+   await db.exec('RESET ROLE');await db.query('DELETE FROM assist_visit_signatures WHERE id=$1',[newSig]);await as();
+  });
   await t.test('only own captured signature and own bound proof are readable',async()=>{
    assert.ok(await visible(img));assert.equal(await visible(img2),false);assert.equal(await visible(pdf2),false);assert.equal(await visible(server),false);
    await put(pdf);assert.ok(await visible(pdf));await assert.rejects(put(base+v2+'/signatures/'+randomUUID()+'.png'),e=>e.code==='42501');

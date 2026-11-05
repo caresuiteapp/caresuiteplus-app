@@ -53,7 +53,7 @@ test('invalidated originals stay invalidated when an idempotent request is repla
 });
 test('missing migration, lost delegation and conflicts return useful failures without automatic replay',async()=>{
  const p=fixture(),command={action:'correct',input:{id:p.id,revision:1,new_id:randomUUID(),reason:'Korrektur'}};
- for(const[code,message]of [['PGRST202',/nicht aktiviert/],['42501',/Beauftragung/],['40001',/geändert/],['23505',/nicht bestätigt/]]){
+ for(const[code,message]of [['PGRST202',/nicht aktiviert/],['42501',/Beauftragung/],['40001',/geändert/],['PT409',/geändert/],['23505',/nicht bestätigt/]]){
   let calls=0;await assert.rejects(executeMonthlyProofCommand(async()=>{calls++;return{data:null,error:{code}};},tenant,command,randomUUID()),message);assert.equal(calls,1);
  }
 });

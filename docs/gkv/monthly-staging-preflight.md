@@ -1,5 +1,7 @@
 # Staging vor einer Abnahme der GKV-Monatsnachweise
 
+Aktueller Befund vom 05.11.2026: **38/38 Voraussetzungen und 11/11 Objektmarker vorhanden**. Die zehn Monatspakete sind auf Staging installiert. Ein angemeldeter Dienstablauf mit synthetischen Daten reicht inzwischen bis zum bestätigten Monatsnachweis und seinem Rechnungsentwurf. [Prüfbericht und verbleibende Grenzen](staging-original-invoice-flow.md). Die folgenden datierten Abschnitte bleiben als Verlauf erhalten.
+
 Der [SQL-Vorabcheck](checks/monthly-database-preflight.sql) liest ausschließlich PostgreSQL-Systemkataloge. Er ruft keine Fachfunktion auf und liest keine Personen-, Nachweis- oder Rechnungsdaten. Er prüft die im Entwurf unmittelbar verwendeten Rollen, Tabellen und Funktionssignaturen. Für die beiden Eingangskontrollen des ersten Monatsentwurfs prüft er auch den Rückgabetyp. Elf weitere Abfragen zeigen anhand einzelner Objekte, ob es Anzeichen für die zehn Monatsentwürfe gibt. Ein gefundenes Objekt allein belegt weder die richtige Implementierung noch funktionsfähige Zugriffsrechte.
 
 ## Befund vom 04.11.2026

@@ -155,7 +155,7 @@ export async function executeMonthlyProofCommand(rpc: MonthlyProofRpc, tenantId:
     const code = object(error) ? error.code : undefined;
     if (['42P01','42883','PGRST202','PGRST205'].includes(String(code))) throw new MonthlyProofWriteError('Der Speicherablauf für Monatsnachweise ist noch nicht aktiviert.', false);
     if (code === '42501') throw new MonthlyProofWriteError('Für diese Änderung fehlt die aktive Beauftragung als verantwortliche Pflegefachperson oder Vertretung.', false);
-    if (code === '40001') throw new MonthlyProofWriteError('Die Fassung oder ihre Quellen wurden geändert. Bitte neu laden und abgleichen.', false);
+    if ((code === '40001' || code === 'PT409')) throw new MonthlyProofWriteError('Die Fassung oder ihre Quellen wurden geändert. Bitte neu laden und abgleichen.', false);
     if (code === '22023' && command.action === 'freeze_facts') throw new MonthlyProofWriteError('Die Fachangaben sind noch nicht vollständig hinterlegt oder passen nicht zu den Originalleistungen. Bitte die fachliche Zuordnung prüfen lassen.', false);
     throw new MonthlyProofWriteError('Der Monatsnachweis wurde nicht bestätigt. Bitte gespeicherten Stand und Prüfmeldung kontrollieren.', !/^(22|23|P0001$)/.test(String(code)));
   }

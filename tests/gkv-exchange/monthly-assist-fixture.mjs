@@ -122,7 +122,7 @@ export async function assistOriginalFixture({render=fixturePdf}={}){
   await db.query("UPDATE service_records SET status='approved',updated_at=clock_timestamp() WHERE id=$1",[receipt.id]);
   await db.query("INSERT INTO care_security.gkv_monthly_fact_sources SELECT tenant_id,id,updated_at,encode(sha256(convert_to(source_receipt::text,'UTF8')),'hex'),'123123123',$2::jsonb,'SYNTHETISCHE Leistungszuordnung' FROM service_records WHERE id=$1",[receipt.id,JSON.stringify(lines)]);
   const month=new Intl.DateTimeFormat('en-CA',{timeZone:'Europe/Berlin',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date(v.start)).slice(0,7);
-  const p=await f.command('create',{new_id:randomUUID(),client_id:v.client,month,service_type:'01',source_ids:[receipt.id]});
+  const p=await f.command('create',{new_id:randomUUID(),client_id:v.client,month,service_type:'01',source_ids:[receipt.id]},undefined,x.claims());
   return {p,input:{tenantId:f.tenant,proofId:p.id,revision:p.revision,captureId:randomUUID()},receipt};
  };
  // Synthetic historical registration/visit times avoid a real 45-minute wait.

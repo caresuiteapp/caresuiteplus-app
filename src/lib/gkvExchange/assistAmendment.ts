@@ -52,7 +52,7 @@ export class AmendmentRpcError extends Error{
 function failure(e:unknown){
   const code=row(e)?String(e.code):'';
   if(code==='42501')return new AmendmentRpcError('Die Berichtigung benötigt den aktiven Zugang der ursprünglich eingesetzten Pflegekraft.',false);
-  if(code==='40001'||code==='23505')return new AmendmentRpcError('Der Nachweisstand hat sich geändert. Bitte den Verlauf neu laden und die Angaben prüfen.',false);
+  if((code==='40001'||code==='PT409')||code==='23505')return new AmendmentRpcError('Der Nachweisstand hat sich geändert. Bitte den Verlauf neu laden und die Angaben prüfen.',false);
   if(/^22/.test(code))return new AmendmentRpcError('Bitte eine geänderte Beschreibung und eine nachvollziehbare Begründung eintragen.',false);
   return new AmendmentRpcError('Die Speicherung konnte nicht eindeutig bestätigt werden.',true);
 }

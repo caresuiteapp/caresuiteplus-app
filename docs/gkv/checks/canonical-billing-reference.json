@@ -1,0 +1,640 @@
+{
+  "version": 1,
+  "observed": "2026-11-05",
+  "scope": "Catalog-only reference. Column definitions do not grant access or establish source authenticity.",
+  "enums": [
+    {
+      "name": "invoice_status",
+      "value": "draft"
+    },
+    {
+      "name": "invoice_status",
+      "value": "ready"
+    },
+    {
+      "name": "invoice_status",
+      "value": "sent"
+    },
+    {
+      "name": "invoice_status",
+      "value": "partly_paid"
+    },
+    {
+      "name": "invoice_status",
+      "value": "paid"
+    },
+    {
+      "name": "invoice_status",
+      "value": "overdue"
+    },
+    {
+      "name": "invoice_status",
+      "value": "cancelled"
+    },
+    {
+      "name": "invoice_status",
+      "value": "written_off"
+    },
+    {
+      "name": "service_record_status",
+      "value": "draft"
+    },
+    {
+      "name": "service_record_status",
+      "value": "signature_required"
+    },
+    {
+      "name": "service_record_status",
+      "value": "signed"
+    },
+    {
+      "name": "service_record_status",
+      "value": "review_required"
+    },
+    {
+      "name": "service_record_status",
+      "value": "approved"
+    },
+    {
+      "name": "service_record_status",
+      "value": "billable"
+    },
+    {
+      "name": "service_record_status",
+      "value": "billed"
+    },
+    {
+      "name": "service_record_status",
+      "value": "corrected"
+    },
+    {
+      "name": "service_record_status",
+      "value": "cancelled"
+    }
+  ],
+  "columns": [
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "invoices",
+      "default": "gen_random_uuid()",
+      "required": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "invoices",
+      "default": null,
+      "required": true
+    },
+    {
+      "name": "billing_run_id",
+      "type": "uuid",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "client_id",
+      "type": "uuid",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "invoice_number",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": true
+    },
+    {
+      "name": "invoice_date",
+      "type": "date",
+      "table": "invoices",
+      "default": "CURRENT_DATE",
+      "required": true
+    },
+    {
+      "name": "service_month",
+      "type": "date",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "due_date",
+      "type": "date",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "recipient_type",
+      "type": "invoice_recipient_type",
+      "table": "invoices",
+      "default": "'client'::invoice_recipient_type",
+      "required": false
+    },
+    {
+      "name": "recipient_name",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "recipient_street",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "recipient_house_number",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "recipient_postal_code",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "recipient_city",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "recipient_country",
+      "type": "text",
+      "table": "invoices",
+      "default": "'Deutschland'::text",
+      "required": false
+    },
+    {
+      "name": "recipient_email",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "cost_bearer_name",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "cost_bearer_reference",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "billing_party",
+      "type": "billing_party",
+      "table": "invoices",
+      "default": "'care_insurance'::billing_party",
+      "required": false
+    },
+    {
+      "name": "subtotal_amount",
+      "type": "numeric(10,2)",
+      "table": "invoices",
+      "default": "0",
+      "required": false
+    },
+    {
+      "name": "vat_rate",
+      "type": "numeric(5,2)",
+      "table": "invoices",
+      "default": "0",
+      "required": false
+    },
+    {
+      "name": "vat_amount",
+      "type": "numeric(10,2)",
+      "table": "invoices",
+      "default": "0",
+      "required": false
+    },
+    {
+      "name": "total_amount",
+      "type": "numeric(10,2)",
+      "table": "invoices",
+      "default": "0",
+      "required": false
+    },
+    {
+      "name": "paid_amount",
+      "type": "numeric(10,2)",
+      "table": "invoices",
+      "default": "0",
+      "required": false
+    },
+    {
+      "name": "open_amount",
+      "type": "numeric(10,2)",
+      "table": "invoices",
+      "default": "0",
+      "required": false
+    },
+    {
+      "name": "status",
+      "type": "invoice_status",
+      "table": "invoices",
+      "default": "'draft'::invoice_status",
+      "required": true
+    },
+    {
+      "name": "pdf_url",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "pdf_file_path",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "sent_at",
+      "type": "timestamp with time zone",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "paid_at",
+      "type": "timestamp with time zone",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "cancelled_at",
+      "type": "timestamp with time zone",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "cancellation_reason",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "payment_reference",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "notes",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "footer_text",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "created_by",
+      "type": "uuid",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "updated_by",
+      "type": "uuid",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "invoices",
+      "default": "now()",
+      "required": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "invoices",
+      "default": "now()",
+      "required": true
+    },
+    {
+      "name": "service_period_from",
+      "type": "date",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "service_period_to",
+      "type": "date",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "office_managed",
+      "type": "boolean",
+      "table": "invoices",
+      "default": "false",
+      "required": true
+    },
+    {
+      "name": "include_service_proofs",
+      "type": "boolean",
+      "table": "invoices",
+      "default": "false",
+      "required": true
+    },
+    {
+      "name": "selected_proof_ids",
+      "type": "text[]",
+      "table": "invoices",
+      "default": "'{}'::text[]",
+      "required": true
+    },
+    {
+      "name": "company_snapshot",
+      "type": "jsonb",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "customer_snapshot",
+      "type": "jsonb",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "issued_snapshot",
+      "type": "jsonb",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "pdf_sha256",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "issued_at",
+      "type": "timestamp with time zone",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "delivery_evidence",
+      "type": "jsonb",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "e_invoice_metadata",
+      "type": "jsonb",
+      "table": "invoices",
+      "default": "'{}'::jsonb",
+      "required": true
+    },
+    {
+      "name": "e_invoice_xml_sha256",
+      "type": "text",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "e_invoice_validation_id",
+      "type": "uuid",
+      "table": "invoices",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "id",
+      "type": "uuid",
+      "table": "service_records",
+      "default": "gen_random_uuid()",
+      "required": true
+    },
+    {
+      "name": "tenant_id",
+      "type": "uuid",
+      "table": "service_records",
+      "default": null,
+      "required": true
+    },
+    {
+      "name": "assignment_id",
+      "type": "uuid",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "documentation_entry_id",
+      "type": "uuid",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "signature_id",
+      "type": "uuid",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "client_id",
+      "type": "uuid",
+      "table": "service_records",
+      "default": null,
+      "required": true
+    },
+    {
+      "name": "employee_id",
+      "type": "uuid",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "product_key",
+      "type": "product_key",
+      "table": "service_records",
+      "default": "'assist'::product_key",
+      "required": true
+    },
+    {
+      "name": "record_number",
+      "type": "text",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "service_date",
+      "type": "date",
+      "table": "service_records",
+      "default": null,
+      "required": true
+    },
+    {
+      "name": "service_month",
+      "type": "date",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "planned_minutes",
+      "type": "integer",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "actual_minutes",
+      "type": "integer",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "billable_minutes",
+      "type": "integer",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "hourly_rate",
+      "type": "numeric(10,2)",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "total_amount",
+      "type": "numeric(10,2)",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "status",
+      "type": "service_record_status",
+      "table": "service_records",
+      "default": "'draft'::service_record_status",
+      "required": true
+    },
+    {
+      "name": "pdf_url",
+      "type": "text",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "approved_by",
+      "type": "uuid",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "approved_at",
+      "type": "timestamp with time zone",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "billed_invoice_id",
+      "type": "uuid",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "notes",
+      "type": "text",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "created_at",
+      "type": "timestamp with time zone",
+      "table": "service_records",
+      "default": "now()",
+      "required": true
+    },
+    {
+      "name": "updated_at",
+      "type": "timestamp with time zone",
+      "table": "service_records",
+      "default": "now()",
+      "required": true
+    },
+    {
+      "name": "assist_visit_id",
+      "type": "uuid",
+      "table": "service_records",
+      "default": null,
+      "required": false
+    },
+    {
+      "name": "source_receipt",
+      "type": "jsonb",
+      "table": "service_records",
+      "default": "'{}'::jsonb",
+      "required": true
+    }
+  ],
+  "invoice_constraints": [
+    "FOREIGN KEY (billing_run_id) REFERENCES billing_runs(id) ON DELETE SET NULL",
+    "FOREIGN KEY (client_id) REFERENCES clients(id) ON DELETE SET NULL",
+    "FOREIGN KEY (created_by) REFERENCES profiles(id) ON DELETE SET NULL",
+    "PRIMARY KEY (id)",
+    "CHECK (((service_period_from IS NULL) OR (service_period_to IS NULL) OR (service_period_from <= service_period_to)))",
+    "FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE",
+    "UNIQUE (tenant_id, invoice_number)",
+    "FOREIGN KEY (updated_by) REFERENCES profiles(id) ON DELETE SET NULL"
+  ]
+}

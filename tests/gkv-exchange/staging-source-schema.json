@@ -1,0 +1,3381 @@
+{
+  "enums": {
+    "product_key": [
+      "office",
+      "assist",
+      "pflege",
+      "stationaer",
+      "beratung",
+      "akademie"
+    ],
+    "tenant_status": [
+      "trial",
+      "active",
+      "paused",
+      "cancelled",
+      "locked"
+    ],
+    "assignment_status": [
+      "planned",
+      "confirmed",
+      "on_the_way",
+      "arrived",
+      "started",
+      "paused",
+      "finished",
+      "documentation_open",
+      "signature_open",
+      "completed",
+      "cancelled",
+      "no_show",
+      "scheduled",
+      "entwurf"
+    ]
+  },
+  "columns": [
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "assignment_tasks",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "assignment_tasks",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "assignment_id",
+      "def": null,
+      "tab": "assignment_tasks",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "title",
+      "def": null,
+      "tab": "assignment_tasks",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "status",
+      "def": "'open'::text",
+      "tab": "assignment_tasks",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "is_required",
+      "def": "true",
+      "tab": "assignment_tasks",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "requires_note_if_not_done",
+      "def": "false",
+      "tab": "assignment_tasks",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "not_done_reason",
+      "def": null,
+      "tab": "assignment_tasks",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "sort_order",
+      "def": "0",
+      "tab": "assignment_tasks",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "assignment_tasks",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "assignment_tasks",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "assignments",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "assignments",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "title",
+      "def": null,
+      "tab": "assignments",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "status",
+      "def": "'planned'::assignment_status",
+      "tab": "assignments",
+      "typ": "assignment_status",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "client_name",
+      "def": null,
+      "tab": "assignments",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "employee_name",
+      "def": null,
+      "tab": "assignments",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "starts_at",
+      "def": null,
+      "tab": "assignments",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "assignments",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "assignments",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "on_the_way_at",
+      "def": null,
+      "tab": "assignments",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "arrived_at",
+      "def": null,
+      "tab": "assignments",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "finished_at",
+      "def": null,
+      "tab": "assignments",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "documentation_notes",
+      "def": null,
+      "tab": "assignments",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "client_id",
+      "def": null,
+      "tab": "assignments",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "employee_id",
+      "def": null,
+      "tab": "assignments",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "assignment_date",
+      "def": null,
+      "tab": "assignments",
+      "typ": "date",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "planned_start_at",
+      "def": null,
+      "tab": "assignments",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "planned_end_at",
+      "def": null,
+      "tab": "assignments",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "description",
+      "def": null,
+      "tab": "assignments",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "address_snapshot",
+      "def": null,
+      "tab": "assignments",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "internal_notes",
+      "def": null,
+      "tab": "assignments",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "client_visible_notes",
+      "def": null,
+      "tab": "assignments",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "product_key",
+      "def": null,
+      "tab": "assignments",
+      "typ": "product_key",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_by",
+      "def": null,
+      "tab": "assignments",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "updated_by",
+      "def": null,
+      "tab": "assignments",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "actual_start_at",
+      "def": null,
+      "tab": "assignments",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "actual_end_at",
+      "def": null,
+      "tab": "assignments",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "assist_time_events",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "assist_time_events",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "visit_id",
+      "def": null,
+      "tab": "assist_time_events",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "session_id",
+      "def": null,
+      "tab": "assist_time_events",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "event_type",
+      "def": null,
+      "tab": "assist_time_events",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "occurred_at",
+      "def": "now()",
+      "tab": "assist_time_events",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "recorded_by",
+      "def": null,
+      "tab": "assist_time_events",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "duration_seconds",
+      "def": null,
+      "tab": "assist_time_events",
+      "typ": "integer",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "metadata",
+      "def": "'{}'::jsonb",
+      "tab": "assist_time_events",
+      "typ": "jsonb",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "assist_time_events",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "assist_visit_documentation",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "visit_id",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "short_description",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "special_notes",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "deviations",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "deviation_justification",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "referral_required",
+      "def": "false",
+      "tab": "assist_visit_documentation",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "emergency_or_problem",
+      "def": "false",
+      "tab": "assist_visit_documentation",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "sis_notes",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "vitals_summary",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "body_map_notes",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "medication_notes",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "care_report_notes",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "photo_references",
+      "def": "'[]'::jsonb",
+      "tab": "assist_visit_documentation",
+      "typ": "jsonb",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "submitted_at",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "submitted_by",
+      "def": null,
+      "tab": "assist_visit_documentation",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "locked",
+      "def": "false",
+      "tab": "assist_visit_documentation",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "metadata",
+      "def": "'{}'::jsonb",
+      "tab": "assist_visit_documentation",
+      "typ": "jsonb",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "assist_visit_documentation",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "assist_visit_documentation",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "assist_visit_proofs",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "visit_id",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "signature_id",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "proof_number",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "status",
+      "def": "'draft'::text",
+      "tab": "assist_visit_proofs",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "storage_path",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "payload_snapshot",
+      "def": "'{}'::jsonb",
+      "tab": "assist_visit_proofs",
+      "typ": "jsonb",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "payload_hash",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "generated_at",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "generated_by",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "approved_at",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "approved_by",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "billing_released",
+      "def": "false",
+      "tab": "assist_visit_proofs",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "metadata",
+      "def": "'{}'::jsonb",
+      "tab": "assist_visit_proofs",
+      "typ": "jsonb",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "created_by",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "updated_by",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "assist_visit_proofs",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "assist_visit_proofs",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "portal_visible",
+      "def": "false",
+      "tab": "assist_visit_proofs",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "released_to_portal_at",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "portal_release_status",
+      "def": "'none'::text",
+      "tab": "assist_visit_proofs",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "approval_note",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "rejection_reason",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "pdf_storage_path",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "pdf_hash",
+      "def": null,
+      "tab": "assist_visit_proofs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "assist_visit_signatures",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "visit_id",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "signer_name",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "signer_role",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "storage_path",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "payload_hash",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "signature_hash",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "signed_at",
+      "def": "now()",
+      "tab": "assist_visit_signatures",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "signed_by_profile_id",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "is_valid",
+      "def": "true",
+      "tab": "assist_visit_signatures",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "invalidated_at",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "invalidation_reason",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "metadata",
+      "def": "'{}'::jsonb",
+      "tab": "assist_visit_signatures",
+      "typ": "jsonb",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "created_by",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "updated_by",
+      "def": null,
+      "tab": "assist_visit_signatures",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "assist_visit_signatures",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "assist_visit_signatures",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "assist_visit_tasks",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "assist_visit_tasks",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "visit_id",
+      "def": null,
+      "tab": "assist_visit_tasks",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "title",
+      "def": null,
+      "tab": "assist_visit_tasks",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "status",
+      "def": "'open'::text",
+      "tab": "assist_visit_tasks",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "is_required",
+      "def": "true",
+      "tab": "assist_visit_tasks",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "requires_note_if_not_done",
+      "def": "false",
+      "tab": "assist_visit_tasks",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "not_done_reason",
+      "def": null,
+      "tab": "assist_visit_tasks",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "sort_order",
+      "def": "0",
+      "tab": "assist_visit_tasks",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "completed_at",
+      "def": null,
+      "tab": "assist_visit_tasks",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "completed_by",
+      "def": null,
+      "tab": "assist_visit_tasks",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "assist_visit_tasks",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "assist_visit_tasks",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "catalog_item_id",
+      "def": null,
+      "tab": "assist_visit_tasks",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "item_key",
+      "def": null,
+      "tab": "assist_visit_tasks",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "not_completed_reason_key",
+      "def": null,
+      "tab": "assist_visit_tasks",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "note",
+      "def": null,
+      "tab": "assist_visit_tasks",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "is_optional",
+      "def": "false",
+      "tab": "assist_visit_tasks",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "payload_json",
+      "def": "'{}'::jsonb",
+      "tab": "assist_visit_tasks",
+      "typ": "jsonb",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "assist_visits",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "legacy_assignment_id",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "client_id",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "employee_id",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "service_key",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "service_name",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "title",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "description",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "assignment_date",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "date",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "planned_start_at",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "planned_end_at",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "duration_minutes",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "integer",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "actual_start_at",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "actual_end_at",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "on_the_way_at",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "arrived_at",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "finished_at",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "address_snapshot",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "location_notes",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "route_notes",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "internal_notes",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "employee_notes",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "client_visible_notes",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "planning_status",
+      "def": "'draft'::text",
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "execution_status",
+      "def": "'pending'::text",
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "documentation_status",
+      "def": "'none'::text",
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "proof_status",
+      "def": "'none'::text",
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "billing_status",
+      "def": "'none'::text",
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "portal_status",
+      "def": "'hidden'::text",
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "canonical_status",
+      "def": "'planned'::text",
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "portal_release_enabled",
+      "def": "false",
+      "tab": "assist_visits",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "portal_released_at",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "employee_portal_visible",
+      "def": "true",
+      "tab": "assist_visits",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "budget_amount_cents",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "integer",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "budget_currency",
+      "def": "'EUR'::text",
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "budget_warning",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "is_at_risk",
+      "def": "false",
+      "tab": "assist_visits",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "is_incomplete",
+      "def": "false",
+      "tab": "assist_visits",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "error_code",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "error_message",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_by",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "updated_by",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "assist_visits",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "assist_visits",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "subject_key",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "assignment_type_key",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "service_category_key",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "task_package_id",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "billing_budget_source_key",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "priority_key",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "recurrence_json",
+      "def": "'{}'::jsonb",
+      "tab": "assist_visits",
+      "typ": "jsonb",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "documentation_template_key",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "proof_template_key",
+      "def": null,
+      "tab": "assist_visits",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "risk_flag_keys",
+      "def": "'[]'::jsonb",
+      "tab": "assist_visits",
+      "typ": "jsonb",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "catalog_snapshot_json",
+      "def": "'{}'::jsonb",
+      "tab": "assist_visits",
+      "typ": "jsonb",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "billing_runs",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "billing_runs",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "billing_month",
+      "def": null,
+      "tab": "billing_runs",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "title",
+      "def": "''::text",
+      "tab": "billing_runs",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "status",
+      "def": "'draft'::text",
+      "tab": "billing_runs",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "prepared_at",
+      "def": null,
+      "tab": "billing_runs",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "prepared_by",
+      "def": null,
+      "tab": "billing_runs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "checked_at",
+      "def": null,
+      "tab": "billing_runs",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "checked_by",
+      "def": null,
+      "tab": "billing_runs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "completed_at",
+      "def": null,
+      "tab": "billing_runs",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "completed_by",
+      "def": null,
+      "tab": "billing_runs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "service_records_count",
+      "def": "0",
+      "tab": "billing_runs",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "invoices_count",
+      "def": "0",
+      "tab": "billing_runs",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "total_amount_cents",
+      "def": "0",
+      "tab": "billing_runs",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "notes",
+      "def": null,
+      "tab": "billing_runs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "billing_runs",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "billing_runs",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "client_budgets",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "client_budgets",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "client_id",
+      "def": null,
+      "tab": "client_budgets",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "budget_type",
+      "def": null,
+      "tab": "client_budgets",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "year",
+      "def": null,
+      "tab": "client_budgets",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "total_amount_cents",
+      "def": "0",
+      "tab": "client_budgets",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "used_amount_cents",
+      "def": "0",
+      "tab": "client_budgets",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "reserved_amount_cents",
+      "def": "0",
+      "tab": "client_budgets",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "valid_from",
+      "def": null,
+      "tab": "client_budgets",
+      "typ": "date",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "valid_until",
+      "def": null,
+      "tab": "client_budgets",
+      "typ": "date",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "notes",
+      "def": null,
+      "tab": "client_budgets",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "client_budgets",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "client_budgets",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "clients",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "clients",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "first_name",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "last_name",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "date_of_birth",
+      "def": null,
+      "tab": "clients",
+      "typ": "date",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "care_level",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "status",
+      "def": "'entwurf'::text",
+      "tab": "clients",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "street",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "city",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "zip",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "phone",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "email",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "notes",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "primary_contact_phone",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "sensitivity",
+      "def": "'care'::text",
+      "tab": "clients",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "visibility",
+      "def": "'team'::text",
+      "tab": "clients",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "owned_by_profile_id",
+      "def": null,
+      "tab": "clients",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "shared_with_profile_ids",
+      "def": "'{}'::uuid[]",
+      "tab": "clients",
+      "typ": "uuid[]",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "clients",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "clients",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "lifecycle_status",
+      "def": "'aktiv'::text",
+      "tab": "clients",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "salutation",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "gender",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "insurance_number",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "key_safe_code",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "diagnoses",
+      "def": "'[]'::jsonb",
+      "tab": "clients",
+      "typ": "jsonb",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "client_number",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "admission_date",
+      "def": null,
+      "tab": "clients",
+      "typ": "date",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "service_start",
+      "def": null,
+      "tab": "clients",
+      "typ": "date",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "birth_place",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "nationality",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "language",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "marital_status",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "housing_form",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "special_notes",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "archived_at",
+      "def": null,
+      "tab": "clients",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "cost_bearer",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "insurance_name",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "postal_code",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "internal_notes",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_by",
+      "def": null,
+      "tab": "clients",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "updated_by",
+      "def": null,
+      "tab": "clients",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "apartment_number",
+      "def": null,
+      "tab": "clients",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "deleted_at",
+      "def": null,
+      "tab": "clients",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "document_render_jobs",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "template_id",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "template_version_id",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "related_entity_table",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "related_entity_id",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "job_type",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "job_status",
+      "def": "'queued'::text",
+      "tab": "document_render_jobs",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "html_output",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "pdf_path",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "xml_path",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "error_message",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "started_at",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "finished_at",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_by",
+      "def": null,
+      "tab": "document_render_jobs",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "document_render_jobs",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "employee_portal_accounts",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "employee_id",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "username",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "status",
+      "def": "'pending_first_login'::text",
+      "tab": "employee_portal_accounts",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "must_change_password",
+      "def": "true",
+      "tab": "employee_portal_accounts",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "first_login_completed",
+      "def": "false",
+      "tab": "employee_portal_accounts",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "temporary_password_hash",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "temporary_password_created_at",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "temporary_password_expires_at",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "last_login_at",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_by",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "employee_portal_accounts",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "employee_portal_accounts",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "blocked_at",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "blocked_by",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "blocked_reason",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "auth_user_id",
+      "def": null,
+      "tab": "employee_portal_accounts",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "employees",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "employees",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "profile_id",
+      "def": null,
+      "tab": "employees",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "first_name",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "last_name",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "job_title",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "email",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "phone",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "department",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "start_date",
+      "def": null,
+      "tab": "employees",
+      "typ": "date",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "notes",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "status",
+      "def": "'aktiv'::text",
+      "tab": "employees",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "employees",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "employees",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "avatar_url",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "deleted_at",
+      "def": null,
+      "tab": "employees",
+      "typ": "timestamp with time zone",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "employee_number",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "date_of_birth",
+      "def": null,
+      "tab": "employees",
+      "typ": "date",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "street",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "house_number",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "postal_code",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "city",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "country",
+      "def": "'DE'::text",
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "mobile",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "emergency_contact_name",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "emergency_contact_phone",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "entry_date",
+      "def": null,
+      "tab": "employees",
+      "typ": "date",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "exit_date",
+      "def": null,
+      "tab": "employees",
+      "typ": "date",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "role_title",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "employment_type",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "weekly_hours",
+      "def": null,
+      "tab": "employees",
+      "typ": "numeric(5,2)",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "cost_center",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "salutation",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "academic_title",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "nationality",
+      "def": "'DE'::text",
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "address_supplement",
+      "def": null,
+      "tab": "employees",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "invoices",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "invoices",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "title",
+      "def": null,
+      "tab": "invoices",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "invoice_number",
+      "def": null,
+      "tab": "invoices",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "client_name",
+      "def": null,
+      "tab": "invoices",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "total_cents",
+      "def": "0",
+      "tab": "invoices",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "status",
+      "def": "'entwurf'::text",
+      "tab": "invoices",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "due_date",
+      "def": null,
+      "tab": "invoices",
+      "typ": "date",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "notes",
+      "def": null,
+      "tab": "invoices",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "invoices",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "invoices",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": null,
+      "tab": "profiles",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "profiles",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "role_id",
+      "def": null,
+      "tab": "profiles",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "role_key",
+      "def": null,
+      "tab": "profiles",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "display_name",
+      "def": null,
+      "tab": "profiles",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "email",
+      "def": null,
+      "tab": "profiles",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "phone",
+      "def": null,
+      "tab": "profiles",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "avatar_url",
+      "def": null,
+      "tab": "profiles",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "profiles",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "profiles",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "is_active",
+      "def": "true",
+      "tab": "profiles",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "locale",
+      "def": "'de'::text",
+      "tab": "profiles",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "auth_user_id",
+      "def": null,
+      "tab": "profiles",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "status",
+      "def": "'active'::text",
+      "tab": "profiles",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "first_name",
+      "def": null,
+      "tab": "profiles",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "last_name",
+      "def": null,
+      "tab": "profiles",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "full_name",
+      "def": null,
+      "tab": "profiles",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "role_permissions",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "role_id",
+      "def": null,
+      "tab": "role_permissions",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "permission_key",
+      "def": null,
+      "tab": "role_permissions",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "can_view",
+      "def": "false",
+      "tab": "role_permissions",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "can_create",
+      "def": "false",
+      "tab": "role_permissions",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "can_update",
+      "def": "false",
+      "tab": "role_permissions",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "can_delete",
+      "def": "false",
+      "tab": "role_permissions",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "roles",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "key",
+      "def": null,
+      "tab": "roles",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "name",
+      "def": null,
+      "tab": "roles",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "description",
+      "def": null,
+      "tab": "roles",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "roles",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "is_admin_role",
+      "def": "false",
+      "tab": "roles",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "service_records",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "service_records",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "client_id",
+      "def": null,
+      "tab": "service_records",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "performed_at",
+      "def": null,
+      "tab": "service_records",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "duration_minutes",
+      "def": null,
+      "tab": "service_records",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "service_type",
+      "def": null,
+      "tab": "service_records",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "employee_id",
+      "def": null,
+      "tab": "service_records",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "invoice_id",
+      "def": null,
+      "tab": "service_records",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "service_records",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "assist_visit_id",
+      "def": null,
+      "tab": "service_records",
+      "typ": "uuid",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "tenant_bank_accounts",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "tenant_bank_accounts",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "label",
+      "def": null,
+      "tab": "tenant_bank_accounts",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "account_holder",
+      "def": null,
+      "tab": "tenant_bank_accounts",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "bank_name",
+      "def": null,
+      "tab": "tenant_bank_accounts",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "iban",
+      "def": null,
+      "tab": "tenant_bank_accounts",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "bic",
+      "def": null,
+      "tab": "tenant_bank_accounts",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "is_primary",
+      "def": "false",
+      "tab": "tenant_bank_accounts",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "sort_order",
+      "def": "0",
+      "tab": "tenant_bank_accounts",
+      "typ": "integer",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "tenant_bank_accounts",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "tenant_bank_accounts",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "tenant_billing_settings",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "default_hourly_rate",
+      "def": null,
+      "tab": "tenant_billing_settings",
+      "typ": "numeric(10,2)",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "tenant_billing_settings",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "tenant_billing_settings",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "tenant_branding",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "tenant_id",
+      "def": null,
+      "tab": "tenant_branding",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "logo_url",
+      "def": null,
+      "tab": "tenant_branding",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "app_name",
+      "def": null,
+      "tab": "tenant_branding",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "light_primary_color",
+      "def": null,
+      "tab": "tenant_branding",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "light_accent_color",
+      "def": null,
+      "tab": "tenant_branding",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "tenant_branding",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "tenant_branding",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "id",
+      "def": "gen_random_uuid()",
+      "tab": "tenants",
+      "typ": "uuid",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "name",
+      "def": null,
+      "tab": "tenants",
+      "typ": "text",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "slug",
+      "def": null,
+      "tab": "tenants",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "legal_form",
+      "def": null,
+      "tab": "tenants",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "industry",
+      "def": null,
+      "tab": "tenants",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "phone",
+      "def": null,
+      "tab": "tenants",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "email",
+      "def": null,
+      "tab": "tenants",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "website",
+      "def": null,
+      "tab": "tenants",
+      "typ": "text",
+      "required": false
+    },
+    {
+      "ns": "public",
+      "col": "created_at",
+      "def": "now()",
+      "tab": "tenants",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "updated_at",
+      "def": "now()",
+      "tab": "tenants",
+      "typ": "timestamp with time zone",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "free_platform_enabled",
+      "def": "true",
+      "tab": "tenants",
+      "typ": "boolean",
+      "required": true
+    },
+    {
+      "ns": "public",
+      "col": "status",
+      "def": "'trial'::tenant_status",
+      "tab": "tenants",
+      "typ": "tenant_status",
+      "required": true
+    }
+  ]
+}

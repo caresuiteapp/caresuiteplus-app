@@ -1,5 +1,7 @@
 # Was das Portal bei einer Unterschrift prüft
 
+Aktualisierung vom 05.11.2026: Originalabruf und Bytebestätigung, Monatsnachweis und Rechnungsentwurf wurden inzwischen mit vier echten Staging-Anmeldungen durchgespielt. Die zwei fehlenden Quellfunktionen und die zehn Monatspakete sind installiert; ein zusätzlicher Fremdzugriff auf Tabellenzeilen wurde geschlossen. Der [aktuelle Prüfbericht](staging-original-invoice-flow.md) beschreibt den belegten Umfang und die weiter offene Browser-/Hardware-/TI-Abnahme. Der folgende Abschnitt dokumentiert den früheren Stand vom 04.11.
+
 Stand: 04.11.2026, `caresuiteplus-staging`. Eine aktive persönliche Sitzung und der Bezug zum konkreten Klienten waren Gegenstand eigener Datenbankprüfungen. Die folgenden Ergebnisse betreffen den Tagesbeleg. Sie bestätigen keine GKV-Monatsabrechnung und keinen Versand.
 
 ## Inhalt und PDF

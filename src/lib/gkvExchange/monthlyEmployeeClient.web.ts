@@ -15,10 +15,10 @@ function failure(error:unknown):never{
  const code=(error as {code?:string})?.code;
  const message=['42P01','42883','PGRST202','PGRST205'].includes(code??'')?'Die GKV-Beschäftigtenzuordnung ist für dieses Unternehmen noch nicht freigeschaltet.'
   :code==='42501'?'Persönliche Zuordnung oder unabhängiger Prüfauftrag fehlt. Bitte den Zugang prüfen.'
-  :['40001','23505'].includes(code??'')?'Die Zuordnung wurde geändert oder ist bereits vorhanden. Bitte den gespeicherten Stand aktualisieren.'
+  :['40001','PT409','23505'].includes(code??'')?'Die Zuordnung wurde geändert oder ist bereits vorhanden. Bitte den gespeicherten Stand aktualisieren.'
   :code==='22023'?'Bitte Nummer, Nachweisreferenz, Prüfvermerk und Gültigkeit prüfen.'
   :'Die Antwort konnte nicht eindeutig zugeordnet werden. Bitte den Auftragsstatus prüfen.';
- throw new EmployeeWriteError(message,['42501','40001','23505','22023','42P01','42883','PGRST202','PGRST205'].includes(code??'')===false);
+ throw new EmployeeWriteError(message,['42501','40001','PT409','23505','22023','42P01','42883','PGRST202','PGRST205'].includes(code??'')===false);
 }
 async function rpc(tenantId:string,actorId:string,name:string,input:Record<string,unknown>){
  const client=await clientFor(tenantId,actorId);

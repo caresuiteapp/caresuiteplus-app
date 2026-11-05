@@ -30,7 +30,7 @@ export async function commandMonthlyAuthority(proof:MonthlyProof,role:RoleKey,co
   const {data,error}=await rpc('gkv_monthly_authority_command',{p_tenant:proof.tenant_id,p_action:action,p_input:input});
   if(error){
     const code=(error as {code?:string}).code;
-    if(code==='40001')throw Error('Die Vertretungsprüfung wurde geändert oder ist nicht mehr gültig. Bitte den gespeicherten Stand prüfen.');
+    if((code==='40001'||code==='PT409'))throw Error('Die Vertretungsprüfung wurde geändert oder ist nicht mehr gültig. Bitte den gespeicherten Stand prüfen.');
     if(code==='42501')throw Error('Eine aktive persönliche Beauftragung und die erforderlichen Klientenrechte fehlen.');
     failure(error);
   }
@@ -64,7 +64,7 @@ function connection(tenantId:string,role:RoleKey,write=false) {
 function failure(error:unknown):never {
   const value=error as {code?:string;message?:string};
   if(['42P01','42883','PGRST202','PGRST205'].includes(value?.code||''))throw new Error('Die Datenbank-Erweiterung für den GKV-Datenaustausch ist noch nicht eingespielt.');
-  if(value?.code==='40001')throw new Error('Der Datensatz wurde zwischenzeitlich geändert. Bitte neu laden.');
+  if(value?.code==='40001'||value?.code==='PT409')throw new Error('Der Datensatz wurde zwischenzeitlich geändert. Bitte neu laden.');
   if(value?.code==='42501')throw new Error('Für diese Aktion fehlen die Abrechnungsrechte.');
   throw new Error('Die Daten konnten nicht vollständig verarbeitet werden. Bitte erneut versuchen.');
 }

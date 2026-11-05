@@ -48,7 +48,7 @@ function matches(context: AssistOriginalContext, draft: AssistDraft, visitId: st
 function errorMessage(error: unknown) {
   const code = object(error)?.code;
   return code === '42501' ? 'Der persönliche Abschluss benötigt den aktiven Zugang der eingesetzten Pflegekraft.'
-    : code === '40001' || code === '23505' ? 'Entwurf, Unterschrift oder persönliche Freigabe wurde geändert. Bitte den Einsatz erneut prüfen.'
+    : (code === '40001' || code === 'PT409') || code === '23505' ? 'Entwurf, Unterschrift oder persönliche Freigabe wurde geändert. Bitte den Einsatz erneut prüfen.'
     : fail().message;
 }
 /** Only a definite absent RPC permits the existing unbound workflow. All other

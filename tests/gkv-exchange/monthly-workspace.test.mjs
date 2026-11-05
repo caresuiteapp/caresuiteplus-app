@@ -86,7 +86,7 @@ test('failed or misbound status checks retain the pending command and revoke ret
 });
 test('definite database rejections release editing; unknown server results retain their request',async()=>{
  const p=fixture(),command=create(p);
- for(const [code,uncertain]of [['42501',false],['40001',false],['PGRST202',false],['23505',false],['P0001',false],['XX000',true],['57014',true]]){
+ for(const [code,uncertain]of [['42501',false],['40001',false],['PT409',false],['PGRST202',false],['23505',false],['P0001',false],['XX000',true],['57014',true]]){
   const writer=new MonthlyProofWriter({execute:(c,id)=>executeMonthlyProofCommand(async()=>({data:null,error:{code}}),tenant,c,id),status:async()=>({state:'not_found',proof:null})},randomUUID);
   await assert.rejects(writer.submit(command),error=>error instanceof MonthlyProofWriteError&&error.uncertain===uncertain);
   assert.equal(!!writer.pending,uncertain);
