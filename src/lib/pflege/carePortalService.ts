@@ -6,11 +6,15 @@ import type { ServiceResult } from '@/types';
 export type PortalCareProof = { id: string; date: string; startedAt: string; endedAt: string; service: string; employee: string; note: string; amountCents: number; status: string; signer: string; signedAt: string | null; signature: string | null; rejectionReason: string };
 export type PortalCareStop = { id: string; client: string; address: string; start: string; end: string; service: string; status: string; note: string };
 export type PortalCareTour = { id: string; date: string; name: string; status: string; vehicle: string; stops: PortalCareStop[] };
+/** Optional portal capabilities are hidden until the server can provide them. */
+export function isPortalCareUnavailable(error: string | null | undefined): boolean {
+ return error === 'PORTAL_CARE_NOT_ELIGIBLE' || error === 'PORTAL_CARE_UNAVAILABLE';
+}
 async function portalRpc<T>(name: string, args: Record<string, unknown> = {}): Promise<ServiceResult<T>> {
  const client = getSupabaseClient(); if (!client) return { ok: false, error: 'Keine Datenbankverbindung.' };
  try {
   const { data, error } = await (client as unknown as { rpc: (name: string, args: Record<string, unknown>) => Promise<{ data: T; error: { code?: string; message?: string } | null }> }).rpc(name, args);
-  if (error) return { ok: false, error: error.code === '42501' ? 'PORTAL_CARE_NOT_ELIGIBLE' : error.code === 'PGRST202' ? 'Die Pflegeanbindung ist noch nicht freigeschaltet.' : ['23514','40001','P0001'].includes(error.code ?? '') ? error.message ?? 'Aktion nicht zulässig.' : toGermanSupabaseError(error) };
+  if (error) return { ok: false, error: error.code === '42501' ? 'PORTAL_CARE_NOT_ELIGIBLE' : ['PGRST202','PGRST205','42883','42P01'].includes(error.code ?? '') ? 'PORTAL_CARE_UNAVAILABLE' : ['23514','40001','P0001'].includes(error.code ?? '') ? error.message ?? 'Aktion nicht zulässig.' : toGermanSupabaseError(error) };
   return { ok: true, data };
  } catch { return { ok: false, error: 'Verbindung unterbrochen. Bitte erneut laden und den Speicherstand prüfen.' }; }
 }
