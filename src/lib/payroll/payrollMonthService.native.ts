@@ -16,6 +16,10 @@ import { getWfmOfficeEmployeeTimeAccounts } from "../wfm/wfmOfficeZeitkontenServ
 import { calculatePayrollSnapshot, calculatePayrollTimeAccountBalance, payrollExpenseTotals } from "./payrollCalculator.native.ts";
 import { isMiniJobEmploymentType, resolvePayrollMaxPayoutHours } from "./payrollPayoutPolicy.native.ts";
 import { deferredPayrollEntry, matchDeferredPayrollEntry, payrollPeriodNumber, payrollTimeRegistry, resolvePayrollCatchUp, type PayrollTimeRegistry } from "./payrollTimeDeferral.native.ts";
+import { mapPayrollTimeAcceptance, payrollTimeAcceptanceOptions } from "./payrollTimeAcceptance.native.ts";
+import { mapOfficeReviewRow } from "../wfm/wfmOfficeTimekeepingReads.native.ts";
+import { applyReviewToEntry, type WfmTimeEntryReview } from '@/lib/wfm/wfmTimeReviewService';
+import type { PayrollTimeAcceptance } from '@/types/modules/payrollMonth';
 import { employeeAssignmentTimeLines, isPayrollConductedAssignmentStatus, isPayrollEmployeeInPeriod, payrollAbsenceCredits, payrollAbsenceWorkConflicts, payrollBerlinDay, payrollDeferredReason, payrollEmploymentRange, isPayrollDate, payrollNumber, payrollPeriodRange, payrollPlannedVisitLine, payrollRemainingPlannedMinutes, payrollSettingsIssues, payrollTimeReadiness, nextPayrollDay, type PayrollOfficeEmployeeMonth, type PayrollOfficeMonthOverview, type PayrollRow } from "./payrollOfficeReadModel.native.ts";
 // Metro resolves this module for the employee portal too. Keep its established, independently secured APIs.
 export { loadEmployeePayrollMonth, decidePayrollStatement, createExpenseClaim, uploadExpenseReceipt, getPayrollPdfUrl } from './payrollMonthService.ts';
@@ -121,6 +125,9 @@ function buildEmployee(input: {
     now: number;
     timeRegistry: PayrollTimeRegistry;
     historicalEntries: import('@/types/modules/wfmOfficeTimekeeping').WfmOfficeTimeEntry[];
+    reviews: WfmTimeEntryReview[];
+    acceptances: PayrollTimeAcceptance[];
+    timeHistory: Row[];
 }): PayrollOfficeEmployeeMonth {
     const { employee, payroll, contract, account, year, month, now } = input;
     const employeeId = asString(employee.id), { fromDate, toDate } = payrollPeriodRange(year, month);
@@ -159,7 +166,11 @@ function buildEmployee(input: {
         const item = prior ?? deferredPayrollEntry(entry, payrollDeferredReason(entry, now) ?? 'deferred');
         deferredById.set(item.entryId, item);
     }
-    const resolved = resolvePayrollCatchUp(input.timeRegistry, input.historicalEntries, year, month, now);
+    const ownReviews = input.reviews.filter(review => review.employeeId === employeeId);
+    const acceptedSources = new Map([...(account?.entries ?? []), ...input.historicalEntries,
+        ...ownReviews.flatMap(review => review.officeEntry ? [applyReviewToEntry(review.officeEntry, review)] : [])].map(entry => [entry.id, entry]));
+    const ownAcceptances = input.acceptances.filter(row => row.employeeId === employeeId);
+    const resolved = resolvePayrollCatchUp(input.timeRegistry, [...acceptedSources.values()], year, month, now, ownAcceptances);
     const catchUpWorkMinutes = resolved.catchUp.reduce((sum, item) => sum + item.minutes, 0);
     const currentPeriodWorkMinutes = times.actualWorkMinutes;
     const actualWorkMinutes = currentPeriodWorkMinutes + catchUpWorkMinutes;
@@ -183,7 +194,10 @@ function buildEmployee(input: {
             clientLabel: line.clientLabel, assignmentTitle: line.assignmentTitle, reason: 'missing' });
         line.payrollDisposition = 'deferred';
     }
-    const deferredTimeEntries = [...deferredById.values(), ...resolved.pending];
+    const acceptedKeys = new Set(resolved.catchUp.map(item => item.key));
+    const deferredTimeEntries = [...new Map([...deferredById.values(), ...resolved.pending].filter(item => !acceptedKeys.has(item.key)).map(item => [item.key, item])).values()];
+    const timeAcceptanceOptions = payrollTimeAcceptanceOptions({ registry: input.timeRegistry, reviews: ownReviews, acceptances: ownAcceptances,
+        statements: input.timeHistory.filter(row => row.employee_id === employeeId), year, month, now });
     if (lines.some(line => (line.actualStartAt || line.actualEndAt) && (line.workDate < employmentRange.fromDate || line.workDate > employmentRange.toDate))) {
         blockers.push('Erfasste Arbeitszeit liegt außerhalb des Beschäftigungszeitraums. Bitte Personalakte und Zeitbuchungen abgleichen.');
     }
@@ -289,7 +303,7 @@ function buildEmployee(input: {
     }
     const finalBlockers = [...new Set([...blockers, ...times.blockers])];
     const calculationReady = finalBlockers.length === 0 && grossAvailable && expensesAvailable && timeAccountAvailable;
-    return { ...snapshot, ...expenseTotals, currentPeriodWorkMinutes, catchUpWorkMinutes, deferredTimeEntries, catchUpTimeEntries: resolved.catchUp,
+    return { ...snapshot, ...expenseTotals, currentPeriodWorkMinutes, catchUpWorkMinutes, deferredTimeEntries, catchUpTimeEntries: resolved.catchUp, timeAcceptanceOptions,
         projectedTotalPayoutCents: grossAvailable && expensesAvailable ? snapshot.projectedTotalPayoutCents : 0,
         calculationReady, preview: { compensationAvailable, actualTimeAvailable: accountAvailable, grossAvailable, expensesAvailable, timeAccountAvailable, absenceAvailable,
             provisional: !calculationReady || finalBlockers.length > 0, notes: previewNotes },
@@ -322,7 +336,7 @@ export async function listPayrollMonthOverview(tenantId: string, year: number, m
         lower.setUTCDate(lower.getUTCDate() - 1);
         const upper = `${nextPayrollDay(toDate)}T23:59:59Z`;
         const scoped = (table: string, select: string) => fromUnknownTable(client, table).select(select).eq('tenant_id', tenantId);
-        const [employeesRes, payrollRes, contractRes, accountsRes, absencesRes, expensesRes, statementsRes, plannedRes, nextPlannedRes, uploadsRes, timeHistoryRes] = await Promise.all([
+        const [employeesRes, payrollRes, contractRes, accountsRes, absencesRes, expensesRes, statementsRes, plannedRes, nextPlannedRes, uploadsRes, timeHistoryRes, reviewsRes, acceptancesRes] = await Promise.all([
             readAllOfficeAccountRows((from, to) => scoped('employees', 'id,tenant_id,first_name,last_name,employee_number,employment_type,status,entry_date,exit_date').order('id').range(from, to)),
             readAllOfficeAccountRows((from, to) => scoped('employee_payroll_settings', 'tenant_id,employee_id,compensation_type,compensation_amount,max_payout_hours_month,overflow_to_time_account,mileage_rate_cents').order('employee_id').range(from, to)),
             readAllOfficeAccountRows((from, to) => scoped('employee_contract_settings', 'tenant_id,employee_id,work_days').order('employee_id').range(from, to)),
@@ -335,6 +349,8 @@ export async function listPayrollMonthOverview(tenantId: string, year: number, m
             readAllOfficeAccountRows((from, to) => scoped('portal_uploads', 'id,tenant_id,employee_id,file_name,storage_path,category,status,created_at').eq('upload_context', 'mitarbeiter').in('status', ['hochgeladen', 'wird_geprueft']).order('created_at', { ascending: false }).order('id').range(from, to)),
             // Only the small carry-forward fields are needed across periods, not full historical PDFs or snapshots.
             readAllOfficeAccountRows((from, to) => scoped('payroll_month_statements', 'id,tenant_id,employee_id,period_year,period_month,version,status,deferred_time_entries:snapshot_json->deferredTimeEntries,catch_up_time_entries:snapshot_json->catchUpTimeEntries').order('id').range(from, to)),
+            readAllOfficeAccountRows((from, to) => scoped('workforce_time_entry_reviews', '*').lte('work_date', toDate).order('id').range(from, to)),
+            readAllOfficeAccountRows((from, to) => scoped('payroll_time_acceptances', '*').order('id').range(from, to)),
         ]);
         if (!accountsRes.ok)
             return accountsRes;
@@ -351,6 +367,8 @@ export async function listPayrollMonthOverview(tenantId: string, year: number, m
         const expenses = expenseRows.map(mapPayrollOfficeExpense);
         const statements = requiredRows(statementsRes, tenantId, 'Monatsübersichten').map(mapPayrollOfficeStatement);
         const timeHistory = requiredRows(timeHistoryRes, tenantId, 'Zeitnachberechnungen');
+        const reviews = requiredRows(reviewsRes, tenantId, 'Nachbearbeitete Zeiten').map(mapOfficeReviewRow);
+        const acceptances = requiredRows(acceptancesRes, tenantId, 'Angenommene Zeiten').map(mapPayrollTimeAcceptance);
         const registries = new Map(employees.map(employee => { const id = asString(employee.id); return [id, payrollTimeRegistry(timeHistory, id)] as const; }));
         const outstanding = [...registries.values()].flatMap(registry => [...registry.deferred.values()].filter(item => payrollPeriodNumber(item.originYear, item.originMonth) < payrollPeriodNumber(year, month) && !registry.settled.has(item.key)));
         let historicalAccounts: WfmOfficeEmployeeTimeAccount[] = [];
@@ -375,7 +393,7 @@ export async function listPayrollMonthOverview(tenantId: string, year: number, m
         const result = employees.filter(employee => isPayrollEmployeeInPeriod(employee, fromDate, toDate, evidence.has(asString(employee.id)))).map(employee => buildEmployee({
             employee, payroll: payroll.get(asString(employee.id)), contract: contracts.get(asString(employee.id)), account: accounts.get(asString(employee.id)),
             absences, expenses, statements, uploads, visits: plannedRes.data, nextVisits: nextPlannedRes.data, year, month, now,
-            timeRegistry: registries.get(asString(employee.id))!, historicalEntries: historicalAccounts.filter(account => account.employeeId === asString(employee.id)).flatMap(account => account.entries),
+            timeRegistry: registries.get(asString(employee.id))!, historicalEntries: historicalAccounts.filter(account => account.employeeId === asString(employee.id)).flatMap(account => account.entries), reviews, acceptances, timeHistory,
         })).sort((a, b) => a.employeeName.localeCompare(b.employeeName, 'de'));
         const grossPreviews = result.filter(employee => employee.preview.grossAvailable);
         const expensePreviews = result.filter(employee => employee.preview.expensesAvailable);

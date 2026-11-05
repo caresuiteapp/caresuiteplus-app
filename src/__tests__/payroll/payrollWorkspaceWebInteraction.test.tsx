@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PayrollOfficeEmployeeMonth } from '@/lib/payroll/payrollOfficeReadModel.web';
 import { payrollClaim, payrollEmployee, payrollOverview, payrollPreview, payrollStatement } from './payrollWorkspaceFixtures';
-const h = vi.hoisted(() => ({ tenant: 'tenant-a', portal: false, allowed: true, edit: true, focused: true, params: {} as Record<string, string | undefined>, read: vi.fn(), review: vi.fn(), publish: vi.fn(), document: vi.fn(), setParams: vi.fn(), push: vi.fn(), dispatch: vi.fn(), guardEnabled: false, guard: null as null | ((event: { data: { action: unknown } }) => void) }));
+const h = vi.hoisted(() => ({ tenant: 'tenant-a', portal: false, allowed: true, edit: true, focused: true, params: {} as Record<string, string | undefined>, read: vi.fn(), review: vi.fn(), publish: vi.fn(), accept: vi.fn(), document: vi.fn(), setParams: vi.fn(), push: vi.fn(), dispatch: vi.fn(), guardEnabled: false, guard: null as null | ((event: { data: { action: unknown } }) => void) }));
 vi.mock('expo-router', () => ({ useIsFocused: () => h.focused, useLocalSearchParams: () => h.params, useRouter: () => ({ setParams: h.setParams, push: h.push }), useNavigation: () => ({ dispatch: h.dispatch }) }));
 vi.mock('expo-router/react-navigation', () => ({ usePreventRemove: (enabled: boolean, callback: typeof h.guard) => { h.guardEnabled = enabled; h.guard = callback; } }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ authReady: true, isAuthenticated: true, user: { id: 'user-a' }, portalSession: h.portal ? {} : null }) }));
@@ -14,6 +14,7 @@ vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ roleKey: 'bu
 vi.mock('@/components/layout/ScreenShell.web', () => ({ ScreenShell: ({ children }: { children: React.ReactNode }) => <div>{children}</div> }));
 vi.mock('@/components/layout/platform', () => ({ PlatformModal: ({ visible, children, onClose, dismissOnBackdrop }: { visible: boolean; children: React.ReactNode; onClose: () => void; dismissOnBackdrop: boolean }) => visible ? <div role="dialog" data-backdrop-dismissible={dismissOnBackdrop}><button onClick={onClose}>Dialog schließen</button>{children}</div> : null }));
 vi.mock('@/lib/payroll/payrollMonthService.web', () => ({ listPayrollMonthOverview: (...args: unknown[]) => h.read(...args) }));
+vi.mock('@/lib/payroll/payrollTimeAcceptance.web', () => ({ acceptPayrollTime: (...args: unknown[]) => h.accept(...args) }));
 vi.mock('@/lib/payroll/payrollOfficeActions.web', () => ({ reviewExpenseClaim: (...args: unknown[]) => h.review(...args), publishPayrollStatement: (...args: unknown[]) => h.publish(...args), getPayrollPdfUrl: (...args: unknown[]) => h.document(...args) }));
 vi.mock('@/lib/realtime/presets', () => ({ subscribeToWfmLiveChanges: vi.fn() }));
 vi.mock('@/hooks/core/useLiveRefresh', () => ({ DEFAULT_LIVE_POLL_MS: 30000, useLiveRefresh: () => ({ isLiveConnected: false }) }));
@@ -31,7 +32,7 @@ beforeEach(() => {
   Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true }); vi.clearAllMocks(); h.tenant = 'tenant-a'; h.portal = false; h.allowed = true; h.edit = true; h.focused = true; h.params = { month: '2026-10' }; h.guardEnabled = false; h.guard = null;
   employee = payrollEmployee(); h.read.mockReset().mockImplementation(async (_tenant: string, year: number, month: number) => ok(payrollOverview([{ ...employee, periodYear: year, periodMonth: month }])));
   h.review.mockReset().mockImplementation(async (input: { claimId: string; status: 'approved'; approvedAmountCents: number }) => { const claim = { ...employee.expenseClaims.find(item => item.id === input.claimId)!, status: input.status, approvedAmountCents: input.approvedAmountCents }; employee = { ...employee, expenseClaims: employee.expenseClaims.map(item => item.id === claim.id ? claim : item) }; return ok(claim); });
-  h.publish.mockReset().mockResolvedValue(ok(payrollStatement())); h.document.mockReset().mockResolvedValue(ok('https://example.invalid/document.pdf'));
+  h.accept.mockReset().mockResolvedValue(ok({ id: 'acceptance', targetYear: 2026, targetMonth: 10 })); h.publish.mockReset().mockResolvedValue(ok(payrollStatement())); h.document.mockReset().mockResolvedValue(ok('https://example.invalid/document.pdf'));
   h.setParams.mockReset().mockImplementation((params: Record<string, string | undefined>) => { h.params = { ...h.params, ...params }; });
   vi.spyOn(window, 'confirm').mockReturnValue(true); vi.spyOn(window, 'open').mockReturnValue(null);
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
@@ -39,6 +40,43 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => { root.unmount(); }); host.remove(); vi.restoreAllMocks(); });
 
 describe('Office payroll Web interactions', () => {
+  function correctedTime() {
+    const item = { key: '2026-10:time-correction', entryId: 'time-correction', originYear: 2026, originMonth: 10, workDate: '2026-10-12', assignmentId: null, visitId: null, sessionId: null, plannedStartAt: null, clientLabel: 'Test Client', assignmentTitle: 'Begleitung', reason: 'incomplete' as const };
+    const option = { item, entry: { id: item.entryId, actualStartAt: '2026-10-12T08:00:00Z', actualEndAt: '2026-10-12T09:30:00Z', pauseMinutes: 0, netMinutes: 90, reviewStatus: 'pending_review' } as import('@/types/modules/wfmOfficeTimekeeping').WfmOfficeTimeEntry, reviewId: 'review-id', reviewUpdatedAt: '2026-11-05T06:00:00Z', acceptance: null, currentBlock: null as string | null, nextBlock: null as string | null };
+    employee = payrollEmployee({ deferredTimeEntries: [item], timeAcceptanceOptions: [option], unapprovedEntryCount: 1 });
+    h.params = { month: '2026-10', employeeId: 'employee-a' };
+    return option;
+  }
+  it('shows two explicit month decisions and accepts for the selected month', async () => {
+    const option = correctedTime(); await render();
+    expect(button('Für den Folgemonat annehmen · November 2026').disabled).toBe(false);
+    await click(button('Für diesen Monat annehmen · Oktober 2026'));
+    expect(h.accept).toHaveBeenCalledWith({ tenantId: 'tenant-a', employeeId: 'employee-a', option, year: 2026, month: 10, role: 'business_admin' });
+    expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('Oktober 2026 annehmen'));
+    expect(h.publish).not.toHaveBeenCalled();
+  });
+  it('keeps the current closed month disabled and allows the following month across a year boundary', async () => {
+    const option = correctedTime(); option.currentBlock = 'Die Abrechnung ist bestätigt, gesperrt oder ausgezahlt.';
+    h.params.month = '2026-12'; await render();
+    expect(button('Für diesen Monat annehmen · Dezember 2026').disabled).toBe(true);
+    await click(button('Für den Folgemonat annehmen · Januar 2027'));
+    expect(h.accept).toHaveBeenCalledWith(expect.objectContaining({ year: 2027, month: 1 }));
+  });
+  it('locks both decisions during submission and ignores a late reply after a month change', async () => {
+    correctedTime(); await render(); const pending = deferred<{ ok: false; error: string }>(); h.accept.mockReturnValueOnce(pending.promise);
+    await act(async () => { button('Für den Folgemonat annehmen · November 2026').click(); button('Für den Folgemonat annehmen · November 2026').click(); });
+    expect(h.accept).toHaveBeenCalledTimes(1); expect(button('Für diesen Monat annehmen · Oktober 2026').disabled).toBe(true);
+    h.params = { month: '2026-09' }; await render();
+    await act(async () => { pending.resolve({ ok: false, error: 'Alte Zeitannahme' }); });
+    expect(host.textContent).not.toContain('Alte Zeitannahme');
+  });
+  it('retains the correction and shows failed acceptance, and hides both decisions for a read-only role', async () => {
+    correctedTime(); h.accept.mockResolvedValueOnce({ ok: false, error: 'Zeit wurde inzwischen geändert' }); await render();
+    await click(button('Für diesen Monat annehmen · Oktober 2026'));
+    expect(host.textContent).toContain('Zeit wurde inzwischen geändert'); expect(host.textContent).toContain('Korrigiert:');
+    h.edit = false; await render(); expect([...host.querySelectorAll('button')].some(item => item.textContent?.startsWith('Für diesen Monat annehmen'))).toBe(false);
+  });
+
   it('publishes approved time while displaying unfinished entries as deferred', async () => {
     const pending = { key: '2026-10:open-1', entryId: 'open-1', originYear: 2026, originMonth: 10, workDate: '2026-10-12', assignmentId: null, visitId: null, sessionId: null, plannedStartAt: null, clientLabel: null, assignmentTitle: 'Begleitung', reason: 'incomplete' as const };
     employee = payrollEmployee({ deferredTimeEntries: [pending], unapprovedEntryCount: 1, currentPeriodWorkMinutes: 180, catchUpWorkMinutes: 0,

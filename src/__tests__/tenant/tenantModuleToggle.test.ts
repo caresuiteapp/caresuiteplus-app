@@ -61,20 +61,22 @@ describe('tenantModuleToggleService', () => {
     vi.unstubAllGlobals();
   });
 
-  it('ändert einen alten Pflege-Schalter offline nicht und hält das unveröffentlichte Modul verborgen', async () => {
+  it('zeigt bestätigte Pflege-Freigaben und verändert sie nach einem fehlgeschlagenen Offline-Speichern nicht', async () => {
     seedTenantCenterModules({
       assistEnabled: true,
       pflegeEnabled: true,
       stationaerEnabled: false,
       beratungEnabled: false,
     });
-    expect(getVisibleMainModuleRailItems({ tenantId: TENANT, roleKey: ADMIN }).map((m) => m.key)).not.toContain(
+    expect(getVisibleMainModuleRailItems({ tenantId: TENANT, roleKey: ADMIN }).map((m) => m.key)).toContain(
       'pflege',
     );
 
     const result = await setTenantModuleEnabled(TENANT, 'pflege', false, ADMIN);
     expect(result).toMatchObject({ ok: false, error: expect.stringContaining('aktive Datenbankverbindung') });
     expect(getTenantModuleSettingsCache(TENANT).pflegeEnabled).toBe(true);
+    expect(hasModuleAccess('pflege', TENANT)).toBe(true);
+    expect(getVisibleMainModuleRailItems({ tenantId: TENANT, roleKey: ADMIN }).map(m => m.key)).toContain('pflege');
     seedTenantCenterModules({ assistEnabled: true, pflegeEnabled: false, stationaerEnabled: false, beratungEnabled: false });
     expect(getTenantModuleSettingsCache(TENANT).pflegeEnabled).toBe(false);
     expect(hasModuleAccess('pflege', TENANT)).toBe(false);

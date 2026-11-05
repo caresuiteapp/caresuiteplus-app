@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import { deferredPayrollEntry, matchDeferredPayrollEntry, payrollTimeRegistry, resolvePayrollCatchUp } from '@/lib/payroll/payrollTimeDeferral.web';
 
+const accepted = (source: WfmOfficeTimeEntry, month = 11, key = `${source.workDate.slice(0, 7)}:${source.id}`) => ({ id: `acceptance-${key}`, employeeId: source.employeeId, deferredKey: key, targetYear: 2026, targetMonth: month, reviewId: 'review', reviewUpdatedAt: '2026-11-01T12:00:00Z', updatedAt: '2026-11-01T12:00:00Z', entry: source });
+
 const now = Date.parse('2026-12-10T12:00:00Z');
 const entry = (patch: Partial<WfmOfficeTimeEntry> = {}) => ({ id: 'source-1', employeeId: 'e1', workDate: '2026-10-12', assignmentId: 'series', visitId: null, sessionId: null,
   plannedStartAt: '2026-10-12T08:00:00Z', plannedEndAt: '2026-10-12T10:00:00Z', actualStartAt: '2026-10-12T08:00:00Z', actualEndAt: '2026-10-12T10:00:00Z',
@@ -10,13 +12,24 @@ const pending = (patch: Partial<WfmOfficeTimeEntry> = {}) => deferredPayrollEntr
 const history = (deferred = [pending()], patch: Record<string, unknown> = {}) => ({ employee_id: 'e1', period_year: 2026, period_month: 10, version: 1, status: 'published', snapshot_json: { deferredTimeEntries: deferred }, ...patch });
 
 describe('deferred payroll sources across publication periods', () => {
+  it('requires a separate period decision and invalidates it when the time values change', () => {
+    const source = entry(), registry = payrollTimeRegistry([history()], 'e1');
+    expect(resolvePayrollCatchUp(registry, [source], 2026, 11, now).catchUp).toEqual([]);
+    const forDecember = accepted(source, 12);
+    expect(resolvePayrollCatchUp(registry, [source], 2026, 11, now, [forDecember]).catchUp).toEqual([]);
+    expect(resolvePayrollCatchUp(registry, [source], 2026, 12, now, [forDecember]).catchUp).toHaveLength(1);
+    expect(resolvePayrollCatchUp(registry, [{ ...source, pauseMinutes: 5, netMinutes: 115 }], 2026, 12, now, [forDecember]).catchUp).toEqual([]);
+    const forOriginMonth = accepted(source, 10);
+    expect(resolvePayrollCatchUp(registry, [source], 2026, 10, now, [forOriginMonth]).catchUp).toHaveLength(1);
+  });
+
   it('uses only an approved complete capture, preserves the work date and never estimates planned minutes', () => {
     const registry = payrollTimeRegistry([history()], 'e1');
     for (const changed of [entry({ reviewStatus: 'pending_review' }), entry({ actualEndAt: null }), entry({ actualStartAt: null, actualEndAt: null, rowKind: 'planned_missing_actual' }), entry({ reviewStatus: 'rejected' })]) {
       const result = resolvePayrollCatchUp(registry, [changed], 2026, 11, now);
       expect(result.catchUp).toEqual([]); expect(result.pending).toHaveLength(1);
     }
-    const result = resolvePayrollCatchUp(registry, [entry()], 2026, 11, now);
+    const result = resolvePayrollCatchUp(registry, [entry()], 2026, 11, now, [accepted(entry())]);
     expect(result.pending).toEqual([]); expect(result.catchUp).toEqual([expect.objectContaining({ sourceEntryId: 'source-1', workDate: '2026-10-12', minutes: 110 })]);
     expect(resolvePayrollCatchUp(registry, [entry()], 2026, 10, now).catchUp).toEqual([]);
   });
@@ -29,7 +42,7 @@ describe('deferred payroll sources across publication periods', () => {
   });
   it('settles an actual source once even when two pending aliases resolve to it', () => {
     const registry = payrollTimeRegistry([history([pending(), pending({ id: 'planned-only' })])], 'e1');
-    const result = resolvePayrollCatchUp(registry, [entry()], 2026, 11, now);
+    const result = resolvePayrollCatchUp(registry, [entry()], 2026, 11, now, [accepted(entry())]);
     expect(result.catchUp).toHaveLength(1); expect(result.catchUp[0].minutes).toBe(110); expect(result.pending).toHaveLength(1);
   });
   it('resolves distinct deferred visits in the same daily session exactly once each', () => {
@@ -38,7 +51,7 @@ describe('deferred payroll sources across publication periods', () => {
     const registry = payrollTimeRegistry([history([deferredPayrollEntry(first, 'incomplete'), deferredPayrollEntry(second, 'incomplete')])], 'e1');
     expect(matchDeferredPayrollEntry(deferredPayrollEntry(first, 'incomplete'), [first, second])).toBe(first);
     expect(matchDeferredPayrollEntry(deferredPayrollEntry(second, 'incomplete'), [first, second])).toBe(second);
-    expect(resolvePayrollCatchUp(registry, [first, second], 2026, 11, now).catchUp.map(item => item.sourceEntryId)).toEqual(['source-1', 'source-2']);
+    expect(resolvePayrollCatchUp(registry, [first, second], 2026, 11, now, [accepted(first), accepted(second)]).catchUp.map(item => item.sourceEntryId)).toEqual(['source-1', 'source-2']);
     expect(matchDeferredPayrollEntry(deferredPayrollEntry(first, 'incomplete'), [second])).toBeUndefined();
   });
   it('matches occurrence aliases before session identity and keeps standalone work separate', () => {
@@ -54,10 +67,10 @@ describe('deferred payroll sources across publication periods', () => {
   });
   it('retains frozen claims on reissue and excludes them from every other month, including older reopened periods', () => {
     const origin = history();
-    const claimed = resolvePayrollCatchUp(payrollTimeRegistry([origin], 'e1'), [entry()], 2026, 12, now).catchUp;
+    const claimed = resolvePayrollCatchUp(payrollTimeRegistry([origin], 'e1'), [entry()], 2026, 12, now, [accepted(entry(), 12)]).catchUp;
     const registry = payrollTimeRegistry([origin, history([], { period_month: 12, snapshot_json: { catchUpTimeEntries: claimed } })], 'e1');
     expect(resolvePayrollCatchUp(registry, [entry({ netMinutes: 115 })], 2026, 12, now).catchUp).toEqual(claimed);
-    expect(resolvePayrollCatchUp(registry, [entry()], 2026, 11, now)).toEqual({ catchUp: [], pending: [] });
+    expect(resolvePayrollCatchUp(registry, [entry()], 2026, 11, now, [accepted(entry())])).toEqual({ catchUp: [], pending: [] });
     expect(resolvePayrollCatchUp(registry, [entry()], 2027, 1, now)).toEqual({ catchUp: [], pending: [] });
   });
   it('keeps deferrals from superseded versions, ignores drafts and other employees, and rejects corrupt history', () => {

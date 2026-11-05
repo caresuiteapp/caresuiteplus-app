@@ -1,4 +1,4 @@
-import type { PayrollCatchUpTimeEntry, PayrollDeferredTimeEntry } from '@/types/modules/payrollMonth';
+import type { PayrollCatchUpTimeEntry, PayrollDeferredTimeEntry, PayrollTimeAcceptance } from '@/types/modules/payrollMonth';
 import type { WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import { officeAccountRecordedMinutes } from '@/lib/wfm/wfmOfficeAccountTotals';
 import { isPayrollDate, payrollDeferredReason, type PayrollRow } from './payrollOfficeReadModel.web';
@@ -51,20 +51,28 @@ export function payrollTimeRegistry(rows: PayrollRow[], employeeId: string): Pay
   }
   return { deferred, settled };
 }
-export function resolvePayrollCatchUp(registry: PayrollTimeRegistry, entries: WfmOfficeTimeEntry[], year: number, month: number, now: number) {
+export function acceptedPayrollTimeMatches(acceptance: PayrollTimeAcceptance, entry: WfmOfficeTimeEntry): boolean {
+  const saved = acceptance.entry;
+  return saved.id === entry.id && saved.employeeId === entry.employeeId && saved.tenantId === entry.tenantId && saved.workDate === entry.workDate
+    && Date.parse(saved.actualStartAt ?? '') === Date.parse(entry.actualStartAt ?? '')
+    && Date.parse(saved.actualEndAt ?? '') === Date.parse(entry.actualEndAt ?? '')
+    && saved.pauseMinutes === entry.pauseMinutes && saved.netMinutes === entry.netMinutes && saved.workKind === entry.workKind;
+}
+export function resolvePayrollCatchUp(registry: PayrollTimeRegistry, entries: WfmOfficeTimeEntry[], year: number, month: number, now: number, acceptances: PayrollTimeAcceptance[] = []) {
   const selected = payrollPeriodNumber(year, month);
   const catchUp: PayrollCatchUpTimeEntry[] = [], pending: PayrollDeferredTimeEntry[] = [];
   const claimedEntries = new Set([...registry.settled.values()].map(value => value.item.sourceEntryId));
   for (const item of registry.deferred.values()) {
-    if (payrollPeriodNumber(item.originYear, item.originMonth) >= selected) continue;
+    if (payrollPeriodNumber(item.originYear, item.originMonth) > selected) continue;
     const settled = registry.settled.get(item.key);
     if (settled) { if (settled.period === selected) catchUp.push(settled.item); continue; }
-    const entry = matchDeferredPayrollEntry(item, entries);
+    const acceptance = acceptances.find(row => row.deferredKey === item.key && payrollPeriodNumber(row.targetYear, row.targetMonth) === selected);
+    const entry = acceptance ? entries.find(row => row.id === acceptance.entry.id && matchDeferredPayrollEntry(item, [row])) : matchDeferredPayrollEntry(item, entries);
     const complete = entry && payrollDeferredReason(entry, now) == null && entry.actualStartAt && entry.actualEndAt;
     // Ambiguous/missing sources remain pending; the same actual row cannot be credited twice.
-    if (!complete || claimedEntries.has(entry.id)) { pending.push(item); continue; }
+    if (!complete || !acceptance || !acceptedPayrollTimeMatches(acceptance, entry) || claimedEntries.has(entry.id)) { pending.push(item); continue; }
     claimedEntries.add(entry.id);
-    catchUp.push({ ...item, sourceEntryId: entry.id, minutes: officeAccountRecordedMinutes(entry), travelMinutes: 0,
+    catchUp.push({ ...item, acceptanceId: acceptance.id, sourceEntryId: entry.id, minutes: officeAccountRecordedMinutes(entry), travelMinutes: 0,
       actualStartAt: entry.actualStartAt!, actualEndAt: entry.actualEndAt!, reviewedAt: entry.reviewedAt ?? null });
   }
   return { catchUp, pending };

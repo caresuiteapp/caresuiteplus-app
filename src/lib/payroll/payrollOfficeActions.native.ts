@@ -72,7 +72,7 @@ export function payrollPublicationComparable(value: unknown): string {
     return JSON.stringify(stable(value));
 }
 export function payrollSnapshotForPublication(employee: PayrollOfficeEmployeeMonth): PayrollWebStatementSnapshot {
-    const { latestStatement, pendingPortalUploads, calculationReady, blockers, warnings, unapprovedEntryCount, employmentStatus, statementHistory, preview, ...snapshot } = employee;
+    const { latestStatement, pendingPortalUploads, calculationReady, blockers, warnings, unapprovedEntryCount, employmentStatus, statementHistory, preview, timeAcceptanceOptions, ...snapshot } = employee;
     void latestStatement;
     void pendingPortalUploads;
     void calculationReady;
@@ -82,6 +82,7 @@ export function payrollSnapshotForPublication(employee: PayrollOfficeEmployeeMon
     void employmentStatus;
     void statementHistory;
     void preview;
+    void timeAcceptanceOptions;
     return snapshot;
 }
 function publicationProblem(employee: PayrollOfficeEmployeeMonth): string | null {

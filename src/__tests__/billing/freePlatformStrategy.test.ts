@@ -85,7 +85,7 @@ describe('Free Platform Strategy', () => {
     activateRegistrationModules(TENANT, ['assist', 'pflege']);
     expect(hasModuleAccess('office', TENANT)).toBe(true);
     expect(hasModuleAccess('assist', TENANT)).toBe(true);
-    expect(hasModuleAccess('pflege', TENANT)).toBe(false);
+    expect(hasModuleAccess('pflege', TENANT)).toBe(true);
   });
 
   it('canAccessModule allows active modules without payment check', () => {

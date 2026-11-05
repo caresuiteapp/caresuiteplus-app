@@ -84,6 +84,13 @@ describe('Web payroll complete tenant-scoped reads', () => {
     const pending = await listPayrollMonthOverview('tenant-1', 2026, 11, 'business_admin');
     expect(pending.ok && pending.data.employees[0]).toMatchObject({ actualWorkMinutes: 120, catchUpWorkMinutes: 0, unapprovedEntryCount: 1, calculationReady: true });
     oldAccount.entries[0].reviewStatus = 'approved';
+    // Source approval alone never selects the payroll month.
+    const approvedOnly = await listPayrollMonthOverview('tenant-1', 2026, 11, 'business_admin');
+    expect(approvedOnly.ok && approvedOnly.data.employees[0].catchUpWorkMinutes).toBe(0);
+    state.rows.payroll_time_acceptances = [{ id: 'acceptance-1', tenant_id: 'tenant-1', employee_id: 'e1',
+      deferred_key: origin.deferredTimeEntries![0].key, target_year: 2026, target_month: 11, review_id: 'review-1',
+      review_updated_at: '2026-11-04T08:00:00Z', updated_at: '2026-11-04T08:00:00Z', work_date: '2026-10-12', office_entry: oldAccount.entries[0] }];
+
     const november = await listPayrollMonthOverview('tenant-1', 2026, 11, 'business_admin');
     expect(november.ok).toBe(true); if (!november.ok) return;
     const settled = november.data.employees[0];

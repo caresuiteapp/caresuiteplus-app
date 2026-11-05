@@ -156,12 +156,14 @@ describe('company Web editor', () => {
     expect(h.save).toHaveBeenCalledWith('contact', 'tenant-one', expect.objectContaining({ contactPersons: [expect.objectContaining({ firstName: 'Anna', lastName: 'Muster', email: 'anna@example.test', isPrimary: true })] }), 'business_admin', { removedIds: [] });
   });
 
-  it('keeps blocked modules disabled and requires explicit selection for the active area', async () => {
+  it('keeps Stationär blocked and saves the explicitly selected Pflege module only on submission', async () => {
     section = 'modules'; await render();
-    const locked = host.querySelector<HTMLInputElement>('input[aria-label="Ambulante Pflege"]')!;
+    const locked = host.querySelector<HTMLInputElement>('input[aria-label="Stationäre Pflege"]')!;
     expect(locked.disabled).toBe(true); await click(locked); expect(h.save).not.toHaveBeenCalled();
+    const pflege = host.querySelector<HTMLInputElement>('input[aria-label="Ambulante Pflege"]')!;
+    expect(pflege.disabled).toBe(false); await click(pflege); expect(h.save).not.toHaveBeenCalled();
     await click(host.querySelector<HTMLInputElement>('input[aria-label="Alltagsbegleitung"]')!); await click(button('Änderungen speichern'));
-    expect(h.save).toHaveBeenCalledWith('modules', 'tenant-one', { assistEnabled: false, pflegeEnabled: false, stationaerEnabled: false, beratungEnabled: false }, 'business_admin');
+    expect(h.save).toHaveBeenCalledWith('modules', 'tenant-one', { assistEnabled: false, pflegeEnabled: true, stationaerEnabled: false, beratungEnabled: false }, 'business_admin');
   });
 
   it('shows no save action when permission is missing and disables form controls', async () => {
