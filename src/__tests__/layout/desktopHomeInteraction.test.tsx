@@ -90,7 +90,7 @@ describe('Web desktop preferences and navigation', () => {
     await render(); await click(label('Desktop bearbeiten')); await click(label('Klient:innen entfernen'));
     expect(label('Klient:innen öffnen')).toBeNull();
     await act(async () => root.unmount()); root = createRoot(host); await render();
-    expect(label('Klient:innen öffnen')).toBeNull(); expect(host.textContent).toContain('9/12 aktiv');
+    expect(label('Klient:innen öffnen')).toBeNull(); expect(label('Dokumentation öffnen')).not.toBeNull(); expect(host.textContent).toContain('10/12 aktiv');
   });
   it('does not expose or overwrite a previous account’s preferences while the next account loads', async () => {
     memory.set(key(), JSON.stringify(['messages'])); await render();
@@ -101,7 +101,7 @@ describe('Web desktop preferences and navigation', () => {
     api.owner = 'b'; await render();
     expect(host.querySelector('[role="dialog"]')).toBeNull();
     expect(label('Nachrichten öffnen')).toBeNull(); expect(memory.has(key('b'))).toBe(false);
-    await act(async () => resolve(null)); expect(host.textContent).toContain('10/12 aktiv');
+    await act(async () => resolve(null)); expect(label('Dokumentation öffnen')).not.toBeNull(); expect(host.textContent).toContain('11/12 aktiv');
     expect(JSON.parse(memory.get(key('a'))!)).toEqual(['messages']);
   });
   it('allows a failed preferences read to be retried without overwriting stored choices', async () => {
