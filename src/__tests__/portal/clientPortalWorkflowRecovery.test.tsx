@@ -6,7 +6,11 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { PortalActor } from '@/hooks/usePortalActor';
 import type { FamilyPortalAccessScope } from '@/lib/portal/familyPortalAccessScope';
 
-const f = vi.hoisted(() => ({ actor: {} as PortalActor, carePanel: vi.fn(), list: vi.fn(), create: vi.fn(), pdf: vi.fn(), open: vi.fn(), push: vi.fn(), profile: vi.fn(), plans: vi.fn(), appointment: vi.fn(), change: vi.fn(), document: vi.fn(), download: vi.fn() }));
+const f = vi.hoisted(() => ({ actor: {} as PortalActor, careModuleReleased: true, carePanel: vi.fn(), list: vi.fn(), create: vi.fn(), pdf: vi.fn(), open: vi.fn(), push: vi.fn(), profile: vi.fn(), plans: vi.fn(), appointment: vi.fn(), change: vi.fn(), document: vi.fn(), download: vi.fn() }));
+vi.mock('@/lib/modules/constants', async importOriginal => {
+  const actual = await importOriginal<typeof import('@/lib/modules/constants')>();
+  return { ...actual, isUnreleasedModuleKey: (key: string) => key === 'pflege' ? !f.careModuleReleased : actual.isUnreleasedModuleKey(key) };
+});
 vi.mock('react-native', () => {
   const Host = ({ children, testID }: { children?: ReactNode; testID?: string }) => <div data-testid={testID}>{children}</div>;
   return { View: Host, ScrollView: Host, Text: ({ children, accessibilityRole }: any) => <span role={accessibilityRole}>{children}</span>, Pressable: ({ children, onPress, disabled }: any) => <button disabled={disabled} onClick={onPress}>{children}</button>, StyleSheet: { create: (s: unknown) => s }, Platform: { OS: 'android' }, AppState: { addEventListener: () => ({ remove() {} }) }, Linking: { openURL: f.open } };
@@ -47,6 +51,7 @@ const click = async (label: string) => { await act(async () => button(label).cli
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   vi.clearAllMocks();
+  f.careModuleReleased = true;
   f.actor = { tenantId: 'tenant-a', clientId: 'client-a', employeeId: null, actorId: 'account-a', roleKey: 'client_portal', familyAccess: null, displayName: 'Testperson', isReady: true, isLinkedReady: true, isResolvingClientLink: false, isResolvingEmployeeLink: false, isResolvingDisplayName: false };
   f.list.mockResolvedValue({ ok: true, data: [proof] }); f.create.mockResolvedValue({ ok: true, data: { id: 'request-a' } });
   f.pdf.mockResolvedValue({ ok: true, data: 'https://example.invalid/proof-a.pdf' }); f.open.mockResolvedValue(undefined);
@@ -59,9 +64,15 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); })
 
 describe('actual client proof actions', () => {
   it('does not mount the unreleased clinical proof workflow through the released assist proof page', async () => {
+    f.careModuleReleased = false;
     await render(<ClientPortalProofsScreen />);
     expect(host.textContent).toContain(proof.title);
     expect(f.carePanel).not.toHaveBeenCalled();
+  });
+  it('lets the released clinical panel check server availability without changing the assist proofs', async () => {
+    await render(<ClientPortalProofsScreen />);
+    expect(host.textContent).toContain(proof.title);
+    expect(f.carePanel).toHaveBeenCalled();
   });
   it('sends one bound inquiry while pending and acknowledges only its confirmed receipt', async () => {
     const pending = deferred<unknown>(); f.create.mockReturnValue(pending.promise);

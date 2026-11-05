@@ -12,6 +12,8 @@ const TECHNICAL_ERROR_PATTERNS = [
   /invalid input syntax/i,
   /network request failed/i,
   /failed to fetch/i,
+  /\bPORTAL_[A-Z_]+\b/,
+  /\b(?:modul(?:freigabe)?|pflegeanbindung|schnittstelle)\b.*\b(?:freigeschaltet|freigegeben|aktiviert|konfiguriert)\b/i,
 ];
 
 /**

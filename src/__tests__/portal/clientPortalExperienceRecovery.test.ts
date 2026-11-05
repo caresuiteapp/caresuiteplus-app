@@ -62,6 +62,16 @@ describe('client portal experience recovery', () => {
     );
   });
 
+  it.each([
+    'Die Pflegeanbindung ist noch nicht freigeschaltet.',
+    'Dieses Modul ist noch nicht aktiviert.',
+    'Die Schnittstelle ist nicht konfiguriert.',
+    'PORTAL_CARE_UNAVAILABLE',
+    'PORTAL_CARE_NOT_ELIGIBLE',
+  ])('keeps internal activation details out of portal feedback: %s', message => {
+    expect(toPortalUserFacingError(message, 'Bitte versuchen Sie es erneut.')).toBe('Bitte versuchen Sie es erneut.');
+  });
+
   it('does not expose technical module language in the profile or base overview', () => {
     const profile = readSrc('src/screens/portal/ClientPortalProfileScreen.tsx');
     const base = readSrc('src/components/portal/ClientPortalBaseOverview.tsx');
