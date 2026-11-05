@@ -15,9 +15,15 @@ async function policy(os,consultationReleased){
  return import('data:text/javascript;base64,'+Buffer.from(module).toString('base64'));
 }
 for(const os of ['web','android'])for(const consultationReleased of [false,true]){
- test(`Pflege bleibt auf ${os} bei Beratungsfreigabe ${consultationReleased} gesperrt`,async()=>{
+ test(`Pflege ist auf ${os} sichtbar; Stationär bleibt bei Beratungsfreigabe ${consultationReleased} gesperrt`,async()=>{
   const m=await policy(os,consultationReleased);
-  for(const key of ['pflege','stationaer']){
+  assert.equal(m.isUnreleasedModuleKey('pflege'),false);
+  assert.equal(m.isUnreleasedCatalogModuleKey('pflege'),true);
+  for(const route of ['/pflege','/pflege/','/pflege/medikation/akte-17?revision=9#original','/PFLEGE/MEDIKATION']){
+   assert.equal(m.getUnreleasedModuleKeyFromPath(route),null,route);
+   assert.equal(m.isUnreleasedModuleRoute(route),false,route);
+  }
+  for(const key of ['stationaer']){
    assert.equal(m.isUnreleasedModuleKey(key),true);
    assert.equal(m.isUnreleasedCatalogModuleKey(key),true);
    for(const route of [`/${key}`,`/${key}/`,`/${key}/medikation/akte-17?revision=9#original`,`/${key.toUpperCase()}/MEDIKATION`]){
@@ -49,7 +55,7 @@ test('Beratungs-Webfreigabe bleibt auf die vorgesehenen Arbeitsplatzrouten begre
  const m=await policy('web',true);
  for(const route of ['/beratung','/beratung/arbeitsplatz','/beratung/arbeitsplatz/fall-17'])assert.equal(m.getUnreleasedModuleKeyFromPath(route),null,route);
  assert.equal(m.getUnreleasedModuleKeyFromPath('/beratung/legacy'),'beratung');
- assert.equal(m.isUnreleasedModuleKey('pflege'),true);
+ assert.equal(m.isUnreleasedModuleKey('pflege'),false);
 });
 test('Pflegespezifische Routensperre erfasst keine bloß ähnlich benannten Routen',async()=>{
  const m=await policy('web',false);

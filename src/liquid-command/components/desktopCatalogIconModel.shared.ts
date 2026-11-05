@@ -47,6 +47,9 @@ export function desktopCatalogIconName(route: string): DesktopCatalogIconName {
   const has = (segment: string) => new RegExp(`/(?:${segment})(?:/|$)`).test(path);
 
   // Specific destinations precede broader document, employee and settings sections.
+  // Clinical plans are not subscription or invoice plans.
+  if (/^\/pflege\/plans(?:\/|$)/.test(path)) return 'document';
+  if (/^\/pflege\/dokumentation(?:\/|$)/.test(path)) return 'document';
   if (has('permissions|security|privacy|data-request|consents|risiken|risks')) return 'shield';
   if (has('profile|profil|account')) return 'profile';
   if (has('appearance|branding|backgrounds|darstellung')) return 'palette';

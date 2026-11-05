@@ -228,6 +228,18 @@ export const BACKGROUNDS: readonly BackgroundDefinition[] = [
 const notesArtwork = Platform.OS === 'web' ? { uri: `data:image/svg+xml,${encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="360" height="280" viewBox="0 0 360 280"><defs><linearGradient id="cover" x2="1" y2="1"><stop stop-color="#38b9ba"/><stop offset="1" stop-color="#147c91"/></linearGradient><linearGradient id="paper" x2="0" y2="1"><stop stop-color="#fffef6"/><stop offset="1" stop-color="#f7ead8"/></linearGradient></defs><ellipse cx="181" cy="251" rx="125" ry="14" fill="#123c59" opacity=".17"/><g transform="rotate(-8 165 145)"><rect x="66" y="35" width="181" height="218" rx="19" fill="#12677b"/><rect x="70" y="27" width="177" height="219" rx="18" fill="url(#cover)"/><rect x="90" y="34" width="150" height="201" rx="11" fill="url(#paper)"/><path d="M112 82h96M112 106h75M112 130h96M112 154h55" stroke="#c7d5d4" stroke-width="5" stroke-linecap="round"/><path d="M80 56h19M80 85h19M80 114h19M80 143h19M80 172h19M80 201h19" stroke="#e6f8f6" stroke-width="7" stroke-linecap="round"/><rect x="155" y="174" width="72" height="54" rx="6" fill="#f6c660" transform="rotate(7 190 200)"/><path d="m173 199 9 9 22-23" fill="none" stroke="#91643a" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"/></g><g transform="rotate(32 272 143)"><rect x="260" y="61" width="19" height="142" rx="7" fill="#16485f"/><path d="M260 192h19l-9 29z" fill="#e0b995"/><path d="m266 213 4 8 4-8" fill="#16374b"/><rect x="260" y="62" width="19" height="20" rx="7" fill="#f0b66e"/><path d="M266 91v91" stroke="#70b9c4" stroke-width="3" stroke-linecap="round"/></g></svg>')}` } : undefined;
 
 export const WIDGETS: readonly WidgetDefinition[] = [
+  { id: 'pflege-overview', label: 'Pflegeübersicht', description: 'Versorgung, Prioritäten und Fachbereiche öffnen.', category: 'Versorgung', route: '/pflege' },
+  { id: 'pflege-clients', label: 'Pflegeakten', description: 'Klient:innen, Versorgung und gespeicherte Pflegeinformationen.', category: 'Versorgung', route: '/pflege/klienten' },
+  { id: 'pflege-sis', label: 'SIS & Assessment', description: 'Informationssammlung und individuelle Pflegesituation.', category: 'Versorgung', route: '/pflege/sis' },
+  { id: 'pflege-plans', label: 'Pflegepläne', description: 'Gespeicherte Pläne, Maßnahmen und Versionsverlauf.', category: 'Versorgung', route: '/pflege/plans' },
+  { id: 'pflege-documentation', label: 'Pflegedokumentation', description: 'Pflegeverlauf und durchgeführte Versorgung dokumentieren.', category: 'Versorgung', route: '/pflege/dokumentation' },
+  { id: 'pflege-vitals', label: 'Vitalwerte', description: 'Messwerte, Verläufe und Beobachtungen aufrufen.', category: 'Versorgung', route: '/pflege/vitalwerte' },
+  { id: 'pflege-medication', label: 'Medikation', description: 'Medikationspläne und zugehörige Dokumentation.', category: 'Versorgung', route: '/pflege/medikation' },
+  { id: 'pflege-treatment', label: 'Behandlungspflege', description: 'Verordnete Maßnahmen und Behandlungspflege bearbeiten.', category: 'Versorgung', route: '/pflege/behandlungspflege' },
+  { id: 'pflege-wounds', label: 'Wunddokumentation', description: 'Wunden, Befunde und dokumentierte Verläufe.', category: 'Versorgung', route: '/pflege/wunddokumentation' },
+  { id: 'pflege-handover', label: 'Übergaben', description: 'Pflegerelevante Informationen für die nächste Übergabe.', category: 'Versorgung', route: '/pflege/uebergaben' },
+  { id: 'pflege-tours', label: 'Pflegetouren', description: 'Versorgungswege und Pflegeeinsätze organisieren.', category: 'Versorgung', route: '/pflege/tourenplanung' },
+  { id: 'pflege-quality', label: 'Pflegequalität', description: 'Risiken, Evaluationen und Qualitätsprüfung öffnen.', category: 'Versorgung', route: '/pflege/risiken' },
   { id: 'notes', label: 'Notizen', description: 'Persönliche Notizen, Ideen und Aufgaben sammeln und wiederfinden.', category: 'Verwaltung', route: '/office/notizen', ...(notesArtwork ? { images: { small: notesArtwork, medium: notesArtwork, large: notesArtwork } } : {}) },
   { id: 'document-catalog', label: 'Dokumentenkatalog', description: '450 Vorlagen für Pflege, Betreuung, Personal und Verwaltung. Daten übernehmen, PDF erstellen und in der Akte ablegen.', category: 'Verwaltung', route: '/business/office/document-catalog', permission: 'office.documents.view', images: {
     small: require('../../../assets/healthos/widgets-premium/document-catalog.png'),
@@ -337,6 +349,9 @@ export const DEFAULT_DESKTOP_IDS = [
 export const WIDGET_BY_ID = new Map(WIDGETS.map((widget) => [widget.id, widget]));
 export const CATEGORIES = DESKTOP_CATEGORIES;
 export const WORKFLOWS = [
+  { id: 'pflege-sis', glyph: '▤', label: 'SIS & Assessment', text: 'Gespeicherte Informationssammlung im eigenen Pflegefall öffnen', route: '/pflege/sis' },
+  { id: 'pflege-plans', glyph: '✓', label: 'Pflegeplanung öffnen', text: 'Vorhandene Pflegepläne und Maßnahmen im Zusammenhang prüfen', route: '/pflege/plans' },
+  { id: 'pflege-documentation', glyph: '✎', label: 'Pflege dokumentieren', text: 'Pflegeverlauf und Beobachtungen in der eigenen Akte festhalten', route: '/pflege/dokumentation' },
   { id: "client", glyph: "＋", label: "Klient:in aufnehmen", text: "Stammdaten, Einwilligungen und Versorgung in einem geführten Ablauf", route: "/business/office/clients/new" },
   { id: "assignment", glyph: "↗", label: "Einsatz planen", text: "Bedarf, Personal und Termin strukturiert zusammenführen", route: "/assist/kalender" },
   { id: "proof", glyph: "✓", label: "Nachweise prüfen", text: "Offene Leistungsnachweise priorisiert kontrollieren", route: "/assist/nachweise" },

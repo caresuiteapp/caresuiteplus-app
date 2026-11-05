@@ -108,7 +108,7 @@ describe('moduleVisibilityService', () => {
   it('Modul-Switcher zeigt nur aktive Mandanten-Module', () => {
     const items = getModuleSwitcherItems(TENANT, NURSE);
     expect(items.every((item) => item.isActive)).toBe(true);
-    expect(items.map((item) => item.productKey)).toEqual(['office', 'assist']);
+    expect(items.map((item) => item.productKey)).toEqual(['office', 'assist', 'pflege']);
     expect(items.find((item) => item.productKey === 'stationaer')).toBeUndefined();
   });
 
@@ -119,7 +119,7 @@ describe('moduleVisibilityService', () => {
     expect(keys).toContain('admin');
     expect(keys).toContain('office');
     expect(keys).toContain('assist');
-    expect(keys).not.toContain('pflege');
+    expect(keys).toContain('pflege');
     expect(keys).not.toContain('stationaer');
     expect(keys).not.toContain('beratung');
     expect(keys).not.toContain('akademie');

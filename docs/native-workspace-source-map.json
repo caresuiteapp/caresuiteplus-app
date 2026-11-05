@@ -4213,21 +4213,39 @@
     {
       "web": "src/lib/wfm/wfmOfficePlannedVisitRepository.web.ts",
       "native": "src/lib/wfm/wfmOfficePlannedVisitRepository.native.ts",
-      "sourceHash": "5ac8401dc4e7ed785f37d1ec04133d2c51c8471aef809ed498a3dbdc18e326ad",
+      "sourceHash": "0875630d8ed6aa035aaebc1ac8b701ce338397de7066bfe0575b37a321163ab8",
       "environment": []
     },
     {
       "web": "src/lib/wfm/wfmOfficeTimekeepingService.web.ts",
       "native": "src/lib/wfm/wfmOfficeTimekeepingService.native.ts",
-      "sourceHash": "dfaebdfb803c6dccba46c08e60751f083cbac3be3a1ce90b1344e4ff0b3a0138",
+      "sourceHash": "2acc2b2bea22a2cbca0d0d60f12b774cb52a797af6c883099fe330a213c4ebbc",
       "environment": [
         "crypto"
       ]
     },
     {
+      "web": "src/lib/payroll/payrollPayoutPolicy.web.ts",
+      "native": "src/lib/payroll/payrollPayoutPolicy.native.ts",
+      "sourceHash": "3d1efed9e62de970dfc863185225be8069c27d4d92639d77c8be0079c9edcd90",
+      "environment": []
+    },
+    {
+      "web": "src/lib/payroll/payrollCalculator.web.ts",
+      "native": "src/lib/payroll/payrollCalculator.native.ts",
+      "sourceHash": "5546a94303e274e04e5b91ca0cba483c2d565cf226f3c9db4b82d1af2bbe121e",
+      "environment": []
+    },
+    {
+      "web": "src/lib/wfm/wfmMiniJobAccountBasis.web.ts",
+      "native": "src/lib/wfm/wfmMiniJobAccountBasis.native.ts",
+      "sourceHash": "22735f00d8df8840efdd2a41019f5eec086abe98e633a30a7572045d25b779e9",
+      "environment": []
+    },
+    {
       "web": "src/lib/wfm/wfmOfficeZeitkontenService.web.ts",
       "native": "src/lib/wfm/wfmOfficeZeitkontenService.native.ts",
-      "sourceHash": "a6afd06edb23b5d13915e5867168d5f80daf1bbd735ec98a78bfe07df10f1727",
+      "sourceHash": "fe77361fe173f110b1c38a89fb92b9ca6b2d4681f03370ba98f6eea045c97de8",
       "environment": []
     },
     {
@@ -4298,7 +4316,7 @@
     {
       "web": "src/components/wfm/WfmEmployeeTimeAccountWorkspace.web.tsx",
       "native": "src/components/wfm/WfmEmployeeTimeAccountWorkspace.native.tsx",
-      "sourceHash": "030c7ab5d9a06f72358eb270683768a5d6de43a5c3ef13b07fe65f9c48453387",
+      "sourceHash": "ab78d419569dcbf6852b52f93eaad26acaeb7582760f54004d4fcca814bb1eff",
       "environment": [
         "URL"
       ]
@@ -4306,7 +4324,7 @@
     {
       "web": "src/components/wfm/TimeTrackingTeamScreen.web.tsx",
       "native": "src/components/wfm/TimeTrackingTeamScreen.native.tsx",
-      "sourceHash": "8211624887521beafcf5ada6ff0a85eee0545a538849346f6a943f36bd2fdcec",
+      "sourceHash": "505e85cbe0022eac7465dc56efdbb6cbf2eb61b0b4cf2c9220102a95b746e8f6",
       "environment": [
         "window"
       ]
@@ -5575,27 +5593,27 @@
       "environment": []
     },
     {
-      "web": "src/lib/payroll/payrollCalculator.web.ts",
-      "native": "src/lib/payroll/payrollCalculator.native.ts",
-      "sourceHash": "16efb4c34f721ad7c3a067bd30743ce5ec74b080ef4a2803d5f9626d382a9389",
-      "environment": []
-    },
-    {
-      "web": "src/lib/payroll/payrollPayoutPolicy.web.ts",
-      "native": "src/lib/payroll/payrollPayoutPolicy.native.ts",
-      "sourceHash": "3d1efed9e62de970dfc863185225be8069c27d4d92639d77c8be0079c9edcd90",
-      "environment": []
-    },
-    {
       "web": "src/lib/payroll/payrollOfficeReadModel.web.ts",
       "native": "src/lib/payroll/payrollOfficeReadModel.native.ts",
-      "sourceHash": "e556ab4dfba01ff4467fe569b596e0f2f4e3a1254c098b67e4c02599b0827184",
+      "sourceHash": "a335f48c3e2afdc505a6e4cb8faaa350e3f50a3af1ddcfe9b991ceaca096c00b",
+      "environment": []
+    },
+    {
+      "web": "src/lib/payroll/payrollTimeDeferral.web.ts",
+      "native": "src/lib/payroll/payrollTimeDeferral.native.ts",
+      "sourceHash": "24ae0b10dec1639369097c443f74ba573dd900729220ab3d1f31eaddcad0f19f",
+      "environment": []
+    },
+    {
+      "web": "src/lib/payroll/payrollStatementPdf.web.ts",
+      "native": "src/lib/payroll/payrollStatementPdf.native.ts",
+      "sourceHash": "11306483851b90e5861b9fffe9da617d809a04c2d4ae53bad9f53b41fed50cc2",
       "environment": []
     },
     {
       "web": "src/lib/payroll/payrollOfficeActions.web.ts",
       "native": "src/lib/payroll/payrollOfficeActions.native.ts",
-      "sourceHash": "0ee5c2a2cf9e084d6b7b82e8279ef1d47a1912977b3d114cad902e18fa00ee12",
+      "sourceHash": "0131b2e8fdfcd17176c3f7ce62afa1cdc805e4fa02791a4d10d0f77b821e00dc",
       "environment": [
         "crypto"
       ]
@@ -5603,7 +5621,7 @@
     {
       "web": "src/lib/payroll/payrollMonthService.web.ts",
       "native": "src/lib/payroll/payrollMonthService.native.ts",
-      "sourceHash": "3050c35f40f8daefdab6e9cb62e1eae22e87b18f99ea1b3faef7f6719d82a05b",
+      "sourceHash": "768f2e9dc4d9aaa585865a9467ecbd05991964a05bbe971e461715ba500b3084",
       "environment": []
     },
     {
@@ -5615,7 +5633,7 @@
     {
       "web": "src/components/payroll/PayrollEmployeeDetail.web.tsx",
       "native": "src/components/payroll/PayrollEmployeeDetail.native.tsx",
-      "sourceHash": "2112a868eeccdb1821d07c713495dabfcc635b2be6137000b32fbb5bc628089f",
+      "sourceHash": "4d682de9d876d6aa7bc2708d2a06c81120d1c0814f0c8bfda61a9ff1628f95a7",
       "environment": []
     },
     {
@@ -5627,7 +5645,7 @@
     {
       "web": "src/screens/office/PayrollMonthOverviewScreen.web.tsx",
       "native": "src/screens/office/PayrollMonthOverviewScreen.native.tsx",
-      "sourceHash": "d920c79e45724dd5e27796202cf6ea62cb68f3e67a53cc9cf12696527ea80d75",
+      "sourceHash": "c18b0919a182eecb4882683c95901f3da86d6840f23bbbf786fe932f2278c750",
       "environment": [
         "window",
         "URL"
@@ -6803,6 +6821,18 @@
       "web": "src/ai/robot/neoConversation.web.ts",
       "native": "src/ai/robot/neoConversation.native.ts",
       "sourceHash": "686220c45f166d0431e7ac1ff304bc4b48d86c7190284b7968af3a941c357515",
+      "environment": []
+    },
+    {
+      "web": "src/lib/portal/employeeDeferredTimeModel.web.ts",
+      "native": "src/lib/portal/employeeDeferredTimeModel.native.ts",
+      "sourceHash": "aac214c19468aa81c4fb0512918c08561b333645e3a75f9a7065f11529caf1b5",
+      "environment": []
+    },
+    {
+      "web": "src/lib/portal/employeeDeferredTimeService.web.ts",
+      "native": "src/lib/portal/employeeDeferredTimeService.native.ts",
+      "sourceHash": "896db8bb2bc94fbe3a7f12debe3b1ffa22b7c4465a07c4094696178873710333",
       "environment": []
     },
     {

@@ -31,6 +31,7 @@ export type PayrollCalculationInput = {
   /** Future approved paid absences affect the forecast, never accrued actual time. */
   projectedPaidAbsenceMinutes?: number;
   targetWorkMinutes?: number;
+  targetWorkSource?: 'payout_limit';
   monthlyPlannedMinutes?: number;
   plannedMinutes: number;
   timeAccountBalanceMinutes?: number;
@@ -167,7 +168,8 @@ export function calculatePayrollSnapshot(input: PayrollCalculationInput): Payrol
     travelMinutes: Math.min(actualWorkMinutes, nonNegative(input.travelMinutes, 'Fahrzeit')),
     vacationMinutes, sickMinutes, otherPaidAbsenceMinutes, projectedPaidAbsenceMinutes,
     targetWorkMinutes, creditedActualMinutes: contractualPayableMinutes,
-    targetActualDifferenceMinutes: contractualPayableMinutes - targetWorkMinutes,
+    ...(input.targetWorkSource ? { targetWorkSource: input.targetWorkSource } : {}),
+    targetActualDifferenceMinutes: input.targetWorkSource === 'payout_limit' ? Math.max(0, contractualPayableMinutes - targetWorkMinutes) : contractualPayableMinutes - targetWorkMinutes,
     monthlyPlannedMinutes: nonNegative(input.monthlyPlannedMinutes ?? plannedMinutes, 'Monatsplan'),
     plannedMinutes, payableMinutes, overtimeTransferMinutes, timeAccountBalanceMinutes: Math.round(balance),
     earnedGrossCents, projectedGrossCents, ...totals, advancesCents, deductionsCents,
@@ -328,8 +330,8 @@ export function buildPayrollStatementHtml(snapshot: PayrollWebStatementSnapshot,
       ${row('Angerechnete Krankheit', formatPayrollMinutes(snapshot.sickMinutes))}
       ${row('Weitere bezahlte Abwesenheit', formatPayrollMinutes(snapshot.otherPaidAbsenceMinutes))}
       ${row('Anrechenbares Ist', formatPayrollMinutes(credited), 'strong')}
-      ${row('Vertragliches Monatssoll', target == null ? 'Nicht hinterlegt' : formatPayrollMinutes(target))}
-      ${row('Soll-/Ist-Differenz', target == null ? '—' : formatPayrollBalanceMinutes(snapshot.targetActualDifferenceMinutes ?? credited - target))}
+      ${row(snapshot.targetWorkSource === 'payout_limit' ? 'Auszahlungsbasis des Monats' : 'Vertragliches Monatssoll', target == null ? 'Nicht hinterlegt' : formatPayrollMinutes(target))}
+      ${row(snapshot.targetWorkSource === 'payout_limit' ? 'Übertrag oberhalb der Auszahlungsbasis' : 'Soll-/Ist-Differenz', target == null ? '—' : formatPayrollBalanceMinutes(snapshot.targetActualDifferenceMinutes ?? credited - target))}
       ${row('Offener Einsatzplan', formatPayrollMinutes(snapshot.plannedMinutes), 'forecast')}
       ${row('Geplante bezahlte Abwesenheit', formatPayrollMinutes(snapshot.projectedPaidAbsenceMinutes ?? 0), 'forecast')}
       ${row('Vorgesehener Übertrag', formatPayrollMinutes(snapshot.overtimeTransferMinutes))}
@@ -345,7 +347,7 @@ export function buildPayrollStatementHtml(snapshot: PayrollWebStatementSnapshot,
       ${row('Prognose vor Lohnabgaben', formatPayrollMoney(snapshot.projectedTotalPayoutCents), 'total')}
       <p class="explanation">Monatsbrutto + noch offene genehmigte Auslagen − Vorschüsse und Abzüge. Bereits erstattete Auslagen werden nicht erneut hinzugerechnet.</p>
     </section></div>
-    <div class="notice subtle">${snapshot.compensationType === 'salary' ? 'Das Festgehalt wird als vereinbarter Monatsbetrag dargestellt, nicht anteilig als bereits erarbeiteter Verdienst. ' : ''}Fahrzeit ist Teil der erfassten Arbeitszeit und wird nicht nochmals addiert. Vorgesehene Überträge sind noch keine Zeitkontobuchung. Zeiten werden in Europe/Berlin angezeigt.</div>` });
+    <div class="notice subtle">${snapshot.compensationType === 'salary' ? 'Das Festgehalt wird als vereinbarter Monatsbetrag dargestellt, nicht anteilig als bereits erarbeiteter Verdienst. ' : ''}Nur nach der hinterlegten Regel anrechenbare Fahrzeit ist in der Arbeitszeit enthalten und wird nicht nochmals addiert. Vorgesehene Überträge sind noch keine Zeitkontobuchung. Zeiten werden in Europe/Berlin angezeigt.</div>` });
   const identityRemainder = [...nameLines.slice(3), ...employeeNumberLines.slice(2)];
   if (identityRemainder.length) {
     for (let index = 0; index < identityRemainder.length; index += 40) pages.push({ title: 'Personendaten · Fortsetzung', subtitle: month, content: `<p class="long-text">${escapedLines(identityRemainder.slice(index, index + 40))}</p>` });

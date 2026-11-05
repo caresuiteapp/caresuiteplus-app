@@ -10,6 +10,18 @@ import {
 } from '@/liquid-command/navigation/appsWidgetsCatalogModel.web';
 import { buildDesktopApps } from '@/liquid-command/navigation/desktopAppCatalog.web';
 import { DESKTOP_AREAS } from '@/liquid-command/navigation/desktopAreas';
+import { buildSync } from 'esbuild';
+import type { WidgetDefinition } from '@/liquid-command/screens/administrationDesktopCatalog';
+
+// Execute the real catalogue while leaving native image bytes outside Node.
+const catalogSource = buildSync({ entryPoints: ['src/liquid-command/screens/administrationDesktopCatalog.ts'], bundle: true, write: false,
+  platform: 'node', format: 'cjs', external: ['react-native'], loader: { '.png': 'empty', '.jpg': 'empty' } }).outputFiles[0].text;
+const catalogModule = { exports: {} as { WIDGETS: WidgetDefinition[] } };
+new Function('require', 'module', 'exports', catalogSource)((id: string) => {
+  if (id === 'react-native') return { Platform: { OS: 'web' } };
+  throw new Error(`Unexpected catalogue dependency: ${id}`);
+}, catalogModule, catalogModule.exports);
+const { WIDGETS } = catalogModule.exports;
 
 const admin: DesktopCatalogAccess = {
   roleKey: 'business_admin', can: () => true, hasModuleGate: () => true,
@@ -19,6 +31,47 @@ const withPermissions = (...permissions: PermissionKey[]): DesktopCatalogAccess 
 });
 
 describe('Web apps and widgets catalog', () => {
+  it('offers the existing Pflege navigation in its own desktop with granular read rights', () => {
+    const apps = buildDesktopApps([], 'business_admin');
+    const full = filterDesktopCatalogEntries(apps, 'pflege', admin);
+    expect(full.map(app => app.route)).toEqual(expect.arrayContaining([
+      '/pflege', '/pflege/klienten', '/pflege/sis', '/pflege/plans',
+      '/pflege/dokumentation', '/pflege/vitalwerte', '/pflege/medikation',
+      '/pflege/uebergaben', '/pflege/leistungsnachweise', '/pflege/abrechnung',
+    ]));
+    const reader = withPermissions('pflege.access', 'pflege.plans.view');
+    expect(canShowDesktopCatalogRoute('/pflege/plans', reader)).toBe(true);
+    expect(canShowDesktopCatalogRoute('/pflege/plans/create', reader)).toBe(false);
+    expect(canShowDesktopCatalogRoute('/pflege/not-reviewed', admin)).toBe(false);
+    expect(canShowDesktopCatalogRoute('/pflege/vitalwerte', reader)).toBe(false);
+    expect(canShowDesktopCatalogRoute('/pflege/vitalwerte', withPermissions('pflege.access', 'pflege.vitals.view'))).toBe(true);
+    expect(canShowDesktopCatalogRoute('/pflege/gesamtabnahme', reader)).toBe(false);
+    expect(filterDesktopCatalogEntries([{ route: '/pflege/plans' }], 'office', reader)).toEqual([]);
+    expect(canShowDesktopCatalogRoute('/pflege/plans', { ...reader, hasModuleGate: module => module !== 'pflege' })).toBe(false);
+    expect(canShowDesktopCatalogRoute('/pflege/plans', withPermissions('pflege.plans.view'))).toBe(false);
+    expect(canShowDesktopCatalogRoute('/pflege/plans', { ...reader, can: permission => permission !== 'office.access' && reader.can(permission) })).toBe(false);
+    expect(canShowDesktopCatalogRoute('/pflege/plans', { ...reader, roleKey: 'employee_portal' })).toBe(false);
+    expect(canShowDesktopCatalogRoute('/pflege/diagnosen', { ...admin, roleKey: 'dispatch' })).toBe(false);
+  });
+
+  it('makes the twelve Pflege widgets available only in their own authorized desktop', () => {
+    const widgets = WIDGETS.filter(widget => widget.id.startsWith('pflege-'));
+    expect(widgets).toHaveLength(12);
+    expect(filterDesktopCatalogEntries(widgets, 'pflege', admin)).toEqual(widgets);
+    expect(filterDesktopCatalogEntries(widgets, 'office', admin)).toEqual([]);
+    for (const access of [
+      { ...admin, hasModuleGate: () => false },
+      withPermissions('pflege.access'),
+      { ...admin, roleKey: 'client_portal' },
+    ]) {
+      const shown = filterDesktopCatalogEntries(widgets, 'pflege', access);
+      expect(shown.every(widget => widget.route === '/pflege')).toBe(true);
+    }
+    const reader = withPermissions('pflege.access', 'pflege.plans.view');
+    expect(filterDesktopCatalogEntries(widgets, 'pflege', reader).map(widget => widget.id))
+      .toEqual(['pflege-overview', 'pflege-sis', 'pflege-plans', 'pflege-tours']);
+  });
+
   it.each([
     ['/business/office/permissions', 'settings'],
     ['/business/integrations?tab=connections', 'settings'],
@@ -188,7 +241,7 @@ describe('Web apps and widgets catalog', () => {
     }
   });
 
-  it.each(['/pflege', '/pflege/planung', '/stationaer/bewohner', '/beratung/faelle'])('keeps unreleased %s locked even when all permissions are granted', route => {
+  it.each(['/stationaer/bewohner', '/beratung/faelle'])('keeps unreleased %s locked even when all permissions are granted', route => {
     expect(canShowDesktopCatalogRoute(route, admin)).toBe(false);
   });
 

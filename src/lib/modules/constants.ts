@@ -36,7 +36,6 @@ export const ALL_PRODUCT_KEYS: ProductKey[] = [OFFICE_MODULE_KEY, ...SPECIALTY_M
  * Freigabe umgangen werden.
  */
 export const UNRELEASED_MODULE_KEYS: readonly ProductKey[] = [
-  'pflege',
   'stationaer',
   ...(!consultationWebReleased ? ['beratung' as const] : []),
   ...(!academyWebReleased ? ['akademie' as const] : []),
@@ -48,7 +47,7 @@ export function isUnreleasedModuleKey(productKey: string): productKey is Product
 
 /** Workspace releases do not release service pricing or billing catalogues. */
 export function isUnreleasedCatalogModuleKey(productKey: string): boolean {
-  return productKey === 'beratung' || productKey === 'akademie' || isUnreleasedModuleKey(productKey);
+  return productKey === 'pflege' || productKey === 'beratung' || productKey === 'akademie' || isUnreleasedModuleKey(productKey);
 }
 
 /** Returns the globally locked product for one of its root or deep-link routes. */

@@ -5,11 +5,13 @@ import { stripTypeScriptTypes } from 'node:module';
 const read = path => readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
 const source = stripTypeScriptTypes(read('src/lib/modules/constants.ts').replace(/^import .*;\n/gm, '').replace(/^export /gm, ''));
 for (const os of ['web', 'android']) for (const consultation of [false, true]) {
-  test(`Pflege stays locked on ${os}, consultation=${consultation}`, () => {
+  test(`Pflege workspace is released on ${os}, consultation=${consultation}`, () => {
     const gate = new Function('Platform', 'isConsultationWorkspaceEnabled', `${source};return {isUnreleasedModuleKey,getUnreleasedModuleKeyFromPath};`)({ OS: os }, () => consultation);
-    assert.equal(gate.isUnreleasedModuleKey('pflege'), true);
-    for (const path of ['/pflege', '/pflege/', '/pflege/klienten', '/pflege/klienten/123?edit=1#details']) assert.equal(gate.getUnreleasedModuleKeyFromPath(path), 'pflege');
+    assert.equal(gate.isUnreleasedModuleKey('pflege'), false);
+    for (const path of ['/pflege', '/pflege/', '/pflege/klienten', '/pflege/klienten/123?edit=1#details']) assert.equal(gate.getUnreleasedModuleKeyFromPath(path), null);
     assert.equal(gate.getUnreleasedModuleKeyFromPath('/business/office/clients'), null);
+    assert.equal(gate.isUnreleasedModuleKey('stationaer'), true);
+    assert.equal(gate.getUnreleasedModuleKeyFromPath('/stationaer/klienten'), 'stationaer');
   });
 }
 test('Office platform override delegates to the existing shared Office hook', () => {

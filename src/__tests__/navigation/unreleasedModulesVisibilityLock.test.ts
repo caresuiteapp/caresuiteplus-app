@@ -5,7 +5,7 @@ import { checkProductAccess } from '@/lib/navigation/redirects';
 import { getUnreleasedModuleKeyFromPath, isUnreleasedCatalogModuleKey, isUnreleasedModuleKey } from '@/lib/modules/constants';
 import { readFileSync } from 'node:fs';
 
-const LOCKED_ROOTS = ['/pflege', '/stationaer', '/beratung'] as const;
+const LOCKED_ROOTS = ['/stationaer', '/beratung'] as const;
 const ACADEMY_WORKSPACE_ROUTES = [
   '/akademie', '/akademie/vorlagen', '/akademie/kurse', '/akademie/kurse/new',
   '/akademie/kurse/course-id', '/akademie/courses/course-id',
@@ -46,6 +46,17 @@ describe('globale Sichtbarkeits- und Routensperre unveroeffentlichter Module', (
       '/akademie', '/akademie/vorlagen', '/akademie/kurse',
       '/akademie/schulungsplan', '/akademie/pruefungen',
     ]));
+  });
+
+  it('zeigt Pflege und die vorhandenen Fachseiten nach der ausdrücklichen Modulfreigabe', () => {
+    const apps = buildDesktopApps([], 'business_admin');
+    expect(isUnreleasedModuleKey('pflege')).toBe(false);
+    expect(apps.map(app => app.route)).toEqual(expect.arrayContaining([
+      '/pflege', '/pflege/plans', '/pflege/sis', '/pflege/dokumentation',
+      '/pflege/vitalwerte', '/pflege/medikation', '/pflege/leistungsnachweise',
+    ]));
+    expect(getUnreleasedModuleKeyFromPath('/pflege/plans/own-plan/?view=history#original')).toBeNull();
+    expect(checkProductAccess('/pflege', 'business_admin', 'tenant-live').reason).not.toBe('module_disabled');
   });
 
   it.each(ACADEMY_WORKSPACE_ROUTES)('erreicht den veröffentlichten Web-Arbeitsbereich %s auch mit Query oder Hash', route => {

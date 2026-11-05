@@ -17,7 +17,8 @@ const now=Date.parse('2026-10-14T10:00:00.000Z');
 test('aktiver exakter Angehörigen-Scope bewahrt Vertretung, Laufzeit und Einzelrechte',()=>{
   const scope=decodeFamilyPortalAccessScope(row(),{tenantId,accountId},now);
   assert.equal(scope?.clientId,clientId);assert.equal(scope?.relativeContactId,contactId);
-  assert.equal(familyPortalAllows(scope,'appointments'),true);assert.equal(familyPortalAllows(scope,'documents'),false);
+  assert.equal(familyPortalAllows(scope,'appointments',now),true);assert.equal(familyPortalAllows(scope,'documents',now),false);
+  assert.equal(familyPortalAllows(scope,'appointments',Date.parse('2026-11-01T10:00:01Z')),false);
   assert.equal(Object.isFrozen(scope),true);assert.equal(Object.isFrozen(scope?.permissions),true);
 });
 
@@ -31,7 +32,7 @@ for(const [name,changes] of [
 
 test('fehlende oder nicht boolesche Freigaben schließen jede betroffene Fähigkeit',()=>{
   const scope=decodeFamilyPortalAccessScope(row({can_view_appointments:'true',can_view_messages:null}),{tenantId,accountId},now);
-  assert.equal(familyPortalAllows(scope,'appointments'),false);assert.equal(familyPortalAllows(scope,'messages'),false);
+  assert.equal(familyPortalAllows(scope,'appointments',now),false);assert.equal(familyPortalAllows(scope,'messages',now),false);
 });
 
 test('Live-Hook lädt Angehörigenkonto nur über den aktuellen Server-Scope',async()=>{

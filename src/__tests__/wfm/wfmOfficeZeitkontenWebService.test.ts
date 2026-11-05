@@ -49,6 +49,53 @@ beforeEach(() => {
 });
 
 describe('Office web persisted time accounts', () => {
+  function seedMiniJob() {
+    state.period = { preset: 'custom', fromDate: '2026-10-01', toDate: '2026-10-31' };
+    state.tables.employees = [{ id: 'employee', employment_type: 'mini_job', entry_date: '2026-08-21' }];
+    state.tables.employee_payroll_settings = [{ employee_id: 'employee', compensation_type: 'hourly', compensation_amount: '15.00', max_payout_hours_month: '40.20', overflow_to_time_account: true }];
+    state.tables.employee_contract_settings = [{ employee_id: 'employee', work_days: { mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0, sun: 0 } }];
+  }
+
+  it('compares 47:16 approved hours with the configured 40:12 payout basis and excludes separately documented travel', async () => {
+    seedMiniJob();
+    state.entries = Array.from({ length: 23 }, (_, index) => {
+      const date = `2026-10-${String(index + 1).padStart(2, '0')}`;
+      return booking({ id: `booking-${index}`, workDate: date, actualStartAt: `${date}T08:00:00Z`, actualEndAt: `${date}T12:00:00Z`, netMinutes: index === 22 ? 196 : 120 });
+    });
+    state.tables.employee_logbook_trips = [{ employee_id: 'employee', started_at: '2026-10-26T08:00:00Z', ended_at: '2026-10-26T13:07:00Z', status: 'completed', counts_as_work_time: true, route_type: 'client_to_client' }];
+    state.tables.tenant_service_catalog = [{ travel_policy_json: { workTimeRouteTypes: [] } }];
+    const result = await getWfmOfficeEmployeeTimeAccounts('tenant', 'business_manager');
+    expect(result.ok && result.data[0]).toMatchObject({ targetMinutes: 2412, targetSource: 'payout_limit', actualMinutes: 2836,
+      approvedMinutes: 2836, saldoMinutes: 424, overtimeMinutes: 424, undertimeMinutes: 0,
+      travelMinutes: 307, creditedTravelMinutes: 0, logbookAdditionalMinutes: 0 });
+  });
+
+  it('does not turn unused hourly payout capacity into an employee time debt', async () => {
+    seedMiniJob(); state.entries = [booking()];
+    const result = await getWfmOfficeEmployeeTimeAccounts('tenant', 'business_manager');
+    expect(result.ok && result.data[0]).toMatchObject({ targetMinutes: 2412, saldoMinutes: 0, undertimeMinutes: 0 });
+  });
+
+  it('retains October overtime when November stays below its own hourly payout limit', async () => {
+    seedMiniJob();
+    state.period.toDate = '2026-11-30';
+    state.entries = [booking({ netMinutes: 2836 }), booking({ id: 'november', workDate: '2026-11-19', actualStartAt: '2026-11-19T08:00:00Z', actualEndAt: '2026-11-19T09:00:00Z' })];
+    const result = await getWfmOfficeEmployeeTimeAccounts('tenant', 'business_manager');
+    expect(result.ok && result.data[0]).toMatchObject({ targetMinutes: 4824, actualMinutes: 2896, saldoMinutes: 424, overtimeMinutes: 424, undertimeMinutes: 0 });
+  });
+
+  it('preserves positive contract hours and only adds travel permitted by the current policy', async () => {
+    seedMiniJob(); state.entries = [booking()];
+    state.tables.employee_contract_settings[0].work_days = { mon: 2 };
+    state.tables.employee_logbook_trips = [{ employee_id: 'employee', started_at: '2026-10-19T10:00:00Z', ended_at: '2026-10-19T10:30:00Z', status: 'completed', counts_as_work_time: true, route_type: 'client_to_client' }];
+    state.tables.tenant_service_catalog = [{ travel_policy_json: { workTimeRouteTypes: ['client_to_client'] } }];
+    const result = await getWfmOfficeEmployeeTimeAccounts('tenant', 'business_manager');
+    expect(result.ok && result.data[0]).toMatchObject({ targetSource: 'contract', targetMinutes: 480, actualMinutes: 90, creditedTravelMinutes: 30 });
+    state.tables.employee_payroll_settings[0].travel_policy_override = { workTimeRouteTypes: [] };
+    const excluded = await getWfmOfficeEmployeeTimeAccounts('tenant', 'business_manager');
+    expect(excluded.ok && excluded.data[0]).toMatchObject({ actualMinutes: 60, creditedTravelMinutes: 0 });
+  });
+
   it('keeps a free contractual day at zero and includes exported hours in approved hours', async () => {
     state.entries = [booking({ reviewStatus: 'exported', exportStatus: 'exported' }), booking({ id: 'future', actualStartAt: null, actualEndAt: null, reviewStatus: 'open', rowKind: 'planned_upcoming', flags: ['upcoming'] })];
     state.tables.employee_contract_settings = [{ employee_id: 'employee', work_days: { mon: 0 } }];

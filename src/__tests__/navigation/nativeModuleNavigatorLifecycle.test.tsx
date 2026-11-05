@@ -148,7 +148,7 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); })
 
 describe('native module navigator lifecycle', () => {
   it('never lets a retained, unfocused module guard redirect the current page', async () => {
-    state.pathname = '/pflege/klienten'; state.focused = false;
+    state.pathname = '/stationaer/bewohner'; state.focused = false;
     const tree = <AuthContext.Provider value={auth}><LiquidProductAccessGuard><span data-testid="guard-child" /></LiquidProductAccessGuard></AuthContext.Provider>;
     await act(async () => root.render(tree));
     expect(state.router.replace).not.toHaveBeenCalled();
@@ -306,9 +306,16 @@ describe('native module navigator lifecycle', () => {
     expect(state.router.replace).not.toHaveBeenCalled();
   });
 
-  it.each(['/pflege/klienten', '/stationaer/bewohner'])('keeps the unreleased product lock for %s', async pathname => {
+  it.each(['/stationaer/bewohner'])('keeps the unreleased product lock for %s', async pathname => {
     await changePath(pathname);
     expect(state.mounts).toBe(0);
     expect(state.router.replace).toHaveBeenCalledExactlyOnceWith('/business');
+  });
+
+  it('allows the explicitly released Pflege destination through the existing native guard', async () => {
+    await changePath('/pflege/klienten');
+    expect(state.mounts).toBe(1);
+    expect(state.router.replace).not.toHaveBeenCalled();
+    expect(host.querySelector('[data-testid="destination"]')?.textContent).toBe('/pflege/klienten');
   });
 });

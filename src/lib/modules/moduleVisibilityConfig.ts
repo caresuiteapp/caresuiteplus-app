@@ -22,7 +22,7 @@ export const MODULE_VISIBILITY_CATALOG: Record<ModuleScopeKey, ModuleVisibilityC
     scopeKey: 'pflege',
     status: 'beta',
     label: 'Pflege',
-    hint: 'Pflegedokumentation demo-funktional — Beta-Pilot.',
+    hint: 'Pflegeplanung, Dokumentation und Betriebsorganisation im gemeinsamen Arbeitsbereich.',
   },
   stationaer: {
     scopeKey: 'stationaer',

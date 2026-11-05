@@ -1,5 +1,5 @@
 import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
@@ -32,6 +32,10 @@ type PflegeDashboardViewProps = {
   loading: boolean;
   error: string | null;
   onRefresh: () => void;
+  /** The complete workspace launchers are supplied by the parent page. */
+  overviewOnly?: boolean;
+  canOpenRoute?: (route: string) => boolean;
+  onOpenRoute?: (route: string) => void;
 };
 
 function createPflegeDashboardStyles(shellHostsAurora: boolean) {
@@ -97,6 +101,9 @@ export function PflegeDashboardView({
   loading,
   error,
   onRefresh,
+  overviewOnly = false,
+  canOpenRoute,
+  onOpenRoute,
 }: PflegeDashboardViewProps) {
   const router = useRouter();
   const shellHostsAurora = useShellHostsAurora();
@@ -106,10 +113,14 @@ export function PflegeDashboardView({
     [shellHostsAurora],
   );
 
+  const navigation = useRef({ canOpenRoute, onOpenRoute });
+  navigation.current = { canOpenRoute, onOpenRoute };
+  const routeAllowed = (route?: string) => Boolean(route &&
+    (!navigation.current.canOpenRoute || navigation.current.canOpenRoute(route) === true));
   const navigate = (route?: string) => {
-    if (route) {
-      router.push(route as never);
-    }
+    if (!route || !routeAllowed(route)) return;
+    if (navigation.current.onOpenRoute) navigation.current.onOpenRoute(route);
+    else router.push(route as never);
   };
 
   if (loading && !stats) {
@@ -133,9 +144,11 @@ export function PflegeDashboardView({
     );
   }
 
-  const workspaceKpis = buildPflegeWorkspaceKpis(stats).slice(0, PFLEGE_WORKSPACE_KPI_COUNT);
-  const priorities = buildPflegeDashboardPriorities(stats);
-  const sections = buildPflegeDashboardSections(stats, activePlans);
+  const workspaceKpis = buildPflegeWorkspaceKpis(stats).filter(kpi => routeAllowed(kpi.route)).slice(0, PFLEGE_WORKSPACE_KPI_COUNT);
+  const priorities = buildPflegeDashboardPriorities(stats).filter(item => routeAllowed(item.route));
+  const sections = buildPflegeDashboardSections(stats, activePlans).map(section => ({
+    ...section, links: section.links.filter(link => routeAllowed(link.route)),
+  })).filter(section => section.links.length > 0);
 
   return (
     <View style={styles.container}>
@@ -177,10 +190,10 @@ export function PflegeDashboardView({
       >
         {priorities.length === 0 ? (
           <EmptyState
-            title="Keine dringenden Vorgänge"
-            message="Alle Pflegeaufgaben sind erledigt oder noch nicht erfasst."
-            actionLabel="Pflegepläne anzeigen"
-            onAction={() => navigate('/pflege/plans')}
+            title="Keine Hinweise in dieser Übersicht"
+            message="Nicht geladene oder nicht freigegebene Bereiche werden hier nicht bewertet."
+            actionLabel={routeAllowed('/pflege/plans') ? 'Pflegepläne anzeigen' : undefined}
+            onAction={routeAllowed('/pflege/plans') ? () => navigate('/pflege/plans') : undefined}
           />
         ) : (
           <View style={styles.priorityList}>
@@ -211,7 +224,7 @@ export function PflegeDashboardView({
         )}
       </SectionPanel>
 
-      {sections.map((section) => (
+      {!overviewOnly && sections.map((section) => (
         <SectionPanel key={section.id} title={section.title} subtitle={section.subtitle} surface="open">
           <View style={styles.sectionLinks}>
             {section.links.map((link, index) => (
@@ -246,9 +259,9 @@ export function PflegeDashboardView({
         </SectionPanel>
       ))}
 
-      <SectionPanel title="Schnellzugriff" subtitle="Häufige Pflege-Bereiche — nur ambulant">
+      {!overviewOnly && <SectionPanel title="Schnellzugriff" subtitle="Häufige Pflege-Bereiche — nur ambulant">
         <View style={styles.quickGrid}>
-          {PFLEGE_QUICK_ACCESS.map((action) => (
+          {PFLEGE_QUICK_ACCESS.filter(action => routeAllowed(action.route)).map((action) => (
             <PremiumButton
               key={action.id}
               title={action.label}
@@ -258,7 +271,7 @@ export function PflegeDashboardView({
             />
           ))}
         </View>
-      </SectionPanel>
+      </SectionPanel>}
     </View>
   );
 }

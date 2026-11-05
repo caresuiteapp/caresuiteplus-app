@@ -76,6 +76,16 @@ const reviewRoute = (from = period.fromDate, to = period.toDate) => ({
 });
 
 describe('Zeitkonten: offene Prüfungen direkt erreichen', () => {
+  it('labels the minijob payout basis and excluded travel without describing a contractual time debt', async () => {
+    await workspace({ ...account, targetSource: 'payout_limit', targetMinutes: 2412, actualMinutes: 2836,
+      approvedMinutes: 2836, saldoMinutes: 424, overtimeMinutes: 424, undertimeMinutes: 0,
+      travelMinutes: 307, creditedTravelMinutes: 0, logbookAdditionalMinutes: 0 });
+    expect(host.textContent).toContain('Auszahlungsbasis');
+    expect(host.textContent).toContain('40:12 h');
+    expect(host.textContent).toContain('+7:04 h');
+    expect(host.textContent).toContain('Nur dokumentiert, nicht angerechnet');
+    expect(host.textContent).not.toContain('Vertrag im gewählten Zeitraum');
+  });
   it.each(['1 offene Prüfung', 'Offene Prüfungen öffnen'])('opens the pending queue from %s with the exact employee and cross-month range', async label => {
     await workspace(); await click(button(label));
     expect(h.push).toHaveBeenCalledExactlyOnceWith(reviewRoute()); expect(h.close).toHaveBeenCalledOnce();

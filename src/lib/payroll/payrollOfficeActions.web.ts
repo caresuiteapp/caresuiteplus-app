@@ -7,8 +7,8 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
-import { renderHtmlToPdfBytes } from '@/lib/documents/documentPdfService';
-import { buildPayrollStatementHtml, type PayrollWebStatementSnapshot } from './payrollCalculator.web';
+import type { PayrollWebStatementSnapshot } from './payrollCalculator.web';
+import { renderPayrollStatementPdf } from './payrollStatementPdf.web';
 import { payrollPeriodRange, type PayrollOfficeEmployeeMonth } from './payrollOfficeReadModel.web';
 import { listPayrollMonthOverview } from './payrollMonthService.web';
 
@@ -182,7 +182,7 @@ async function publish(tenantId: string, employee: PayrollOfficeEmployeeMonth, r
     if (!globalThis.crypto?.randomUUID) return fail('Die sichere Veröffentlichungskennung ist in diesem Browser nicht verfügbar.');
     const id = globalThis.crypto.randomUUID();
     const snapshot = payrollSnapshotForPublication(fresh);
-    const pdfBytes = await renderHtmlToPdfBytes(buildPayrollStatementHtml(snapshot, (latest?.version ?? 0) + 1));
+    const { bytes: pdfBytes } = await renderPayrollStatementPdf(snapshot, (latest?.version ?? 0) + 1);
     const sha256 = await bytesSha256(pdfBytes);
     await requireSameActor(db, userId);
     const uploaded = await invokeEdgeFunction<{ pdfPath?: string; sha256?: string }>('render-document-pdf', {

@@ -40,7 +40,10 @@ for (const [platform, enabled] of [['web', false], ['web', true], ['android', tr
     }));
     assert.deepEqual(n.filterCompanyCatalog(catalogItems, 'all', '').map(item => item.moduleKey), ['assist']);
     assert.deepEqual(n.buildCatalogWorkspace([], [], ['assist', 'pflege', 'stationaer', 'beratung', 'akademie'], true, '2026-10-19').catalogs.map(item => item.moduleKey), ['assist']);
-    for (const module of ['pflege', 'stationaer']) {
+    assert.equal(n.isUnreleasedModuleKey('pflege'), false);
+    assert.equal(n.getUnreleasedModuleKeyFromPath('/pflege/detail'), null);
+    assert.equal(n.isUnreleasedCatalogModuleKey('pflege'), true);
+    for (const module of ['stationaer']) {
       assert.equal(n.isUnreleasedModuleKey(module), true);
       assert.equal(n.getUnreleasedModuleKeyFromPath(`/${module}/detail`), module);
     }

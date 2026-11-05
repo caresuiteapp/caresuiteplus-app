@@ -11,15 +11,22 @@ const vitest = 'node_modules/vitest/vitest.mjs';
 // They do not change live records or establish authenticated visual behavior.
 const groups = {
   'Office Web payroll': [
+    'payroll/payrollSourceRevisionReadPolicies.test.ts',
     'payroll/payrollCalculatorWeb.test.ts',
+    'payroll/payrollStatementPdfWeb.test.ts',
     'payroll/payrollMonthServiceWeb.test.ts',
     'payroll/payrollOfficeReadModelWeb.test.ts',
+    'payroll/payrollTimeDeferralWeb.test.ts',
     'payroll/payrollOfficeActionsWeb.test.ts',
     'payroll/payrollOfficeSqlWeb.test.ts',
     'payroll/payrollWorkspaceModelWeb.test.ts',
     'payroll/payrollWorkspaceWebInteraction.test.tsx',
   ],
   'Existing payroll, expense and portal contracts': [
+    'portal/employeeDeferredTimes.test.ts',
+    'portal/employeeDeferredTimeService.test.ts',
+    'portal/employeeDeferredTimeSql.test.ts',
+    'portal/employeeDeferredTimeInteraction.test.tsx',
     'payroll/payrollCalculator.test.ts',
     'payroll/payrollExpenseApproval.test.ts',
     'payroll/payrollWfmConsistency.test.ts',

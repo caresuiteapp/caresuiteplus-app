@@ -1,0 +1,27 @@
+# Offene Zeiten beim Monatsabschluss
+
+Die Office-Gehaltsstatistik rechnet nur abgeschlossene und freigegebene Zeiterfassungen ein. Offene, unvollständige, abgelehnte und ungeprüfte Zeilen werden als „Zurückgestellt“ gezeigt. Sie blockieren die Veröffentlichung der übrigen geprüften Monatsdaten nicht. Fehlende Vergütungsdaten, unklare bezahlte Abwesenheiten und andere strukturelle Berechnungsfehler bleiben Sperrgründe.
+
+## Nachberechnung
+
+Die Veröffentlichung speichert die zurückgestellten Quellen im unveränderlichen Monats-Snapshot (`deferredTimeEntries`). Der ursprüngliche Arbeitstag, die ursprüngliche Zeilenkennung und die Zuordnung zum Einsatz bleiben erhalten. Die Veröffentlichung verändert weder Arbeitszeiterfassungen noch deren Freigabe.
+
+Im Mitarbeitendenportal enthält „Offene Einsätze“ einen eigenen Bereich „Zurückgestellte Zeiten“. Er verwendet denselben WFM-Join, dieselben Prüfungsüberlagerungen und dieselbe Zurückstellungsregel wie die Gehaltsstatistik. Eigene vergangene Zeiten werden auch vor der Monatsveröffentlichung geladen. Bereits abgeschlossene Einsätze mit unvollständiger Zeiterfassung und Arbeitszeiten ohne Einsatzverknüpfung bleiben erreichbar. Frühere Jahre werden ohne feste Rückschaugrenze berücksichtigt. Fehlgeschlagene Teilabfragen verhindern eine irreführende „Alles erledigt“-Anzeige.
+
+Mitarbeitende reichen tatsächlichen Beginn, Ende, Pause und Begründung zur Zeitprüfung ein. Der Server ermittelt Mandant und Person aus der angemeldeten Sitzung, prüft Quellen- und Prüfungsrevisionen und speichert ausschließlich `pending_review`. Originale Einsatzdaten, unterschriebene Leistungsnachweise und veröffentlichte Monatsübersichten bleiben erhalten. Die Korrektur und ihr Audit werden atomar gespeichert. Exportierte, gesperrte und bereits nachberechnete Quellen können Mitarbeitende nicht selbst ändern. Fehlende oder mehrdeutige Quellen bleiben mit einem Hinweis an die Verwaltung sichtbar. Vollständige, ungeprüfte Korrekturen bleiben als „Wartet auf Freigabe“ aufgeführt; erst nach der Office-Freigabe werden sie für die spätere Nachberechnung verfügbar. Offene Dokumentation und Unterschriften werden über „Einsatz nachbearbeiten“ im bestehenden Ablauf ergänzt.
+
+In einem späteren Monat werden noch nicht berücksichtigte Quellen erneut aus dem WFM gelesen. Erst ein gültiger Abschluss mit `approved`, `exported` oder `locked` macht die tatsächlichen Minuten zur Nachberechnung verfügbar. Geplante Dauer wird nicht ersatzweise vergütet. Für geplante Platzhalter ohne Erfassungskennung wird nur eine eindeutig zuordenbare spätere Erfassung desselben Einsatzes und Arbeitstags übernommen. Mehrdeutige Zuordnungen bleiben offen.
+
+Eine exakte Zeilenkennung hat beim Abgleich Vorrang. Mehrere Einsätze innerhalb derselben täglichen Arbeitszeitsitzung bleiben eigenständige Quellen; die gemeinsame Sitzungskennung allein ordnet keinen Einsatz zu. Für Arbeitszeiten ohne Einsatzbezug ist der Sitzungsabgleich auf andere Arbeitszeiten ohne Einsatzbezug beschränkt. Dadurch erscheinen veröffentlichte Zurückstellungen neben ihren aktuellen Quellen nicht doppelt.
+
+`currentPeriodWorkMinutes` enthält die freigegebene Zeit des gewählten Monats. `catchUpWorkMinutes` und `catchUpTimeEntries` weisen Nachberechnungen gesondert aus; zusammen ergeben sie `actualWorkMinutes` der Abrechnung. Die hinterlegte aktuelle Vergütung und Auszahlungsgrenze gelten auch für die nachberechneten Minuten. Dies ist keine historische Vergütungsneuberechnung oder steuerliche Lohnabrechnung. Dokumentierte, nach der Firmenregel nicht anrechenbare Fahrzeit wird nicht nachvergütet.
+
+## Schutz vor mehrfacher Anrechnung
+
+Alle veröffentlichten Versionen einschließlich ersetzter Versionen bilden den Nachweis. Der Schlüssel aus Ursprungsmonat und ursprünglicher Zeilenkennung darf nur in einem späteren Abrechnungsmonat berücksichtigt werden. Die tatsächlich verwendete Quellenkennung verhindert eine zweite Anrechnung über einen anderen Platzhalter. Eine neue Version des Ursprungsmonats schließt bereits zurückgestellte Zeiten weiterhin aus. Eine neue Version des Nachberechnungsmonats behält die dort bereits gespeicherten Nachberechnungen mit ihren damaligen Minuten bei.
+
+Der atomare Veröffentlichungs-RPC sperrt konkurrierende Veröffentlichungen derselben Person auch über Monatsgrenzen. Er prüft Herkunft, gespeicherte frühere Berücksichtigungen und Summen. Bestehende Mandantenrechte, RLS, Quellenrevision, PDF-Upload-Nachweis, Versionsschutz und Audit-Transaktion bleiben erhalten. Eine fehlgeschlagene Prüfung speichert weder Monatsversion noch Audit-Eintrag.
+
+## Verifikation
+
+Die vorhandene Payroll-Releaseprüfung deckt das Überspringen, spätere Freigabe, Monats- und Jahreswechsel, ersetzte Versionen, mehrdeutige Quellen, unveränderte Wiederholungen und doppelte Nachberechnungsversuche ab. Die Portalprüfungen ergänzen eine Liste mit 16 zurückgestellten Zeitquellen, die gemeinsame Quellenidentität, seitenweise Lesevorgänge, Korrektureingaben, Fehlermeldungen und Doppelabsendungen. Die tatsächliche neue SQL-Funktion wird zusammen mit der bestehenden Office-Freigabe, Review-RLS und Audit-Regeln in einer isolierten PGlite-Datenbank geprüft. Tests veröffentlichen keine echten Mitarbeiterabrechnungen. PDF-Ausgaben mit Nachberechnung und Zurückstellung wurden gerendert und visuell geprüft. Für die angemeldete Oberfläche liegt keine Live-Browserprüfung vor; die verfügbaren Interaktionstests berechnen kein Layout.

@@ -39,6 +39,19 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => { root.unmount(); }); host.remove(); vi.restoreAllMocks(); });
 
 describe('Office payroll Web interactions', () => {
+  it('publishes approved time while displaying unfinished entries as deferred', async () => {
+    const pending = { key: '2026-10:open-1', entryId: 'open-1', originYear: 2026, originMonth: 10, workDate: '2026-10-12', assignmentId: null, visitId: null, sessionId: null, plannedStartAt: null, clientLabel: null, assignmentTitle: 'Begleitung', reason: 'incomplete' as const };
+    employee = payrollEmployee({ deferredTimeEntries: [pending], unapprovedEntryCount: 1, currentPeriodWorkMinutes: 180, catchUpWorkMinutes: 0,
+      warnings: ['1 offene Zeit wird für diesen Monat übersprungen.'], assignmentTimeLines: [{ entryKey: 'open-1', assignmentId: null, workDate: pending.workDate, clientLabel: null, assignmentTitle: 'Begleitung', plannedStartAt: null, plannedEndAt: null, actualStartAt: '2026-10-12T08:00:00Z', actualEndAt: null, plannedMinutes: 120, actualMinutes: 0, travelMinutes: 0, differenceMinutes: 0, status: 'pending_review', payrollDisposition: 'deferred' }] });
+    h.params = { month: '2026-10', employeeId: 'employee-a' }; await render();
+    expect(button('PDF erstellen & veröffentlichen').disabled).toBe(false);
+    expect(host.querySelector('[role=dialog]')?.textContent).toContain('Zurückgestellte Zeiten · 1');
+    await click(button('PDF erstellen & veröffentlichen'));
+    expect(h.publish).toHaveBeenCalledTimes(1); expect(window.confirm).toHaveBeenCalledWith(expect.stringContaining('für diesen Monat übersprungen'));
+    await click(button('Zeiten & Einsätze'));
+    expect(host.querySelector('[role=dialog] tbody')?.textContent).toContain('Zurückgestellt');
+  });
+
   it('requires a nonportal administrative identity and both read permissions before loading', async () => { h.portal = true; await render(); expect(h.read).not.toHaveBeenCalled(); expect(host.textContent).toContain('Verwaltungszugang'); h.portal = false; h.allowed = false; await render(); expect(h.read).not.toHaveBeenCalled(); h.allowed = true; await render(); expect(h.read).toHaveBeenCalledWith('tenant-a', 2026, 10, 'business_admin'); });
   it('restores the employee and month deep link and keeps the dialog open while switching areas', async () => { h.params = { month: '2026-09', employeeId: 'employee-a', tab: 'expenses' }; await render(); expect(h.read).toHaveBeenCalledWith('tenant-a', 2026, 9, 'business_admin'); expect(host.querySelector('[role=dialog]')?.getAttribute('data-backdrop-dismissible')).toBe('false'); await click(button('Übersicht')); expect(host.querySelector('[role=dialog]')).not.toBeNull(); expect(h.params.tab).toBeUndefined(); await click(button('Dialog schließen')); expect(host.querySelector('[role=dialog]')).toBeNull(); expect(h.params.month).toBe('2026-09'); });
   it('keeps unsaved review input when tab navigation is canceled or a write fails', async () => { h.params = { month: '2026-10', employeeId: 'employee-a', tab: 'expenses' }; await render(); await change('Prüfvermerk für Beleg claim-a', 'Beleg bitte nachreichen'); expect(h.guardEnabled).toBe(true); vi.mocked(window.confirm).mockReturnValue(false); await click(button('Übersicht')); expect(h.params.tab).toBe('expenses'); h.review.mockResolvedValueOnce({ ok: false, error: 'Geänderter Bearbeitungsstand' }); await click(button('Rückfrage stellen')); expect(field('Prüfvermerk für Beleg claim-a').value).toBe('Beleg bitte nachreichen'); expect(host.textContent).toContain('Geänderter Bearbeitungsstand'); expect(h.review.mock.calls[0][0]).toMatchObject({ employeeId: 'employee-a', year: 2026, month: 10, expectedUpdatedAt: '2026-10-15T10:00:00Z', officeNote: 'Beleg bitte nachreichen' }); });

@@ -1,0 +1,131 @@
+// @vitest-environment happy-dom
+import React, { act } from 'react';
+import { createRoot, type Root } from 'react-dom/client';
+import { buildSync } from 'esbuild';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { buildPflegeWorkspaceGroups, pflegeWorkspaceColumnCount } from '@/liquid-command/navigation/pflegeWorkspaceLaunchers';
+import { pflegeNav } from '@/lib/navigation/moduleNav/pflegeNav';
+import type { PermissionKey } from '@/types/permissions';
+import { emptyPflegeDashboardStats } from '@/types/modules/pflege';
+import { canShowDesktopCatalogRoute } from '@/liquid-command/navigation/appsWidgetsCatalogModel.shared';
+
+const api = { tenantId: 'tenant', roleKey: 'business_admin', allowed: new Set<string>(), all: true, module: true, loading: true, error: null as string | null, push: vi.fn(), refresh: vi.fn(), dashboardProps: null as any, retained: new Map<string, () => void>() };
+const access = () => ({ tenantId: api.tenantId, roleKey: api.roleKey, can: (key: PermissionKey) => api.all || api.allowed.has(key), hasModuleGate: () => api.module });
+const native = {
+  View: (props: any) => <div>{props.children}</div>,
+  Pressable: (props: any) => { api.retained.set(props.accessibilityLabel, props.onPress); return <button aria-label={props.accessibilityLabel} onClick={props.onPress}>{props.children}</button>; },
+  Platform: { OS: 'web' }, StyleSheet: { create: (value: any) => value },
+};
+const dependencies: Record<string, unknown> = {
+  react: React, 'react/jsx-runtime': await import('react/jsx-runtime'), 'react-native': native,
+  'expo-router': { useRouter: () => ({ push: api.push }) },
+  '@/components/documents/DocumentRecommendations': { DocumentRecommendations: () => null },
+  '@/components/dashboard/PflegeDashboardView': { PflegeDashboardView: (props: any) => { api.dashboardProps = props; return <div>{props.error ?? (props.loading ? 'Dashboard lädt' : 'Dashboard bereit')}</div>; } },
+  '@/hooks/usePflegeDashboard': { usePflegeDashboard: () => ({ stats: null, activePlans: [], loading: api.loading, error: api.error, refresh: api.refresh }) },
+  '@/hooks/usePermissions': { usePermissions: access },
+  '@/hooks/useHydrationSafeWindowDimensions': { useHydrationSafeWindowDimensions: () => ({ fontScale: 1 }) },
+  '../components/LiquidPrimitives': {
+    LiquidButton: (props: any) => <button onClick={props.onPress}>{props.label}</button>,
+    LiquidGlyph: () => null, LiquidState: (props: any) => <div>{props.title}{props.message}</div>,
+    LiquidSurface: (props: any) => <section>{props.children}</section>, LiquidText: (props: any) => <span>{props.children}</span>,
+  },
+  '../shell/LiquidCommandShell': { LiquidCommandShell: (props: any) => <main>{props.aside}{props.children}</main> },
+};
+const compiled = buildSync({ entryPoints: ['src/liquid-command/screens/PflegeHomeWorkspace.tsx'], bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic', external: Object.keys(dependencies) }).outputFiles[0].text;
+const loaded = { exports: {} as any };
+new Function('require', 'module', 'exports', compiled)((id: string) => { if (!(id in dependencies)) throw Error(`Unexpected dependency ${id}`); return dependencies[id]; }, loaded, loaded.exports);
+const Workspace = loaded.exports.PflegeHomeWorkspace;
+const panel = (props: any) => <section><h2>{props.title}</h2>{props.children}</section>;
+const dashboardDependencies: Record<string, unknown> = {
+  react: React, 'react/jsx-runtime': dependencies['react/jsx-runtime'], 'react-native': { ...native, Text: (props: any) => <span>{props.children}</span> },
+  'expo-router': dependencies['expo-router'],
+  '@/components/icons/SemanticArtwork': { SemanticArtwork: () => null },
+  '@/components/adaptive': { AdaptiveKpiGrid: (props: any) => <div>{props.items.map((item: any) => <div key={item.id}>{item.node}</div>)}</div> },
+  '@/components/pflege/CareLightCarePlanCard': { CareLightCarePlanCard: () => null },
+  '@/components/ui': { EmptyState: (props: any) => <span>{props.title}</span>, ErrorState: () => null, LoadingState: () => null, PremiumButton: (props: any) => <button>{props.title}</button>, PremiumKpiCard: (props: any) => <span>{props.label}: {props.value}</span>, PremiumListRow: (props: any) => <span>{props.title}</span>, SectionPanel: panel },
+  '@/hooks/useshellhostsaurora': { useShellHostsAurora: () => true },
+  '@/hooks/useMainModuleAccent': { useMainModuleAccent: () => '#22C55E' },
+  '@/design/tokens/modules': { moduleColor: () => '#22C55E' },
+  '@/theme': { spacing: { xs: 4, sm: 8, md: 12 }, typography: { caption: {} } },
+};
+const dashboardSource = buildSync({ entryPoints: ['src/components/dashboard/PflegeDashboardView.tsx'], bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic', external: Object.keys(dashboardDependencies) }).outputFiles[0].text;
+const dashboardModule = { exports: {} as any };
+new Function('require', 'module', 'exports', dashboardSource)((id: string) => { if (!(id in dashboardDependencies)) throw Error(`Unexpected dashboard dependency ${id}`); return dashboardDependencies[id]; }, dashboardModule, dashboardModule.exports);
+const Dashboard = dashboardModule.exports.PflegeDashboardView;
+let root: Root, host: HTMLDivElement;
+const render = async (tenantId: string | null = api.tenantId) => { await act(async () => root.render(<Workspace tenantId={tenantId} />)); };
+const link = (label: string) => host.querySelector<HTMLButtonElement>(`[aria-label="${label} öffnen"]`);
+beforeEach(() => {
+  (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
+  api.tenantId = 'tenant'; api.roleKey = 'business_admin'; api.allowed.clear(); api.all = true; api.module = true; api.loading = true; api.error = null; api.dashboardProps = null; api.retained.clear(); vi.clearAllMocks();
+  host = document.createElement('div'); document.body.append(host); root = createRoot(host);
+});
+afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
+
+describe('live Pflege workspace navigation', () => {
+  it('covers every existing principal navigation destination once for an authorized administrator', () => {
+    const routes = buildPflegeWorkspaceGroups(access()).flatMap(group => group.links.map(item => item.route));
+    expect(routes).toEqual(pflegeNav.groups.flatMap(group => group.items.filter(item => item.href !== '/pflege').map(item => item.href)));
+    expect(new Set(routes).size).toBe(routes.length);
+    for (const route of ['/pflege/plans', '/pflege/sis', '/pflege/dokumentation', '/pflege/vitalwerte', '/pflege/medikation', '/pflege/wunddokumentation', '/pflege/behandlungspflege', '/pflege/leistungsnachweise']) expect(routes).toContain(route);
+  });
+  it('filters destinations by actual module and view permissions', () => {
+    api.all = false; api.allowed = new Set(['office.access', 'pflege.access', 'pflege.plans.view']);
+    const routes = buildPflegeWorkspaceGroups(access()).flatMap(group => group.links.map(item => item.route));
+    expect(routes).toContain('/pflege/plans'); expect(routes).not.toContain('/pflege/medikation'); expect(routes).not.toContain('/pflege/settings');
+    api.module = false; expect(buildPflegeWorkspaceGroups(access())).toEqual([]);
+  });
+  it('keeps clinical navigation visible while dashboard reads are loading or fail', async () => {
+    await render(); expect(host.textContent).toContain('Dashboard lädt'); expect(link('Pflegepläne')).not.toBeNull();
+    api.loading = false; api.error = 'Dashboard nicht verfügbar'; await render();
+    expect(host.textContent).toContain('Dashboard nicht verfügbar'); expect(link('Vitalwerte')).not.toBeNull();
+    await act(async () => link('Vitalwerte')!.click()); expect(api.push).toHaveBeenLastCalledWith('/pflege/vitalwerte');
+  });
+  it('invalidates a retained action when rights or tenant change', async () => {
+    await render(); const retained = api.retained.get('Pflegepläne öffnen')!;
+    api.all = false; await render(); await act(async () => retained()); expect(api.push).not.toHaveBeenCalled();
+    api.all = true; api.tenantId = 'other-tenant'; await render(); await act(async () => retained()); expect(api.push).not.toHaveBeenCalled();
+  });
+  it('does not show launchers without a confirmed matching tenant', async () => {
+    await render(null); expect(link('Pflegepläne')).toBeNull(); expect(host.textContent).toContain('Mandantenkontext fehlt');
+    await render('another-tenant'); expect(link('Pflegepläne')).toBeNull();
+  });
+  it('keeps real KPI overview without duplicate navigation and preserves the default full dashboard', async () => {
+    const stats = { ...emptyPflegeDashboardStats(), visitsToday: 3 };
+    await act(async () => root.render(<Dashboard stats={stats} activePlans={[]} loading={false} error={null} onRefresh={api.refresh} overviewOnly />));
+    expect(host.textContent).toContain('Pflegeeinsätze heute: 3'); expect(host.textContent).toContain('Heute pflegerisch wichtig');
+    expect(host.textContent).not.toContain('Pflegeeinsätze & Dienstplanung'); expect(host.textContent).not.toContain('Schnellzugriff');
+    await act(async () => root.render(<Dashboard stats={stats} activePlans={[]} loading={false} error={null} onRefresh={api.refresh} />));
+    expect(host.textContent).toContain('Pflegeeinsätze & Dienstplanung'); expect(host.textContent).toContain('Schnellzugriff');
+  });
+  it('filters KPI and priority navigation by current rights without reporting completed clinical work', async () => {
+    api.all = false; api.allowed = new Set(['office.access', 'pflege.access', 'pflege.plans.view']);
+    const stats = { ...emptyPflegeDashboardStats(), activePlansCount: 4, dueVitalsCount: 2, abnormalVitalsCount: 1 };
+    const allowed = (route: string) => canShowDesktopCatalogRoute(route, access());
+    await act(async () => root.render(<Dashboard stats={stats} activePlans={[]} loading={false} error={null} onRefresh={api.refresh} overviewOnly canOpenRoute={allowed} />));
+    expect(host.textContent).toContain('Aktive Pflegepläne: 4'); expect(host.textContent).not.toContain('Vitalwerte fällig'); expect(host.textContent).not.toContain('Auffällige Vitalwerte');
+    expect(host.textContent).not.toContain('Alle Pflegeaufgaben sind erledigt'); expect(host.textContent).toContain('Keine Hinweise in dieser Übersicht');
+  });
+  it('rechecks the latest navigation guard before a retained KPI action runs', async () => {
+    const stats = { ...emptyPflegeDashboardStats(), dueVitalsCount: 2 };
+    const onOpen = vi.fn();
+    await act(async () => root.render(<Dashboard stats={stats} activePlans={[]} loading={false} error={null} onRefresh={api.refresh} overviewOnly canOpenRoute={() => true} onOpenRoute={onOpen} />));
+    const retained = api.retained.get('Vitalwerte fällig: 2')!; expect(retained).toBeTypeOf('function');
+    await act(async () => retained()); expect(onOpen).toHaveBeenCalledWith('/pflege/vitalwerte?filter=due'); onOpen.mockClear();
+    await act(async () => root.render(<Dashboard stats={stats} activePlans={[]} loading={false} error={null} onRefresh={api.refresh} overviewOnly canOpenRoute={() => false} onOpenRoute={onOpen} />));
+    await act(async () => retained()); expect(onOpen).not.toHaveBeenCalled(); expect(api.push).not.toHaveBeenCalled();
+  });
+  it('passes the same live tenant/right guard to dashboard navigation', async () => {
+    await render(); const props = api.dashboardProps;
+    expect(props.canOpenRoute('/pflege/vitalwerte')).toBe(true);
+    api.all = false; await render(); expect(props.canOpenRoute('/pflege/vitalwerte')).toBe(false);
+    await act(async () => props.onOpenRoute('/pflege/vitalwerte')); expect(api.push).not.toHaveBeenCalled();
+    api.all = true; api.tenantId = 'different'; await render();
+    expect(props.canOpenRoute('/pflege/vitalwerte')).toBe(false);
+  });
+  it('uses the actual content width and larger text to wrap cards without scaling text down', () => {
+    expect(pflegeWorkspaceColumnCount(320)).toBe(1); expect(pflegeWorkspaceColumnCount(650)).toBe(2); expect(pflegeWorkspaceColumnCount(1200)).toBe(3);
+    expect(pflegeWorkspaceColumnCount(650, 2)).toBe(1); expect(pflegeWorkspaceColumnCount(1200, 2)).toBe(2);
+    expect(pflegeWorkspaceColumnCount(Number.NaN)).toBe(1);
+  });
+});
