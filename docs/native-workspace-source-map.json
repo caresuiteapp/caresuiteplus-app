@@ -556,13 +556,13 @@
     {
       "web": "src/lib/permissions/currentCarePermissions.web.ts",
       "native": "src/lib/permissions/currentCarePermissions.native.ts",
-      "sourceHash": "13ac0307e775a00db36b141669ea9f6f18b738f1ff9e7f255a45b49021a9e57f",
+      "sourceHash": "7517902245b038facce13c31708222271408f9e2998d49f3872a6b3b1cd30320",
       "environment": []
     },
     {
       "web": "src/lib/permissions/confirmedCarePermissions.web.ts",
       "native": "src/lib/permissions/confirmedCarePermissions.native.ts",
-      "sourceHash": "c2a0f2c939cb91e819d70af69eac17553955dd1b012f7c9607a994e048d731ed",
+      "sourceHash": "e220dd313066e298614340a312f8470a6cc65df81387cfbea3f1e99e1ad10c44",
       "environment": []
     },
     {
@@ -6368,13 +6368,13 @@
     {
       "web": "src/screens/pflege/VitalReadingDetailScreen.web.tsx",
       "native": "src/screens/pflege/VitalReadingDetailScreen.native.tsx",
-      "sourceHash": "dd56efa2c864887da84c73af86a309386b36636b21189f3f4160ef82da3ce6e4",
+      "sourceHash": "6656cf8470a5b34f4531dd5212f3f67e5a83013c16ed8505c4926ecefffb2360",
       "environment": []
     },
     {
       "web": "src/screens/pflege/VitalReadingsListScreen.web.tsx",
       "native": "src/screens/pflege/VitalReadingsListScreen.native.tsx",
-      "sourceHash": "4dd5d7f5d5fe1234c7f0de05b32eca179d75a2f5c3b758af3768f12e7b13d0f1",
+      "sourceHash": "78fa984e370131d12e987e7ea2ad964853cc3ee17ed42ab7ac9baf105e2be4d1",
       "environment": []
     },
     {

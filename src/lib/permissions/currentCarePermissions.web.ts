@@ -2,6 +2,7 @@ import type { PermissionKey } from '@/types/permissions';
 import type { CarePermissionOwner } from './carePermissionOwner.web.ts';
 import { carePermissionOwnerIsCurrent } from './carePermissionOwner.web.ts';
 import { getPermissionsForRole } from './staticRolePermissions';
+import { mapLegacyRoleKeyToRoleKey } from './workspaceRoles';
 import { getSupabaseClient } from '@/lib/supabase/client';
 
 const pageSize = 200;
@@ -76,6 +77,7 @@ async function permissionPages(client: NonNullable<ReturnType<typeof getSupabase
 
 /** No completed-role cache and no static production fallback on missing role, empty grants, or errors. */
 export async function fetchCurrentCarePermissions(owner: CarePermissionOwner, readIsCurrent: () => boolean = () => true): Promise<readonly PermissionKey[]> {
+  if (!readIsCurrent()) throw failure();
   const ownerKeys = ['tenantId', 'profileId', 'roleKey', 'accessToken', 'expiresAt', 'demo'] as const;
   const supplied = object(owner, ownerKeys);
   const captured = Object.freeze({ ...supplied }) as CarePermissionOwner;
@@ -132,24 +134,41 @@ export async function fetchCurrentCarePermissions(owner: CarePermissionOwner, re
     await readSession();
     current();
   };
-  try {
+  // The app role is a normalized label; authority belongs to this active profile's
+  // exact database role. Several native keys (e.g. owner/admin) share that label.
+  const confirmation = async () => {
     await assertSession();
     current();
-    const query = client.from('roles').select('id,key').eq('key', captured.roleKey).maybeSingle();
+    const query = client.from('profiles')
+      .select('id,tenant_id,role_id,is_active,status,auth_user_id,roles(id,key,tenant_id)')
+      .eq('id', captured.profileId).eq('tenant_id', captured.tenantId).maybeSingle();
     const raw = await new Promise<unknown>((resolve, reject) => { current(); query.then(resolve, reject); });
     current();
     const response = object(raw);
     if (field(response, 'error') !== null) throw failure();
+    const profile = object(field(response, 'data'), ['id', 'tenant_id', 'role_id', 'is_active', 'status', 'auth_user_id', 'roles']);
+    const role = object(field(profile, 'roles'), ['id', 'key', 'tenant_id']);
+    const roleId = field(profile, 'role_id'), roleKey = field(role, 'key'), roleTenant = field(role, 'tenant_id');
+    if (field(profile, 'id') !== captured.profileId || field(profile, 'tenant_id') !== captured.tenantId
+      || field(profile, 'is_active') !== true || field(profile, 'status') !== 'active'
+      || (field(profile, 'auth_user_id') === null ? captured.profileId !== authUserId : field(profile, 'auth_user_id') !== authUserId)
+      || !uuid(roleId) || field(role, 'id') !== roleId || typeof roleKey !== 'string' || !roleKey || roleKey.trim() !== roleKey
+      || mapLegacyRoleKeyToRoleKey(roleKey) !== captured.roleKey
+      || (roleTenant !== null && roleTenant !== captured.tenantId)) throw failure();
     await assertSession();
     current();
-    const role = object(field(response, 'data'), ['id', 'key']);
-    if (!uuid(role.id) || role.key !== captured.roleKey) throw failure();
+    return { id: roleId, key: roleKey, tenantId: roleTenant };
+  };
+  try {
+    const role = await confirmation();
+    current();
     const [global, tenant] = await Promise.all([
       permissionPages(client, 'role_permissions', role.id, undefined, assertSession, current, close),
       permissionPages(client, 'role_permission_sets', captured.roleKey, captured.tenantId, assertSession, current, close),
     ]);
-    await assertSession();
+    const finalRole = await confirmation();
     current();
+    if (finalRole.id !== role.id || finalRole.key !== role.key || finalRole.tenantId !== role.tenantId) throw failure();
     // Existing native contract: an absent tenant override inherits the complete global set.
     const result = Object.freeze([...(tenant.length ? tenant : global)]);
     close();

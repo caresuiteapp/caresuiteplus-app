@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
+import { mapLegacyRoleKeyToRoleKey } from '../../src/lib/permissions/workspaceRoles.ts';
 import { carePermissionOwner, sameCarePermissionOwner, carePermissionOwnerIsCurrent } from '../../src/lib/permissions/carePermissionOwner.web.ts';
 
 const id=n=>`88888888-8888-4888-8888-${String(n).padStart(12,'0')}`;
@@ -13,7 +14,7 @@ const deferred=()=>{let resolve,reject;const promise=new Promise((a,b)=>{resolve
 const settle=async()=>{for(let i=0;i<1000;i++)await Promise.resolve();};
 function backend(){
  const env={token:'test-token',sessionId:id(1),serverUser:{id:id(1),is_anonymous:false,user_metadata:{role_key:'business_admin',tenant_id:id(9)}},authError:null,
-  profile:{id:id(1),tenant_id:id(2),role_id:id(3),is_active:true,status:'active',auth_user_id:null,roles:{id:id(3),key:'nurse'}},profileError:null,role:{id:id(3),key:'nurse'},
+  profile:{id:id(1),tenant_id:id(2),role_id:id(3),is_active:true,status:'active',auth_user_id:null,roles:{id:id(3),key:'nurse',tenant_id:null}},profileError:null,role:{id:id(3),key:'nurse'},
   global:[{id:id(100),role_id:id(3),permission_key:'pflege.wounds.view'}],tenant:[],profileCalls:0,authCalls:0,permissionCalls:0,sessionCalls:0,authOverride:null,profileOverride:null,pageOverride:null,onSession:null,client:true};
  const calls=[];
  const sdk={auth:{getSession:async()=>{env.sessionCalls++;env.onSession?.(env);return {error:null,data:{session:{access_token:env.token,user:{id:env.sessionId}}}};},getUser:async token=>{
@@ -28,7 +29,7 @@ function backend(){
   }};return query;
  }};
  let fallback=0;
- const inner=compile('src/lib/permissions/currentCarePermissions.web.ts','fetchCurrentCarePermissions',{carePermissionOwnerIsCurrent,getPermissionsForRole:()=>{fallback++;return ['pflege.wounds.view'];},getSupabaseClient:()=>env.client?sdk:null}).fetchCurrentCarePermissions;
+ const inner=compile('src/lib/permissions/currentCarePermissions.web.ts','fetchCurrentCarePermissions',{carePermissionOwnerIsCurrent,mapLegacyRoleKeyToRoleKey,getPermissionsForRole:()=>{fallback++;return ['pflege.wounds.view'];},getSupabaseClient:()=>env.client?sdk:null}).fetchCurrentCarePermissions;
  const fetch=compile('src/lib/permissions/confirmedCarePermissions.web.ts','fetchConfirmedCarePermissions',{carePermissionOwnerIsCurrent,fetchCurrentCarePermissions:inner,getSupabaseClient:()=>env.client?sdk:null,...timeout}).fetchConfirmedCarePermissions;
  return {env,calls,fetch,inner,get fallback(){return fallback;}};
 }
@@ -48,7 +49,7 @@ test('Editable user metadata never supplies the role or tenant and cannot substi
  const b=backend();assert.deepEqual(await b.fetch(own()),['pflege.wounds.view']);b.env.profile.roles.key='business_admin';await assert.rejects(b.fetch(own()));
 });
 for(const [name,change] of [
- ['profile disabled',e=>{e.profile={...e.profile,is_active:false};}],['profile tenant changed',e=>{e.profile={...e.profile,tenant_id:id(9)};}],['role replaced under same key',e=>{e.profile={...e.profile,role_id:id(9),roles:{id:id(9),key:'nurse'}};}],['auth server rejected',e=>{e.authError={message:'later rejection'};}]
+ ['profile disabled',e=>{e.profile={...e.profile,is_active:false};}],['profile tenant changed',e=>{e.profile={...e.profile,tenant_id:id(9)};}],['role replaced under same key',e=>{e.profile={...e.profile,role_id:id(9),roles:{id:id(9),key:'nurse',tenant_id:null}};}],['auth server rejected',e=>{e.authError={message:'later rejection'};}]
 ])test(`Final confirmation discards already read grants when ${name}`,async()=>{
  const b=backend();let originalsRead=0;b.env.pageOverride=(table,filters)=>{change(b.env);const data=table==='role_permissions'&&!filters.cursor?b.env.global:[];originalsRead+=data.length;return {error:null,data};};await assert.rejects(b.fetch(own()));assert.equal(originalsRead,1);assert.equal(b.fallback,0);
 });
@@ -151,3 +152,60 @@ for(const [name,change] of [['resolved internal profile',b=>{b.env.currentProfil
 test('Current raw account cannot change between the two full native confirmations',async()=>{const b=backend();b.env.sessionId=b.env.serverUser.id=id(8);b.env.profile.auth_user_id=id(8);b.env.pageOverride=(table,filters)=>{b.env.sessionId=b.env.serverUser.id=id(9);b.env.profile.auth_user_id=id(9);return {error:null,data:table==='role_permissions'&&!filters.cursor?b.env.global:[]};};await assert.rejects(b.fetch(own()));assert.equal(b.fallback,0);});
 
 test('Actual production permission hook publishes distinct-identity grants only after full native association checks',async()=>{const b=backend(),w=workspace(b);w.auth.user.id=w.auth.session.user.id=id(8);b.env.sessionId=b.env.serverUser.id=id(8);b.env.profile.auth_user_id=id(8);assert.equal(w.render().can('pflege.wounds.view'),false);await settle();assert.equal(w.render().can('pflege.wounds.view'),true);assert.equal(b.env.profileCalls,2);w.dispose();});
+
+test('Actual raw owner role confirms canonical business_admin and loads only that owner role ID',async()=>{
+ const b=backend(),o={...own(),roleKey:'business_admin'};
+ b.env.profile.roles.key='owner';b.env.role={id:id(3),key:'owner'};
+ assert.deepEqual(await b.fetch(o),['pflege.wounds.view']);
+ assert.equal(b.calls.filter(c=>c.table==='roles').length,0);
+ assert.ok(b.calls.some(c=>c.table==='role_permissions'&&c.dispatch&&c.filters.role_id===id(3)));
+ assert.equal(b.fallback,0);
+});
+
+for(const [raw,canonical] of [['owner','business_admin'],['admin','business_admin'],['management','business_manager'],['office','business_manager'],['planning','dispatch'],['consultant','counselor']])test(`Native ${raw} binding grants only its own role rows under normalized ${canonical}`,async()=>{
+ const b=backend();b.env.profile.roles={id:id(3),key:raw,tenant_id:id(2)};
+ const permissions=await b.fetch({...own(),roleKey:canonical});
+ assert.deepEqual(permissions,['pflege.wounds.view']);
+ assert.equal(b.calls.filter(c=>c.table==='roles').length,0);
+ assert.ok(b.calls.filter(c=>c.table==='profiles'&&c.dispatch).every(c=>c.filters.id===id(1)&&c.filters.tenant_id===id(2)));
+ assert.equal(b.fallback,0);
+});
+for(const [name,change] of [
+ ['foreign role tenant',b=>{b.env.profile.roles.tenant_id=id(9);}],
+ ['unconfirmed role tenant',b=>{delete b.env.profile.roles.tenant_id;}],
+ ['unmapped native role',b=>{b.env.profile.roles.key='unknown-owner';}],
+ ['canonical mismatch',b=>{b.env.profile.roles.key='management';}],
+])test(`Owner binding rejects ${name} before grants`,async()=>{const b=backend();b.env.profile.roles.key='owner';change(b);await assert.rejects(b.fetch({...own(),roleKey:'business_admin'}));assert.equal(b.env.permissionCalls,0);assert.equal(b.fallback,0);});
+for(const [name,change] of [
+ ['owner to admin with the same normalized label',p=>{p.roles={...p.roles,key:'admin'};}],
+ ['tenant to system role binding',p=>{p.roles={...p.roles,tenant_id:null};}],
+])test(`Final native owner confirmation rejects changed ${name}`,async()=>{
+ const b=backend();b.env.profile.roles={id:id(3),key:'owner',tenant_id:id(2)};
+ b.env.profileOverride=n=>{if(n===2)change(b.env.profile);return {data:b.env.profile,error:null};};
+ await assert.rejects(b.fetch({...own(),roleKey:'business_admin'}));assert.ok(b.env.permissionCalls>0);assert.equal(b.fallback,0);
+});
+test('Canonical owner tenant override replaces its exact raw owner grants without adding static or sibling rights',async()=>{
+ const b=backend();b.env.profile.roles.key='owner';b.env.global=[{id:id(100),role_id:id(3),permission_key:'pflege.vitals.manage'}];
+ b.env.tenant=[{id:id(200),tenant_id:id(2),role_key:'business_admin',permission_key:'pflege.vitals.view'}];
+ assert.deepEqual(await b.fetch({...own(),roleKey:'business_admin'}),['pflege.vitals.view']);
+ assert.equal(b.calls.filter(c=>c.table==='roles').length,0);assert.equal(b.fallback,0);
+});
+
+test('Confirmed reader rejects cancellation at the completed inner-reader handoff',async()=>{
+ let current=true;
+ const fetch=compile('src/lib/permissions/confirmedCarePermissions.web.ts','fetchConfirmedCarePermissions',{
+  fetchCurrentCarePermissions:async()=>{queueMicrotask(()=>{current=false;});return Object.freeze(['pflege.vitals.view']);},...timeout,
+ }).fetchConfirmedCarePermissions;
+ await assert.rejects(fetch(own(),()=>current),/nicht bestätigt/);
+});
+
+for(const change of ['expiresAt','accessToken','profileId','getter'])test(`Confirmed wrapper rejects ${change} changed at the async handoff without an external predicate`,async()=>{
+ const o=own();let getters=0;
+ const fetch=compile('src/lib/permissions/confirmedCarePermissions.web.ts','fetchConfirmedCarePermissions',{
+  fetchCurrentCarePermissions:async()=>{queueMicrotask(()=>{
+   if(change==='getter')Object.defineProperty(o,'accessToken',{enumerable:true,get(){getters++;return 'test-token';}});
+   else o[change]=change==='expiresAt'?0:change==='accessToken'?'changed-token':id(9);
+  });return Object.freeze(['pflege.vitals.view']);},...timeout,
+ }).fetchConfirmedCarePermissions;
+ await assert.rejects(fetch(o),/nicht bestätigt/);assert.equal(getters,0);
+});

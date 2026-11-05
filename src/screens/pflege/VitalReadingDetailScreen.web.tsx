@@ -21,6 +21,7 @@ import {vitalTimeFieldDisplay} from '@/lib/pflege/vitalTimeDisplay.web';
 import {VitalCarePathWorkspacePanel} from '@/components/pflege/VitalCarePathWorkspacePanel.web';
 import {RespiratoryIntensiveCareWorkspacePanel} from '@/components/pflege/RespiratoryIntensiveCareWorkspacePanel.web';
 type DisplayRow=Readonly<Record<string,unknown>>;
+type PermissionFeedback=Pick<ReturnType<typeof usePermissions>,'loading'|'error'|'refreshPermissions'>;
 const displayText=(value:unknown,fallback='Nicht bestätigt')=>typeof value==='string'?value:fallback;
 const displayRow=(value:unknown):DisplayRow|null=>value&&typeof value==='object'&&!Array.isArray(value)&&[Object.prototype,null].includes(Object.getPrototypeOf(value))?value as DisplayRow:null;
 const displayHistory=(value:unknown):readonly DisplayRow[]|null=>Array.isArray(value)&&value.every(row=>!!displayRow(row))?value as readonly DisplayRow[]:null;
@@ -34,10 +35,11 @@ export function VitalReadingDetailScreen(){
   useEffect(()=>()=>held.current?.actions.dispose(),[]);
   const runtime=held.current?.actions??null;const [,setOriginalRevision]=useState(0);
   useEffect(()=>runtime?.subscribe(()=>setOriginalRevision(value=>value+1)),[runtime]);
-  if(!runtime)return <ScreenShell title="Vitalwert"><ErrorState message="Eigener aktueller Benutzer- und Messungsbezug nicht bestätigt."/></ScreenShell>;
-  return <VitalDetailWorkspace key={`${held.current?.attachment}:${runtime.draftVersion()}`} capture={held.current!.capture} actorId={held.current!.owner.profileId} canReview={permissions.can('pflege.documentation.sign')}/>;
+  const permissionState={loading:permissions.loading||auth.isLoading||!auth.authReady,error:permissions.error,refreshPermissions:permissions.refreshPermissions};
+  if(!runtime)return <ScreenShell title="Vitalwert">{permissionState.loading?<LoadingState message="Berechtigungen werden geprüft…"/>:permissionState.error?<ErrorState message={permissionState.error} onRetry={permissionState.refreshPermissions}/>:<ErrorState message="Eigener aktueller Benutzer- und Messungsbezug nicht bestätigt."/>}</ScreenShell>;
+  return <VitalDetailWorkspace key={`${held.current?.attachment}:${runtime.draftVersion()}`} capture={held.current!.capture} actorId={held.current!.owner.profileId} canReview={permissions.can('pflege.documentation.sign')} permissionState={permissionState}/>;
 }
-function VitalDetailWorkspace({capture,actorId,canReview}:{capture:VitalDetailWriteCaptureWeb;actorId:string;canReview:boolean}){
+function VitalDetailWorkspace({capture,actorId,canReview,permissionState}:{capture:VitalDetailWriteCaptureWeb;actorId:string;canReview:boolean;permissionState:PermissionFeedback}){
   const runtime=useMemo(()=>vitalDetailWriteActionsWeb(capture),[capture]);
   const router=useRouter(),styles=useStyles(),[editor,setEditor]=useState(false),[correcting,setCorrecting]=useState(false),[success,setSuccess]=useState<string|null>(null);
   const canView=runtime.canRead(),origin=runtime.captureReadOrigin();
@@ -54,7 +56,7 @@ function VitalDetailWorkspace({capture,actorId,canReview}:{capture:VitalDetailWr
   const saved=async(kind:VitalDetailOperationWeb)=>{if(!runtime.known(kind))return;if(!runtime.canRead())return;setSuccess(kind==='follow_up'?'Gespeicherte Original-Folgedokumentation bestätigt; aktueller Bestand wird erneut gelesen.':'Original-Ungültigkeitsvermerk bestätigt; aktueller Bestand wird erneut gelesen.');if(kind==='follow_up')setEditor(false);else setCorrecting(false);await reload();};
   const closeParent=()=>{const token=runtime.captureClose();if(token&&runtime.mayClose(token))router.back();};
   const newToken=runtime.captureNewFollowUp(),newFollow=()=>{if(runtime.newFollowUp(newToken)){setEditor(false);setCorrecting(false);setSuccess(null);}};
-  if(!canView)return <ScreenShell title="Vitalwert"><ErrorState message="Aktuelle eigene Leseberechtigung fehlt."/></ScreenShell>;
+  if(!canView)return <ScreenShell title="Vitalwert">{permissionState.loading?<LoadingState message="Berechtigungen werden geprüft…"/>:permissionState.error?<ErrorState message={permissionState.error} onRetry={permissionState.refreshPermissions}/>:<ErrorState message="Aktuelle eigene Leseberechtigung fehlt."/>}</ScreenShell>;
   if(!reading)return <ScreenShell title="Vitalwert"><ScrollView contentContainerStyle={styles.content}>{query.loading||query.refreshing?<LoadingState message="Ganze Originalmessung und Belege werden geladen…"/>:<ErrorState message={query.error??query.refreshError??'Ganze Originalmessung oder vollständige Anzeige noch nicht bestätigt.'} onRetry={reload}/>}<VitalOriginalRequestStatus capture={capture}/>{original.pending&&runtime.canManage()?<View>{runtime.operationState('follow_up').pending?<VitalFollowUpForm key={`${runtime.readVersion()}:follow-up`} capture={capture} close={()=>setEditor(false)} saved={()=>saved('follow_up')}/>:null}{runtime.operationState('invalidation').pending?<VitalInvalidationForm key={`${runtime.readVersion()}:invalidation`} capture={capture} close={()=>setCorrecting(false)} saved={()=>saved('invalidation')}/>:null}</View>:null}</ScrollView></ScreenShell>;
   return <ScreenShell title={definition?.label??displayText(reading.type)} subtitle="Gespeicherte Messung"><ScrollView contentContainerStyle={styles.content}>
     {success?<SuccessState message={success}/>:null}

@@ -1,0 +1,80 @@
+{
+  "date": "2026-11-05",
+  "environment": "production",
+  "repair": "pflege_owner_permission_tenant_repair",
+  "before": {
+    "policies": "dfd2b0b41691aa4862ec29d7ad68a3ee",
+    "security": "a96421a0442fe75fa5ccebf3527b5c1e",
+    "otherPermissionRows": "b84699fb419691f636f9ccad3b585c37",
+    "ownerGrantFields": "5eb8b454c0925a7744e4ac203a45da40",
+    "overrides": "d41d8cd98f00b204e9800998ecf8427e",
+    "catalog": "41e51f24b43040881bd2958b51d55afb",
+    "ownerGrants": 42,
+    "ownerUnassigned": 26
+  },
+  "after": {
+    "policies": "dfd2b0b41691aa4862ec29d7ad68a3ee",
+    "security": "a96421a0442fe75fa5ccebf3527b5c1e",
+    "otherPermissionRows": "b84699fb419691f636f9ccad3b585c37",
+    "ownerGrantFields": "5eb8b454c0925a7744e4ac203a45da40",
+    "overrides": "d41d8cd98f00b204e9800998ecf8427e",
+    "catalog": "41e51f24b43040881bd2958b51d55afb",
+    "ownerGrants": 42,
+    "ownerUnassigned": 0
+  },
+  "unchanged": [
+    "policies",
+    "security",
+    "otherPermissionRows",
+    "ownerGrantFields",
+    "overrides",
+    "catalog"
+  ],
+  "authenticatedSqlRoleProbe": {
+    "readOnly": true,
+    "rolledBack": true,
+    "profileMatches": true,
+    "tenantMatches": true,
+    "ownActiveProfileJoinVisible": true,
+    "visiblePflegeGrants": 42,
+    "vitalsHasPermission": true,
+    "medicationsHasPermission": true,
+    "plansHasPermission": true,
+    "plansGrantVisible": true,
+    "ownerOverrideCount": 0
+  },
+  "audit": {
+    "maintenanceEntries": 1,
+    "rowsScoped": 26,
+    "actorRole": "maintenance",
+    "actorId": null,
+    "normalUpdateAudits": 26
+  },
+  "limits": [
+    "SQL role simulation is not an authenticated HTTP login or clinical workflow acceptance.",
+    "Normal updated_at and row-audit triggers were retained."
+  ],
+  "targetedVitest": {
+    "files": 13,
+    "passed": 159,
+    "failed": 0
+  },
+  "sourceParity": {
+    "modules": 1170,
+    "routes": 274,
+    "blocked": 4,
+    "stale": 0
+  },
+  "fullNode": {
+    "passed": 15208,
+    "failed": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "todo": 0,
+    "durationMs": 203879.476522
+  },
+  "typescript": {
+    "fullProjectNoEmit": "passed",
+    "exitCode": 0
+  }
+}

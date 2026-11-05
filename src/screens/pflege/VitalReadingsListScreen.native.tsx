@@ -17,6 +17,7 @@ import { getVitalDefinition } from '@/lib/pflege/vitalCatalog';
 import { vitalTimeDisplay } from "../../lib/pflege/vitalTimeDisplay.native.ts";
 import { createVitalHistoryViewRuntimeWeb, captureVitalHistoryViewReadWeb, closeVitalHistoryViewRuntimeWeb, createVitalHistoryViewWeb, closeVitalHistoryViewWeb, bindVitalHistoryViewQueryWeb, beginVitalHistoryViewChoicesWeb, acceptVitalHistoryViewChoicesWeb, vitalHistoryViewPeopleWeb, captureVitalHistoryViewActionWeb, selectVitalHistoryViewClientWeb, selectVitalHistoryViewComponentWeb, clearVitalHistoryViewSelectionWeb, captureVitalHistoryViewFetchWeb, fetchVitalHistoryViewWeb, vitalHistoryViewRowsWeb, vitalHistoryViewCsvWeb, mayUseVitalHistoryViewActionWeb, mayUseVitalHistoryChoiceActionWeb, mayReloadVitalHistoryViewWeb, mayReloadVitalHistoryChoicesWeb, vitalHistoryViewManageWeb, captureVitalHistoryViewChartWeb, type VitalHistoryViewWeb } from "../../lib/pflege/vitalHistoryViewRuntime.native.ts";
 import { fetchVitalHistoryClientsOriginalReadWeb } from "../../lib/pflege/vitalHistoryClientsOriginalRead.native.ts";
+type PermissionFeedback = Pick<ReturnType<typeof usePermissions>, 'loading' | 'error' | 'refreshPermissions'>;
 const time = (raw: unknown, state?: string) => { if (state === 'missing')
     return 'Zeitpunkt nicht bestätigt – Originalzeit wurde nicht geliefert'; const display = vitalTimeDisplay(raw); return display.state === 'valid' ? display.display : `Zeitpunkt nicht bestätigt (${display.state})${typeof raw === 'string' ? ` · Original: ${raw}` : ''}`; };
 const measurementLabel = (raw: unknown) => typeof raw === 'string' && raw.trim() ? getVitalDefinition(raw)?.label ?? raw : 'Messart nicht bestätigt';
@@ -55,11 +56,12 @@ export function VitalReadingsListScreen({ onReadingPress, selectedId }: {
         closeVitalHistoryViewWeb(held.current.view ?? {});
         closeVitalHistoryViewRuntimeWeb(held.current.runtime);
     } }, []);
-    return <VitalHistoryWorkspace key={`${key}:${current.version}`} capture={current.view} scope={scope} onReadingPress={onReadingPress} selectedId={selectedId}/>;
+    return <VitalHistoryWorkspace key={`${key}:${current.version}`} capture={current.view} scope={scope} permissionState={{ loading: permissions.loading || auth.isLoading || !auth.authReady, error: permissions.error, refreshPermissions: permissions.refreshPermissions }} onReadingPress={onReadingPress} selectedId={selectedId}/>;
 }
-function VitalHistoryWorkspace({ capture, scope, onReadingPress, selectedId }: {
+function VitalHistoryWorkspace({ capture, scope, permissionState, onReadingPress, selectedId }: {
     capture: VitalHistoryViewWeb | null;
     scope: object | null;
+    permissionState: PermissionFeedback;
     onReadingPress?: (id: string) => void;
     selectedId?: string | null;
 }) {
@@ -128,7 +130,7 @@ function VitalHistoryWorkspace({ capture, scope, onReadingPress, selectedId }: {
             setExportError('Originalexport konnte nicht mit aktuellem Zugriff gestartet werden. Bitte neu laden und ausdrücklich auswählen.');
     } }
     if (!capture)
-        return <ScreenShell title="Vitalwerte"><ErrorState message="Aktuelle eigene Leseberechtigung für Vitalwerte fehlt."/></ScreenShell>;
+        return <ScreenShell title="Vitalwerte">{permissionState.loading ? <LoadingState message="Berechtigungen werden geprüft…"/> : permissionState.error ? <ErrorState message={permissionState.error} onRetry={permissionState.refreshPermissions}/> : <ErrorState message="Aktuelle eigene Leseberechtigung für Vitalwerte fehlt."/>}</ScreenShell>;
     return <ScreenShell title="Vitalwerte" subtitle={person?.name ?? 'Pflegeklient:in auswählen'}><ScrollView contentContainerStyle={styles.content}>
   <View style={styles.actions}>{vitalHistoryViewManageWeb(capture) ? <PremiumButton title="Messung erfassen" disabled={!choiceAction} onPress={create}/> : null}<PremiumButton title="Verlauf aktualisieren" variant="secondary" disabled={!historyAction} onPress={() => reload('history')}/></View>
   {exportError ? <ErrorState message={exportError}/> : null}

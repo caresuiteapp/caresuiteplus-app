@@ -10,6 +10,7 @@ import {withServiceQueryTimeout} from '../../src/lib/services/queryTimeout.ts';
 const read=p=>readFileSync(new URL(`../../${p}`,import.meta.url),'utf8');
 const body=p=>strip(read(p).replace(/^import[\s\S]*?;\n/gm,'').replace(/\bexport /g,''));
 const compose=(p,deps,names)=>new Function(...Object.keys(deps),body(p)+';return {'+names.join(',')+'};')(...Object.values(deps));
+const {mapLegacyRoleKeyToRoleKey}=compose('src/lib/permissions/workspaceRoles.ts',{},['mapLegacyRoleKeyToRoleKey']);
 const address=compose('src/lib/clients/clientAddressResolver.ts',compose('src/lib/formatAddress.ts',{},['formatStreetLine']),['mergeClientAddresses','resolveClientPhone','resolveClientStreetLine']);
 const contact=compose('src/lib/clients/clientContactPayload.ts',{},['resolveClientContactDisplayName','resolveClientContactIsEmergency','resolveClientContactType']);
 const status=compose('src/lib/services/workflow/clientStatus.ts',{},['CLIENT_STATUS_HINTS','getAllowedStatusActions']);
@@ -40,20 +41,20 @@ function harness(initial={}){
   select(columns){this.columns=columns;return this;}eq(key,value){this.filters.push([key,value]);return this;}order(key){assert.equal(key,'id');return this;}limit(n){this.limitN=n;state.onBuilder?.(this);return this;}gt(key,value){assert.equal(key,'id');this.cursor=value;return this;}single(){this.singleRow=true;state.onBuilder?.(this);return this;}maybeSingle(){this.singleRow=true;return this;}
   insert(){writes.push('insert');throw Error('Forbidden native write');}update(){writes.push('update');throw Error('Forbidden native write');}upsert(){writes.push('upsert');throw Error('Forbidden native write');}delete(){writes.push('delete');throw Error('Forbidden native write');}
   then(resolve,reject){
-   const permission=['roles','role_permissions','role_permission_sets'].includes(this.table),call={table:this.table,columns:this.columns,filters:structuredClone(this.filters),cursor:this.cursor};
+   const permission=['profiles','roles','role_permissions','role_permission_sets'].includes(this.table),call={table:this.table,columns:this.columns,filters:structuredClone(this.filters),cursor:this.cursor};
    (permission?permissionCalls:calls).push(call);
    return Promise.resolve().then(async()=>{
     if(!permission&&state.beforeResponse)await state.beforeResponse(this,call);
     if(state.override&&!permission){const response=state.override(this);if(response!==undefined)return response;}
-    let rows;if(this.table==='roles')rows=[{id:id(50),key:state.profile.roleKey}];else if(this.table==='role_permissions')rows=[...state.rights].map((permission_key,i)=>({id:id(100+i),role_id:id(50),permission_key}));else if(this.table==='role_permission_sets')rows=[];else rows=tables[this.table];
+    let rows;if(this.table==='profiles')rows=[{id:state.profile.id,tenant_id:state.profile.tenantId,role_id:id(50),is_active:true,status:'active',auth_user_id:state.user.id,roles:{id:id(50),key:state.profile.roleKey==='business_admin'?'owner':state.profile.roleKey,tenant_id:state.profile.tenantId}}];else if(this.table==='roles')rows=[{id:id(50),key:state.profile.roleKey}];else if(this.table==='role_permissions')rows=[...state.rights].map((permission_key,i)=>({id:id(100+i),role_id:id(50),permission_key}));else if(this.table==='role_permission_sets')rows=[];else rows=tables[this.table];
     rows=rows.filter(r=>this.filters.every(([key,v])=>r[key]===v));rows=[...rows].sort((a,b)=>a.id.toLowerCase().localeCompare(b.id.toLowerCase()));if(this.cursor)rows=rows.filter(r=>r.id.toLowerCase()>this.cursor);rows=rows.slice(0,Math.min(this.limitN,2));
-    if(this.columns!=='*'){const fields=this.columns.split(',').map(x=>x.trim());rows=rows.map(r=>Object.fromEntries(Object.entries(r).filter(([key])=>fields.includes(key))));}
+    if(this.columns!=='*'){const fields=this.columns.replace(/\([^)]*\)/g,'').split(',').map(x=>x.trim());rows=rows.map(r=>Object.fromEntries(Object.entries(r).filter(([key])=>fields.includes(key))));}
     return{data:this.singleRow?rows[0]??null:rows,error:null};
    }).then(resolve,reject);
   }
  }
  const sdk={auth:{getSession:async()=>({error:null,data:{session:{user:state.user,access_token:state.token,expires_at:state.expiresAt/1000}}}),getUser:async()=>({error:null,data:{user:{id:state.user?.id,is_anonymous:false}}})},from:table=>new Query(table),rpc(name){if(name==='resolve_current_profile_id')return Promise.resolve({error:null,data:state.profile?.id});if(name==='current_tenant_id')return Promise.resolve({error:null,data:state.tenant});writes.push('rpc');throw Error('Forbidden native RPC');}};
- const loader=compose('src/lib/permissions/currentCarePermissions.web.ts',{...ownerDomain,getPermissionsForRole:()=>{throw Error('No static fallback');},getSupabaseClient:()=>sdk},['fetchCurrentCarePermissions']);
+ const loader=compose('src/lib/permissions/currentCarePermissions.web.ts',{...ownerDomain,mapLegacyRoleKeyToRoleKey,getPermissionsForRole:()=>{throw Error('No static fallback');},getSupabaseClient:()=>sdk},['fetchCurrentCarePermissions']);
  const resolver=compose('src/lib/auth/sessionTarget.ts',{BUSINESS_HOME_ROUTE:'/home'},['resolveEffectiveRoleKey']);
  const permissionHook=compose('src/hooks/pflege/useCareRuntimePermissions.web.ts',{...ownerDomain,...loader,useEffect,useRef,useState,ROLE_LABELS:{business_admin:'Admin'},checkPermissionWithList:(_role,rights,key)=>({allowed:rights.includes(key)}),hasEffectiveModuleGateAccess:()=>true,isDemoMode:()=>false,useAuth,resolveEffectiveRoleKey:resolver.resolveEffectiveRoleKey,useServiceTenantId:()=>state.tenant},['useCareRuntimePermissions']);
  const usePermissions=()=>{permissionResult=permissionHook.useCareRuntimePermissions();return permissionResult;};

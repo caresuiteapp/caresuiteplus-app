@@ -2,6 +2,7 @@ import test from 'node:test';import assert from 'node:assert/strict';import{read
 const root=resolve(new URL('../..',import.meta.url).pathname),read=p=>readFileSync(join(root,p),'utf8');
 const body=p=>strip(read(p).replace(/^import[\s\S]*?;\n/gm,'').replace(/^export\s*\{[\s\S]*?\};?\s*/gm,'').replace(/\bexport /g,''));
 const whole=(p,names,deps={})=>new Function(...Object.keys(deps),body(p)+';return {'+names.join(',')+'};')(...Object.values(deps));
+const roleMapping=whole('src/lib/permissions/workspaceRoles.ts',['mapLegacyRoleKeyToRoleKey']);
 const uuid=whole('src/lib/pflege/woundCareDomain.ts',['woundUuid']),originals=whole('src/lib/clients/clientRecordNativeOriginal.web.ts',['cloneClientNativeOriginal','freezeClientNativeOriginal'],uuid);
 const owner=whole('src/lib/permissions/carePermissionOwner.web.ts',['carePermissionOwner','sameCarePermissionOwner','carePermissionOwnerIsCurrent']);
 const display=whole('src/lib/pflege/medicationTimeDisplay.web.ts',['medicationTimeDisplay'],whole('src/lib/pflege/medicationAdministrationDomain.ts',['validEventInstant']));
@@ -17,7 +18,7 @@ export function visitOriginalHarness(options={}){
  const sdk={auth:{getSession:async()=>({error:null,data:{session:{access_token:state.auth.session?.accessToken,user:{id:state.auth.user?.id},expires_at:state.auth.session?.expiresAt===null?null:state.auth.session?.expiresAt/1000}}}),getUser:async()=>({error:null,data:{user:{id:state.auth.user?.id,is_anonymous:false}}})},from:table=>{
   const filters=[];let cursor=null,cap=200;const q={select:columns=>(q.columns=columns,q),eq:(k,v)=>(filters.push([k,v]),q),in:(k,v)=>(filters.push([k,v]),q),order:(k,v)=>(q.order=[k,v],q),gt:(k,v)=>(cursor=[k,v],q),limit:n=>(cap=n,q),maybeSingle:()=>(q.single=true,q),insert(){writes++;throw Error('Readonly')},update(){writes++;throw Error('Readonly')}};
   state.onBuild?.(table,q);const then=(ok,no)=>{const call={table,filters,columns:q.columns,order:q.order,cursor,cap};calls.push(call);state.onDispatch?.(call);
-   let data=table==='roles'?[{id:id(100),key:state.auth.profile?.roleKey}]:table==='role_permissions'?[...state.rights].map((permission_key,n)=>({id:id(110+n),role_id:id(100),permission_key})):tables[table]??[];
+   let data=table==='profiles'?[{id:state.auth.profile?.id,tenant_id:state.tenantId,role_id:id(100),is_active:true,status:'active',auth_user_id:state.auth.user?.id,roles:{id:id(100),key:state.auth.profile?.roleKey==='business_admin'?'owner':state.auth.profile?.roleKey,tenant_id:state.tenantId}}]:table==='roles'?[{id:id(100),key:state.auth.profile?.roleKey}]:table==='role_permissions'?[...state.rights].map((permission_key,n)=>({id:id(110+n),role_id:id(100),permission_key})):tables[table]??[];
    data=data.filter(row=>filters.every(([k,v])=>Array.isArray(v)?v.includes(row[k]):row[k]===v));if(cursor)data=data.filter(row=>String(row[cursor[0]]).toLowerCase()>String(cursor[1]).toLowerCase());data=data.slice(0,Math.min(cap,state.cap));
    let result={data:q.single?data[0]??null:data,error:null,status:200};if(state.onResult)result=state.onResult(call,result)??result;
    return (async()=>{if(state.held){const held=state.held;state.held=null;await held}return result})().then(ok,no);
@@ -35,7 +36,7 @@ export function nativeVisitOriginalWorkspace(options={}){
  const h=visitOriginalHarness(options),adapter=read('scripts/checks/qm-document-reference-caller-web.node.test.mjs'),start=adapter.indexOf('function reactPrimitives()'),end=adapter.indexOf('\nexport function qmReferenceWorkspace',start),primitives=new Function(adapter.slice(start,end)+';return reactPrimitives;')(),p=primitives();
  const roles=whole('src/lib/permissions/staticRolePermissions.ts',['getPermissionsForRole','PERMISSION_LABELS','PERMISSION_DENIED_MESSAGES']),checks=whole('src/lib/permissions/check.ts',['checkPermissionWithList'],roles);
  const target=whole('src/lib/auth/sessionTarget.ts',['resolveEffectiveRoleKey'],{Platform:{OS:'web'},BUSINESS_HOME_ROUTE:'/',resolveSessionHomeRoute(){throw Error('Unused')},resolveEmployeeFirstLoginHref(){throw Error('Unused')}});
- const current=whole('src/lib/permissions/currentCarePermissions.web.ts',['fetchCurrentCarePermissions'],{...owner,...roles,getSupabaseClient:h.getSDK});
+ const current=whole('src/lib/permissions/currentCarePermissions.web.ts',['fetchCurrentCarePermissions'],{...owner,...roles,...roleMapping,getSupabaseClient:h.getSDK});
  const hook=whole('src/hooks/pflege/useCareRuntimePermissions.web.ts',['useCareRuntimePermissions'],{...p,...owner,...current,...target,...checks,ROLE_LABELS:{business_admin:'Admin'},hasEffectiveModuleGateAccess:()=>true,isDemoMode:()=>false,useAuth:()=>h.state.auth,useServiceTenantId:()=>h.state.tenantId});
  let permission;const render=()=>permission=p.render(()=>hook.useCareRuntimePermissions()),settle=async()=>{for(let n=0;n<160;n++)await Promise.resolve()};
  h.setAccess(()=>({auth:h.state.auth,tenantId:h.state.tenantId,clientId:h.state.clientId,permissions:permission?.permissions??Object.freeze([]),can:permission?.can??(()=>false)}));

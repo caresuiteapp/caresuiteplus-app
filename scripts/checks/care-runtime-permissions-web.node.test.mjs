@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
+import { mapLegacyRoleKeyToRoleKey } from '../../src/lib/permissions/workspaceRoles.ts';
 import { carePermissionOwner, sameCarePermissionOwner, carePermissionOwnerIsCurrent } from '../../src/lib/permissions/carePermissionOwner.web.ts';
 import { clientParentReadScope, captureClientParentRecord, captureClientParentDetail } from '../../src/lib/clients/clientRecordRead.web.ts';
 import { getClientRecordTabsForClientContext } from '../../src/lib/clients/clientIntakeFieldRules.ts';
@@ -12,7 +13,7 @@ const auth = () => ({ authReady:true,isAuthenticated:true,isLoading:false,profil
 const owner = () => carePermissionOwner(auth(),id(2),false);
 const body = file => stripTypeScriptTypes(readFileSync(new URL(`../../${file}`,import.meta.url),'utf8').replace(/^import .*;\n/gm,'').replace(/^export /gm,''));
 const loaderSource = body('src/lib/permissions/currentCarePermissions.web.ts');
-const makeLoader = new Function('carePermissionOwnerIsCurrent','getPermissionsForRole','getSupabaseClient',`${loaderSource};return fetchCurrentCarePermissions;`);
+const makeLoader = new Function('carePermissionOwnerIsCurrent','mapLegacyRoleKeyToRoleKey','getPermissionsForRole','getSupabaseClient',`${loaderSource};return fetchCurrentCarePermissions;`);
 const hookSource = body('src/hooks/pflege/useCareRuntimePermissions.web.ts');
 const makeHook = new Function('useEffect','useRef','useState','ROLE_LABELS','checkPermissionWithList','hasEffectiveModuleGateAccess','isDemoMode','useAuth','resolveEffectiveRoleKey','useServiceTenantId','carePermissionOwner','sameCarePermissionOwner','carePermissionOwnerIsCurrent','fetchCurrentCarePermissions',`${hookSource};return useCareRuntimePermissions;`);
 const deferred = () => { let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject}; };
@@ -28,18 +29,18 @@ test('Demorechte bleiben auf expliziten Demomodus mit eigenem nativem Profil bes
 test('Ablauf und erneuerter Token ändern die Identität auch bei derselben Rolle',()=>{const a=auth(),o=carePermissionOwner(a,id(2),false);a.session.accessToken='new-token';assert.equal(sameCarePermissionOwner(o,carePermissionOwner(a,id(2),false)),false);assert.equal(carePermissionOwnerIsCurrent({...o,expiresAt:10},10),false);});
 
 function backend(){
- const env={role:{id:id(3),key:'nurse'},roleError:null,global:[{permission_key:right}],tenant:[],globalError:null,tenantError:null,token:'test-token',userId:id(1),sessionError:null,sessionCalls:0,afterSession:null,pageOverride:null,cap:200,expiresAt:undefined,sessionOverride:null};
+ const env={role:{id:id(3),key:'nurse',tenant_id:null},roleError:null,global:[{permission_key:right}],tenant:[],globalError:null,tenantError:null,token:'test-token',userId:id(1),sessionError:null,sessionCalls:0,afterSession:null,pageOverride:null,cap:200,expiresAt:undefined,sessionOverride:null};
  const calls=[];
  const nativeRows=(table)=>env[table==='role_permissions'?'global':'tenant'].map((row,i)=>({id:id(100+i),...(table==='role_permissions'?{role_id:id(3)}:{tenant_id:id(2),role_key:'nurse'}),...row}));
  const client={auth:{getSession:async()=>{env.sessionCalls++;calls.push({session:true});if(env.afterSession)env.afterSession(env.sessionCalls,env);return env.sessionOverride?env.sessionOverride():{error:env.sessionError,data:{session:{access_token:env.token,user:{id:env.userId},...(env.expiresAt===undefined?{}:{expires_at:env.expiresAt})}}};},getUser:async()=>{env.afterUser?.(env);return {error:env.authError??null,data:{user:{id:env.verifiedUserId??id(1),is_anonymous:false}}};}},rpc:async name=>{calls.push({identity:name});return {error:env.identityError??null,data:name==='resolve_current_profile_id'?(env.currentProfile??id(1)):name==='current_tenant_id'?(env.currentTenant??id(2)):null};},from:table=>{
-  const filters={},query={select:columns=>{calls.push({table,columns,filters});return query;},eq:(key,value)=>{filters[key]=value;return query;},order:(field)=>{filters.order=field;return query;},limit:value=>{filters.limit=value;return query;},gt:(key,value)=>{filters.cursor=value;return query;},maybeSingle:async()=>{calls.push({table,roleRead:true,token:env.token});return {data:env.role,error:env.roleError};},then:(resolve,reject)=>{
+  const filters={},query={select:columns=>{calls.push({table,columns,filters});return query;},eq:(key,value)=>{filters[key]=value;return query;},order:(field)=>{filters.order=field;return query;},limit:value=>{filters.limit=value;return query;},gt:(key,value)=>{filters.cursor=value;return query;},maybeSingle:()=>query,then:(resolve,reject)=>{
    const call={table,filters:{...filters},cursor:filters.cursor??null,token:env.token};calls.push(call);
-   let response;if(env.pageOverride)response=env.pageOverride(table,call.cursor,env,call);else response={data:nativeRows(table).filter(row=>!call.cursor||row.id.toLowerCase()>call.cursor).slice(0,Math.min(env.cap,filters.limit)),error:env[table==='role_permissions'?'globalError':'tenantError']};
+   let response;if(table==='profiles')response={data:env.profile===undefined?{id:id(1),tenant_id:id(2),role_id:id(3),is_active:true,status:'active',auth_user_id:env.profileAuthUserId??null,roles:env.role}:env.profile,error:env.roleError};else if(env.pageOverride)response=env.pageOverride(table,call.cursor,env,call);else response={data:nativeRows(table).filter(row=>!call.cursor||row.id.toLowerCase()>call.cursor).slice(0,Math.min(env.cap,filters.limit)),error:env[table==='role_permissions'?'globalError':'tenantError']};
    return Promise.resolve(response).then(resolve,reject);
   }};return query;
  }};
  let fallback=0,clientEnabled=true;
- const fetch=makeLoader(carePermissionOwnerIsCurrent,()=>{fallback++;return [right,manage];},()=>clientEnabled?client:null);
+ const fetch=makeLoader(carePermissionOwnerIsCurrent,mapLegacyRoleKeyToRoleKey,()=>{fallback++;return [right,manage];},()=>clientEnabled?client:null);
  return {env,calls,fetch,nativeRows,set clientEnabled(value){clientEnabled=value;},get fallback(){return fallback;}};
 }
 test('Tatsächlicher Webloader liest native Rolle und Mandantenoverride mit eigener Sitzung',async()=>{const b=backend();b.env.tenant=[{permission_key:manage}];const p=await b.fetch(owner());assert.deepEqual(p,[manage]);assert.ok(Object.isFrozen(p));assert.ok(b.calls.some(c=>c.table==='role_permission_sets'&&c.filters.tenant_id===id(2)&&c.filters.role_key==='nurse'));assert.ok(b.env.sessionCalls>=2);assert.equal(b.fallback,0);});
@@ -238,18 +239,18 @@ test('Globaler Fehler nach Schwester-Sitzungsprüfung verhindert auch deren näc
  const native={auth:{getSession:async()=>{
   if(queries.some(q=>q.table==='role_permissions')&&queries.filter(q=>q.table==='role_permission_sets').length===1&&++phase===2){scheduled=true;queueMicrotask(()=>late.resolve({data:null,error:{message:'Native denial'}}));}
   return{error:null,data:{session:{access_token:'test-token',user:{id:id(1)}}}};
- },getUser:async()=>({error:null,data:{user:{id:id(1),is_anonymous:false}}})},rpc:async name=>({error:null,data:name==='resolve_current_profile_id'?id(1):name==='current_tenant_id'?id(2):null}),from:table=>{let cursor=null;const q={select:()=>q,eq:()=>q,order:()=>q,limit:()=>q,gt:(_key,value)=>{cursor=value;return q;},maybeSingle:async()=>({data:{id:id(3),key:'nurse'},error:null}),then:(resolve,reject)=>{
-  queries.push({table,cursor,closed});if(table==='role_permissions')return late.promise.then(resolve,reject);
+ },getUser:async()=>({error:null,data:{user:{id:id(1),is_anonymous:false}}})},rpc:async name=>({error:null,data:name==='resolve_current_profile_id'?id(1):name==='current_tenant_id'?id(2):null}),from:table=>{let cursor=null;const q={select:()=>q,eq:()=>q,order:()=>q,limit:()=>q,gt:(_key,value)=>{cursor=value;return q;},maybeSingle:()=>q,then:(resolve,reject)=>{
+  queries.push({table,cursor,closed});if(table==='profiles')return Promise.resolve({data:{id:id(1),tenant_id:id(2),role_id:id(3),is_active:true,status:'active',auth_user_id:null,roles:{id:id(3),key:'nurse',tenant_id:null}},error:null}).then(resolve,reject);if(table==='role_permissions')return late.promise.then(resolve,reject);
   return Promise.resolve({data:[tenantRow(100,right),tenantRow(101,manage),tenantRow(102,'pflege.third')].filter(row=>!cursor||row.id>cursor).slice(0,2),error:null}).then(resolve,reject);
  }};return q;}};
  // Neutral observation only; the actual close assignment and all guard/SDK bodies stay unchanged.
- const fetch=new Function('carePermissionOwnerIsCurrent','getPermissionsForRole','getSupabaseClient','observeClose',loaderSource.replace('closed = true;', 'closed = true; observeClose();')+';return fetchCurrentCarePermissions;')(carePermissionOwnerIsCurrent,()=>{throw Error('Forbidden fallback');},()=>native,()=>{closed=true;});
+ const fetch=new Function('carePermissionOwnerIsCurrent','mapLegacyRoleKeyToRoleKey','getPermissionsForRole','getSupabaseClient','observeClose',loaderSource.replace('closed = true;', 'closed = true; observeClose();')+';return fetchCurrentCarePermissions;')(carePermissionOwnerIsCurrent,mapLegacyRoleKeyToRoleKey,()=>{throw Error('Forbidden fallback');},()=>native,()=>{closed=true;});
  await assert.rejects(fetch(owner()));await settle();assert.equal(scheduled,true);assert.equal(queries.filter(query=>query.closed).length,0);
 });
 
 test('Internal profile and raw authentication subjects may differ without changing the six-field owner',()=>{const a=auth();a.user.id=a.session.user.id=id(8);const before=structuredClone(a),o=carePermissionOwner(a,id(2),false);assert.ok(o);assert.equal(o.profileId,id(1));assert.deepEqual(Object.keys(o).sort(),['accessToken','demo','expiresAt','profileId','roleKey','tenantId']);assert.deepEqual(a,before);});
 test('A raw account change invalidates retained owner equality even under unchanged internal profile/token',()=>{const a=auth();a.user.id=a.session.user.id=id(8);const old=carePermissionOwner(a,id(2),false);a.user.id=a.session.user.id=id(9);assert.equal(sameCarePermissionOwner(old,carePermissionOwner(a,id(2),false)),false);});
-test('Actual complete permission reader binds a distinct verified raw account to current internal profile and tenant',async()=>{const b=backend();b.env.userId=b.env.verifiedUserId=id(8);assert.deepEqual(await b.fetch(owner()),[right]);assert.ok(b.calls.some(c=>c.identity==='resolve_current_profile_id'));assert.ok(b.calls.some(c=>c.identity==='current_tenant_id'));assert.equal(b.fallback,0);});
+test('Actual complete permission reader binds a distinct verified raw account to current internal profile and tenant',async()=>{const b=backend();b.env.userId=b.env.verifiedUserId=id(8);b.env.profileAuthUserId=id(8);assert.deepEqual(await b.fetch(owner()),[right]);assert.ok(b.calls.some(c=>c.identity==='resolve_current_profile_id'));assert.ok(b.calls.some(c=>c.identity==='current_tenant_id'));assert.equal(b.fallback,0);});
 for(const [name,change] of [['raw authenticated account',b=>{b.env.verifiedUserId=id(9);}],['resolved internal profile',b=>{b.env.currentProfile=id(9);}],['resolved tenant',b=>{b.env.currentTenant=id(9);}],['auth server denial',b=>{b.env.authError={message:'denied'};}],['identity resolver denial',b=>{b.env.identityError={message:'denied'};}]])test('Actual identity boundary rejects changed '+name+' before role/permission dispatch',async()=>{const b=backend();b.env.userId=b.env.verifiedUserId=id(8);change(b);await assert.rejects(b.fetch(owner()));assert.equal(b.calls.filter(c=>c.table).length,0);assert.equal(b.fallback,0);});
 test('A changed SDK during authentic-user confirmation cannot dispatch profile or permission reads',async()=>{const b=backend();b.env.afterUser=()=>{b.clientEnabled=false;};await assert.rejects(b.fetch(owner()));assert.equal(b.calls.filter(c=>c.table||c.identity).length,0);});
 test('Raw account switch after initial grant page discards all results even with unchanged profile/token',async()=>{const b=backend();b.env.userId=b.env.verifiedUserId=id(8);b.env.pageOverride=(table,cursor)=>{if(table==='role_permissions'){b.env.userId=b.env.verifiedUserId=id(9);return {error:null,data:cursor?[]:[globalRow(100)]};}return {error:null,data:[]};};await assert.rejects(b.fetch(owner()));assert.equal(b.fallback,0);});
