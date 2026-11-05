@@ -777,7 +777,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     const expectPicture = (card: Element) => {
       const artwork = card.querySelector('[data-testid="desktop-catalog-artwork"]');
       expect(artwork).toBeTruthy();
-      expect(artwork?.querySelector('img[data-native-image-source]')).toBeTruthy();
+      expect(artwork?.querySelector('img[data-artwork-normalized]')).toBeTruthy();
       expect(artwork?.querySelector('svg')).toBeNull();
     };
     seed(['clients']); await render(); await open();

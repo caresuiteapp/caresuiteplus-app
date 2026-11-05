@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { buildSync } from 'esbuild';
-import { closeSync, openSync, readSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { DOMParser } from '@xmldom/xmldom';
 import { desktopCatalogIconName } from '@/liquid-command/components/desktopCatalogIconModel.web';
 
 describe('desktop catalogue icons', () => {
@@ -48,10 +48,12 @@ describe('desktop catalogue icons', () => {
 
 type RasterSource = { uri: string };
 type RasterImages = Record<'small' | 'medium' | 'large', RasterSource>;
-type CatalogEntry = { route: string; images?: RasterImages };
+type CatalogEntry = { id: string; route: string; images?: RasterImages; desktopWidgetId?: string };
 type ArtworkCatalog = {
   desktopCatalogArtwork: (route: string, preferred?: RasterImages) => RasterImages;
   desktopCatalogArtworkName: (route: string) => string;
+  desktopCatalogArtworkXml: (route: string, label?: string) => string;
+  widgetArtworkTheme: (route: string, label?: string) => { identity: string; primary: string; secondary: string; reviewed: boolean };
   buildDesktopApps: (widgets: readonly CatalogEntry[], role?: string) => CatalogEntry[];
   WIDGETS: readonly CatalogEntry[];
   WORKFLOWS: readonly CatalogEntry[];
@@ -62,7 +64,8 @@ type ArtworkCatalog = {
 const artworkBundle = buildSync({
   stdin: {
     contents: `
-      export { desktopCatalogArtwork, desktopCatalogArtworkName } from './src/liquid-command/components/desktopCatalogArtworkModel.web';
+      export { desktopCatalogArtwork, desktopCatalogArtworkName, desktopCatalogArtworkXml } from './src/liquid-command/components/desktopCatalogArtworkModel.web';
+      export { widgetArtworkTheme } from './src/liquid-command/components/widgetArtworkTheme.shared';
       export { buildDesktopApps } from './src/liquid-command/navigation/desktopAppCatalogModel';
       export { WIDGETS, WORKFLOWS } from './src/liquid-command/screens/administrationDesktopCatalog';
     `,
@@ -80,89 +83,93 @@ new Function('require', 'module', 'exports', artworkBundle)((id: string) => {
 }, artworkModule, artworkModule.exports);
 const artworkCatalog = artworkModule.exports;
 
-describe('desktop catalogue picture artwork', () => {
-  it('resolves every catalogue page, widget and workflow to existing raster artwork in all three sizes', () => {
-    const routes = new Set([
-      ...artworkCatalog.buildDesktopApps(artworkCatalog.WIDGETS, 'business_admin'),
-      ...artworkCatalog.buildDesktopApps(artworkCatalog.WIDGETS, 'platform_admin'),
-      ...artworkCatalog.WIDGETS, ...artworkCatalog.WORKFLOWS,
-      { route: '/business/subscription' },
-    ].map(entry => entry.route));
-    expect(routes.size).toBeGreaterThan(70);
-    const paths = new Set<string>();
-    for (const route of routes) {
-      for (const source of Object.values(artworkCatalog.desktopCatalogArtwork(route))) {
-        expect(source.uri, route).toContain('/assets/healthos/widgets-premium/');
-        expect(source.uri, route).toMatch(/\.png$/);
-        paths.add(source.uri);
-      }
+describe('unique function artwork', () => {
+  const entries = [
+    ...artworkCatalog.buildDesktopApps(artworkCatalog.WIDGETS, 'business_admin'),
+    ...artworkCatalog.buildDesktopApps(artworkCatalog.WIDGETS, 'platform_admin'),
+    ...artworkCatalog.WIDGETS, ...artworkCatalog.WORKFLOWS,
+  ];
+
+  it('gives every actual catalogue function a distinct, complete vector instead of a shared family image', () => {
+    const drawings = new Map<string, string>();
+    const motifs = new Map<string, string>();
+    const identities = new Set<string>();
+    const parser = new DOMParser({ errorHandler: { warning: () => {}, error: message => { throw new Error(message); }, fatalError: message => { throw new Error(message); } } });
+    for (const entry of entries) {
+      const theme = artworkCatalog.widgetArtworkTheme(entry.route);
+      const xml = artworkCatalog.desktopCatalogArtworkXml(entry.route);
+      expect(theme.reviewed, entry.route).toBe(true);
+      const document = parser.parseFromString(xml, 'image/svg+xml');
+      expect(document.documentElement.tagName, entry.route).toBe('svg');
+      expect(document.documentElement.getAttribute('width')).toBe('2048');
+      expect(document.documentElement.getAttribute('height')).toBe('2048');
+      for (const name of ['script', 'image', 'foreignObject', 'text']) expect(document.getElementsByTagName(name)).toHaveLength(0);
+      expect(xml).not.toMatch(/undefined|NaN/);
+      expect(drawings.get(xml) ?? theme.identity).toBe(theme.identity);
+      drawings.set(xml, theme.identity);
+      const motif = `${theme.primary}:${theme.secondary}`;
+      expect(motifs.get(motif) ?? theme.identity, entry.route).toBe(theme.identity);
+      motifs.set(motif, theme.identity);
+      identities.add(theme.identity);
     }
-    // Reading the PNG signature and dimensions catches missing, empty and
-    // non-image files, while the DOM test checks their actual use in cards.
-    for (const path of paths) {
-      const file = openSync(path, 'r');
-      try {
-        const header = Buffer.alloc(24);
-        expect(readSync(file, header, 0, header.length, 0), path).toBe(24);
-        expect(header.subarray(0, 8).toString('hex'), path).toBe('89504e470d0a1a0a');
-        expect(header.readUInt32BE(16), path).toBeGreaterThan(0);
-        expect(header.readUInt32BE(20), path).toBeGreaterThan(0);
-      } finally { closeSync(file); }
-    }
+    expect(identities.size).toBeGreaterThan(120);
+    expect(drawings.size).toBe(identities.size);
   });
 
-  it('keeps existing premium pictures and uses the same motif for aliases and workflow destinations', () => {
-    for (const widget of artworkCatalog.WIDGETS) {
-      if (!widget.images || widget.route === '/office/notizen' ||
-        artworkCatalog.desktopCatalogArtworkName(widget.route) === 'document-catalog') continue;
-      expect(artworkCatalog.desktopCatalogArtwork(widget.route, widget.images)).toBe(widget.images);
-    }
+  it('separates the previously repeated documentation and communication motifs', () => {
+    const routes = [
+      '/office/notizen', '/office/dokumentation', '/business/office/documents',
+      '/business/office/documents/signatures', '/assist/nachweise',
+      '/business/office/document-catalog', '/office/catalogs',
+      '/business/templates/documents-hub', '/business/messages',
+      '/office/messages?audience=clients', '/office/messages?audience=employees',
+      '/office/messages?audience=employees&view=chats&chatAge=new',
+      '/office/messages?audience=employees&view=broadcasts',
+    ];
+    expect(new Set(routes.map(route => artworkCatalog.desktopCatalogArtworkXml(route))).size).toBe(routes.length);
+    const borrowed = artworkCatalog.WIDGETS.find(widget => widget.route === '/assist/nachweise')!.images;
+    expect(artworkCatalog.desktopCatalogArtwork('/office/notizen', borrowed))
+      .toBe(artworkCatalog.desktopCatalogArtwork('/office/notizen'));
+  });
+
+  it('keeps catalogue controls unique while retaining stored widget IDs after an ID collision', () => {
+    const apps = artworkCatalog.buildDesktopApps(artworkCatalog.WIDGETS, 'business_admin');
+    expect(new Set(apps.map(app => app.id)).size).toBe(apps.length);
+    const risks = apps.find(app => app.route === '/pflege/risiken')!;
+    const reports = apps.find(app => app.route === '/pflege/reports')!;
+    expect(risks.id).not.toBe(reports.id);
+    expect(reports.desktopWidgetId).toBe('area-app:pflege-quality');
+  });
+
+  it('keeps true aliases and irrelevant queries stable while separating real service and action targets', () => {
     for (const routes of [
-      ['/office/clients', '/business/office/clients', '/business/office/clients/new'],
+      ['/office/clients', '/business/office/clients?source=desktop#details'],
       ['/assist/kalender', '/assist/calendar'],
-      ['/assist/assignments', '/assist/einsaetze', '/assist/einsaetze/new'],
-      ['/office/invoices', '/business/office/invoices/new'],
+      ['/business/qm', '/office/qm'],
+      ['/akademie/courses', '/akademie/kurse'],
+      ['/?area=decisions', '/Desktop?area=decisions'],
+      ['/office/messages?view=broadcasts&audience=employees&source=desktop', '/business/messages?audience=employees&view=broadcasts'],
     ]) {
       expect(new Set(routes.map(artworkCatalog.desktopCatalogArtworkName)).size).toBe(1);
+      expect(new Set(routes.map(route => artworkCatalog.desktopCatalogArtworkXml(route))).size).toBe(1);
     }
+    const services = ['gmail', 'calendar', 'meet', 'drive', 'docs', 'sheets', 'slides', 'tasks', 'contacts', 'chat', 'activity'];
+    expect(new Set(services.map(service => artworkCatalog.desktopCatalogArtworkXml(`/business/connect/google-workspace?service=${service}`))).size).toBe(services.length);
+    expect(artworkCatalog.desktopCatalogArtworkXml('/assist/calendar')).not.toBe(artworkCatalog.desktopCatalogArtworkXml('/business/connect/google-workspace?service=calendar'));
+    expect(artworkCatalog.desktopCatalogArtworkXml('/business/office/clients/new')).not.toBe(artworkCatalog.desktopCatalogArtworkXml('/business/office/clients'));
   });
 
-  it('uses the same three-dimensional Web catalogue for aliases, QM templates and inherited widget pictures', () => {
-    const catalog = artworkCatalog.WIDGETS.find(widget => widget.route === '/business/office/document-catalog')!;
-    expect(catalog.images).toBeTruthy();
-    // The platform-neutral widget keeps its original asset for native clients.
-    expect(catalog.images!.medium.uri).toMatch(/\/widgets-premium\/document-catalog\.png$/);
-    const webArtwork = artworkCatalog.desktopCatalogArtwork(catalog.route, catalog.images);
-    expect(webArtwork).not.toBe(catalog.images);
-    for (const source of Object.values(webArtwork)) {
-      expect(source.uri).toMatch(/\/widgets-premium\/web\/document-catalog-3d\.png$/);
-    }
-    for (const route of [
-      '/business/office/document-catalog', '/office/document-catalog',
-      '/business/office/document-catalog?source=desktop#templates',
-      '/business/office/qm/templates', '/office/qm/templates',
-      '/business/templates/documents-hub', '/office/catalogs',
-    ]) {
-      expect(artworkCatalog.desktopCatalogArtworkName(route), route).toBe('document-catalog');
-      expect(artworkCatalog.desktopCatalogArtwork(route), route).toBe(webArtwork);
-      expect(artworkCatalog.desktopCatalogArtwork(route, catalog.images), route).toBe(webArtwork);
-    }
-  });
-
-  it('replaces the previous flat Notes illustration and gives new pages a raster fallback', () => {
-    const notes = artworkCatalog.WIDGETS.find(widget => widget.route === '/office/notizen')!;
-    expect(notes).toBeTruthy();
-    for (const source of Object.values(artworkCatalog.desktopCatalogArtwork(notes.route, notes.images))) {
-      expect(source.uri).toMatch(/\.png$/);
-      expect(source.uri).not.toMatch(/^data:/);
-    }
-    expect(artworkCatalog.desktopCatalogArtwork('/future-feature').medium.uri).toMatch(/18-command-center\.png$/);
-  });
-
-  it('chooses Workspace pictures from the requested service and ignores incidental query parameters', () => {
-    const name = artworkCatalog.desktopCatalogArtworkName;
-    expect(name('/business/connect/google-workspace?service=gmail')).not.toBe(name('/business/connect/google-workspace?service=calendar'));
-    expect(name('/business/connect/google-workspace?source=desktop&service=calendar#panel')).toBe(name('/assist/calendar'));
-    expect(name('/business/office/clients/new?returnTo=/calendar')).toBe(name('/business/office/clients'));
+  it('designs new function artwork immediately without a borrowed image, network request or unsafe label interpolation', () => {
+    const first = '/pflege/neue-wundkontrolle';
+    const second = '/pflege/weitere-wundkontrolle';
+    const xml = artworkCatalog.desktopCatalogArtworkXml(first, '</svg><script>test</script>');
+    expect(artworkCatalog.widgetArtworkTheme(first).primary).toBe('bandage');
+    expect(xml).not.toMatch(/<script|href=|<text/);
+    expect(xml).not.toBe(artworkCatalog.desktopCatalogArtworkXml(second));
+    expect(xml).not.toBe(artworkCatalog.desktopCatalogArtworkXml('/pflege/wunddokumentation'));
+    const image = artworkCatalog.desktopCatalogArtwork(first);
+    expect(image.large.uri).toMatch(/^data:image\/svg\+xml/);
+    expect(image.small).toBe(image.large);
+    expect(image.medium).toBe(image.large);
   });
 });

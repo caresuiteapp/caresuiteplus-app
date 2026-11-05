@@ -82,7 +82,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const widgets = useMemo<WidgetDefinition[]>(() => {
     const existing = areaAllowed ? filterDesktopCatalogEntries(WIDGETS.map(widget => ({ ...widget, route: nativeAdministrationRoute(widget.route) })), selectedArea, catalogAccess) : [];
     const routes = new Set(existing.map(widget => widget.route));
-    return [...existing, ...apps.filter(app => !routes.has(app.route)).map(app => ({ ...app, id: `area-app:${app.id}` }))];
+    return [...existing, ...apps.filter(app => !routes.has(app.route)).map(app => ({ ...app, id: app.desktopWidgetId ?? `area-app:${app.id}` }))];
   }, [apps, areaAllowed, selectedArea, catalogAccess]);
   const widgetById = useMemo(() => new Map(widgets.map(widget => [widget.id, widget])), [widgets]);
   const allowed = useMemo(() => widgets.map(widget => widget.id), [widgets]);
