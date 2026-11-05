@@ -1,5 +1,5 @@
 import { usePageTab } from '@/hooks/usePageTab';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import { StyleSheet, Text, View } from 'react-native';
 
@@ -71,8 +71,6 @@ import {
   listPermissionAuditLogForEmployee,
 
   resolveEffectivePermissions,
-
-  resolveEffectivePermissionsSync,
 
   resolveRoleBasePermissionsSync,
 
@@ -252,7 +250,12 @@ type EmployeeRolesPermissionsHubProps = {
 
 
 
-export function EmployeeRolesPermissionsHub({
+export function EmployeeRolesPermissionsHub(props: EmployeeRolesPermissionsHubProps) {
+  const key = JSON.stringify([props.tenantId, props.employeeId, props.actorProfileId ?? null, props.roleKey]);
+  return <EmployeeRolesPermissionsHubContent key={key} {...props} />;
+}
+
+function EmployeeRolesPermissionsHubContent({
 
   tenantId,
 
@@ -322,7 +325,18 @@ export function EmployeeRolesPermissionsHub({
 
   const [initialEffectivePermissions, setInitialEffectivePermissions] = useState<PermissionKey[]>([]);
 
-  const [rbacLoaded, setRbacLoaded] = useState(false);
+  const [confirmedLoadScope, setConfirmedLoadScope] = useState<string | null>(null);
+  const [effectiveRoleKeys, setEffectiveRoleKeys] = useState<RoleKey[]>([]);
+  const [loadRevision, setLoadRevision] = useState(0);
+  const loadScope = JSON.stringify([tenantId, employeeId, primaryRole, selectedRoles, loadRevision]);
+  const savePending = useRef(false);
+  const live = useRef({ mounted: false, epoch: 0, loadScope, confirmedLoadScope, canEdit, saving,
+    primaryRole, selectedRoles, timeMode, desiredPermissions, draftOverrides, draftScopes, changeReason, onSave });
+  const previous = live.current;
+  const epoch = previous.epoch + (previous.loadScope !== loadScope || previous.canEdit !== canEdit || previous.saving !== saving ? 1 : 0);
+  live.current = { mounted: previous.mounted, epoch, loadScope, confirmedLoadScope, canEdit, saving,
+    primaryRole, selectedRoles, timeMode, desiredPermissions, draftOverrides, draftScopes, changeReason, onSave };
+  useEffect(() => { live.current.mounted = true; return () => { live.current.mounted = false; }; }, []);
 
   const [rbacLoadError, setRbacLoadError] = useState<string | null>(null);
 
@@ -341,93 +355,45 @@ export function EmployeeRolesPermissionsHub({
 
 
   useEffect(() => {
-
     let cancelled = false;
-
-    setRbacLoaded(false);
-
+    setConfirmedLoadScope(null);
     setRbacLoadError(null);
-
-
-
     if (!tenantId || !employeeId) {
-      setRbacLoaded(true);
-      setRbacLoadError(null);
+      setRbacLoadError('Mandant und Personalakte müssen bestätigt sein.');
       return;
     }
-
-    (async () => {
-
-      const overridesResult = await fetchEmployeePermissionOverrides(tenantId, employeeId);
-
-      const scopesResult = await fetchEmployeeDataScopes(tenantId, employeeId);
-
-      const effectiveResult = await resolveEffectivePermissions(
-
-        tenantId,
-
-        employeeId,
-
-        primaryRole,
-
-        selectedRoles.filter((r) => r !== primaryRole),
-
-      );
-
-
-
-      if (cancelled) return;
-
-
-
-      const errors = [overridesResult, scopesResult, effectiveResult].flatMap((result) =>
-        result.ok ? [] : [result.error],
-      );
-
-
-
-      if (errors.length > 0) {
-
-        setRbacLoadError(errors[0] ?? 'Rollen & Rechte konnten nicht geladen werden.');
-
-      } else {
-
-        setRbacLoadError(null);
-
+    void (async () => {
+      try {
+        const overridesResult = await fetchEmployeePermissionOverrides(tenantId, employeeId);
+        if (cancelled) return;
+        const scopesResult = await fetchEmployeeDataScopes(tenantId, employeeId);
+        if (cancelled) return;
+        const effectiveResult = await resolveEffectivePermissions(tenantId, employeeId, primaryRole,
+          selectedRoles.filter(role => role !== primaryRole));
+        if (cancelled) return;
+        if (!overridesResult.ok || !scopesResult.ok || !effectiveResult.ok) {
+          const errors = [overridesResult, scopesResult, effectiveResult].flatMap(result => result.ok ? [] : [result.error]);
+          setRbacLoadError(errors[0] ?? 'Rollen & Rechte konnten nicht geladen werden.');
+          return;
+        }
+        if (effectiveResult.data.tenantId !== tenantId || effectiveResult.data.employeeId !== employeeId ||
+            overridesResult.data.some(item => item.tenantId !== tenantId || item.employeeId !== employeeId) ||
+            scopesResult.data.some(item => item.tenantId !== tenantId || item.employeeId !== employeeId)) {
+          setRbacLoadError('Die gelesenen Rechte gehören nicht zu dieser Personalakte.');
+          return;
+        }
+        setDraftOverrides(overridesResult.data.map(item => ({ ...item })));
+        setDraftScopes(scopesResult.data.map(item => ({ ...item })));
+        setDesiredPermissions([...effectiveResult.data.permissions]);
+        setInitialEffectivePermissions([...effectiveResult.data.permissions]);
+        setEffectiveRoleKeys([...effectiveResult.data.roleKeys]);
+        setConfirmedLoadScope(loadScope);
+      } catch {
+        if (!cancelled) setRbacLoadError('Rollen & Rechte konnten nicht geladen werden.');
       }
-
-
-
-      if (overridesResult.ok) {
-
-        setDraftOverrides(overridesResult.data.map((item) => ({ ...item, tenantId, employeeId })));
-
-      }
-
-
-
-      if (scopesResult.ok) {
-
-        setDraftScopes(scopesResult.data.map((item) => ({ ...item, tenantId, employeeId })));
-
-      }
-
-
-
-      setRbacLoaded(true);
-
     })();
-
-
-
-    return () => {
-
-      cancelled = true;
-
-    };
-
-  }, [tenantId, employeeId, primaryRole, selectedRoles]);
-
+    return () => { cancelled = true; };
+  }, [tenantId, employeeId, primaryRole, selectedRoles, loadRevision, loadScope]);
 
 
   const tenantModules = getTenantModules(tenantId);
@@ -452,28 +418,6 @@ export function EmployeeRolesPermissionsHub({
 
 
 
-  const effective = useMemo(
-
-    () =>
-
-      resolveEffectivePermissionsSync(
-
-        tenantId,
-
-        employeeId,
-
-        primaryRole,
-
-        selectedRoles.filter((r) => r !== primaryRole),
-
-      ),
-
-    [tenantId, employeeId, primaryRole, selectedRoles],
-
-  );
-
-
-
   const roleBasePermissions = useMemo(
 
     () =>
@@ -493,18 +437,6 @@ export function EmployeeRolesPermissionsHub({
     [tenantId, employeeId, primaryRole, selectedRoles],
 
   );
-
-
-
-  useEffect(() => {
-
-    if (!rbacLoaded) return;
-
-    setDesiredPermissions(effective.permissions);
-
-    setInitialEffectivePermissions(effective.permissions);
-
-  }, [rbacLoaded, primaryRole, effective.permissions]);
 
 
 
@@ -599,52 +531,38 @@ export function EmployeeRolesPermissionsHub({
 
 
   async function handleSave() {
-
+    const state = live.current;
+    if (!state.mounted || state.epoch !== epoch || !state.canEdit || state.saving || savePending.current ||
+        state.loadScope !== loadScope || state.confirmedLoadScope !== loadScope) return;
     const homeOfficeManual = getEmployeeHomeOfficeOverride(employeeId, tenantId) !== null;
-
-    const derivedMode = resolveEmployeeTimeTrackingModeWithOverride(
-
-      primaryRole,
-
-      homeOfficeManual ? timeMode === 'homeoffice' || timeMode === 'hybrid' : null,
-
-      timeMode,
-
-    );
-
-    const homeOfficeEnabled =
-
-      derivedMode === 'homeoffice' || derivedMode === 'hybrid' ? true : derivedMode === 'field' ? false : null;
-
-
-
-    await onSave({
-
-      roleKey: primaryRole,
-
-      additionalRoleKeys: selectedRoles,
-
-      homeOfficeEnabled,
-
-      timeTrackingMode: timeMode,
-
-      desiredPermissions,
-
-      overrides: draftOverrides,
-
-      dataScopes: draftScopes,
-
-      changeReason: changeReason.trim() || null,
-
-    });
-
+    const derivedMode = resolveEmployeeTimeTrackingModeWithOverride(state.primaryRole,
+      homeOfficeManual ? state.timeMode === 'homeoffice' || state.timeMode === 'hybrid' : null, state.timeMode);
+    const homeOfficeEnabled = derivedMode === 'homeoffice' || derivedMode === 'hybrid' ? true : derivedMode === 'field' ? false : null;
+    savePending.current = true;
+    try {
+      await state.onSave({ roleKey: state.primaryRole, additionalRoleKeys: state.selectedRoles, homeOfficeEnabled,
+        timeTrackingMode: state.timeMode, desiredPermissions: state.desiredPermissions, overrides: state.draftOverrides,
+        dataScopes: state.draftScopes, changeReason: state.changeReason.trim() || null });
+    } finally {
+      savePending.current = false;
+    }
   }
 
 
-
   const isModuleTab = MODULE_TAB_KEYS.has(activeTab);
-
-
+  if (confirmedLoadScope !== loadScope) {
+    return <SectionPanel {...panelCtx} title="Rollen & Rechte">
+      {rbacLoadError ? <>
+        <InfoBanner variant="error" title="Laden fehlgeschlagen" message={rbacLoadError} />
+        <PremiumButton title="Erneut laden" onPress={() => {
+          const state = live.current;
+          if (!state.mounted || state.epoch !== epoch || state.loadScope !== loadScope) return;
+          setRbacLoadError(null); setLoadRevision(value => value + 1);
+        }} />
+      </> :
+        <Text accessibilityRole="text">Die Rechte dieser Personalakte werden geladen…</Text>}
+    </SectionPanel>;
+  }
 
   return (
 
@@ -752,7 +670,7 @@ export function EmployeeRolesPermissionsHub({
 
           <DetailInfoRow label="Rollen-Basis" value={`${roleBasePermissions.length} Berechtigungen`} />
 
-          <DetailInfoRow label="Rollen (Union)" value={effective.roleKeys.map((r) => ROLE_LABELS[r]).join(', ')} />
+          <DetailInfoRow label="Rollen (Union)" value={effectiveRoleKeys.map((r) => ROLE_LABELS[r]).join(', ')} />
 
           <InfoBanner
 
@@ -985,6 +903,8 @@ export function EmployeeRolesPermissionsHub({
           />
 
           <RbacModulePermissionEditor
+
+            scopeKey={JSON.stringify([tenantId, employeeId, actorProfileId ?? null, primaryRole])}
 
             tabKey={activeTab}
 

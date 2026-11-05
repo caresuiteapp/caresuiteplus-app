@@ -60,7 +60,7 @@ export function findPermissionKeyForAreaAction(
   const candidates = catalog.filter(
     (entry) =>
       availableKeys.includes(entry.key) &&
-      (entry.key === areaKey || entry.key.startsWith(`${areaKey}.`)),
+      (entry.key === areaKey || entry.key.slice(0, entry.key.lastIndexOf('.')) === areaKey),
   );
 
   for (const suffix of ACTION_SUFFIXES[action]) {
@@ -78,7 +78,7 @@ export function findPermissionKeyForAreaAction(
     if (manageMatch) return manageMatch.key;
   }
 
-  return candidates[0]?.key ?? null;
+  return null;
 }
 
 export function hasCriticalPermissionChanges(

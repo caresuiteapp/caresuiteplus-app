@@ -1,11 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { PremiumBadge, PremiumInput } from '@/components/ui';
 import type { PermissionKey } from '@/types';
 import type { PermissionCatalogEntry, PermissionMatrixAction } from '@/types/permissions/rbac';
 import {
   buildPermissionMatrix,
-  filterPermissionsForTab,
   RBAC_TAB_MODULE_PREFIXES,
 } from '@/lib/permissions/permissionMatrixBuilder';
 import {
@@ -41,6 +40,7 @@ const RISK_LABELS: Record<string, string> = {
 };
 
 type RbacModulePermissionEditorProps = {
+  scopeKey: string;
   tabKey: string;
   catalog: PermissionCatalogEntry[];
   desiredPermissions: PermissionKey[];
@@ -51,6 +51,7 @@ type RbacModulePermissionEditorProps = {
 };
 
 export function RbacModulePermissionEditor({
+  scopeKey,
   tabKey,
   catalog,
   desiredPermissions,
@@ -73,10 +74,20 @@ export function RbacModulePermissionEditor({
   });
 
   const availableKeys = tabCatalog.map((entry) => entry.key);
-  const matrix = buildPermissionMatrix(
-    filterPermissionsForTab(desiredPermissions, modulePrefixes),
-    tabCatalog,
-  );
+  // Available rows come from the catalogue, including rights not yet granted.
+  // Selection is always derived independently from desiredPermissions below.
+  const areas = buildPermissionMatrix(availableKeys, tabCatalog)
+    .map(({ area, areaLabel }) => ({ area, areaLabel }));
+  const current = useRef({ scopeKey, tabKey, tabCatalog, desiredPermissions, onChange, canEdit, epoch: 0, alive: false });
+  const previous = current.current;
+  const changed = previous.scopeKey !== scopeKey || previous.tabKey !== tabKey || previous.canEdit !== canEdit;
+  current.current = { scopeKey, tabKey, tabCatalog, desiredPermissions, onChange, canEdit,
+    epoch: previous.epoch + (changed ? 1 : 0), alive: previous.alive };
+  const epoch = current.current.epoch;
+  useEffect(() => {
+    current.current.alive = true;
+    return () => { current.current.alive = false; };
+  }, []);
 
   const styles = useMemo(
     () =>
@@ -108,22 +119,41 @@ export function RbacModulePermissionEditor({
         },
         matrixCellText: { ...content.caption },
         riskRow: { flexDirection: 'row', gap: spacing.xs, marginTop: spacing.xs },
+        permissionList: { gap: spacing.xs, minWidth: 0 },
+        permissionOption: {
+          flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm,
+          paddingVertical: spacing.sm, minHeight: 48, minWidth: 0,
+          borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: content.muted.color,
+        },
+        permissionCheck: {
+          width: 24, minWidth: 24, height: 24, borderRadius: 6, borderWidth: 1,
+          borderColor: content.muted.color, alignItems: 'center', justifyContent: 'center',
+        },
+        permissionCopy: { flex: 1, minWidth: 0, gap: spacing.xs },
+        permissionLabel: { ...content.body, color: content.primary.color, flexShrink: 1 },
       }),
     [content],
   );
 
-  function toggleAreaAction(area: string, action: PermissionMatrixAction) {
-    if (!canEdit) return;
-    const permissionKey = findPermissionKeyForAreaAction(area, action, tabCatalog, availableKeys);
-    if (!permissionKey) return;
-
-    const set = new Set(desiredPermissions);
+  function togglePermission(permissionKey: PermissionKey) {
+    const live = current.current;
+    if (!live.alive || live.epoch !== epoch || live.scopeKey !== scopeKey || !live.canEdit || live.tabKey !== tabKey ||
+        !live.tabCatalog.some(entry => entry.key === permissionKey)) return;
+    const set = new Set(live.desiredPermissions);
     if (set.has(permissionKey)) {
       set.delete(permissionKey);
     } else {
       set.add(permissionKey);
     }
-    onChange([...set].sort());
+    live.onChange([...set].sort());
+  }
+
+  function toggleAreaAction(area: string, action: PermissionMatrixAction) {
+    const live = current.current;
+    if (!live.alive || live.epoch !== epoch || live.scopeKey !== scopeKey || !live.canEdit || live.tabKey !== tabKey) return;
+    const permissionKey = findPermissionKeyForAreaAction(area, action, live.tabCatalog,
+      live.tabCatalog.map(entry => entry.key));
+    if (permissionKey) togglePermission(permissionKey);
   }
 
   function isActionActive(area: string, action: PermissionMatrixAction): boolean {
@@ -131,13 +161,40 @@ export function RbacModulePermissionEditor({
     return permissionKey ? desiredPermissions.includes(permissionKey) : false;
   }
 
-  const filteredMatrix = matrix.filter((row) =>
-    tabCatalog.some((entry) => entry.key.startsWith(`${row.area}.`) || entry.key === row.area),
-  );
-
-  if (filteredMatrix.length === 0) {
+  if (tabCatalog.length === 0) {
     return (
       <Text style={content.caption}>Keine bearbeitbaren Rechte in diesem Bereich.</Text>
+    );
+  }
+
+  // Clinical actions such as signing, reviewing and administering are distinct
+  // permissions and must never share a guessed matrix cell with another right.
+  if (tabKey === 'pflege') {
+    return (
+      <View style={styles.permissionList}>
+        {tabCatalog.map(entry => {
+          const checked = desiredPermissions.includes(entry.key);
+          return (
+            <Pressable key={entry.key} accessibilityRole="checkbox"
+              accessibilityLabel={entry.label}
+              accessibilityState={{ checked, disabled: !canEdit }}
+              disabled={!canEdit} onPress={() => togglePermission(entry.key)}
+              style={styles.permissionOption}>
+              <View style={styles.permissionCheck}>
+                <Text style={styles.matrixCellText}>{checked ? '✓' : ''}</Text>
+              </View>
+              <View style={styles.permissionCopy}>
+                <Text style={styles.permissionLabel}>{entry.label}</Text>
+                {entry.description ? <Text style={content.caption}>{entry.description}</Text> : null}
+                <View style={styles.riskRow}>
+                  <PremiumBadge label={RISK_LABELS[entry.riskLevel] ?? entry.riskLevel}
+                    variant={entry.riskLevel === 'critical' || entry.riskLevel === 'high' ? 'orange' : 'muted'} />
+                </View>
+              </View>
+            </Pressable>
+          );
+        })}
+      </View>
     );
   }
 
@@ -151,7 +208,7 @@ export function RbacModulePermissionEditor({
           </Text>
         ))}
       </View>
-      {filteredMatrix.map((row) => {
+      {areas.map((row) => {
         const areaRisk = tabCatalog.find((entry) => entry.key.startsWith(`${row.area}.`))?.riskLevel ?? 'low';
         return (
           <View key={row.area}>
@@ -169,6 +226,9 @@ export function RbacModulePermissionEditor({
                 return (
                   <Pressable
                     key={action}
+                    accessibilityRole="checkbox"
+                    accessibilityLabel={`${row.areaLabel}: ${ACTION_LABELS[action]}`}
+                    accessibilityState={{ checked: active, disabled }}
                     disabled={disabled}
                     style={[styles.matrixCell, active ? styles.matrixCellActive : null]}
                     onPress={() => toggleAreaAction(row.area, action)}

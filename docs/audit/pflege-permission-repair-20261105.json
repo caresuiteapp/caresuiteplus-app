@@ -1,0 +1,47 @@
+{
+  "date": "2026-11-05",
+  "project": "caresuiteplus-production",
+  "verified": {
+    "audit": {
+      "action": "pflege_owner_permission_repair",
+      "actorId": null,
+      "newCount": 42,
+      "oldCount": 26,
+      "actorRole": "maintenance",
+      "recordedAt": "2026-11-05T07:12:06.612165+00:00",
+      "catalogAdded": 2,
+      "insertedCount": 16
+    },
+    "ownerPflegeKeys": 42,
+    "catalogPflegeKeys": 42
+  },
+  "unchanged": {
+    "before": {
+      "policies": "15307013aa36ee15d528c2a097a11982",
+      "security": "b74a1fad0d51021e8b634fea386e03da",
+      "overrides": "d41d8cd98f00b204e9800998ecf8427e",
+      "otherRoleRows": "b84699fb419691f636f9ccad3b585c37",
+      "catalogExisting": "7b3fbbbfdd100050ca195d156c63c174"
+    },
+    "after": {
+      "policies": "15307013aa36ee15d528c2a097a11982",
+      "security": "b74a1fad0d51021e8b634fea386e03da",
+      "overrides": "d41d8cd98f00b204e9800998ecf8427e",
+      "otherRoleRows": "b84699fb419691f636f9ccad3b585c37",
+      "catalogExisting": "7b3fbbbfdd100050ca195d156c63c174"
+    }
+  },
+  "patchSha256": "8fc44aeba50c85bb4152892f74d67d6d984fb43c2870b63b2da0c67329ba05c6",
+  "targetedTests": {
+    "suites": 9,
+    "tests": 116,
+    "passed": 116,
+    "failed": 0
+  },
+  "sourceParity": {
+    "modules": 1165,
+    "routes": 272,
+    "blocked": 4,
+    "stale": 0
+  }
+}
