@@ -141,6 +141,17 @@ describe('unique function artwork', () => {
     expect(reports.desktopWidgetId).toBe('area-app:pflege-quality');
   });
 
+  it('keeps related operational screens separate when their actual routes serve different functions', () => {
+    for (const routes of [
+      ['/business/office/time-tracking', '/business/office/time-tracking/live'],
+      ['/pflege/planung', '/pflege/massnahmen', '/pflege/plans'],
+      ['/assist/touren', '/assist/tourenplanung'],
+    ]) {
+      expect(new Set(routes.map(artworkCatalog.desktopCatalogArtworkName)).size).toBe(routes.length);
+      expect(new Set(routes.map(route => artworkCatalog.desktopCatalogArtworkXml(route))).size).toBe(routes.length);
+    }
+  });
+
   it('keeps true aliases and irrelevant queries stable while separating real service and action targets', () => {
     for (const routes of [
       ['/office/clients', '/business/office/clients?source=desktop#details'],

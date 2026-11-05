@@ -16,9 +16,6 @@ export function widgetArtworkIdentity(route: string): string {
     '/akademie/kalender': '/akademie/calendar',
     '/pflege/kalender': '/pflege/calendar',
     '/pflege/auswertungen': '/pflege/reports',
-    '/pflege/planung': '/pflege/massnahmen',
-    '/assist/tourenplanung': '/assist/touren',
-    '/business/office/time-tracking/live': '/business/office/time-tracking',
   };
   const roots = new Set(['/', '/business', '/business/home']);
   const alias = Object.keys(aliases).find(key => path === key || (!roots.has(key) && path.startsWith(`${key}/`)));
