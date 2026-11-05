@@ -186,7 +186,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const moduleWidgets = useMemo<WidgetDefinition[]>(() => {
     const existing = areaAllowed ? filterDesktopCatalogEntries(WIDGETS, selectedArea, permissions).map(widget => ({ ...widget, route: canonicalDesktopCatalogRoute(widget.route) })) : [];
     const routes = new Set(existing.map(widget => widget.route));
-    return [...existing, ...moduleApps.filter(app => !routes.has(app.route)).map(app => ({ ...app, id: `area-app:${app.id}` }))];
+    return [...existing, ...moduleApps.filter(app => !routes.has(app.route)).map(app => ({ ...app, id: app.desktopWidgetId ?? `area-app:${app.id}` }))];
   }, [areaAllowed, selectedArea, moduleApps, permissions]);
   const areaWidgetById = useMemo(() => new Map(moduleWidgets.map(widget => [widget.id, widget])), [moduleWidgets]);
   const moduleWidgetIds = useMemo(() => moduleWidgets.map(widget => widget.id), [moduleWidgets]);

@@ -16,6 +16,8 @@ export type DesktopCategory = (typeof DESKTOP_CATEGORIES)[number];
 export type DesktopApp = {
   id: string; label: string; description: string; route: string;
   category: DesktopCategory; group?: string; glyph?: string;
+  /** Keep an already stored widget ID when navigation IDs need disambiguation. */
+  desktopWidgetId?: string;
 };
 export const DESKTOP_NAVIGATION_SECTIONS = ['Assist', 'Office', 'Einstellungen'] as const;
 export type DesktopNavigationSection = (typeof DESKTOP_NAVIGATION_SECTIONS)[number];
@@ -34,6 +36,7 @@ export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: st
   const apps: DesktopApp[] = [];
   const knownRoutes = new Set(widgetApps.map(app => app.route));
   const seen = new Set<string>(['/', '/Desktop']);
+  const usedIds = new Set<string>();
   const add = (app: DesktopApp) => {
     // Unreleased products must not leak into navigation, Apps or search through
     // static catalogues, module sub-pages or old global shortcuts.
@@ -45,7 +48,12 @@ export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: st
     if (seen.has(route)) return;
     seen.add(route);
     const label = (route === '/unternehmen' || route.startsWith('/business/office/document') || route === '/business/templates/documents-hub') ? normalized.label : app.label;
-    apps.push({ ...app, route, label });
+    const duplicateId = usedIds.has(app.id);
+    const id = duplicateId ? `${app.id}:route:${encodeURIComponent(route)}` : app.id;
+    usedIds.add(id);
+    apps.push({ ...app, id, route, label,
+      ...(duplicateId ? { desktopWidgetId: `area-app:${app.id}` } : {}),
+    });
   };
   widgetApps.forEach(app => add({ ...app, glyph: app.category === 'Workspace' ? 'G' : '↗' }));
   WORKSPACE_SERVICES.forEach(service => add({
