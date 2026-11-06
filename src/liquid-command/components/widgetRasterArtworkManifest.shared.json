@@ -1,0 +1,869 @@
+{
+  "version": "originals-20261106-v1",
+  "artworks": [
+    {
+      "id": "assist",
+      "identity": "/assist",
+      "label": "Assist",
+      "part": "office-assist",
+      "sourceSha256": "9355f38cf2cce8afb2999c5f203f076be40796a3c0b39129b763aacdecb4feeb",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist/small.png",
+          "width": 192,
+          "sha256": "eaff9181e765bd0a03c83d2dd51abae048507e2e34ecab30e8c354a1bcab5f58"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist/medium.png",
+          "width": 512,
+          "sha256": "5f9a7033834a46759386f996b8213b687376f61504ff62e9e29f73d6a6d378fd"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist/large.png",
+          "width": 1254,
+          "sha256": "9355f38cf2cce8afb2999c5f203f076be40796a3c0b39129b763aacdecb4feeb"
+        }
+      }
+    },
+    {
+      "id": "assist-abrechnungsquellen",
+      "identity": "/assist/abrechnungsquellen",
+      "label": "Budgets",
+      "part": "office-assist",
+      "sourceSha256": "4790e0abaab5cd924b9d42436da1b287416a1e38bbb61e5891e7d58396d4f235",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-abrechnungsquellen/small.png",
+          "width": 192,
+          "sha256": "ebf80dd616583fe18105b59fc3483868d5a6ac6506119347efcb8770de6cc3b1"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-abrechnungsquellen/medium.png",
+          "width": 512,
+          "sha256": "2770094e033d5bd023658529d9379a657d59bbbda1efa09f2ca4d890a15d9241"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-abrechnungsquellen/large.png",
+          "width": 1254,
+          "sha256": "4790e0abaab5cd924b9d42436da1b287416a1e38bbb61e5891e7d58396d4f235"
+        }
+      }
+    },
+    {
+      "id": "assist-assignments",
+      "identity": "/assist/assignments",
+      "label": "Einsätze",
+      "part": "office-assist",
+      "sourceSha256": "2aad55c46b3b47ebb3a3eacb78312bb2b19bafcd9da1beac9f27342edfd19975",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-assignments/small.png",
+          "width": 192,
+          "sha256": "b0979d802ec23b55006ab097261996adfef46d29b328a6e30d35b7137b8472fc"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-assignments/medium.png",
+          "width": 512,
+          "sha256": "32aac8f8817569e5ba5a8bdf5d7776bb102c6426dae808ad40e809f498484668"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-assignments/large.png",
+          "width": 1254,
+          "sha256": "2aad55c46b3b47ebb3a3eacb78312bb2b19bafcd9da1beac9f27342edfd19975"
+        }
+      }
+    },
+    {
+      "id": "assist-aufgaben",
+      "identity": "/assist/aufgaben",
+      "label": "Aufgaben",
+      "part": "office-assist",
+      "sourceSha256": "65b7d9277ba8c095f6808ab29fa9f96f81ab9a47115ca57f3f0ee11cb8ef84ca",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-aufgaben/small.png",
+          "width": 192,
+          "sha256": "2723a858ee6432752a8b8f2b67e47bc6399adcdb9ff715dafcff4141379a699e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-aufgaben/medium.png",
+          "width": 512,
+          "sha256": "fa427aa192a9df94de059a7ef527b51095dbc2df774d8f0531866d6da3b44035"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-aufgaben/large.png",
+          "width": 1254,
+          "sha256": "65b7d9277ba8c095f6808ab29fa9f96f81ab9a47115ca57f3f0ee11cb8ef84ca"
+        }
+      }
+    },
+    {
+      "id": "assist-calendar",
+      "identity": "/assist/calendar",
+      "label": "Kalender & Einsatzplanung",
+      "part": "office-assist",
+      "sourceSha256": "93d0b6dcca2d5a07d3ffdf84a7ebf342c2cfd81c7b02b0d548fb9609d71ef5cc",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-calendar/small.png",
+          "width": 192,
+          "sha256": "b2f0ea0217f8bc4ec0477f833b623e79c22c1c08991d11ecf87709179ac6dae4"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-calendar/medium.png",
+          "width": 512,
+          "sha256": "84d306422b078a24ef3e294b0bd310fa8c28e9eb6f91f1d9a77ba8213a83dcd2"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-calendar/large.png",
+          "width": 1254,
+          "sha256": "93d0b6dcca2d5a07d3ffdf84a7ebf342c2cfd81c7b02b0d548fb9609d71ef5cc"
+        }
+      }
+    },
+    {
+      "id": "assist-durchfuehrung",
+      "identity": "/assist/durchfuehrung",
+      "label": "Durchführung",
+      "part": "office-assist",
+      "sourceSha256": "a54e4ff1c6cfece5b02fcd38da0cc58df1100bd2a4d81f9941cbb709bcaf912c",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-durchfuehrung/small.png",
+          "width": 192,
+          "sha256": "94931eeb70a3381335d5b281dee799b55cdd709edbd763753987ce98f0987518"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-durchfuehrung/medium.png",
+          "width": 512,
+          "sha256": "37ddedc729a33cd18148dbe87552457d14e4a2423b3f3f9e82182c5693cb4c44"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-durchfuehrung/large.png",
+          "width": 1254,
+          "sha256": "a54e4ff1c6cfece5b02fcd38da0cc58df1100bd2a4d81f9941cbb709bcaf912c"
+        }
+      }
+    },
+    {
+      "id": "assist-einstellungen",
+      "identity": "/assist/einstellungen",
+      "label": "Einstellungen",
+      "part": "office-assist",
+      "sourceSha256": "734b6e917b8591774fbb6bcf66f0fcb2bedd42abe0a788ce3789dca9fa16ce7d",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-einstellungen/small.png",
+          "width": 192,
+          "sha256": "2b0dcf59b7d8540db38abe0d30d066875ba05eb2a039a29f3323477500904c64"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-einstellungen/medium.png",
+          "width": 512,
+          "sha256": "00481f0b5827e1fe15b4c2becf94b34e1d0b5ada3fb332fb8faa38a10e4878e0"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-einstellungen/large.png",
+          "width": 1254,
+          "sha256": "734b6e917b8591774fbb6bcf66f0fcb2bedd42abe0a788ce3789dca9fa16ce7d"
+        }
+      }
+    },
+    {
+      "id": "assist-fahrten",
+      "identity": "/assist/fahrten",
+      "label": "Fahrten",
+      "part": "office-assist",
+      "sourceSha256": "7e4fcd8873361543158606499c9dc4c0f48a51c0ed2a13a03825eb9fdbf40181",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-fahrten/small.png",
+          "width": 192,
+          "sha256": "4cef8bcd596a90a377250d4d3884afc4e83c817b24ee2ae1cd68e6b35386442c"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-fahrten/medium.png",
+          "width": 512,
+          "sha256": "fa48d11adce9d292a0ed25fd5a902f805aad2020ed660338da657d0d7085ce0e"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-fahrten/large.png",
+          "width": 1254,
+          "sha256": "7e4fcd8873361543158606499c9dc4c0f48a51c0ed2a13a03825eb9fdbf40181"
+        }
+      }
+    },
+    {
+      "id": "assist-live-status",
+      "identity": "/assist/live-status",
+      "label": "Live-Status",
+      "part": "office-assist",
+      "sourceSha256": "af1d1e9f10a95c67114803106c8c7cadbdac69da289278ad830a4e205a9182aa",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-live-status/small.png",
+          "width": 192,
+          "sha256": "442aa7926dcb7bd8d4862b04b138f4ffa3138f71b9a9aab79a1a858ec7a92f92"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-live-status/medium.png",
+          "width": 512,
+          "sha256": "fc29888ce8394f3bd39535767e0f0f89b2cdcf68ccc4c357b90e80df8bf74180"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-live-status/large.png",
+          "width": 1254,
+          "sha256": "af1d1e9f10a95c67114803106c8c7cadbdac69da289278ad830a4e205a9182aa"
+        }
+      }
+    },
+    {
+      "id": "assist-nachweise",
+      "identity": "/assist/nachweise",
+      "label": "Nachweise",
+      "part": "office-assist",
+      "sourceSha256": "a607cbdd15c6d7224a897db5b7bc821f77c3a11bff8289b3114a649d00de8298",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-nachweise/small.png",
+          "width": 192,
+          "sha256": "886fd9e0a3dc7bb3dd9339d02dd47a6a4b26b6c95452cf635360e8610f5987e6"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-nachweise/medium.png",
+          "width": 512,
+          "sha256": "87fc7d32156ce8e28faaf76034bf4859b6b4b6451c41691ab8b86446850e678a"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-nachweise/large.png",
+          "width": 1254,
+          "sha256": "a607cbdd15c6d7224a897db5b7bc821f77c3a11bff8289b3114a649d00de8298"
+        }
+      }
+    },
+    {
+      "id": "assist-portale",
+      "identity": "/assist/portale",
+      "label": "Portale",
+      "part": "office-assist",
+      "sourceSha256": "c9914d8852bc0e269def5127a3ed3e83326f99b201ddb1ce2020223fd2a774c0",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-portale/small.png",
+          "width": 192,
+          "sha256": "2ffc6d85201d316571ff1ee54d3f1ff1f119061b151f5ad6fac22a396b849b07"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-portale/medium.png",
+          "width": 512,
+          "sha256": "9ce1164e2e95860988dca5e11f8ba9a5613c03f66b1c0f82ba3c01bc9c3b25d8"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-portale/large.png",
+          "width": 1254,
+          "sha256": "c9914d8852bc0e269def5127a3ed3e83326f99b201ddb1ce2020223fd2a774c0"
+        }
+      }
+    },
+    {
+      "id": "assist-qualitaet",
+      "identity": "/assist/qualitaet",
+      "label": "Qualität",
+      "part": "office-assist",
+      "sourceSha256": "609b122f3234093ebb1732b768cefae3ec5328a6c91d5b2919d8b89bbcd11a79",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-qualitaet/small.png",
+          "width": 192,
+          "sha256": "3042256d09786a110f305e8ac788c365f2e2211c1bb4c8e73575f6ee424abf6e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-qualitaet/medium.png",
+          "width": 512,
+          "sha256": "510e84f81426dfe396c817cfd71862958f4c91e866c46579de57bc30ac7fffc9"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-qualitaet/large.png",
+          "width": 1254,
+          "sha256": "609b122f3234093ebb1732b768cefae3ec5328a6c91d5b2919d8b89bbcd11a79"
+        }
+      }
+    },
+    {
+      "id": "assist-touren",
+      "identity": "/assist/touren",
+      "label": "Touren",
+      "part": "office-assist",
+      "sourceSha256": "e0b523164d10bfd62af588b122e913c28466a9cb1edc19de3ba150e39cd99dbe",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-touren/small.png",
+          "width": 192,
+          "sha256": "f837bb287b5e57af6bacaff403aa45e3b4bd18e19551fd91b8752d5d2656c8c4"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-touren/medium.png",
+          "width": 512,
+          "sha256": "61a10aa0d6836a9c6ab9caba15dd574357a1c22accc9640d969dae1eb8c4c88e"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-touren/large.png",
+          "width": 1254,
+          "sha256": "e0b523164d10bfd62af588b122e913c28466a9cb1edc19de3ba150e39cd99dbe"
+        }
+      }
+    },
+    {
+      "id": "assist-zugeordnete-klienten",
+      "identity": "/assist/zugeordnete-klienten",
+      "label": "Klient:innen",
+      "part": "office-assist",
+      "sourceSha256": "4766822656e8edc4c44d117444722f648b9d210d3289ea509b36626bcfc5f02f",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-zugeordnete-klienten/small.png",
+          "width": 192,
+          "sha256": "8972dcb19b404d581e901009f6823b8ccbdbf35fa63ecfbb844914002babff9e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-zugeordnete-klienten/medium.png",
+          "width": 512,
+          "sha256": "0930cd49966b821d096955c427f4ce165308d7f35941877e526e99b7a8cc4858"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/assist-zugeordnete-klienten/large.png",
+          "width": 1254,
+          "sha256": "4766822656e8edc4c44d117444722f648b9d210d3289ea509b36626bcfc5f02f"
+        }
+      }
+    },
+    {
+      "id": "business-office-access",
+      "identity": "/business/office/access",
+      "label": "Portale & Zugänge",
+      "part": "office-assist",
+      "sourceSha256": "21fa55e0d64a34ba874209993b11555bc7bb0eb1bcaabb7cb76d5a7348753915",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-access/small.png",
+          "width": 192,
+          "sha256": "cbc23898dfa5612ee7f73963a79f225525a04880daad02172b111ab0cad1ce9f"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-access/medium.png",
+          "width": 512,
+          "sha256": "33da7052bd19141d1058154440932622add0dd8d352639565d63d601e260ed2c"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-access/large.png",
+          "width": 1254,
+          "sha256": "21fa55e0d64a34ba874209993b11555bc7bb0eb1bcaabb7cb76d5a7348753915"
+        }
+      }
+    },
+    {
+      "id": "business-office-audit-log",
+      "identity": "/business/office/audit-log",
+      "label": "Audit",
+      "part": "office-assist",
+      "sourceSha256": "ea1e25e6503d76cae9f0d74fef5fdf56c22342ab8db8a065645368da844ea45d",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-audit-log/small.png",
+          "width": 192,
+          "sha256": "42c3c62ff54b0a127875557a22e089b55b10d83debcc3caa73f6389784be2337"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-audit-log/medium.png",
+          "width": 512,
+          "sha256": "ccb18607cd4a354b0b495a0e3dd68e553b2681028ebef8ecb1bd56db23c7526d"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-audit-log/large.png",
+          "width": 1254,
+          "sha256": "ea1e25e6503d76cae9f0d74fef5fdf56c22342ab8db8a065645368da844ea45d"
+        }
+      }
+    },
+    {
+      "id": "business-office-clients",
+      "identity": "/business/office/clients",
+      "label": "Klient:innen",
+      "part": "office-assist",
+      "sourceSha256": "da2f5e441e4ff67e7a6766d1402696e258b24e68de0550656749e46fb6c5374d",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-clients/small.png",
+          "width": 192,
+          "sha256": "e4fe3158e9e8b32592c172a6124b7e4818fe9b94b9618d8ec318fa4ba5d020ec"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-clients/medium.png",
+          "width": 512,
+          "sha256": "0257b79bdcfe1531460265fe2e1a3b740520a6f349401f9c0adceb07cae085a5"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-clients/large.png",
+          "width": 1254,
+          "sha256": "da2f5e441e4ff67e7a6766d1402696e258b24e68de0550656749e46fb6c5374d"
+        }
+      }
+    },
+    {
+      "id": "business-office-clients-new",
+      "identity": "/business/office/clients/new",
+      "label": "Klient:in aufnehmen",
+      "part": "office-assist",
+      "sourceSha256": "e1dca3c408a1e7a8ea887372c9ee9d9085b07ec1299c42ec8f05c04f0687ce09",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-clients-new/small.png",
+          "width": 192,
+          "sha256": "296bf2897bb64d61234fe6de1d841c749dd5b9694b2e6f21e3d0a53cc1707a8e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-clients-new/medium.png",
+          "width": 512,
+          "sha256": "cf736159d92529c2be94b9a009f5b1559a1df56fa04aeeeded46838eb07f13ba"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-clients-new/large.png",
+          "width": 1254,
+          "sha256": "e1dca3c408a1e7a8ea887372c9ee9d9085b07ec1299c42ec8f05c04f0687ce09"
+        }
+      }
+    },
+    {
+      "id": "business-office-document-catalog",
+      "identity": "/business/office/document-catalog",
+      "label": "Dokumentenkatalog",
+      "part": "office-assist",
+      "sourceSha256": "e3a194a9e52e5a7c25e4f37eefbfb4545c852c12a13e8b8bd42ad7c761f6e51d",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-document-catalog/small.png",
+          "width": 192,
+          "sha256": "c628b918d824d2ccf364fb4b34785732ad3f8d9f9721c6c6bc534cabd3deb944"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-document-catalog/medium.png",
+          "width": 512,
+          "sha256": "1bb67cbd34913b549c47f0be72255c300319bd96b7c4e9cd1ad014be55ccde69"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-document-catalog/large.png",
+          "width": 1254,
+          "sha256": "e3a194a9e52e5a7c25e4f37eefbfb4545c852c12a13e8b8bd42ad7c761f6e51d"
+        }
+      }
+    },
+    {
+      "id": "business-office-documents",
+      "identity": "/business/office/documents",
+      "label": "Dokumentenablage",
+      "part": "office-assist",
+      "sourceSha256": "3425c909bbd22ce4e7c9444c0d01dd08a820e03dd26ce2ae30c1d73e7f2a8d69",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-documents/small.png",
+          "width": 192,
+          "sha256": "a30e5e1e1eefcd6dfa27196d13d98f5efefe04df422968954aa14d84afbe8a78"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-documents/medium.png",
+          "width": 512,
+          "sha256": "eeb9ef7e7685c522b488388528ce1c6b3b98d0da086c00782b4d340f28e2b168"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-documents/large.png",
+          "width": 1254,
+          "sha256": "3425c909bbd22ce4e7c9444c0d01dd08a820e03dd26ce2ae30c1d73e7f2a8d69"
+        }
+      }
+    },
+    {
+      "id": "business-office-documents-signatures",
+      "identity": "/business/office/documents/signatures",
+      "label": "Unterschriften",
+      "part": "office-assist",
+      "sourceSha256": "181a27fb2a2314ef8a1a038e9c82fd21ddb93f309f687a2bdf261d0167635cdf",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-documents-signatures/small.png",
+          "width": 192,
+          "sha256": "2d7b382b49484de1724780a76cf407e00ffd789fbf13089e820e86433afdfc14"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-documents-signatures/medium.png",
+          "width": 512,
+          "sha256": "5e9373c7d98011f82180f32e96d18c69260c9a517112493533d42237a469e21d"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-documents-signatures/large.png",
+          "width": 1254,
+          "sha256": "181a27fb2a2314ef8a1a038e9c82fd21ddb93f309f687a2bdf261d0167635cdf"
+        }
+      }
+    },
+    {
+      "id": "business-office-employees",
+      "identity": "/business/office/employees",
+      "label": "Personal",
+      "part": "office-assist",
+      "sourceSha256": "5e25b9f02a45d73279dec920eba0b70ccc7f7da144d3e5254f29aa001282e363",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-employees/small.png",
+          "width": 192,
+          "sha256": "95d1aeab69811d0b9975053c605d22e515f252cbfdd1f1f1eb468416bb66fd7b"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-employees/medium.png",
+          "width": 512,
+          "sha256": "0601793032c4461b208d86abc0b62cac1f6032ae867c27cff8c75d7c6a05b8bc"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-employees/large.png",
+          "width": 1254,
+          "sha256": "5e25b9f02a45d73279dec920eba0b70ccc7f7da144d3e5254f29aa001282e363"
+        }
+      }
+    },
+    {
+      "id": "business-office-fahrtenbuch",
+      "identity": "/business/office/fahrtenbuch",
+      "label": "Fahrtenbuch",
+      "part": "office-assist",
+      "sourceSha256": "3c4a024d170ea11c453a413f508f0a0dcf9b3ab52f50c32f4bd761f4849ca0d0",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-fahrtenbuch/small.png",
+          "width": 192,
+          "sha256": "4ce3c7c0e459783bcd6fb9ad6d007516ebecea3d7a345609f700189809d5b0e5"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-fahrtenbuch/medium.png",
+          "width": 512,
+          "sha256": "2063fbbe3eca7da1ff7e4761e64e39c9e8e7275a5b0b0bed0baaf974df905ee4"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-fahrtenbuch/large.png",
+          "width": 1254,
+          "sha256": "3c4a024d170ea11c453a413f508f0a0dcf9b3ab52f50c32f4bd761f4849ca0d0"
+        }
+      }
+    },
+    {
+      "id": "business-office-invoices",
+      "identity": "/business/office/invoices",
+      "label": "Rechnungen",
+      "part": "office-assist",
+      "sourceSha256": "2bb85a63a08d148c16d61717174b677e9dbc22ceaf32885ec225ca60d6d71daa",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-invoices/small.png",
+          "width": 192,
+          "sha256": "213a063c7cd732f239da8a78fc11f05f2a6c15f022e425855aa3d5c3b5be12fd"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-invoices/medium.png",
+          "width": 512,
+          "sha256": "483f2ae5da4d42583f808c0c154b5adea841e4cb1a338be4f19e6479da3881ae"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-invoices/large.png",
+          "width": 1254,
+          "sha256": "2bb85a63a08d148c16d61717174b677e9dbc22ceaf32885ec225ca60d6d71daa"
+        }
+      }
+    },
+    {
+      "id": "business-office-modules",
+      "identity": "/business/office/modules",
+      "label": "Modulzuordnungen",
+      "part": "office-assist",
+      "sourceSha256": "0e57382ee3cd2f5f884205fd51f5ac1c8bf9d3d00731323d0e684924a9f50704",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-modules/small.png",
+          "width": 192,
+          "sha256": "69ac99a2c60a04401adfa21aa5999718a70eba2a47193e8eb689eb92604b84ee"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-modules/medium.png",
+          "width": 512,
+          "sha256": "5762c1d5355acb98fe70f7065f14864ce964b3424b2cadb2ecae8cdb89867f53"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-modules/large.png",
+          "width": 1254,
+          "sha256": "0e57382ee3cd2f5f884205fd51f5ac1c8bf9d3d00731323d0e684924a9f50704"
+        }
+      }
+    },
+    {
+      "id": "business-office-payroll",
+      "identity": "/business/office/payroll",
+      "label": "Gehaltsstatistik",
+      "part": "office-assist",
+      "sourceSha256": "d551f09e83e92d47fa24d148d05729653c6036669b961d4cddfa8d895e71ed41",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-payroll/small.png",
+          "width": 192,
+          "sha256": "b5371b1ce89ff5c8a3ab87f7ffcfc92919b0ec734772c6f080b8c02af951e72a"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-payroll/medium.png",
+          "width": 512,
+          "sha256": "cdf23f974b2e6d69a553b4381ff8bb1c32607cc488983593233ab2cd102933ec"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-payroll/large.png",
+          "width": 1254,
+          "sha256": "d551f09e83e92d47fa24d148d05729653c6036669b961d4cddfa8d895e71ed41"
+        }
+      }
+    },
+    {
+      "id": "business-office-permissions",
+      "identity": "/business/office/permissions",
+      "label": "Rollen & Rechte",
+      "part": "office-assist",
+      "sourceSha256": "c648393adae10c52342f6361af288fe2599220244cfa858602e02c111d096052",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-permissions/small.png",
+          "width": 192,
+          "sha256": "0f66cc0d5516c12caa8b4c12b4ac1db35cce982f491b4a178d29c0ca2c7ab552"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-permissions/medium.png",
+          "width": 512,
+          "sha256": "e67e57d6c780484aba12f3685c4736c40b20e6d174a6ab10237af87010ee4e31"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-permissions/large.png",
+          "width": 1254,
+          "sha256": "c648393adae10c52342f6361af288fe2599220244cfa858602e02c111d096052"
+        }
+      }
+    },
+    {
+      "id": "business-office-time-tracking",
+      "identity": "/business/office/time-tracking",
+      "label": "Arbeitszeit",
+      "part": "office-assist",
+      "sourceSha256": "4304a605fa38f8e32992483657947df8579d11222cfacce9f9c1fda742862485",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-time-tracking/small.png",
+          "width": 192,
+          "sha256": "72978f17525f1283e6089f43357f295b888c1cb8563096daaee96f7473c127c9"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-time-tracking/medium.png",
+          "width": 512,
+          "sha256": "f8cb1524c3b188d9d7cf669bfcaa3d6fcddd4376d5464f3edd34c407eac8f7dc"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-time-tracking/large.png",
+          "width": 1254,
+          "sha256": "4304a605fa38f8e32992483657947df8579d11222cfacce9f9c1fda742862485"
+        }
+      }
+    },
+    {
+      "id": "business-office-time-tracking-live",
+      "identity": "/business/office/time-tracking/live",
+      "label": "Arbeitszeit",
+      "part": "office-assist",
+      "sourceSha256": "229dfc031d986db5c66844c0369fa304531005a13e5246dce51b2d8e49d36c1c",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-time-tracking-live/small.png",
+          "width": 192,
+          "sha256": "8810c602a8e7759e31dd82be288102474262708357ba09cc2b16e2a6375994e4"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-time-tracking-live/medium.png",
+          "width": 512,
+          "sha256": "9cd52344faed6886652c1c8d7d5acae0e4111e1d7073150a18a044ca08d21a60"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-office-time-tracking-live/large.png",
+          "width": 1254,
+          "sha256": "229dfc031d986db5c66844c0369fa304531005a13e5246dce51b2d8e49d36c1c"
+        }
+      }
+    },
+    {
+      "id": "office-catalogs",
+      "identity": "/office/catalogs",
+      "label": "Kataloge",
+      "part": "office-assist",
+      "sourceSha256": "7d5e1526bbf0390d16c99cf490a1267a5299026995cd3afcf8dfdca1588625ea",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/office-catalogs/small.png",
+          "width": 192,
+          "sha256": "0df824e0cc80629317d7c8939fba3830170487448943e6a9bb7059a67857d2e8"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/office-catalogs/medium.png",
+          "width": 512,
+          "sha256": "0fd0edcac3777e0c5f475d3de185de98b633c4f8913e3a59aabe3eae035c7cc2"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/office-catalogs/large.png",
+          "width": 1254,
+          "sha256": "7d5e1526bbf0390d16c99cf490a1267a5299026995cd3afcf8dfdca1588625ea"
+        }
+      }
+    },
+    {
+      "id": "office-dokumentation",
+      "identity": "/office/dokumentation",
+      "label": "Dokumentation",
+      "part": "office-assist",
+      "sourceSha256": "69c4cf1406427b937b6545ac31a648912202581980e04ca5f9533a8aa66eada1",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/office-dokumentation/small.png",
+          "width": 192,
+          "sha256": "62a895c8d241e017189cdb4cbc6aa5d53cf44771871248dc551ce273c8e144eb"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/office-dokumentation/medium.png",
+          "width": 512,
+          "sha256": "fef12788b72e45f0cb9fb3fafceabab3658c3781fa418d5d0341f5caeca0035d"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/office-dokumentation/large.png",
+          "width": 1254,
+          "sha256": "69c4cf1406427b937b6545ac31a648912202581980e04ca5f9533a8aa66eada1"
+        }
+      }
+    },
+    {
+      "id": "office-messages-settings",
+      "identity": "/office/messages/settings",
+      "label": "Einstellungen",
+      "part": "office-assist",
+      "sourceSha256": "540302d7d8a9ec6b8de77330ec08278fcdcb885b71b7a60b8a1e64ff65041565",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/office-messages-settings/small.png",
+          "width": 192,
+          "sha256": "ca77d1aad65e86c90185793ee4bb254fc8784949395263c4314f5bb936fca7ba"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/office-messages-settings/medium.png",
+          "width": 512,
+          "sha256": "d493ffbf3be47b117ea11807becb92367c802db1e56fc67d2ac43487868cc354"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/office-messages-settings/large.png",
+          "width": 1254,
+          "sha256": "540302d7d8a9ec6b8de77330ec08278fcdcb885b71b7a60b8a1e64ff65041565"
+        }
+      }
+    },
+    {
+      "id": "office-messages-templates",
+      "identity": "/office/messages/templates",
+      "label": "Vorlagen",
+      "part": "office-assist",
+      "sourceSha256": "ff3b2e61121fb557945360f0f8144f6d8f862d7bca9019f65e99d79cbfcfa658",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/office-messages-templates/small.png",
+          "width": 192,
+          "sha256": "43656040aef8065b4f44ba73204b653b819ebca3600ec718eb7bb8970b225b30"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/office-messages-templates/medium.png",
+          "width": 512,
+          "sha256": "bf59c17a595ac4f1c39484fe224f86049bcaab47b4464d4d40ca9fc1965f540d"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/office-messages-templates/large.png",
+          "width": 1254,
+          "sha256": "ff3b2e61121fb557945360f0f8144f6d8f862d7bca9019f65e99d79cbfcfa658"
+        }
+      }
+    },
+    {
+      "id": "office-notizen",
+      "identity": "/office/notizen",
+      "label": "Notizen",
+      "part": "office-assist",
+      "sourceSha256": "8776d92259f4b760016e2a59d314e2e851de4e5abd1debc15487986e5fba4d99",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/office-notizen/small.png",
+          "width": 192,
+          "sha256": "04a3f6cfd2f64484850fd5412d7bd85cdf6d4523425de69f541de97bd5696fd3"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/office-notizen/medium.png",
+          "width": 512,
+          "sha256": "b69db4d20b723c2193146f2bc7019be1eac9ddeff080fc8a6e9102f2cb0f8754"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/office-notizen/large.png",
+          "width": 1254,
+          "sha256": "8776d92259f4b760016e2a59d314e2e851de4e5abd1debc15487986e5fba4d99"
+        }
+      }
+    },
+    {
+      "id": "office-qm",
+      "identity": "/office/qm",
+      "label": "Qualitätsmanagement",
+      "part": "office-assist",
+      "sourceSha256": "cf252cf6d5e36eb98b8db4f2b6cd711d1ed006549d0c2e97441fe2c3942f6207",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/office-qm/small.png",
+          "width": 192,
+          "sha256": "89aee1d035464ba46fed75f65495c0f7d7b7a988c5641b95830e9d6283210643"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/office-qm/medium.png",
+          "width": 512,
+          "sha256": "0ca50dc8e7566629c35595135487cdc47d7125bb6e0c46e2ff97b2fcc3a1603f"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/office-qm/large.png",
+          "width": 1254,
+          "sha256": "cf252cf6d5e36eb98b8db4f2b6cd711d1ed006549d0c2e97441fe2c3942f6207"
+        }
+      }
+    },
+    {
+      "id": "office-reporting",
+      "identity": "/office/reporting",
+      "label": "Office Reporting",
+      "part": "office-assist",
+      "sourceSha256": "4a8b16e209688b3dd923cd54550410be8c7de99ad076ea5ae776235bb3d38813",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/office-reporting/small.png",
+          "width": 192,
+          "sha256": "9dbd83b16462db63868cf3980303f0c34c750e4954ba29ba635c7e65453993b6"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/office-reporting/medium.png",
+          "width": 512,
+          "sha256": "2eb3e2b95c798b8bdd7454131a2ba09612c0d0132135ee1f4feb219200c6fd9d"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/office-reporting/large.png",
+          "width": 1254,
+          "sha256": "4a8b16e209688b3dd923cd54550410be8c7de99ad076ea5ae776235bb3d38813"
+        }
+      }
+    }
+  ]
+}

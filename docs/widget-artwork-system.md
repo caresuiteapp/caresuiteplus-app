@@ -1,5 +1,33 @@
 # Eigene Motive für alle Widget-Funktionen
 
+## 3D-Originale und schrittweise Veröffentlichung ab 06.11.2026
+
+Die wiederhergestellten 3D-Originale haben Vorrang vor den bisherigen Reliefgrafiken.
+`widgetRasterArtworkManifest.shared.json` ordnet jede Funktion exakt einem Original
+zu. Web und native App verwenden dieselben PNG-Dateien unter `public/widget-artwork`.
+Der 1.254 × 1.254 Pixel große RGBA-Master bleibt bytegleich erhalten; die kleineren
+192- und 512-Pixel-Dateien dienen Navigation und kleinen Bildflächen. Web wählt die
+Auflösung über `srcset`; die App bündelt dieselben Dateien über statische Requires.
+
+Die Veröffentlichung erfolgt in drei getrennten, jeweils geprüften Paketen:
+
+1. Office und Assist: 36 zugeordnete Originale und gemeinsame Darstellung.
+2. Pflege, Stationär und Beratung: 59 zugeordnete Originale.
+3. Weitere Bereiche: 58 zugeordnete Originale.
+
+Für das Importieren genau eines Pakets dient
+`python3 scripts/import-widget-originals.py ARCHIV --part office-assist|care|remaining`.
+Das Originalarchiv selbst ist kein Buildbestandteil. Das Manifest und die Dateien
+liegen mit dem jeweiligen Commit im Repository. Der Releasecheck prüft die Hashes,
+Auflösungen, Transparenz, eigenständige Zuordnung und die statischen App-Imports.
+Noch fehlende Originale behalten ausschließlich ihre eigene bestehende Grafik;
+ein Bild einer anderen Funktion wird dafür nicht verwendet. Die acht im Archiv
+genannten fehlenden Zuordnungen und zusätzliche QM-Unterfunktionen bleiben als
+eigener Gestaltungsschritt offen, bis ihre Originale vorliegen und geprüft sind.
+
+Die folgenden Regeln für automatische Grafiken gelten für diese noch nicht mit
+Originalen ausgestatteten Funktionen und neu hinzukommende Ziele weiter.
+
 Jede Funktion besitzt ein eigenes Hauptmotiv mit einem passenden Kontextobjekt.
 Ein fertiges Bild darf nicht für eine andere Funktion verwendet werden. Notizen,
 Dokumentation, Dokumentenablage, Vorlagen, Unterschriften und Nachweise bleiben

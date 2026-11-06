@@ -79,6 +79,8 @@ new Function('require', 'module', 'exports', artworkBundle)((id: string) => {
   if (id === 'react-native') return { Platform: { OS: 'web' } };
   const assetsIndex = id.indexOf('assets/');
   if (assetsIndex >= 0 && /\.(png|jpg)$/.test(id)) return { uri: resolve(id.slice(assetsIndex)) };
+  const publicIndex = id.indexOf('public/widget-artwork/');
+  if (publicIndex >= 0 && /\.png$/.test(id)) return { uri: resolve(id.slice(publicIndex)) };
   throw new Error(`Unexpected artwork dependency: ${id}`);
 }, artworkModule, artworkModule.exports);
 const artworkCatalog = artworkModule.exports;
@@ -89,6 +91,17 @@ describe('unique function artwork', () => {
     ...artworkCatalog.buildDesktopApps(artworkCatalog.WIDGETS, 'platform_admin'),
     ...artworkCatalog.WIDGETS, ...artworkCatalog.WORKFLOWS,
   ];
+
+  it('uses recovered 3D originals for published functions and keeps aliases on the same original', () => {
+    const clients = artworkCatalog.desktopCatalogArtwork('/business/office/clients');
+    expect(clients.large.uri).toContain('/widget-artwork/originals-20261106-v1/business-office-clients/large.png');
+    expect(clients.small.uri).toContain('/small.png');
+    expect(clients.medium.uri).toContain('/medium.png');
+    expect(artworkCatalog.desktopCatalogArtwork('/office/clients?source=desktop#details')).toBe(clients);
+    expect(artworkCatalog.desktopCatalogArtwork('/business/office/clients/new').large.uri).not.toBe(clients.large.uri);
+    expect(artworkCatalog.desktopCatalogArtwork('/office/notizen').large.uri).not.toBe(artworkCatalog.desktopCatalogArtwork('/office/dokumentation').large.uri);
+    expect(artworkCatalog.desktopCatalogArtworkName('/assist/kalender')).toBe(artworkCatalog.desktopCatalogArtworkName('/assist/calendar'));
+  });
 
   it('gives every actual catalogue function a distinct, complete vector instead of a shared family image', () => {
     const drawings = new Map<string, string>();

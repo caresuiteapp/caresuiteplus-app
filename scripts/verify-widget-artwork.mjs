@@ -2,13 +2,33 @@ import { buildSync } from 'esbuild';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const rasterManifest = JSON.parse(readFileSync(resolve(root, 'src/liquid-command/components/widgetRasterArtworkManifest.shared.json'), 'utf8'));
+const rasterRegistry = readFileSync(resolve(root, 'src/liquid-command/components/widgetRasterArtworkAssets.ts'), 'utf8');
+const identities = new Set();
+const sourceHashes = new Set();
+for (const artwork of rasterManifest.artworks) {
+  if (identities.has(artwork.identity) || sourceHashes.has(artwork.sourceSha256)) throw new Error(`Reused 3D original: ${artwork.identity}`);
+  identities.add(artwork.identity);
+  sourceHashes.add(artwork.sourceSha256);
+  for (const [size, expectedWidth] of [['small', 192], ['medium', 512], ['large', 1254]]) {
+    const variant = artwork.variants[size];
+    if (!variant.path.startsWith(`/widget-artwork/${rasterManifest.version}/${artwork.id}/`) || variant.path.includes('..')) throw new Error(`Invalid 3D path: ${artwork.identity}`);
+    const bytes = readFileSync(resolve(root, `public${variant.path}`));
+    const hash = createHash('sha256').update(bytes).digest('hex');
+    if (bytes.subarray(0, 8).toString('hex') !== '89504e470d0a1a0a' || bytes.readUInt32BE(16) !== expectedWidth || bytes.readUInt32BE(20) !== expectedWidth || bytes[25] !== 6) throw new Error(`Invalid RGBA original/derivative: ${variant.path}`);
+    if (hash !== variant.sha256 || (size === 'large' && hash !== artwork.sourceSha256)) throw new Error(`Original bytes changed: ${artwork.identity}`);
+    if (!rasterRegistry.includes(`require('../../../public${variant.path}')`)) throw new Error(`Native original missing: ${variant.path}`);
+  }
+}
 const code = buildSync({ stdin: { contents: `
   export { WIDGETS, WORKFLOWS } from './src/liquid-command/screens/administrationDesktopCatalog';
   export { buildDesktopApps } from './src/liquid-command/navigation/desktopAppCatalogModel';
   export { widgetArtworkTheme, WIDGET_ARTWORK_PATHS } from './src/liquid-command/components/widgetArtworkTheme.shared';
   export { desktopCatalogArtworkXml } from './src/liquid-command/components/desktopCatalogArtworkModel.shared';
+  export { widgetRasterArtwork } from './src/liquid-command/components/widgetRasterArtwork.shared';
   export { stationaerNav } from './src/lib/navigation/moduleNav/stationaerNav';
   export { beratungNav } from './src/lib/navigation/moduleNav/beratungNav';
 `, resolveDir: root, loader: 'ts' }, bundle: true, write: false, platform: 'node', format: 'cjs',
@@ -22,6 +42,10 @@ for (const platform of ['web', 'android', 'ios']) {
     throw new Error(`Unexpected artwork dependency: ${id}`);
   }, loaded, loaded.exports);
   const catalog = loaded.exports;
+  for (const artwork of rasterManifest.artworks) {
+    const selected = catalog.widgetRasterArtwork(artwork.identity);
+    if (selected?.sourceSha256 !== artwork.sourceSha256) throw new Error(`Original identity mismatch: ${platform}/${artwork.identity}`);
+  }
   const apps = ['business_admin', 'business_manager', 'dispatch', 'platform_admin'].flatMap(role => {
     const pages = catalog.buildDesktopApps(catalog.WIDGETS, role);
     if (new Set(pages.map(page => page.id)).size !== pages.length) throw new Error(`Duplicate catalogue IDs: ${platform}/${role}`);
@@ -56,3 +80,4 @@ for (const platform of ['web', 'android', 'ios']) {
   }
 }
 console.log(`[widget-artwork] ${functions.size} functions: unique subjects/compositions, 2048 px vector masters, Web/Android/iOS parity. No shared stock fallback.`);
+console.log(`[widget-artwork] ${rasterManifest.artworks.length} recovered 3D originals: unique SHA-256, unchanged 1254 px RGBA masters, 192/512 px derivatives, matching native bundles and versioned Web paths.`);
