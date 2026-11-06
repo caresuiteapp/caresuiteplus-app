@@ -29,10 +29,10 @@ describe('R15 portal-only native light experience', () => {
     expect(authShell).toContain('<PortalPremiumProvider kind="workspace">');
   });
 
-  it('keeps the employee home actions bright and touch-oriented', () => {
-    const home = read('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
-    expect(home).toContain("colors={['#FFFFFF', '#F1F7FF', '#E2EFFF']}");
-    expect(home).toContain('minHeight: 48');
-    expect(home).not.toContain("colors={['#0B5CC9', '#073E8D', '#052B68']}");
+  it('keeps employee actions touch-oriented in the selected dark workspace', () => {
+    const home = read('src/components/portal/employee/EmployeePortalToday.tsx');
+    expect(home).toContain('employeePortalDesign as c');
+    expect(home).toContain('minHeight: 44');
+    expect(home).toContain('useWebFontScaleValue');
   });
 });

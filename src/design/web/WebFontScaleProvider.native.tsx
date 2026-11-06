@@ -8,3 +8,5 @@ export function WebFontScaleProvider({ children }: { children: ReactNode }) {
 export function useWebFontScale(): never {
   throw new Error('useWebFontScale is web-only');
 }
+
+export function useWebFontScaleValue(): number { return 1; }

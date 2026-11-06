@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
 
 const h = vi.hoisted(() => ({ width: 360, fontScale: 1.6, push: vi.fn() }));
+vi.mock('@/design/web/WebFontScaleProvider', () => ({ useWebFontScaleValue: () => 1 }));
 vi.mock('react-native', async (importOriginal) => {
   const actual = await importOriginal<typeof import('react-native')>();
   const style = (value: any) => JSON.stringify(actual.StyleSheet.flatten(typeof value === 'function' ? value({ pressed: false }) : value) ?? {});
@@ -17,6 +18,7 @@ vi.mock('react-native', async (importOriginal) => {
     Pressable: ({ children, onPress, accessibilityRole, accessibilityLabel, style: value, testID }: any) => <button role={accessibilityRole} aria-label={accessibilityLabel} data-testid={testID} data-native-style={style(value)} onClick={onPress}>{children}</button>,
   };
 });
+vi.mock('@/components/portal/employee/EmployeePortalArtwork', () => ({ EmployeePortalArtwork: () => null }));
 vi.mock('expo-router', () => ({ usePathname: () => '/portal/employee', useRouter: () => ({ push: h.push }) }));
 vi.mock('expo-linear-gradient', async () => ({ LinearGradient: (await import('react-native')).View }));
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: () => null }));
@@ -57,6 +59,44 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('actual employee home assignment rows', () => {
+  it.each([320, 390, 768, 1024, 1440])('retains portal destinations at responsive width %s', async width => {
+    h.width = width;
+    await act(async () => root.render(<HealthOSEmployeePortalTodayView dashboard={dashboard()} displayName="Mara" loading={false} error={null} onRefresh={() => {}} />));
+    const shortcuts = host.querySelector('[data-testid="employee-portal-premium-quick-actions"]')!;
+    for (const [name, target] of [['Meine Einsätze','/portal/employee/assignments'],['Dokumentation','/portal/employee/dokumentation'],['Kalender','/portal/employee/calendar'],['Arbeitszeit','/portal/employee/arbeitszeit'],['Fahrtenbuch','/portal/employee/fahrtenbuch'],['Nachrichten','/portal/employee/messages'],['Dokumente','/portal/employee/documents'],['Aufgaben & Notizen','/portal/employee/tasks']]) {
+      const action = shortcuts.querySelector<HTMLButtonElement>(`[aria-label="${name}"]`)!;
+      expect(action, name).toBeTruthy();
+      await act(async () => action.click());
+      expect(h.push).toHaveBeenLastCalledWith(target);
+    }
+    expect(host.textContent).toContain('Urlaub'); expect(host.textContent).toContain('Abwesenheit');
+  });
+
+  it('keeps unknown message and signature states visible instead of claiming completion', async () => {
+    const data = { ...dashboard(), messageCountUnavailable: true, messagesError: 'Nicht erreichbar', signatureDocumentsError: 'Nicht erreichbar' };
+    await act(async () => root.render(<HealthOSEmployeePortalTodayView dashboard={data} displayName="Mara" loading={false} error={null} onRefresh={() => {}} />));
+    expect(host.textContent).toContain('Nachrichtenstatus nicht verfügbar');
+    expect(host.textContent).toContain('Der aktuelle Nachrichtenstatus ist nicht verfügbar.');
+    expect(host.textContent).toContain('Der Unterschriftenstatus wird geprüft.');
+    expect(host.textContent).not.toContain('Keine neuen Nachrichten.');
+    expect(host.textContent).not.toContain('Alles erledigt.');
+  });
+
+  it('retains overdue signatures and their real signing destination', async () => {
+    const data = { ...dashboard(), openSignatureDocumentCount: 3, overdueSignatureDocumentCount: 1 };
+    await act(async () => root.render(<HealthOSEmployeePortalTodayView dashboard={data} displayName="Mara" loading={false} error={null} onRefresh={() => {}} />));
+    const action = host.querySelector<HTMLButtonElement>('[data-testid="healthos-employee-open-signatures"]')!;
+    expect(action.textContent).toContain('3'); expect(action.textContent).toContain('1 überfällig');
+    await act(async () => action.click()); expect(h.push).toHaveBeenLastCalledWith('/portal/employee/signatures');
+  });
+
+  it('retries a failed refresh and exposes a cached snapshot', async () => {
+    const refresh=vi.fn();
+    await act(async () => root.render(<HealthOSEmployeePortalTodayView dashboard={dashboard()} displayName="Mara" loading={false} error={null} onRefresh={refresh} fromCache refreshError="Keine Verbindung" />));
+    expect(host.textContent).toContain('Gespeicherter Stand');
+    const retry=[...host.querySelectorAll<HTMLButtonElement>('button')].find(button=>button.textContent==='Erneut versuchen')!;
+    await act(async () => retry.click()); expect(refresh).toHaveBeenCalledOnce();
+  });
   it.each([320, 360, 1280])('keeps the complete title below accessories and opens the actual assignment at width %s', async (width) => {
     h.width = width;
     await act(async () => root.render(<HealthOSEmployeePortalTodayView dashboard={dashboard()} displayName="Mara" loading={false} error={null} onRefresh={() => {}} />));

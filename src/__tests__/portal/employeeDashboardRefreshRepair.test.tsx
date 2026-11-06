@@ -4,6 +4,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const f = vi.hoisted(() => ({ dashboardRefresh: vi.fn(), inboxRefresh: vi.fn(), props: {} as Record<string, unknown>, inboxError: null as string | null }));
+vi.mock('@/design/web/WebFontScaleProvider', () => ({ useWebFontScaleValue: () => 1 }));
 vi.mock('@/hooks/usePortalActor', () => ({ usePortalActor: () => ({ displayName: 'Anna' }) }));
 vi.mock('@/hooks/useEmployeePortalDashboard', () => ({ useEmployeePortalDashboard: () => ({
   dashboard: { todayAssignments: [], upcomingAssignments: [], openTasks: [], openDocumentationCount: 0, missingSignatureCount: 0, openSignatureDocumentCount: 0, overdueSignatureDocumentCount: 0, messageCount: 0 },

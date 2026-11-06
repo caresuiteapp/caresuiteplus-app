@@ -133,3 +133,8 @@ export function useWebFontScale(): WebFontScaleContextValue {
   }
   return ctx;
 }
+
+/** Responsive components may also render outside the application provider. */
+export function useWebFontScaleValue(): number {
+  return useContext(WebFontScaleContext)?.effectiveScale ?? 1;
+}

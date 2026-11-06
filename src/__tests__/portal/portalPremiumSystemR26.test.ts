@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { employeePortalLayout } from '@/components/portal/employee/employeePortalDesign';
 
 const root = path.join(__dirname, '..', '..', '..');
 const read = (relativePath: string) =>
@@ -30,28 +31,28 @@ describe('portal premium system R26', () => {
   it('switches heroes and work cards to a dedicated mobile layout below 760 px', () => {
     const pageHero = read('src/components/portal/PortalPremiumPageHero.tsx');
     const clientHome = read('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
-    const employeeHome = read('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
+    const employeeHome = read('src/components/portal/employee/EmployeePortalToday.tsx');
     const appointment = read('src/components/portal/assist/PortalNextAppointmentHero.tsx');
 
     expect(pageHero).toContain('isPhone || width < 760');
     expect(clientHome).toContain('isPhone || width < 760');
-    expect(employeeHome).toContain('width < 760');
+    expect(employeePortalLayout(390).splitFocus).toBe(false);
     expect(appointment).toContain('isPhone || width < 760');
     expect(clientHome).toContain("compact ? '100%'");
-    expect(employeeHome).toContain('quickTasksCompact');
-    expect(employeeHome).toContain('guideMascotCompact');
+    expect(employeeHome).toContain('layout.splitFocus');
+    expect(employeePortalLayout(1440).groupColumns).toBe(3);
   });
 
   it('keeps employee guidance and opens client guidance on demand', () => {
     const clientHome = read('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
-    const employeeHome = read('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
+    const employeeHome = read('src/components/portal/employee/EmployeePortalToday.tsx');
     expect(clientHome).toContain('<PortalInfoButton');
     expect(read('src/components/portal/PortalInfoButton.tsx')).toContain('visible={open}');
-    expect(employeeHome).toContain("require('../../../../assets/auth/access-employee.png')");
+    expect(employeeHome).toContain("require('../../../../public/landingpage/media/neo.png')");
     expect(clientHome).toContain('guideAreaPhone');
-    expect(employeeHome).toContain('guideAreaCompact');
+    expect(employeeHome).toContain('layout.phone ? 40 : 62');
     expect(clientHome).toContain('overflow: \'hidden\'');
-    expect(employeeHome).toContain('overflow: \'hidden\'');
+    expect(read('src/screens/portal/PortalTabScreen.tsx')).toContain('employeeHomeViewport');
   });
 
   it('applies premium surfaces and controls through shared primitives', () => {

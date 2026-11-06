@@ -85,16 +85,16 @@ describe('portal premium complete R27', () => {
     }
   });
 
-  it('uses contained mobile mascot layouts and full-width guide actions in both portals', () => {
+  it('keeps contained mascots and reflowing mobile actions in both portals', () => {
     const client = read('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
-    const employee = read('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
+    const employee = read('src/components/portal/employee/EmployeePortalToday.tsx');
     expect(client).toContain("flexDirection: 'column'");
     expect(client).toContain('guideActionPhone');
     expect(client).toContain("width: '100%', alignSelf: 'stretch'");
-    expect(employee).toContain('guideBubbleCompact');
-    expect(employee).toContain('guideActionCompact');
-    expect(employee).toContain("flexDirection: 'row', alignItems: 'flex-start'");
-    expect(employee).toContain('guideMascotCompact: { width: 52, height: 61');
+    expect(employee).toContain('layout.phone ? 40 : 62');
+    expect(employee).toContain('layout.splitFocus');
+    expect(employee).toContain("personalActions: { flexDirection: 'row', flexWrap: 'wrap'");
+    expect(employee).toContain('minHeight: 44');
   });
 
   it('uses system icons rather than emoji text for portal navigation cards and empty states', () => {

@@ -4,7 +4,9 @@ import { Platform, Modal, Pressable, ScrollView, StyleSheet, Text, View, type Vi
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, RequireAuth, RequireEmployeePasswordSetup, RequireRole } from '@/lib/auth';
-import { isConsultationWorkspaceEnabled } from '@/lib/beratung/workspaceRelease';
+import { EmployeePortalFrame } from '@/components/portal/employee/EmployeePortalFrame';
+import { employeePortalActiveId } from '@/components/portal/employee/employeePortalDesign';
+import { employeePortalNavigation } from '@/lib/portal/employee/employeePortalNavigation';
 import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import { useClientPortalSettings } from '@/hooks/useClientPortalSettings';
 import { formatNavBadgeLabel } from '@/lib/navigation/navBadgeLabel';
@@ -73,15 +75,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const navigation = useMemo(() => {
     const items = releasedLiquidPortalNavigation(kind, clientPortalSettings).filter(item => !familySession || item.id !== 'budget');
     if (kind !== 'employee') return items;
-    const tasks: LiquidPortalNavigationItem = {
-      id: 'tasks', label: 'Aufgaben & Notizen', glyph: '✓',
-      route: '/portal/employee/tasks', group: 'work',
-    };
-    const consultation: LiquidPortalNavigationItem[] = Platform.OS === 'web' && isConsultationWorkspaceEnabled() ? [{
-      id: 'consultation', label: 'Beratung & Schulungen', glyph: '◎',
-      route: '/portal/employee/beratung', group: 'work',
-    }] : [];
-    return [items[0], tasks, ...consultation, ...items.slice(1)];
+    return employeePortalNavigation();
   }, [kind, clientPortalSettings, familySession]);
   const compactNavigation = navigation.filter((item) => item.compact).slice(0, 4);
   const moreNavigation = navigation.filter((item) => !compactNavigation.some(primary => primary.id === item.id));
@@ -119,16 +113,31 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
       : label;
 
   const activeId = useMemo(() => {
+    if (kind === 'employee') return employeePortalActiveId(pathname, navigation);
     const matching = [...navigation]
       .sort((a, b) => b.route.length - a.route.length)
       .find((item) => pathname === item.route || pathname.startsWith(`${item.route}/`));
     return matching?.id ?? 'home';
-  }, [navigation, pathname]);
+  }, [kind, navigation, pathname]);
 
   const signOut = async () => {
     await auth.signOut();
     router.replace('/' as never);
   };
+
+  const employeeChrome = kind === 'employee' ? (
+    <View testID="portal-visual-viewport" style={[styles.viewport, visibleHeight !== null ? {
+      position: 'fixed', top: offsetTop, left: offsetLeft, height: visibleHeight, width: visibleWidth ?? '100%',
+    } as unknown as ViewStyle : null, Platform.OS !== 'web' && { paddingLeft: insets.left, paddingRight: insets.right }]}>
+      <EmployeePortalFrame width={visibleWidth ?? layout.width} displayName={displayName} navigation={navigation}
+        activeId={activeId} unreadCount={unreadMessageCount} keyboardVisible={keyboardVisible}
+        focus={visitExecutionFocus || compactMessengerFocus} insets={insets} overlay={overlay}
+        onNavigate={route => router.push(route as never)} onSignOut={signOut}>
+        <PortalStack />
+      </EmployeePortalFrame>
+    </View>
+  ) : null;
+  if (employeeChrome) return employeeChrome;
 
   return (
     <View testID="portal-visual-viewport" style={[styles.viewport, visibleHeight !== null ? {
@@ -195,9 +204,9 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
           >
             {!desktopChrome ? <LiquidLogo compact width={compactLogoWidth} /> : (
               <View style={styles.portalBrand}>
-                <Text style={styles.portalKicker}>{kind === 'employee' ? 'MITARBEITENDENPORTAL' : kind === 'client' ? 'KLIENT:INNENPORTAL' : 'ANGEHÖRIGENPORTAL'}</Text>
+                <Text style={styles.portalKicker}>{kind === 'client' ? 'KLIENT:INNENPORTAL' : 'ANGEHÖRIGENPORTAL'}</Text>
                 <Text style={styles.portalTitle}>
-                  {kind === 'employee' ? 'Mein Arbeitsbereich' : kind === 'client' ? 'Meine Versorgung' : 'Freigegebene Informationen'}
+                  {kind === 'client' ? 'Meine Versorgung' : 'Freigegebene Informationen'}
                 </Text>
               </View>
             )}
@@ -219,9 +228,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                     glyph="♧"
                     badge={compactMessageBadge}
                     onPress={() => router.push(
-                      kind === 'employee'
-                        ? '/portal/employee/messages'
-                        : kind === 'client'
+                      kind === 'client'
                           ? '/portal/client/messages'
                           : '/portal/relative/messages' as never,
                     )}
@@ -286,7 +293,7 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
                   numberOfLines={2}
                   style={[styles.bottomLabel, activeId === item.id && styles.bottomLabelActive]}
                 >
-                  {item.id === 'home' ? (kind === 'employee' ? 'Heute' : 'Start')
+                  {item.id === 'home' ? 'Start'
                     : item.id === 'documents' ? 'Akte'
                     : item.id === 'messages' ? 'Chats'
                     : item.id === 'assignments' || item.id === 'appointments' ? 'Plan'

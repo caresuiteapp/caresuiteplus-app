@@ -1,0 +1,7 @@
+{
+  "release": "employee-portal-responsive-20261107",
+  "design": "tagesfokus-kompakt-left-rail",
+  "viewportWidths": [320, 390, 768, 1024, 1440],
+  "sharedWebNative": true,
+  "responsiveTextScale": true
+}
