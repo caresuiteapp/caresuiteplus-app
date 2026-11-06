@@ -31,6 +31,18 @@ const withPermissions = (...permissions: PermissionKey[]): DesktopCatalogAccess 
 });
 
 describe('Web apps and widgets catalog', () => {
+  it('offers all permitted areas without bypassing module, action or unreleased-route checks', () => {
+    const entries = [
+      { route: '/settings/profile' }, { route: '/office/notizen' }, { route: '/assist/assignments' },
+      { route: '/business/office/clients/new', permission: 'office.clients.create' as const },
+      { route: '/stationaer/bewohner' }, { route: '/unknown' },
+    ];
+    const access = withPermissions('office.clients.view', 'assist.access', 'assist.assignments.view');
+    expect(filterDesktopCatalogEntries(entries, 'all', access)).toEqual(entries.slice(0, 3));
+    expect(filterDesktopCatalogEntries(entries, 'all', { ...access, hasModuleGate: key => key !== 'assist' })).toEqual(entries.slice(0, 2));
+    expect(filterDesktopCatalogEntries(entries, 'all', { ...admin, roleKey: 'client_portal' })).toEqual([]);
+  });
+
   it('offers the existing Pflege navigation in its own desktop with granular read rights', () => {
     const apps = buildDesktopApps([], 'business_admin');
     const full = filterDesktopCatalogEntries(apps, 'pflege', admin);

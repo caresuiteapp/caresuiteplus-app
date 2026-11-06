@@ -6814,13 +6814,13 @@
     {
       "web": "src/liquid-command/screens/desktopAppsWidgetsCenterCss.web.ts",
       "native": "src/liquid-command/screens/desktopAppsWidgetsCenterCss.native.ts",
-      "sourceHash": "b1fada7e6bbf54bdc39daf23138991d42983078f312112543a0698b70771ee6d",
+      "sourceHash": "424d2f3191e4194463caa0c7756db64d8785030b6d899fb80c54164d618a7bd9",
       "environment": []
     },
     {
       "web": "src/liquid-command/screens/DesktopAppsWidgetsCenter.web.tsx",
       "native": "src/liquid-command/screens/DesktopAppsWidgetsCenter.native.tsx",
-      "sourceHash": "96c2b7142f500a9da292e34d7696ea3a083ce25c4906b34734896ea3fe7bd23b",
+      "sourceHash": "1a68eef792287dfad37b16019e82646ddf60f5e95d32ffc943882225d4a0e0ab",
       "environment": []
     },
     {

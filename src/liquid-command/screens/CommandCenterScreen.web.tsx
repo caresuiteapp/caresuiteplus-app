@@ -18,7 +18,7 @@ import { DesktopAppsWidgetsCenter } from "./DesktopAppsWidgetsCenter.web";
 import { DesktopCatalogArtwork } from "../components/DesktopCatalogArtwork.web";
 import { DesktopWidgetSuggestion } from "../components/DesktopWidgetSuggestion.web";
 import { desktopWidgetSuggestionCss } from "../components/desktopWidgetSuggestionCss.web";
-import { canonicalDesktopCatalogRoute, desktopCatalogAreaForRoute, filterDesktopCatalogEntries } from "../navigation/appsWidgetsCatalogModel.web";
+import { canonicalDesktopCatalogRoute, desktopCatalogAreaForRoute, filterDesktopCatalogEntries, isDesktopCatalogRouteAvailableInArea } from "../navigation/appsWidgetsCatalogModel.web";
 import { suggestDesktopWidgets } from "../navigation/desktopWidgetSuggestions";
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
@@ -182,14 +182,16 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const desktopAreas = DESKTOP_AREAS.map(area => ({ ...area, disabled: !(area.key === 'settings' || area.key === 'premium' ||
     (area.key === 'robotics' ? permissions.can('robotics.access' as PermissionKey) : availableKeys.includes(area.key as ProductKey))) }));
   const areaAllowed = desktopAreas.some(area => area.key === selectedArea && !area.disabled);
-  const moduleApps = useMemo(() => areaAllowed ? filterDesktopCatalogEntries(apps, selectedArea, permissions) : [], [apps, areaAllowed, selectedArea, permissions]);
-  const moduleWidgets = useMemo<WidgetDefinition[]>(() => {
-    const existing = areaAllowed ? filterDesktopCatalogEntries(WIDGETS, selectedArea, permissions).map(widget => ({ ...widget, route: canonicalDesktopCatalogRoute(widget.route) })) : [];
+  const catalogApps = useMemo(() => areaAllowed ? filterDesktopCatalogEntries(apps, 'all', permissions) : [], [apps, areaAllowed, permissions]);
+  const moduleApps = useMemo(() => catalogApps.filter(app => isDesktopCatalogRouteAvailableInArea(app.route, selectedArea)), [catalogApps, selectedArea]);
+  const catalogWidgets = useMemo<WidgetDefinition[]>(() => {
+    const existing = areaAllowed ? filterDesktopCatalogEntries(WIDGETS, 'all', permissions).map(widget => ({ ...widget, route: canonicalDesktopCatalogRoute(widget.route) })) : [];
     const routes = new Set(existing.map(widget => widget.route));
-    return [...existing, ...moduleApps.filter(app => !routes.has(app.route)).map(app => ({ ...app, id: app.desktopWidgetId ?? `area-app:${app.id}` }))];
-  }, [areaAllowed, selectedArea, moduleApps, permissions]);
-  const areaWidgetById = useMemo(() => new Map(moduleWidgets.map(widget => [widget.id, widget])), [moduleWidgets]);
-  const moduleWidgetIds = useMemo(() => moduleWidgets.map(widget => widget.id), [moduleWidgets]);
+    return [...existing, ...catalogApps.filter(app => !routes.has(app.route)).map(app => ({ ...app, id: app.desktopWidgetId ?? `area-app:${app.id}` }))];
+  }, [areaAllowed, catalogApps, permissions]);
+  const moduleWidgets = useMemo(() => catalogWidgets.filter(widget => isDesktopCatalogRouteAvailableInArea(widget.route, selectedArea)), [catalogWidgets, selectedArea]);
+  const areaWidgetById = useMemo(() => new Map(catalogWidgets.map(widget => [widget.id, widget])), [catalogWidgets]);
+  const moduleWidgetIds = useMemo(() => catalogWidgets.map(widget => widget.id), [catalogWidgets]);
   const ownAreaWidgets = useMemo(() => moduleWidgets.filter(widget => desktopCatalogAreaForRoute(widget.route) === selectedArea), [moduleWidgets, selectedArea]);
   const migrationWidgetIds = useMemo(() => ownAreaWidgets.map(widget => widget.id), [ownAreaWidgets]);
   // Shared Office widgets are available to pin; they do not replace a new area's own defaults.
@@ -457,7 +459,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
       </Modal>
       <DesktopAppsWidgetsCenter visible={centerOpen} onClose={onCloseCenter} areaLabel={moduleLabel} initialTab={centerTab}
         selectedArea={selectedArea} areas={desktopAreas} onSelectArea={selectDesktop} onTabChange={onOpenCenter}
-        apps={moduleApps} widgets={moduleWidgets} workflows={moduleWorkflows} backgrounds={BACKGROUNDS}
+        apps={catalogApps} widgets={catalogWidgets} workflows={moduleWorkflows} backgrounds={BACKGROUNDS}
         desktopIds={desktopIds} backgroundId={backgroundId} recoverableCount={missingSavedWidgets.length}
         onRecover={() => setDesktopIds(ids => [...new Set([...ids, ...missingSavedWidgets])])}
         onOpen={route => openWidget({ route })} onToggleWidget={togglePinned} onMoveWidget={movePinned}

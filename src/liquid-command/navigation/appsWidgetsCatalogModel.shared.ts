@@ -221,8 +221,8 @@ export function canShowDesktopCatalogRoute(route: string, access: DesktopCatalog
 }
 
 export function filterDesktopCatalogEntries<T extends { route: string; permission?: PermissionKey }>(
-  entries: readonly T[], area: DesktopAreaKey, access: DesktopCatalogAccess,
+  entries: readonly T[], area: DesktopAreaKey | 'all', access: DesktopCatalogAccess,
 ): T[] {
-  return entries.filter(entry => isDesktopCatalogRouteAvailableInArea(entry.route, area) &&
+  return entries.filter(entry => (area === 'all' || isDesktopCatalogRouteAvailableInArea(entry.route, area)) &&
     canShowDesktopCatalogRoute(entry.route, access) && (!entry.permission || access.can(entry.permission)));
 }

@@ -18,7 +18,7 @@ import { DESKTOP_AREAS, desktopAreaStorageKey, type DesktopAreaKey } from '../na
 import { DesktopCatalogArtwork } from '../components/DesktopCatalogArtwork';
 import { buildDesktopAreaNavigation } from '../navigation/moduleDesktopModel';
 import { nativeAdministrationRoute } from '../navigation/nativeAdministrationModel';
-import { filterDesktopCatalogEntries, desktopCatalogAreaForRoute } from '../navigation/appsWidgetsCatalogModel.shared';
+import { filterDesktopCatalogEntries, desktopCatalogAreaForRoute, isDesktopCatalogRouteAvailableInArea } from '../navigation/appsWidgetsCatalogModel.shared';
 import { suggestDesktopWidgets } from '../navigation/desktopWidgetSuggestions';
 const ui = { ...m, surface: [m.card, { backgroundColor: 'rgba(2,15,35,0.76)', borderColor: 'rgba(139,211,255,0.3)' }], title: [m.title, { color: '#fff' }], body: [m.body, { color: '#E6F1FA' }], muted: [m.muted, { color: '#AFC9DC' }], label: [m.label, { color: '#E6F1FA' }], row: m.wrap, pressed: { opacity: 0.78 } };
 const NativeAction = (props: ComponentProps<typeof MobileButton>) => <MobileButton {...props} dark />;
@@ -78,12 +78,13 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const backgroundKey = `caresuite.healthos.native-background.v1.${encodeURIComponent(scope)}`;
   const permissionSignature = (permissions.permissions ?? []).join(',');
   const catalogAccess = useMemo(() => ({ ...permissions, hasModuleGate: (key: ProductKey) => availableKeys.includes(key) }), [permissionSignature, availableSignature, permissions.roleKey]);
-  const apps = useMemo(() => areaAllowed ? [...new Map(filterDesktopCatalogEntries(buildDesktopApps(WIDGETS, auth.profile?.roleKey).map(app => ({ ...app, route: nativeAdministrationRoute(app.route) })), selectedArea, catalogAccess).map(app => [app.route, app])).values()] : [], [auth.profile?.roleKey, areaAllowed, selectedArea, catalogAccess]);
+  const catalogApps = useMemo(() => areaAllowed ? [...new Map(filterDesktopCatalogEntries(buildDesktopApps(WIDGETS, auth.profile?.roleKey).map(app => ({ ...app, route: nativeAdministrationRoute(app.route) })), 'all', catalogAccess).map(app => [app.route, app])).values()] : [], [auth.profile?.roleKey, areaAllowed, catalogAccess]);
+  const apps = useMemo(() => catalogApps.filter(app => isDesktopCatalogRouteAvailableInArea(app.route, selectedArea)), [catalogApps, selectedArea]);
   const widgets = useMemo<WidgetDefinition[]>(() => {
-    const existing = areaAllowed ? filterDesktopCatalogEntries(WIDGETS.map(widget => ({ ...widget, route: nativeAdministrationRoute(widget.route) })), selectedArea, catalogAccess) : [];
+    const existing = areaAllowed ? filterDesktopCatalogEntries(WIDGETS.map(widget => ({ ...widget, route: nativeAdministrationRoute(widget.route) })), 'all', catalogAccess) : [];
     const routes = new Set(existing.map(widget => widget.route));
-    return [...existing, ...apps.filter(app => !routes.has(app.route)).map(app => ({ ...app, id: app.desktopWidgetId ?? `area-app:${app.id}` }))];
-  }, [apps, areaAllowed, selectedArea, catalogAccess]);
+    return [...existing, ...catalogApps.filter(app => !routes.has(app.route)).map(app => ({ ...app, id: app.desktopWidgetId ?? `area-app:${app.id}` }))];
+  }, [catalogApps, areaAllowed, catalogAccess]);
   const widgetById = useMemo(() => new Map(widgets.map(widget => [widget.id, widget])), [widgets]);
   const allowed = useMemo(() => widgets.map(widget => widget.id), [widgets]);
   const ownWidgets = useMemo(() => widgets.filter(widget => desktopCatalogAreaForRoute(widget.route) === selectedArea), [widgets, selectedArea]);
@@ -99,7 +100,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const [navQuery, setNavQuery] = useState('');
   const [weatherOpen, setWeatherOpen] = useState(false); const weather = useDesktopWeather(scope);
   const [now, setNow] = useState(new Date());
-  const suggestions = useMemo(() => suggestDesktopWidgets(widgets.filter(widget => !preferences.dismissed.includes(widget.id)), preferences.ids, selectedArea, desktopCatalogAreaForRoute, Math.min(6, Math.max(0, 12 - preferences.ids.length))), [widgets, preferences.ids, preferences.dismissed, selectedArea]);
+  const suggestions = useMemo(() => suggestDesktopWidgets(widgets.filter(widget => isDesktopCatalogRouteAvailableInArea(widget.route, selectedArea) && !preferences.dismissed.includes(widget.id)), preferences.ids, selectedArea, desktopCatalogAreaForRoute, Math.min(6, Math.max(0, 12 - preferences.ids.length))), [widgets, preferences.ids, preferences.dismissed, selectedArea]);
   const layout = nativeDesktopLayout(width - insets.left - insets.right, fontScale, suggestions.length > 0);
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(timer); }, []);
   useEffect(() => { setNavigationOpen(false); }, [layout.sidebar]);
@@ -207,7 +208,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
       selectedArea={selectedArea} areas={DESKTOP_AREAS.map(area => ({ key: area.key, label: area.label,
         disabled: area.key === 'settings' || area.key === 'premium' ? false : area.key === 'robotics' ? !permissions.can('robotics.access' as PermissionKey) : !availableKeys.includes(area.key as ProductKey) }))}
       onSelectArea={onSelectArea} initialTab={center ?? 'apps'} onTabChange={setCenter}
-      apps={apps} widgets={widgets} workflows={WORKFLOWS.filter(item => areaAllowed && apps.some(app => app.route === nativeAdministrationRoute(item.route))).map(item => ({ ...item, route: nativeAdministrationRoute(item.route) }))}
+      apps={catalogApps} widgets={widgets} workflows={WORKFLOWS.filter(item => areaAllowed && apps.some(app => app.route === nativeAdministrationRoute(item.route))).map(item => ({ ...item, route: nativeAdministrationRoute(item.route) }))}
       backgrounds={BACKGROUNDS} desktopIds={preferences.ids} backgroundId={preferences.background}
       recoverableCount={recoverableWidgetIds.filter(id => !preferences.ids.includes(id)).length}
       onRecover={() => persist({ ...current.current, ids: [...new Set([...current.current.ids, ...recoverableWidgetIds])] })}

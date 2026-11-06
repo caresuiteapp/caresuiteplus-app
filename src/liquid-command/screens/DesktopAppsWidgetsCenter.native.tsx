@@ -1,11 +1,12 @@
 // Generated native presentation from src/liquid-command/screens/DesktopAppsWidgetsCenter.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeDiv,NativeSpan,NativeImg,NativeButton,NativeStyle,NativeLabel,NativeInput,NativeSection,NativeH2,NativeP,NativeStrong,NativeH3,NativeArticle,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeDiv,NativeH3,NativeSpan,NativeButton,NativeP,NativeImg,NativeStyle,NativeStrong,NativeLabel,NativeInput,NativeSection,NativeH2,NativeArticle,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEvent } from 'react';
 import { Image, type ImageSourcePropType } from 'react-native';
 import { PlatformModal } from "../../components/layout/platform/platformmodal.tsx";
 import { DesktopAreaSwitcher, type DesktopAreaOption } from "../components/DesktopAreaSwitcher.native.tsx";
 import { DesktopCatalogArtwork } from "../components/DesktopCatalogArtwork.tsx";
-import type { DesktopAreaKey } from '../navigation/desktopAreas';
+import { DESKTOP_AREAS, type DesktopAreaKey } from '../navigation/desktopAreas';
+import { desktopCatalogAreaForRoute } from '../navigation/appsWidgetsCatalogModel.shared';
 import type { DesktopApp } from "../navigation/desktopAppCatalog.native.ts";
 import { DESKTOP_SLOT_COUNT, type BackgroundDefinition, type WidgetDefinition } from './administrationDesktopCatalog';
 import { desktopAppsWidgetsCenterCss } from "./desktopAppsWidgetsCenterCss.native.ts";
@@ -46,6 +47,35 @@ const TABS = [
     { id: 'workflows', label: 'Workflows' }, { id: 'backgrounds', label: 'Hintergründe' },
 ] as const;
 const normalize = (value: string) => value.normalize('NFKC').toLocaleLowerCase('de-DE').trim();
+const sourceLabel = (route: string) => DESKTOP_AREAS.find(area => area.key === desktopCatalogAreaForRoute(route))?.label ?? 'Allgemein';
+/** A disclosure keeps explanations available without launching or pinning a card. */
+function CatalogHeading({ label, description, route, category, kind }: {
+    label: string;
+    description: string;
+    route: string;
+    category: string;
+    kind: string;
+}) {
+    const [expanded, setExpanded] = useState(false);
+    const infoId = useId();
+    const origin = sourceLabel(route);
+    return <NativeWorkspaceStyleScope css={[desktopAppsWidgetsCenterCss]}>{<NativeDiv className="cs-center-card-intro" onKeyDown={event => {
+            if (event.key === 'Escape' && expanded) {
+                event.stopPropagation();
+                setExpanded(false);
+            }
+        }}>
+    <NativeDiv className="cs-center-card-heading">
+      <NativeDiv className="cs-center-card-title"><NativeH3>{label}</NativeH3><NativeSpan className="cs-center-card-kind">{category === origin ? origin : `${origin} · ${category}`}</NativeSpan></NativeDiv>
+      <NativeButton type="button" className="cs-center-info-button" aria-label={`Informationen zu ${label}`} aria-expanded={expanded} aria-controls={infoId} onClick={() => setExpanded(value => !value)}>
+        <NativeSpan aria-hidden="true">i</NativeSpan>
+      </NativeButton>
+    </NativeDiv>
+    {expanded ? <NativeDiv className="cs-center-info-panel" id={infoId} role="region" aria-label={`Über ${label}`}>
+      <NativeP>{description}</NativeP><NativeSpan className="cs-center-info-kind">{kind}</NativeSpan>
+    </NativeDiv> : null}
+  </NativeDiv>}</NativeWorkspaceStyleScope>;
+}
 /** Metro exposes URI assets on web; retain the native Image fallback for numeric assets. */
 function assetUri(source: ImageSourcePropType): string | undefined {
     if (typeof source === 'string')
@@ -70,6 +100,8 @@ export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selected
     const [query, setQuery] = useState('');
     const [category, setCategory] = useState('Alle');
     const [selectedOnly, setSelectedOnly] = useState(false);
+    const [scope, setScope] = useState<'area' | 'all'>('area');
+    const [areaPickerExpanded, setAreaPickerExpanded] = useState(false);
     const tabs = useRef<Partial<Record<DesktopCenterTab, HTMLButtonElement | null>>>({});
     const id = useId();
     useEffect(() => {
@@ -84,6 +116,12 @@ export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selected
         setCategory('Alle');
         setSelectedOnly(false);
     }, [visible, selectedArea, initialTab]);
+    useEffect(() => {
+        if (visible) {
+            setScope('area');
+            setAreaPickerExpanded(false);
+        }
+    }, [visible, selectedArea]);
     const resetFilters = () => { setQuery(''); setCategory('Alle'); setSelectedOnly(false); };
     const selectTab = (next: DesktopCenterTab) => { setTab(next); onTabChange?.(next); resetFilters(); };
     const tabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, current: DesktopCenterTab) => {
@@ -105,25 +143,27 @@ export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selected
     };
     const needle = normalize(query);
     const matches = (...values: (string | undefined)[]) => !needle || normalize(values.filter(Boolean).join(' ')).includes(needle);
-    const categoryItems = tab === 'apps' ? apps : tab === 'widgets' ? widgets : [];
+    const scopedApps = apps.filter(app => scope === 'all' || desktopCatalogAreaForRoute(app.route) === selectedArea);
+    const scopedWidgets = widgets.filter(widget => scope === 'all' || desktopCatalogAreaForRoute(widget.route) === selectedArea);
+    const categoryItems = tab === 'apps' ? scopedApps : tab === 'widgets' ? scopedWidgets : [];
     const categories = ['Alle', ...Array.from(new Set(categoryItems.map(item => item.category)))];
     const activeCategory = categories.includes(category) ? category : 'Alle';
-    const inCategory = (value: string) => !!needle || activeCategory === 'Alle' || activeCategory === value;
-    const filteredApps = apps.filter(app => inCategory(app.category) && matches(app.label, app.description, app.group, app.category));
-    const filteredWidgets = widgets.filter(widget => inCategory(widget.category) && matches(widget.label, widget.description, widget.category) && (!selectedOnly || desktopIds.includes(widget.id)));
+    const inCategory = (value: string) => activeCategory === 'Alle' || activeCategory === value;
+    const filteredApps = scopedApps.filter(app => inCategory(app.category) && matches(app.label, app.description, app.group, app.category, sourceLabel(app.route)));
+    const filteredWidgets = scopedWidgets.filter(widget => inCategory(widget.category) && matches(widget.label, widget.description, widget.category, sourceLabel(widget.route)) && (!selectedOnly || desktopIds.includes(widget.id)));
     if (selectedOnly)
         filteredWidgets.sort((left, right) => desktopIds.indexOf(left.id) - desktopIds.indexOf(right.id));
     const filteredWorkflows = workflows.filter(workflow => matches(workflow.label, workflow.text));
     const filteredBackgrounds = backgrounds.filter(background => matches(background.label));
-    const counts: Record<DesktopCenterTab, number> = { apps: apps.length, widgets: widgets.length, workflows: workflows.length, backgrounds: backgrounds.length };
+    const counts: Record<DesktopCenterTab, number> = { apps: scopedApps.length, widgets: scopedWidgets.length, workflows: workflows.length, backgrounds: backgrounds.length };
     const resultCount = { apps: filteredApps.length, widgets: filteredWidgets.length, workflows: filteredWorkflows.length, backgrounds: filteredBackgrounds.length }[tab];
     const hasFilters = !!needle || activeCategory !== 'Alle' || (tab === 'widgets' && selectedOnly);
     const tabLabel = TABS.find(item => item.id === tab)!.label;
     const style = { '--cs-center-scale': Math.max(1, Number.isFinite(effectiveScale) ? effectiveScale : 1) } as CSSProperties;
     const pages = Math.ceil(desktopIds.length / DESKTOP_SLOT_COUNT);
     const descriptions: Record<DesktopCenterTab, string> = {
-        apps: selectedArea === 'office' ? 'Öffnen Sie Ihre Office-Arbeitsbereiche.' : `Arbeitsbereiche für ${areaLabel} und gemeinsame Office-Apps.`,
-        widgets: `Fügen Sie Widgets zu „Mein Desktop · ${areaLabel}“ hinzu. Office-Widgets können Sie auf mehreren Desktops verwenden. Auswahl und Reihenfolge speichern Sie für jeden Desktop getrennt.`,
+        apps: scope === 'area' ? `Apps aus ${areaLabel}. Über das i erfahren Sie, wofür eine App gedacht ist.` : 'Alle für Sie verfügbaren Apps. Der Bereich steht jeweils unter dem Namen.',
+        widgets: `Fügen Sie Widgets zu „Mein Desktop · ${areaLabel}“ hinzu. Das i erklärt die jeweilige Funktion.`,
         workflows: selectedArea === 'office' ? 'Häufige Abläufe für Office.' : `Häufige Abläufe für ${areaLabel} und gemeinsame Office-Abläufe.`,
         backgrounds: 'Wählen Sie den Hintergrund für Ihren Desktop. Die Änderung ist sofort sichtbar.',
     };
@@ -139,7 +179,19 @@ export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selected
     </NativeDiv>}>
     <NativeStyle>{desktopAppsWidgetsCenterCss}</NativeStyle>
     <NativeDiv className="cs-apps-center" style={style} data-testid="desktop-apps-widgets-center">
-      <DesktopAreaSwitcher selectedArea={selectedArea} areas={areas} onSelectArea={onSelectArea} scale={effectiveScale}/>
+      <NativeDiv className="cs-center-area-picker" data-expanded={areaPickerExpanded}>
+        <NativeButton type="button" className="cs-center-area-toggle" aria-label={`Desktop-Auswahl ${areaPickerExpanded ? 'zuklappen' : 'aufklappen'}`} aria-expanded={areaPickerExpanded} aria-controls={`${id}-area-picker`} onClick={() => setAreaPickerExpanded(value => !value)}><NativeSpan>Desktop wechseln</NativeSpan><NativeStrong>{areaLabel} <NativeSpan aria-hidden="true">{areaPickerExpanded ? '⌃' : '⌄'}</NativeSpan></NativeStrong></NativeButton>
+        <NativeDiv className="cs-center-area-picker-content" id={`${id}-area-picker`}>
+          <DesktopAreaSwitcher selectedArea={selectedArea} areas={areas} onSelectArea={onSelectArea} scale={effectiveScale}/>
+        </NativeDiv>
+      </NativeDiv>
+      {tab === 'apps' || tab === 'widgets' ? <NativeDiv className="cs-center-scope-bar">
+        <NativeDiv className="cs-center-scope-copy"><NativeStrong>Was möchten Sie sehen?</NativeStrong><NativeSpan>Auswahl für „{areaLabel}“</NativeSpan></NativeDiv>
+        <NativeDiv className="cs-center-scope-options" role="group" aria-label="Anzeigebereich des Katalogs">
+          <NativeButton type="button" aria-label="Nur den aktuellen Bereich anzeigen" aria-pressed={scope === 'area'} onClick={() => { setScope('area'); setCategory('Alle'); }}>Nur {areaLabel}</NativeButton>
+          <NativeButton type="button" aria-label="Alle Bereiche anzeigen" aria-pressed={scope === 'all'} onClick={() => { setScope('all'); setCategory('Alle'); }}>Alle Bereiche</NativeButton>
+        </NativeDiv>
+      </NativeDiv> : null}
       <NativeDiv className="cs-center-toolbar">
         <NativeDiv className="cs-center-tabs" role="tablist" aria-label="Apps und Widgets">
           {TABS.map(item => <NativeButton type="button" className="cs-center-tab" key={item.id} id={`${id}-${item.id}-tab`} ref={node => { tabs.current[item.id] = node; }} role="tab" aria-selected={tab === item.id} aria-controls={`${id}-${item.id}-panel`} tabIndex={tab === item.id ? 0 : -1} onClick={() => selectTab(item.id)} onKeyDown={event => tabKeyDown(event, item.id)}>
@@ -148,23 +200,23 @@ export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selected
         </NativeDiv>
         <NativeLabel className="cs-center-search">
           <NativeSpan aria-hidden="true">⌕</NativeSpan>
-          <NativeInput id={`${id}-center-search`} type="search" aria-label={`${tabLabel} durchsuchen`} placeholder={`${tabLabel} durchsuchen …`} value={query} onChange={event => { setQuery(event.target.value); setCategory('Alle'); }} autoComplete="off"/>
+          <NativeInput id={`${id}-center-search`} type="search" aria-label={`${tabLabel} durchsuchen`} placeholder={`${tabLabel} durchsuchen …`} value={query} onChange={event => setQuery(event.target.value)} autoComplete="off"/>
         </NativeLabel>
       </NativeDiv>
 
       {tab === 'apps' || tab === 'widgets' ? <NativeDiv className="cs-center-filters">
         <NativeDiv className="cs-center-chips" role="group" aria-label="Kategorien">
-          {categories.map(item => <NativeButton type="button" key={item} className="cs-center-chip" aria-pressed={item === activeCategory} onClick={() => { setCategory(item); setQuery(''); }}>{item}<NativeSpan className="cs-center-chip-count" aria-hidden="true">{item === 'Alle' ? categoryItems.length : categoryItems.filter(entry => entry.category === item).length}</NativeSpan></NativeButton>)}
+          {categories.map(item => <NativeButton type="button" key={item} className="cs-center-chip" aria-pressed={item === activeCategory} onClick={() => setCategory(item)}>{item}<NativeSpan className="cs-center-chip-count" aria-hidden="true">{item === 'Alle' ? categoryItems.length : categoryItems.filter(entry => entry.category === item).length}</NativeSpan></NativeButton>)}
         </NativeDiv>
         {tab === 'widgets' ? <NativeDiv className="cs-center-selected-filter" role="group" aria-label="Widget-Auswahl">
           <NativeButton type="button" aria-pressed={!selectedOnly} onClick={() => setSelectedOnly(false)}>Alle</NativeButton>
-          <NativeButton type="button" aria-pressed={selectedOnly} onClick={() => setSelectedOnly(true)}>Auf diesem Desktop</NativeButton>
+          <NativeButton type="button" aria-pressed={selectedOnly} onClick={() => { setSelectedOnly(true); setScope('all'); setCategory('Alle'); }}>Auf diesem Desktop</NativeButton>
         </NativeDiv> : null}
       </NativeDiv> : null}
 
       <NativeSection className="cs-center-panel" id={`${id}-${tab}-panel`} role="tabpanel" aria-labelledby={`${id}-${tab}-tab`} tabIndex={0}>
         <NativeDiv className="cs-center-section-heading">
-          <NativeDiv><NativeH2>{tab === 'widgets' ? 'Ihr Desktop, Ihre Auswahl' : tab === 'workflows' ? 'Häufige Abläufe' : tab === 'backgrounds' ? 'Hintergrund auswählen' : 'Ihre Arbeitsbereiche'}</NativeH2><NativeP>{descriptions[tab]}</NativeP></NativeDiv>
+          <NativeDiv><NativeH2>{tab === 'widgets' ? (scope === 'all' ? 'Widgets aus allen Bereichen' : `Widgets für ${areaLabel}`) : tab === 'workflows' ? 'Häufige Abläufe' : tab === 'backgrounds' ? 'Hintergrund auswählen' : (scope === 'all' ? 'Apps aus allen Bereichen' : `Apps für ${areaLabel}`)}</NativeH2><NativeP>{descriptions[tab]}</NativeP></NativeDiv>
           <NativeSpan className="cs-center-result-count" role="status" aria-live="polite">{resultCount} von {counts[tab]} {tabLabel}</NativeSpan>
         </NativeDiv>
 
@@ -176,14 +228,17 @@ export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selected
           <NativeH3>{hasFilters ? `Keine passenden ${tabLabel}` : `Keine ${tabLabel} in diesem Bereich`}</NativeH3>
           <NativeP>{hasFilters ? 'Versuchen Sie einen anderen Suchbegriff oder setzen Sie die Filter zurück.' : tab === 'workflows' ? `Für ${areaLabel} sind derzeit keine Ablaufvorschläge hinterlegt. Die verfügbaren Arbeitsbereiche finden Sie unter Apps.` : `Für ${areaLabel} sind derzeit keine ${tabLabel} verfügbar.`}</NativeP>
           {hasFilters ? <NativeButton type="button" className="cs-center-button" onClick={resetFilters}>Filter zurücksetzen</NativeButton> : tab === 'workflows' && apps.length > 0 ? <NativeButton type="button" className="cs-center-button" onClick={() => selectTab('apps')}>Apps ansehen</NativeButton> : null}
+          {(tab === 'apps' || tab === 'widgets') && scope === 'area' ? <NativeButton type="button" className="cs-center-button cs-center-button-neutral" onClick={() => { setScope('all'); setCategory('Alle'); }}>In allen Bereichen suchen</NativeButton> : null}
         </NativeDiv> : null}
 
         {tab === 'apps' ? <NativeDiv className="cs-center-grid" data-testid="center-app-catalog">
-          {filteredApps.map(app => <NativeButton key={app.id} type="button" className="cs-center-card cs-center-app-card" aria-label={`App ${app.label} öffnen`} onClick={() => onOpen(app.route)}>
-            <NativeDiv className="cs-center-card-heading"><NativeH3>{app.label}</NativeH3><NativeSpan className="cs-center-card-kind">{app.group ?? app.category}</NativeSpan></NativeDiv>
-            <NativeDiv className="cs-center-artwork-preview"><DesktopCatalogArtwork route={app.route} label={app.label}/></NativeDiv>
-            <NativeDiv className="cs-center-card-body"><NativeP className="cs-center-card-description">{app.description}</NativeP><NativeSpan className="cs-center-card-link">Arbeitsbereich öffnen <NativeSpan aria-hidden="true">↗</NativeSpan></NativeSpan></NativeDiv>
-          </NativeButton>)}
+          {filteredApps.map(app => <NativeArticle key={app.id} className="cs-center-card cs-center-app-card">
+            <CatalogHeading label={app.label} description={app.description} route={app.route} category={app.group ?? app.category} kind="App · Öffnet den Arbeitsbereich."/>
+            <NativeButton type="button" className="cs-center-launcher" aria-label={`App ${app.label} öffnen`} onClick={() => onOpen(app.route)}>
+              <NativeDiv className="cs-center-artwork-preview"><DesktopCatalogArtwork route={app.route} label={app.label}/></NativeDiv>
+              <NativeDiv className="cs-center-card-body"><NativeSpan className="cs-center-card-link">Arbeitsbereich öffnen <NativeSpan aria-hidden="true">↗</NativeSpan></NativeSpan></NativeDiv>
+            </NativeButton>
+          </NativeArticle>)}
         </NativeDiv> : null}
 
         {tab === 'widgets' ? <NativeDiv className="cs-center-grid" data-testid="center-widget-catalog">
@@ -191,9 +246,10 @@ export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selected
                 const position = desktopIds.indexOf(widget.id);
                 const pinned = position >= 0;
                 return <NativeWorkspaceStyleScope key={widget.id} css={[desktopAppsWidgetsCenterCss]}>{<NativeArticle key={widget.id} className="cs-center-card cs-center-widget-card" data-selected={pinned}>
-              <NativeDiv className="cs-center-card-heading cs-center-widget-heading"><NativeDiv><NativeH3>{widget.label}</NativeH3><NativeSpan className="cs-center-card-kind">{widget.category}</NativeSpan></NativeDiv><NativeSpan className={`cs-center-badge${pinned ? '' : ' cs-center-badge-muted'}`}>{pinned ? '✓ Auf diesem Desktop' : widget.workspaceService ? 'Live-Widget' : 'Schnellzugriff'}</NativeSpan></NativeDiv>
+              <CatalogHeading label={widget.label} description={widget.description} route={widget.route} category={widget.category} kind={widget.workspaceService ? 'Live-Widget · Zeigt Workspace-Inhalte auf Ihrem Desktop.' : 'Schnellzugriff · Öffnet die Funktion von Ihrem Desktop aus.'}/>
+              <NativeSpan className={`cs-center-badge cs-center-card-status${pinned ? '' : ' cs-center-badge-muted'}`}>{pinned ? '✓ Auf diesem Desktop' : widget.workspaceService ? 'Live-Widget' : 'Schnellzugriff'}</NativeSpan>
               <NativeDiv className="cs-center-artwork-preview cs-center-widget-preview"><DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images}/></NativeDiv>
-              <NativeDiv className="cs-center-card-body cs-center-widget-body"><NativeP className="cs-center-card-description">{widget.description}</NativeP>
+              <NativeDiv className="cs-center-card-body cs-center-widget-body">
                 <NativeDiv className="cs-center-widget-actions"><NativeButton type="button" className={`cs-center-button${pinned ? ' cs-center-button-neutral' : ''}`} aria-label={`${widget.label} ${pinned ? 'vom Desktop entfernen' : 'zum Desktop hinzufügen'}`} onClick={() => onToggleWidget(widget.id)}>{pinned ? '− Vom Desktop entfernen' : '+ Zum Desktop hinzufügen'}</NativeButton>
                   {pinned ? <NativeDiv className="cs-center-reorder"><NativeSpan>Position {position + 1}</NativeSpan><NativeButton type="button" aria-label={`${widget.label} nach vorne verschieben`} title="Nach vorne verschieben" disabled={position === 0} onClick={() => onMoveWidget(widget.id, -1)}>↑</NativeButton><NativeButton type="button" aria-label={`${widget.label} nach hinten verschieben`} title="Nach hinten verschieben" disabled={position === desktopIds.length - 1} onClick={() => onMoveWidget(widget.id, 1)}>↓</NativeButton></NativeDiv> : null}
                 </NativeDiv>

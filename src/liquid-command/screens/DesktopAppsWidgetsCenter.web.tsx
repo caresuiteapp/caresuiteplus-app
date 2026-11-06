@@ -4,7 +4,8 @@ import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { useWebFontScale } from '@/design/web/WebFontScaleProvider';
 import { DesktopAreaSwitcher, type DesktopAreaOption } from '../components/DesktopAreaSwitcher.web';
 import { DesktopCatalogArtwork } from '../components/DesktopCatalogArtwork.web';
-import type { DesktopAreaKey } from '../navigation/desktopAreas';
+import { DESKTOP_AREAS, type DesktopAreaKey } from '../navigation/desktopAreas';
+import { desktopCatalogAreaForRoute } from '../navigation/appsWidgetsCatalogModel.shared';
 import type { DesktopApp } from '../navigation/desktopAppCatalog.web';
 import { DESKTOP_SLOT_COUNT, type BackgroundDefinition, type WidgetDefinition } from './administrationDesktopCatalog';
 import { desktopAppsWidgetsCenterCss } from './desktopAppsWidgetsCenterCss.web';
@@ -43,6 +44,30 @@ const TABS = [
 ] as const;
 
 const normalize = (value: string) => value.normalize('NFKC').toLocaleLowerCase('de-DE').trim();
+const sourceLabel = (route: string) => DESKTOP_AREAS.find(area => area.key === desktopCatalogAreaForRoute(route))?.label ?? 'Allgemein';
+
+/** A disclosure keeps explanations available without launching or pinning a card. */
+function CatalogHeading({ label, description, route, category, kind }: {
+  label: string; description: string; route: string; category: string; kind: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const infoId = useId();
+  const origin = sourceLabel(route);
+  return <div className="cs-center-card-intro" onKeyDown={event => {
+    if (event.key === 'Escape' && expanded) { event.stopPropagation(); setExpanded(false); }
+  }}>
+    <div className="cs-center-card-heading">
+      <div className="cs-center-card-title"><h3>{label}</h3><span className="cs-center-card-kind">{category === origin ? origin : `${origin} · ${category}`}</span></div>
+      <button type="button" className="cs-center-info-button" aria-label={`Informationen zu ${label}`}
+        aria-expanded={expanded} aria-controls={infoId} onClick={() => setExpanded(value => !value)}>
+        <span aria-hidden="true">i</span>
+      </button>
+    </div>
+    {expanded ? <div className="cs-center-info-panel" id={infoId} role="region" aria-label={`Über ${label}`}>
+      <p>{description}</p><span className="cs-center-info-kind">{kind}</span>
+    </div> : null}
+  </div>;
+}
 
 /** Metro exposes URI assets on web; retain the native Image fallback for numeric assets. */
 function assetUri(source: ImageSourcePropType): string | undefined {
@@ -70,6 +95,8 @@ export function DesktopAppsWidgetsCenter({
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('Alle');
   const [selectedOnly, setSelectedOnly] = useState(false);
+  const [scope, setScope] = useState<'area' | 'all'>('area');
+  const [areaPickerExpanded, setAreaPickerExpanded] = useState(false);
   const tabs = useRef<Partial<Record<DesktopCenterTab, HTMLButtonElement | null>>>({});
   const id = useId();
 
@@ -84,6 +111,10 @@ export function DesktopAppsWidgetsCenter({
     setCategory('Alle');
     setSelectedOnly(false);
   }, [visible, selectedArea, initialTab]);
+
+  useEffect(() => {
+    if (visible) { setScope('area'); setAreaPickerExpanded(false); }
+  }, [visible, selectedArea]);
 
   const resetFilters = () => { setQuery(''); setCategory('Alle'); setSelectedOnly(false); };
   const selectTab = (next: DesktopCenterTab) => { setTab(next); onTabChange?.(next); resetFilters(); };
@@ -100,24 +131,26 @@ export function DesktopAppsWidgetsCenter({
 
   const needle = normalize(query);
   const matches = (...values: (string | undefined)[]) => !needle || normalize(values.filter(Boolean).join(' ')).includes(needle);
-  const categoryItems = tab === 'apps' ? apps : tab === 'widgets' ? widgets : [];
+  const scopedApps = apps.filter(app => scope === 'all' || desktopCatalogAreaForRoute(app.route) === selectedArea);
+  const scopedWidgets = widgets.filter(widget => scope === 'all' || desktopCatalogAreaForRoute(widget.route) === selectedArea);
+  const categoryItems = tab === 'apps' ? scopedApps : tab === 'widgets' ? scopedWidgets : [];
   const categories = ['Alle', ...Array.from(new Set(categoryItems.map(item => item.category)))];
   const activeCategory = categories.includes(category) ? category : 'Alle';
-  const inCategory = (value: string) => !!needle || activeCategory === 'Alle' || activeCategory === value;
-  const filteredApps = apps.filter(app => inCategory(app.category) && matches(app.label, app.description, app.group, app.category));
-  const filteredWidgets = widgets.filter(widget => inCategory(widget.category) && matches(widget.label, widget.description, widget.category) && (!selectedOnly || desktopIds.includes(widget.id)));
+  const inCategory = (value: string) => activeCategory === 'Alle' || activeCategory === value;
+  const filteredApps = scopedApps.filter(app => inCategory(app.category) && matches(app.label, app.description, app.group, app.category, sourceLabel(app.route)));
+  const filteredWidgets = scopedWidgets.filter(widget => inCategory(widget.category) && matches(widget.label, widget.description, widget.category, sourceLabel(widget.route)) && (!selectedOnly || desktopIds.includes(widget.id)));
   if (selectedOnly) filteredWidgets.sort((left, right) => desktopIds.indexOf(left.id) - desktopIds.indexOf(right.id));
   const filteredWorkflows = workflows.filter(workflow => matches(workflow.label, workflow.text));
   const filteredBackgrounds = backgrounds.filter(background => matches(background.label));
-  const counts: Record<DesktopCenterTab, number> = { apps: apps.length, widgets: widgets.length, workflows: workflows.length, backgrounds: backgrounds.length };
+  const counts: Record<DesktopCenterTab, number> = { apps: scopedApps.length, widgets: scopedWidgets.length, workflows: workflows.length, backgrounds: backgrounds.length };
   const resultCount = { apps: filteredApps.length, widgets: filteredWidgets.length, workflows: filteredWorkflows.length, backgrounds: filteredBackgrounds.length }[tab];
   const hasFilters = !!needle || activeCategory !== 'Alle' || (tab === 'widgets' && selectedOnly);
   const tabLabel = TABS.find(item => item.id === tab)!.label;
   const style = { '--cs-center-scale': Math.max(1, Number.isFinite(effectiveScale) ? effectiveScale : 1) } as CSSProperties;
   const pages = Math.ceil(desktopIds.length / DESKTOP_SLOT_COUNT);
   const descriptions: Record<DesktopCenterTab, string> = {
-    apps: selectedArea === 'office' ? 'Öffnen Sie Ihre Office-Arbeitsbereiche.' : `Arbeitsbereiche für ${areaLabel} und gemeinsame Office-Apps.`,
-    widgets: `Fügen Sie Widgets zu „Mein Desktop · ${areaLabel}“ hinzu. Office-Widgets können Sie auf mehreren Desktops verwenden. Auswahl und Reihenfolge speichern Sie für jeden Desktop getrennt.`,
+    apps: scope === 'area' ? `Apps aus ${areaLabel}. Über das i erfahren Sie, wofür eine App gedacht ist.` : 'Alle für Sie verfügbaren Apps. Der Bereich steht jeweils unter dem Namen.',
+    widgets: `Fügen Sie Widgets zu „Mein Desktop · ${areaLabel}“ hinzu. Das i erklärt die jeweilige Funktion.`,
     workflows: selectedArea === 'office' ? 'Häufige Abläufe für Office.' : `Häufige Abläufe für ${areaLabel} und gemeinsame Office-Abläufe.`,
     backgrounds: 'Wählen Sie den Hintergrund für Ihren Desktop. Die Änderung ist sofort sichtbar.',
   };
@@ -137,7 +170,22 @@ export function DesktopAppsWidgetsCenter({
     </div>}>
     <style>{desktopAppsWidgetsCenterCss}</style>
     <div className="cs-apps-center" style={style} data-testid="desktop-apps-widgets-center">
-      <DesktopAreaSwitcher selectedArea={selectedArea} areas={areas} onSelectArea={onSelectArea} scale={effectiveScale}/>
+      <div className="cs-center-area-picker" data-expanded={areaPickerExpanded}>
+        <button type="button" className="cs-center-area-toggle" aria-label={`Desktop-Auswahl ${areaPickerExpanded ? 'zuklappen' : 'aufklappen'}`} aria-expanded={areaPickerExpanded} aria-controls={`${id}-area-picker`}
+          onClick={() => setAreaPickerExpanded(value => !value)}><span>Desktop wechseln</span><strong>{areaLabel} <span aria-hidden="true">{areaPickerExpanded ? '⌃' : '⌄'}</span></strong></button>
+        <div className="cs-center-area-picker-content" id={`${id}-area-picker`}>
+          <DesktopAreaSwitcher selectedArea={selectedArea} areas={areas} onSelectArea={onSelectArea} scale={effectiveScale}/>
+        </div>
+      </div>
+      {tab === 'apps' || tab === 'widgets' ? <div className="cs-center-scope-bar">
+        <div className="cs-center-scope-copy"><strong>Was möchten Sie sehen?</strong><span>Auswahl für „{areaLabel}“</span></div>
+        <div className="cs-center-scope-options" role="group" aria-label="Anzeigebereich des Katalogs">
+          <button type="button" aria-label="Nur den aktuellen Bereich anzeigen" aria-pressed={scope === 'area'}
+            onClick={() => { setScope('area'); setCategory('Alle'); }}>Nur {areaLabel}</button>
+          <button type="button" aria-label="Alle Bereiche anzeigen" aria-pressed={scope === 'all'}
+            onClick={() => { setScope('all'); setCategory('Alle'); }}>Alle Bereiche</button>
+        </div>
+      </div> : null}
       <div className="cs-center-toolbar">
         <div className="cs-center-tabs" role="tablist" aria-label="Apps und Widgets">
           {TABS.map(item => <button type="button" className="cs-center-tab" key={item.id} id={`${id}-${item.id}-tab`}
@@ -150,24 +198,24 @@ export function DesktopAppsWidgetsCenter({
         <label className="cs-center-search">
           <span aria-hidden="true">⌕</span>
           <input id={`${id}-center-search`} type="search" aria-label={`${tabLabel} durchsuchen`} placeholder={`${tabLabel} durchsuchen …`}
-            value={query} onChange={event => { setQuery(event.target.value); setCategory('Alle'); }} autoComplete="off"/>
+            value={query} onChange={event => setQuery(event.target.value)} autoComplete="off"/>
         </label>
       </div>
 
       {tab === 'apps' || tab === 'widgets' ? <div className="cs-center-filters">
         <div className="cs-center-chips" role="group" aria-label="Kategorien">
           {categories.map(item => <button type="button" key={item} className="cs-center-chip" aria-pressed={item === activeCategory}
-            onClick={() => { setCategory(item); setQuery(''); }}>{item}<span className="cs-center-chip-count" aria-hidden="true">{item === 'Alle' ? categoryItems.length : categoryItems.filter(entry => entry.category === item).length}</span></button>)}
+            onClick={() => setCategory(item)}>{item}<span className="cs-center-chip-count" aria-hidden="true">{item === 'Alle' ? categoryItems.length : categoryItems.filter(entry => entry.category === item).length}</span></button>)}
         </div>
         {tab === 'widgets' ? <div className="cs-center-selected-filter" role="group" aria-label="Widget-Auswahl">
           <button type="button" aria-pressed={!selectedOnly} onClick={() => setSelectedOnly(false)}>Alle</button>
-          <button type="button" aria-pressed={selectedOnly} onClick={() => setSelectedOnly(true)}>Auf diesem Desktop</button>
+          <button type="button" aria-pressed={selectedOnly} onClick={() => { setSelectedOnly(true); setScope('all'); setCategory('Alle'); }}>Auf diesem Desktop</button>
         </div> : null}
       </div> : null}
 
       <section className="cs-center-panel" id={`${id}-${tab}-panel`} role="tabpanel" aria-labelledby={`${id}-${tab}-tab`} tabIndex={0}>
         <div className="cs-center-section-heading">
-          <div><h2>{tab === 'widgets' ? 'Ihr Desktop, Ihre Auswahl' : tab === 'workflows' ? 'Häufige Abläufe' : tab === 'backgrounds' ? 'Hintergrund auswählen' : 'Ihre Arbeitsbereiche'}</h2><p>{descriptions[tab]}</p></div>
+          <div><h2>{tab === 'widgets' ? (scope === 'all' ? 'Widgets aus allen Bereichen' : `Widgets für ${areaLabel}`) : tab === 'workflows' ? 'Häufige Abläufe' : tab === 'backgrounds' ? 'Hintergrund auswählen' : (scope === 'all' ? 'Apps aus allen Bereichen' : `Apps für ${areaLabel}`)}</h2><p>{descriptions[tab]}</p></div>
           <span className="cs-center-result-count" role="status" aria-live="polite">{resultCount} von {counts[tab]} {tabLabel}</span>
         </div>
 
@@ -179,14 +227,17 @@ export function DesktopAppsWidgetsCenter({
           <h3>{hasFilters ? `Keine passenden ${tabLabel}` : `Keine ${tabLabel} in diesem Bereich`}</h3>
           <p>{hasFilters ? 'Versuchen Sie einen anderen Suchbegriff oder setzen Sie die Filter zurück.' : tab === 'workflows' ? `Für ${areaLabel} sind derzeit keine Ablaufvorschläge hinterlegt. Die verfügbaren Arbeitsbereiche finden Sie unter Apps.` : `Für ${areaLabel} sind derzeit keine ${tabLabel} verfügbar.`}</p>
           {hasFilters ? <button type="button" className="cs-center-button" onClick={resetFilters}>Filter zurücksetzen</button> : tab === 'workflows' && apps.length > 0 ? <button type="button" className="cs-center-button" onClick={() => selectTab('apps')}>Apps ansehen</button> : null}
+          {(tab === 'apps' || tab === 'widgets') && scope === 'area' ? <button type="button" className="cs-center-button cs-center-button-neutral" onClick={() => { setScope('all'); setCategory('Alle'); }}>In allen Bereichen suchen</button> : null}
         </div> : null}
 
         {tab === 'apps' ? <div className="cs-center-grid" data-testid="center-app-catalog">
-          {filteredApps.map(app => <button key={app.id} type="button" className="cs-center-card cs-center-app-card" aria-label={`App ${app.label} öffnen`} onClick={() => onOpen(app.route)}>
-            <div className="cs-center-card-heading"><h3>{app.label}</h3><span className="cs-center-card-kind">{app.group ?? app.category}</span></div>
-            <div className="cs-center-artwork-preview"><DesktopCatalogArtwork route={app.route} label={app.label}/></div>
-            <div className="cs-center-card-body"><p className="cs-center-card-description">{app.description}</p><span className="cs-center-card-link">Arbeitsbereich öffnen <span aria-hidden="true">↗</span></span></div>
-          </button>)}
+          {filteredApps.map(app => <article key={app.id} className="cs-center-card cs-center-app-card">
+            <CatalogHeading label={app.label} description={app.description} route={app.route} category={app.group ?? app.category} kind="App · Öffnet den Arbeitsbereich."/>
+            <button type="button" className="cs-center-launcher" aria-label={`App ${app.label} öffnen`} onClick={() => onOpen(app.route)}>
+              <div className="cs-center-artwork-preview"><DesktopCatalogArtwork route={app.route} label={app.label}/></div>
+              <div className="cs-center-card-body"><span className="cs-center-card-link">Arbeitsbereich öffnen <span aria-hidden="true">↗</span></span></div>
+            </button>
+          </article>)}
         </div> : null}
 
         {tab === 'widgets' ? <div className="cs-center-grid" data-testid="center-widget-catalog">
@@ -194,9 +245,11 @@ export function DesktopAppsWidgetsCenter({
             const position = desktopIds.indexOf(widget.id);
             const pinned = position >= 0;
             return <article key={widget.id} className="cs-center-card cs-center-widget-card" data-selected={pinned}>
-              <div className="cs-center-card-heading cs-center-widget-heading"><div><h3>{widget.label}</h3><span className="cs-center-card-kind">{widget.category}</span></div><span className={`cs-center-badge${pinned ? '' : ' cs-center-badge-muted'}`}>{pinned ? '✓ Auf diesem Desktop' : widget.workspaceService ? 'Live-Widget' : 'Schnellzugriff'}</span></div>
+              <CatalogHeading label={widget.label} description={widget.description} route={widget.route} category={widget.category}
+                kind={widget.workspaceService ? 'Live-Widget · Zeigt Workspace-Inhalte auf Ihrem Desktop.' : 'Schnellzugriff · Öffnet die Funktion von Ihrem Desktop aus.'}/>
+              <span className={`cs-center-badge cs-center-card-status${pinned ? '' : ' cs-center-badge-muted'}`}>{pinned ? '✓ Auf diesem Desktop' : widget.workspaceService ? 'Live-Widget' : 'Schnellzugriff'}</span>
               <div className="cs-center-artwork-preview cs-center-widget-preview"><DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images}/></div>
-              <div className="cs-center-card-body cs-center-widget-body"><p className="cs-center-card-description">{widget.description}</p>
+              <div className="cs-center-card-body cs-center-widget-body">
                 <div className="cs-center-widget-actions"><button type="button" className={`cs-center-button${pinned ? ' cs-center-button-neutral' : ''}`}
                   aria-label={`${widget.label} ${pinned ? 'vom Desktop entfernen' : 'zum Desktop hinzufügen'}`} onClick={() => onToggleWidget(widget.id)}>{pinned ? '− Vom Desktop entfernen' : '+ Zum Desktop hinzufügen'}</button>
                   {pinned ? <div className="cs-center-reorder"><span>Position {position + 1}</span><button type="button" aria-label={`${widget.label} nach vorne verschieben`} title="Nach vorne verschieben" disabled={position === 0} onClick={() => onMoveWidget(widget.id, -1)}>↑</button><button type="button" aria-label={`${widget.label} nach hinten verschieben`} title="Nach hinten verschieben" disabled={position === desktopIds.length - 1} onClick={() => onMoveWidget(widget.id, 1)}>↓</button></div> : null}

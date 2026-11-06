@@ -120,6 +120,104 @@ const dismissSuggestion = (card: HTMLElement | undefined) => card?.querySelector
 const savedDismissals = (area: DesktopAreaKey = 'office') => JSON.parse(memory.get(`${key(area)}.dismissed-suggestions.v1`) ?? '[]') as string[];
 
 describe('Apps and Widgets in the actual Web desktop', () => {
+  it('collapses the compact area picker after selecting another desktop', async () => {
+    seed([]); await render(); await open();
+    expect(label('Desktop-Auswahl aufklappen')?.getAttribute('aria-expanded')).toBe('false');
+    await clickLabel('Desktop-Auswahl aufklappen');
+    expect(label('Desktop-Auswahl zuklappen')?.getAttribute('aria-expanded')).toBe('true');
+    await selectDesktop('assist');
+    expect(label('Desktop-Auswahl aufklappen')?.getAttribute('aria-expanded')).toBe('false');
+    expectSelectedDesktop('assist');
+  });
+
+  it('starts with the current area and offers all permitted apps and widgets without switching the desktop', async () => {
+    chooseArea('settings'); seed([], 'settings'); await render(); await open();
+    expect(label('Nur den aktuellen Bereich anzeigen')?.getAttribute('aria-pressed')).toBe('true');
+    expect(catalogRoute('app', '/settings/profile')).toBeTruthy();
+    expect(catalogRoute('app', '/business/office/clients')).toBeNull();
+    expect(catalogRoute('app', '/assist/assignments')).toBeNull();
+    const ownCount = Number(tab('Apps').querySelector('.cs-center-tab-count')!.textContent);
+    await clickLabel('Alle Bereiche anzeigen');
+    expect(catalogRoute('app', '/business/office/clients')).toBeTruthy();
+    expect(catalogRoute('app', '/assist/assignments')).toBeTruthy();
+    expect(Number(tab('Apps').querySelector('.cs-center-tab-count')!.textContent)).toBeGreaterThan(ownCount);
+    expectSelectedDesktop('settings');
+    expect(memory.get(selectionKey())).toBe('settings');
+    await click(tab('Widgets'));
+    expect(label('Alle Bereiche anzeigen')?.getAttribute('aria-pressed')).toBe('true');
+    expect(catalogRoute('widget', '/office/notizen')).toBeTruthy();
+    await clickLabel('Nur den aktuellen Bereich anzeigen');
+    expect(catalogRoute('widget', '/office/notizen')).toBeNull();
+    expect(catalogRoute('widget', '/settings/profile')).toBeTruthy();
+    expect(api.push).not.toHaveBeenCalled();
+  });
+
+  it('combines category and search filters without leaking results from other areas', async () => {
+    seed([]); await render(); await open();
+    const team = [...dialog().querySelectorAll<HTMLButtonElement>('.cs-center-chip')].find(chip => visibleText(chip) === 'Team');
+    await click(team);
+    await type('Apps durchsuchen', 'Notizen');
+    expect(label('App Notizen öffnen')).toBeNull();
+    expect(team!.getAttribute('aria-pressed')).toBe('true');
+    await click(button('Filter zurücksetzen'));
+    await type('Apps durchsuchen', 'Einsätze');
+    expect(catalogRoute('app', '/assist/assignments')).toBeNull();
+    await clickLabel('Alle Bereiche anzeigen');
+    expect((label('Apps durchsuchen') as HTMLInputElement).value).toBe('Einsätze');
+    expect(catalogRoute('app', '/assist/assignments')).toBeTruthy();
+    await selectDesktop('assist');
+    expect(label('Nur den aktuellen Bereich anzeigen')?.getAttribute('aria-pressed')).toBe('true');
+    expect(catalogRoute('app', '/office/notizen')).toBeNull();
+  });
+
+  it('retains cross-area widgets on the selected desktop through reload and temporary permission loss', async () => {
+    chooseArea('settings'); seed([], 'settings'); seed(['notes']); await render(); await open('Widgets');
+    await clickLabel('Alle Bereiche anzeigen');
+    await clickLabel('Einsätze zum Desktop hinzufügen');
+    expect(savedIds('settings')).toEqual(['assignments']);
+    expect(savedIds()).toEqual(['notes']);
+    await remount();
+    expect(label('Einsätze öffnen')).toBeTruthy();
+    await open('Widgets');
+    expect(label('Einsätze vom Desktop entfernen')).toBeNull();
+    await click(button('Auf diesem Desktop'));
+    expect(label('Alle Bereiche anzeigen')?.getAttribute('aria-pressed')).toBe('true');
+    expect(label('Einsätze vom Desktop entfernen')).toBeTruthy();
+    api.denied.add('assist.assignments.view'); await render();
+    expect(catalogRoute('widget', '/assist/assignments')).toBeNull();
+    expect(label('Einsätze öffnen')).toBeNull();
+    expect(savedIds('settings')).toEqual(['assignments']);
+    api.denied.delete('assist.assignments.view'); await remount();
+    expect(label('Einsätze öffnen')).toBeTruthy();
+    expect(savedIds('settings')).toEqual(['assignments']);
+  });
+
+  it('opens every app and widget explanation independently and closes it with Escape', async () => {
+    seed([]); await render(); await open();
+    for (const name of ['Apps', 'Widgets']) {
+      if (name === 'Widgets') await click(tab('Widgets'));
+      const catalog = dialog().querySelector(`[data-testid="center-${name === 'Apps' ? 'app' : 'widget'}-catalog"]`)!;
+      expect(catalog.querySelectorAll('.cs-center-info-button').length).toBe(catalog.children.length);
+      expect(catalog.querySelector('button button')).toBeNull();
+      const card = catalogRoute(name === 'Apps' ? 'app' : 'widget', '/office/notizen')!.closest('article')!;
+      const info = card.querySelector<HTMLButtonElement>('.cs-center-info-button')!;
+      expect(info.getAttribute('aria-expanded')).toBe('false');
+      expect(card.querySelector('[role="region"]')).toBeNull();
+      await click(info);
+      const explanation = card.querySelector('[role="region"]');
+      expect(explanation?.id).toBe(info.getAttribute('aria-controls'));
+      expect(explanation?.textContent).toMatch(/Notizen/);
+      expect(info.getAttribute('aria-expanded')).toBe('true');
+      expect(api.push).not.toHaveBeenCalled();
+      expect(savedIds()).toEqual([]);
+      await act(async () => { info.focus(); info.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); });
+      expect(info.getAttribute('aria-expanded')).toBe('false');
+      expect(card.querySelector('[role="region"]')).toBeNull();
+      expect(dialog()).toBeTruthy();
+      expect(document.activeElement).toBe(info);
+    }
+  });
+
   it.each(DESKTOP_AREAS)('offers optional recommendations on the $label desktop and saves a one-click selection', async area => {
     api.modules.add(area.key); chooseArea(area.key); seed([], area.key);
     await render();
@@ -600,11 +698,13 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     seed(['clients']); seed([], 'beratung'); seed(['assignments'], 'assist');
     await render(); await open('Widgets');
     await selectDesktop('beratung');
+    await clickLabel('Alle Bereiche anzeigen');
     expect(officeClientAction('Klient:innen zum Desktop hinzufügen')).toBeTruthy();
     await click(officeClientAction('Klient:innen zum Desktop hinzufügen'));
     expect(savedIds('beratung')).toEqual(['clients']);
     expect(savedIds()).toEqual(['clients']);
     await selectDesktop('assist');
+    await clickLabel('Alle Bereiche anzeigen');
     await click(officeClientAction('Klient:innen zum Desktop hinzufügen'));
     expect(savedIds('assist')).toEqual(['assignments', 'clients']);
     await click(officeClientAction('Klient:innen nach vorne verschieben'));
@@ -619,12 +719,14 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(api.push).toHaveBeenCalledWith('/business/office/clients');
     expect(memory.get(selectionKey())).toBe('assist');
     await open('Widgets');
+    await click(button('Auf diesem Desktop'));
     await click(officeClientAction('Klient:innen vom Desktop entfernen'));
     expect(savedIds('assist')).toEqual(['assignments']);
     expect(savedIds()).toEqual(['clients']);
     expect(savedIds('beratung')).toEqual(['clients']);
 
     await selectDesktop('beratung');
+    await click(button('Auf diesem Desktop'));
     await clickLabel('Center schließen');
     await remount();
     expect(tab('Beratung', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
@@ -646,6 +748,8 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(label('Klient:innen öffnen')).toBeNull();
     expect(label('Seite Klient:innen öffnen')).toBeTruthy();
     await open('Widgets');
+    expect(label('Klient:innen zum Desktop hinzufügen')).toBeNull();
+    await clickLabel('Alle Bereiche anzeigen');
     expect(label('Klient:innen zum Desktop hinzufügen')).toBeTruthy();
     expect(label('Notizen zum Desktop hinzufügen')).toBeTruthy();
     expect(label('Dokumentenkatalog zum Desktop hinzufügen')).toBeTruthy();
@@ -681,6 +785,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(label('Seite Klient:innen öffnen')).toBeNull();
     await open('Widgets');
     expect(label('Klient:innen zum Desktop hinzufügen')).toBeNull();
+    await click(button('Auf diesem Desktop'));
     await clickLabel('Notizen vom Desktop entfernen');
     expect(savedIds('beratung')).toEqual(['clients']);
     expect(savedIds()).toEqual(['clients']);

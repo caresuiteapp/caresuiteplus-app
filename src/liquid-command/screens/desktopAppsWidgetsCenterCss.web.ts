@@ -1,6 +1,6 @@
 export const desktopAppsWidgetsCenterCss = `
 .cs-apps-center, .cs-apps-center-footer {
-  color: #15304e; font: 400 calc(14px * var(--cs-center-scale, 1))/1.5 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  color: #15304e; font: 400 calc(14px * var(--cs-center-scale, 1))/1.5 "Century Gothic", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   min-width: 0; width: 100%; box-sizing: border-box;
 }
 .cs-apps-center *, .cs-apps-center-footer * { box-sizing: border-box; }
@@ -11,6 +11,14 @@ export const desktopAppsWidgetsCenterCss = `
 .cs-apps-center button:disabled { cursor: default; opacity: .45; }
 .cs-apps-center :is(button,input):focus-visible, .cs-apps-center-footer button:focus-visible,
 .cs-apps-center [role="tabpanel"]:focus-visible { outline: 3px solid #1764d4; outline-offset: 3px; }
+.cs-apps-center .cs-center-area-toggle { display: none; }
+.cs-apps-center .cs-center-scope-bar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; padding: 14px 16px; border: 1px solid #c9dcf3; border-radius: 16px; background: #fff; }
+.cs-apps-center .cs-center-scope-copy { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cs-apps-center .cs-center-scope-copy strong { font-size: 1.07em; color: #15304e; }
+.cs-apps-center .cs-center-scope-copy > span { color: #526a83; font-size: .9em; }
+.cs-apps-center .cs-center-scope-options { display: flex; flex-wrap: wrap; gap: 5px; padding: 4px; border: 1px solid #dce5f1; border-radius: 13px; background: #eef3fa; }
+.cs-apps-center .cs-center-scope-options button { min-height: 44px; padding: 8px 16px; border: 1px solid transparent; border-radius: 9px; background: transparent; color: #405c78; font-weight: 650; }
+.cs-apps-center .cs-center-scope-options button[aria-pressed="true"] { border-color: #1764d4; background: #1764d4; color: #fff; box-shadow: 0 2px 5px #1764d417; }
 .cs-apps-center .cs-center-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 14px; }
 .cs-apps-center .cs-center-tabs { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 16px; background: #e8eff8; border: 1px solid #dce5f1; }
 .cs-apps-center .cs-center-tab { display: inline-flex; gap: 7px; align-items: center; justify-content: center; min-height: 42px; padding: 9px 13px; border: 1px solid transparent; border-radius: 12px; background: transparent; color: #45607a; font-weight: 650; }
@@ -39,6 +47,16 @@ export const desktopAppsWidgetsCenterCss = `
 .cs-apps-center .cs-center-card { position: relative; display: flex; flex-direction: column; min-width: 0; border: 1px solid #d7e3f1; border-radius: 19px; background: #fff; box-shadow: 0 4px 16px #1a426b06; overflow: hidden; transition: border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease; }
 .cs-apps-center .cs-center-app-card, .cs-apps-center .cs-center-workflow-card { width: 100%; padding: 0; text-align: left; color: #15304e; }
 .cs-apps-center .cs-center-card-heading { min-width: 0; padding: 16px 16px 12px; }
+.cs-apps-center .cs-center-card-intro .cs-center-card-heading { display: flex; align-items: flex-start; gap: 8px; }
+.cs-apps-center .cs-center-card-title { flex: 1; min-width: 0; }
+.cs-apps-center .cs-center-info-button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 44px; height: 44px; padding: 0; border: 1px solid #c8d9ec; border-radius: 50%; background: #f4f8fe; color: #1558ad; font-weight: 750; font-size: 1.1em; }
+.cs-apps-center .cs-center-info-button[aria-expanded="true"] { background: #e6f0ff; border-color: #1764d4; }
+.cs-apps-center .cs-center-info-panel { display: flex; flex-direction: column; gap: 8px; margin: 0 12px 12px; padding: 12px; border: 1px solid #c8dcf3; border-radius: 11px; background: #f3f8ff; color: #355776; overflow-wrap: anywhere; }
+.cs-apps-center .cs-center-info-kind { color: #526a83; font-size: .86em; }
+.cs-apps-center .cs-center-launcher { display: flex; flex: 1; flex-direction: column; width: 100%; min-width: 0; padding: 0; border: 0; background: transparent; text-align: left; color: inherit; }
+.cs-apps-center .cs-center-launcher > .cs-center-artwork-preview { align-self: stretch; }
+.cs-apps-center .cs-center-launcher > .cs-center-card-body { width: 100%; }
+.cs-apps-center .cs-center-card-status { margin: 0 16px 10px; }
 .cs-apps-center .cs-center-glyph { display: inline-flex; align-items: center; justify-content: center; width: 42px; height: 42px; flex-shrink: 0; border: 1px solid #d4e4f8; border-radius: 13px; background: linear-gradient(145deg,#eff7ff,#e5efff); color: #1764b8; font-size: 21px; font-weight: 750; }
 .cs-apps-center .cs-center-card h3 { font-size: 1.07em; font-weight: 700; line-height: 1.4; overflow-wrap: anywhere; }
 .cs-apps-center .cs-center-card-kind { display: block; color: #61768e; font-size: .86em; margin-top: 3px; }
@@ -87,8 +105,14 @@ export const desktopAppsWidgetsCenterCss = `
 }
 @media (max-width:680px) {
   .cs-apps-center { gap: 16px; }
+  .cs-apps-center .cs-center-area-toggle { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; width: 100%; min-height: 48px; padding: 12px; border: 1px solid #c9dcf3; border-radius: 13px; background: #fff; color: #284a70; text-align: left; }
+  .cs-apps-center .cs-center-area-toggle strong { color: #1758ab; }
+  .cs-apps-center .cs-center-area-picker[data-expanded="false"] .cs-center-area-picker-content { display: none; }
+  .cs-apps-center .cs-center-area-picker[data-expanded="true"] .cs-center-area-picker-content { margin-top: 10px; }
   .cs-apps-center .cs-center-toolbar { align-items: stretch; }
-  .cs-apps-center .cs-center-tabs { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; }
+  .cs-apps-center .cs-center-scope-options { width: 100%; }
+  .cs-apps-center .cs-center-scope-options button { flex: 1 1 120px; }
+  .cs-apps-center .cs-center-tabs { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,calc(150px * var(--cs-center-scale,1))),1fr)); width: 100%; }
   .cs-apps-center .cs-center-search { max-width: none; flex-basis: 100%; }
   .cs-apps-center .cs-center-chip { min-height: 42px; }
   .cs-apps-center .cs-center-section-heading { gap: 5px; }

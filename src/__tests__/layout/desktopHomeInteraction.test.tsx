@@ -128,7 +128,7 @@ describe('Web desktop preferences and navigation', () => {
     await typeInto('Apps durchsuchen', 'KeinTreffer123');
     expect(host.textContent).toContain('Keine passenden Apps');
     await click(button('Filter zurücksetzen')); expect(field.value).toBe('');
-    expect(host.textContent).toContain('Ihre Arbeitsbereiche');
+    expect(host.textContent).toContain('Apps für Office');
   });
 });
 
@@ -170,7 +170,7 @@ describe('App centre categories and distinct actions', () => {
     await click(label('Gmail vom Desktop entfernen'));
     expect(JSON.parse(memory.get(key())!)).not.toContain('google-gmail'); expect(api.push).not.toHaveBeenCalled();
     await typeInto('Widgets durchsuchen', 'kein-treffer'); await click(catalogButton('Filter zurücksetzen'));
-    expect(dialog().textContent).toContain('Ihr Desktop, Ihre Auswahl');
+    expect(dialog().textContent).toContain('Widgets für Office');
   });
   it('opens the Widgets tab when adding an empty desktop tile', async () => {
     memory.set(key(), '[]'); await render(); await click(label('Widget hinzufügen'));
