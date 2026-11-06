@@ -2,6 +2,76 @@
 import type { ImageSourcePropType } from 'react-native';
 export type WidgetRasterImages = Record<'small' | 'medium' | 'large', ImageSourcePropType>;
 export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
+  "desktop": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/desktop/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/desktop/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/desktop/large.png'),
+  },
+  "desktop-area-decisions": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/desktop-area-decisions/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/desktop-area-decisions/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/desktop-area-decisions/large.png'),
+  },
+  "akademie": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie/large.png'),
+  },
+  "akademie-auswertungen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie-auswertungen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie-auswertungen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie-auswertungen/large.png'),
+  },
+  "akademie-calendar": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie-calendar/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie-calendar/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie-calendar/large.png'),
+  },
+  "akademie-kurse": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie-kurse/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie-kurse/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie-kurse/large.png'),
+  },
+  "akademie-mediathek": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie-mediathek/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie-mediathek/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie-mediathek/large.png'),
+  },
+  "akademie-pflichtschulungen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie-pflichtschulungen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie-pflichtschulungen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie-pflichtschulungen/large.png'),
+  },
+  "akademie-pruefungen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie-pruefungen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie-pruefungen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie-pruefungen/large.png'),
+  },
+  "akademie-schulungsplan": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie-schulungsplan/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie-schulungsplan/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie-schulungsplan/large.png'),
+  },
+  "akademie-settings": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie-settings/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie-settings/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie-settings/large.png'),
+  },
+  "akademie-teilnehmer": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie-teilnehmer/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie-teilnehmer/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie-teilnehmer/large.png'),
+  },
+  "akademie-vorlagen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie-vorlagen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie-vorlagen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie-vorlagen/large.png'),
+  },
+  "akademie-zertifikate": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/akademie-zertifikate/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/akademie-zertifikate/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/akademie-zertifikate/large.png'),
+  },
   "assist": {
     small: require('../../../public/widget-artwork/originals-20261106-v1/assist/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/assist/medium.png'),
@@ -132,6 +202,106 @@ export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
     medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-wiedervorlagen/medium.png'),
     large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-wiedervorlagen/large.png'),
   },
+  "business-connect": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect/large.png'),
+  },
+  "business-connect-google-workspace": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace/large.png'),
+  },
+  "business-connect-google-workspace-service-activity": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-activity/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-activity/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-activity/large.png'),
+  },
+  "business-connect-google-workspace-service-calendar": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-calendar/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-calendar/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-calendar/large.png'),
+  },
+  "business-connect-google-workspace-service-chat": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-chat/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-chat/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-chat/large.png'),
+  },
+  "business-connect-google-workspace-service-contacts": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-contacts/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-contacts/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-contacts/large.png'),
+  },
+  "business-connect-google-workspace-service-docs": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-docs/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-docs/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-docs/large.png'),
+  },
+  "business-connect-google-workspace-service-drive": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-drive/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-drive/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-drive/large.png'),
+  },
+  "business-connect-google-workspace-service-gmail": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-gmail/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-gmail/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-gmail/large.png'),
+  },
+  "business-connect-google-workspace-service-meet": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-meet/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-meet/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-meet/large.png'),
+  },
+  "business-connect-google-workspace-service-sheets": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-sheets/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-sheets/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-sheets/large.png'),
+  },
+  "business-connect-google-workspace-service-slides": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-slides/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-slides/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-slides/large.png'),
+  },
+  "business-connect-google-workspace-service-tasks": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-tasks/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-tasks/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-tasks/large.png'),
+  },
+  "business-integrations": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-integrations/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-integrations/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-integrations/large.png'),
+  },
+  "business-messages": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-messages/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-messages/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-messages/large.png'),
+  },
+  "business-messages-audience-clients": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-clients/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-clients/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-clients/large.png'),
+  },
+  "business-messages-audience-employees": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-employees/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-employees/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-employees/large.png'),
+  },
+  "business-messages-audience-employees-chatage-new-view-chats": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-employees-chatage-new-view-chats/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-employees-chatage-new-view-chats/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-employees-chatage-new-view-chats/large.png'),
+  },
+  "business-messages-audience-employees-view-broadcasts": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-employees-view-broadcasts/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-employees-view-broadcasts/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-messages-audience-employees-view-broadcasts/large.png'),
+  },
+  "business-modules": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-modules/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-modules/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-modules/large.png'),
+  },
   "business-office-access": {
     small: require('../../../public/widget-artwork/originals-20261106-v1/business-office-access/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/business-office-access/medium.png'),
@@ -206,6 +376,36 @@ export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
     small: require('../../../public/widget-artwork/originals-20261106-v1/business-office-time-tracking-live/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/business-office-time-tracking-live/medium.png'),
     large: require('../../../public/widget-artwork/originals-20261106-v1/business-office-time-tracking-live/large.png'),
+  },
+  "business-ops": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-ops/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-ops/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-ops/large.png'),
+  },
+  "business-reporting": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-reporting/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-reporting/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-reporting/large.png'),
+  },
+  "business-subscription": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-subscription/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-subscription/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-subscription/large.png'),
+  },
+  "business-templates-documents-hub": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/business-templates-documents-hub/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/business-templates-documents-hub/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/business-templates-documents-hub/large.png'),
+  },
+  "command-center": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/command-center/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/command-center/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/command-center/large.png'),
+  },
+  "insight": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/insight/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/insight/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/insight/large.png'),
   },
   "office-catalogs": {
     small: require('../../../public/widget-artwork/originals-20261106-v1/office-catalogs/small.png'),
@@ -427,6 +627,86 @@ export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
     medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-zugeordnete-klienten/medium.png'),
     large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-zugeordnete-klienten/large.png'),
   },
+  "platform-audit": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/platform-audit/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/platform-audit/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/platform-audit/large.png'),
+  },
+  "platform-billing": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/platform-billing/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/platform-billing/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/platform-billing/large.png'),
+  },
+  "platform-plans": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/platform-plans/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/platform-plans/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/platform-plans/large.png'),
+  },
+  "platform-releases": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/platform-releases/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/platform-releases/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/platform-releases/large.png'),
+  },
+  "platform-support": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/platform-support/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/platform-support/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/platform-support/large.png'),
+  },
+  "platform-tenants": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/platform-tenants/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/platform-tenants/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/platform-tenants/large.png'),
+  },
+  "robotics": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/robotics/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/robotics/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/robotics/large.png'),
+  },
+  "robotics-area-devices": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-devices/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-devices/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-devices/large.png'),
+  },
+  "robotics-area-handover": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-handover/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-handover/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-handover/large.png'),
+  },
+  "robotics-area-maintenance": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-maintenance/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-maintenance/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-maintenance/large.png'),
+  },
+  "robotics-area-tasks": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-tasks/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-tasks/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-tasks/large.png'),
+  },
+  "robotics-area-telemetry": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-telemetry/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-telemetry/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-telemetry/large.png'),
+  },
+  "robotics-area-zones": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-zones/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-zones/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-zones/large.png'),
+  },
+  "settings-appearance": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/settings-appearance/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/settings-appearance/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/settings-appearance/large.png'),
+  },
+  "settings-data-request": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/settings-data-request/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/settings-data-request/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/settings-data-request/large.png'),
+  },
+  "settings-tenant": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/settings-tenant/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/settings-tenant/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/settings-tenant/large.png'),
+  },
   "stationaer": {
     small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer/medium.png'),
@@ -476,5 +756,15 @@ export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
     small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/medium.png'),
     large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/large.png'),
+  },
+  "unternehmen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/unternehmen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/unternehmen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/unternehmen/large.png'),
+  },
+  "unternehmen-inventar": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/unternehmen-inventar/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/unternehmen-inventar/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/unternehmen-inventar/large.png'),
   },
 };

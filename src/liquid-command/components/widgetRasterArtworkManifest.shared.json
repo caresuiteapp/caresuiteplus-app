@@ -2,6 +2,342 @@
   "version": "originals-20261106-v1",
   "artworks": [
     {
+      "id": "desktop",
+      "identity": "/Desktop",
+      "label": "Dashboard",
+      "part": "remaining",
+      "sourceSha256": "de0ce80676f7977fd16ce21d6d30e242b9388afc03e9a41191070306f91aa25a",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/desktop/small.png",
+          "width": 192,
+          "sha256": "b4ef5c8b06342646ce91badf6ee491053577efcc68498d18edb9ca2b734e27fb"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/desktop/medium.png",
+          "width": 512,
+          "sha256": "1eb614468135752d4aa0f42d67bcfa7b5f7d202784e3b7c303ee35d01a9e1687"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/desktop/large.png",
+          "width": 1254,
+          "sha256": "de0ce80676f7977fd16ce21d6d30e242b9388afc03e9a41191070306f91aa25a"
+        }
+      }
+    },
+    {
+      "id": "desktop-area-decisions",
+      "identity": "/Desktop?area=decisions",
+      "label": "Entscheidungen",
+      "part": "remaining",
+      "sourceSha256": "19f785fe6d9216ff2636d25d05193f4ef5363629120dd7f6b08da889688c09e2",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/desktop-area-decisions/small.png",
+          "width": 192,
+          "sha256": "7de6043515b52e1f68bdabd20a1caf6075012ea3d43203362c538d9e6bacc8e5"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/desktop-area-decisions/medium.png",
+          "width": 512,
+          "sha256": "31d974561784620d9ef42edbc5d4bd70f361e2b00bb9c94a8dd771cfe80979b0"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/desktop-area-decisions/large.png",
+          "width": 1254,
+          "sha256": "19f785fe6d9216ff2636d25d05193f4ef5363629120dd7f6b08da889688c09e2"
+        }
+      }
+    },
+    {
+      "id": "akademie",
+      "identity": "/akademie",
+      "label": "Akademie",
+      "part": "remaining",
+      "sourceSha256": "712b6f33e83334f3844b70e83052fb16ec419833fd434bd16623a66f217cdd9d",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie/small.png",
+          "width": 192,
+          "sha256": "da712c1b3354490a848ab0d66a2cc27f8509c55ef7c65d396827cece7acb0c4e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie/medium.png",
+          "width": 512,
+          "sha256": "af69ebbe1ba3503b58fcf959260577168773a4304f45ba7f98e2c2aaceaa3888"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie/large.png",
+          "width": 1254,
+          "sha256": "712b6f33e83334f3844b70e83052fb16ec419833fd434bd16623a66f217cdd9d"
+        }
+      }
+    },
+    {
+      "id": "akademie-auswertungen",
+      "identity": "/akademie/auswertungen",
+      "label": "Auswertungen",
+      "part": "remaining",
+      "sourceSha256": "335b97aa2ae8a122691df70004c22b48970a8e4cc95f339e359c1d6996ca12d9",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-auswertungen/small.png",
+          "width": 192,
+          "sha256": "d84671fff884a3e6301ca41c4e7e75b0b5345f8cdddddfa7a0f4fe33c69cdf84"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-auswertungen/medium.png",
+          "width": 512,
+          "sha256": "f868bbc8aa7f2aed0d7b85bb7a54d8aa398c7e9fe1eaea3ac2e0caac580e6ea0"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-auswertungen/large.png",
+          "width": 1254,
+          "sha256": "335b97aa2ae8a122691df70004c22b48970a8e4cc95f339e359c1d6996ca12d9"
+        }
+      }
+    },
+    {
+      "id": "akademie-calendar",
+      "identity": "/akademie/calendar",
+      "label": "Kalender",
+      "part": "remaining",
+      "sourceSha256": "46feea83192e5b6297e2ab08ce03ed0d666850395c5b68e767667d1d69bd352f",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-calendar/small.png",
+          "width": 192,
+          "sha256": "95ee8534d8c93bfa4ff0a2a5c7d3ad04a95d27284d084485e3f87753ea0a9e1d"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-calendar/medium.png",
+          "width": 512,
+          "sha256": "3e9a80eef53f6bd7654b6865c5fe9c12516c226ef439ff860689b7d99242591d"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-calendar/large.png",
+          "width": 1254,
+          "sha256": "46feea83192e5b6297e2ab08ce03ed0d666850395c5b68e767667d1d69bd352f"
+        }
+      }
+    },
+    {
+      "id": "akademie-kurse",
+      "identity": "/akademie/kurse",
+      "label": "Kurse",
+      "part": "remaining",
+      "sourceSha256": "04432125b8d6f2c57622f516c7f406899645d08f83620a9763cb98003b3649a8",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-kurse/small.png",
+          "width": 192,
+          "sha256": "5b2baed9308102639824c59b5f81438a73dd28f3699f86dbe3ad8be724e7be6e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-kurse/medium.png",
+          "width": 512,
+          "sha256": "a83450e2169eedc5eee9d485402ef51e7b2710d734f8842fd9b9a38574a6812b"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-kurse/large.png",
+          "width": 1254,
+          "sha256": "04432125b8d6f2c57622f516c7f406899645d08f83620a9763cb98003b3649a8"
+        }
+      }
+    },
+    {
+      "id": "akademie-mediathek",
+      "identity": "/akademie/mediathek",
+      "label": "Lernmaterialien",
+      "part": "remaining",
+      "sourceSha256": "f11dcc5501a201567c55b6b6b40c4243b9a32e1bae54e7655b95287da06b8e72",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-mediathek/small.png",
+          "width": 192,
+          "sha256": "331e4a26d5a19c3bd53f6d3dccc9084682e0895b9e721cb13f6027a97f67dd27"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-mediathek/medium.png",
+          "width": 512,
+          "sha256": "138b7d641c358f742727bb778504c163730fa8bce04907dd31e091cbfdffc598"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-mediathek/large.png",
+          "width": 1254,
+          "sha256": "f11dcc5501a201567c55b6b6b40c4243b9a32e1bae54e7655b95287da06b8e72"
+        }
+      }
+    },
+    {
+      "id": "akademie-pflichtschulungen",
+      "identity": "/akademie/pflichtschulungen",
+      "label": "Pflichtschulungen",
+      "part": "remaining",
+      "sourceSha256": "9e0ccd20e44d0ba9d4d26dc16c13fa2ca24dc145c12cd30c4166727cca1ba185",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-pflichtschulungen/small.png",
+          "width": 192,
+          "sha256": "aa9f4ca647f625dfed8a3555e4c8cb27902d77a2a5747f5cb1d6976cfe547ad9"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-pflichtschulungen/medium.png",
+          "width": 512,
+          "sha256": "0bf6403e7fbb12926a15b2b89a4bd0ab6a5c4a4cf89ec732a4010d50278a2cd1"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-pflichtschulungen/large.png",
+          "width": 1254,
+          "sha256": "9e0ccd20e44d0ba9d4d26dc16c13fa2ca24dc145c12cd30c4166727cca1ba185"
+        }
+      }
+    },
+    {
+      "id": "akademie-pruefungen",
+      "identity": "/akademie/pruefungen",
+      "label": "Prüfung & Freigabe",
+      "part": "remaining",
+      "sourceSha256": "a3314ea32c7589b0ea6b44c81a464a6cad56305685f126a69b60f297e6a737ff",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-pruefungen/small.png",
+          "width": 192,
+          "sha256": "97cc53b13d8bc560954abf29d9addc6c1a0e3c99caebab9586b7c4cfc29dc909"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-pruefungen/medium.png",
+          "width": 512,
+          "sha256": "e6dfb374e0ea5265bc19d7795a24c6dadc377a2e30e82d40002f845f58d9e35c"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-pruefungen/large.png",
+          "width": 1254,
+          "sha256": "a3314ea32c7589b0ea6b44c81a464a6cad56305685f126a69b60f297e6a737ff"
+        }
+      }
+    },
+    {
+      "id": "akademie-schulungsplan",
+      "identity": "/akademie/schulungsplan",
+      "label": "Schulungsplan",
+      "part": "remaining",
+      "sourceSha256": "051b8d397ae1a45048d8eeefb321ea85196a752f1197d8cfe37f8c7121bb21c2",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-schulungsplan/small.png",
+          "width": 192,
+          "sha256": "256f68e7342c8a99235ebedff0e215bc25b6e1e9c1bd739649f59f56bb4bf611"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-schulungsplan/medium.png",
+          "width": 512,
+          "sha256": "4b25ab939ef6c6a327e2b89aee6a1f2515e0eb86afc42bd920c1e9cfe71cdb6c"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-schulungsplan/large.png",
+          "width": 1254,
+          "sha256": "051b8d397ae1a45048d8eeefb321ea85196a752f1197d8cfe37f8c7121bb21c2"
+        }
+      }
+    },
+    {
+      "id": "akademie-settings",
+      "identity": "/akademie/settings",
+      "label": "Einstellungen",
+      "part": "remaining",
+      "sourceSha256": "53265408463c0471f657940c4ec190bfbf358d57d6a63bbbe7f1e83e101d2f1b",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-settings/small.png",
+          "width": 192,
+          "sha256": "f8997afa91b43be2a7bbfc8d9e44ec844f0bdd8ee19c23647a835b05f074376f"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-settings/medium.png",
+          "width": 512,
+          "sha256": "f8e9cf1625d674e9c843280edec53745f40182634afba2a438d51903624982fc"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-settings/large.png",
+          "width": 1254,
+          "sha256": "53265408463c0471f657940c4ec190bfbf358d57d6a63bbbe7f1e83e101d2f1b"
+        }
+      }
+    },
+    {
+      "id": "akademie-teilnehmer",
+      "identity": "/akademie/teilnehmer",
+      "label": "Teilnahmen",
+      "part": "remaining",
+      "sourceSha256": "e86b34fbac18df1778377aabfef271d400de2a0a8ec926938254d56749fa4a21",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-teilnehmer/small.png",
+          "width": 192,
+          "sha256": "b5f81b37d8f89cdffa3b5f9807e577bb57939c860a7884f0c81d982b0155ea96"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-teilnehmer/medium.png",
+          "width": 512,
+          "sha256": "af937c03501cc408ad51d6c62e7a1d1a40fed541d1eef8c2cc2fbeb0f6254217"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-teilnehmer/large.png",
+          "width": 1254,
+          "sha256": "e86b34fbac18df1778377aabfef271d400de2a0a8ec926938254d56749fa4a21"
+        }
+      }
+    },
+    {
+      "id": "akademie-vorlagen",
+      "identity": "/akademie/vorlagen",
+      "label": "Vorlagen & Kursbaukasten",
+      "part": "remaining",
+      "sourceSha256": "f4ee0ba88fb4afd0047a58898cbe00cf459dad2402e683d8e80bb99ca43e0546",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-vorlagen/small.png",
+          "width": 192,
+          "sha256": "711bf20cddfa3b6862e2a8973c63e080444e0206693868987398ef9b965b315c"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-vorlagen/medium.png",
+          "width": 512,
+          "sha256": "30659e9955bf0dd5b1ccbadf47cc72b5cfb44c7705da97696852c21e07a267a8"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-vorlagen/large.png",
+          "width": 1254,
+          "sha256": "f4ee0ba88fb4afd0047a58898cbe00cf459dad2402e683d8e80bb99ca43e0546"
+        }
+      }
+    },
+    {
+      "id": "akademie-zertifikate",
+      "identity": "/akademie/zertifikate",
+      "label": "Lernnachweise",
+      "part": "remaining",
+      "sourceSha256": "eb5edd016a1e8c64a1bbcb8dddb84feb06be61bdba062feeda2559525d71ae50",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-zertifikate/small.png",
+          "width": 192,
+          "sha256": "0ec007a5dd1c9bb62617982c1c672670fa460529724dd533ce69ed0fc7d0b580"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-zertifikate/medium.png",
+          "width": 512,
+          "sha256": "c6239384519cda584239f02e554db1b5a743d7b8d87420fd9261ab0b85cb3a1f"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/akademie-zertifikate/large.png",
+          "width": 1254,
+          "sha256": "eb5edd016a1e8c64a1bbcb8dddb84feb06be61bdba062feeda2559525d71ae50"
+        }
+      }
+    },
+    {
       "id": "assist",
       "identity": "/assist",
       "label": "Assist",
@@ -626,6 +962,486 @@
       }
     },
     {
+      "id": "business-connect",
+      "identity": "/business/connect",
+      "label": "Connect & Integrationen",
+      "part": "remaining",
+      "sourceSha256": "bfc5ec203efe6d01175f6e9be423ad6532fa57b7703a3f2d091d985f9ede1129",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect/small.png",
+          "width": 192,
+          "sha256": "4807cc6fa0cf514f198ded715620462dcdb9c194a8a0100a1a234fe20c144781"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect/medium.png",
+          "width": 512,
+          "sha256": "285b8ad9723c0906ffdd0543faa21a08f3d3680f4fe9e9d52009a9f43abe9a40"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect/large.png",
+          "width": 1254,
+          "sha256": "bfc5ec203efe6d01175f6e9be423ad6532fa57b7703a3f2d091d985f9ede1129"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace",
+      "identity": "/business/connect/google-workspace",
+      "label": "Google Workspace",
+      "part": "remaining",
+      "sourceSha256": "53b2f1ff1046c8c1f89b8cdc936098111691ac0c7e288fdff1b857e7fd6b01f3",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace/small.png",
+          "width": 192,
+          "sha256": "5cc1213de1bd1837830e328a7e9c84c068296d9d420ed2e0f963db55dfe8871e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace/medium.png",
+          "width": 512,
+          "sha256": "8db23eead117810ba620d3d45b8c8a91e7c8de996dbdbbebcd997d37850a03cf"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace/large.png",
+          "width": 1254,
+          "sha256": "53b2f1ff1046c8c1f89b8cdc936098111691ac0c7e288fdff1b857e7fd6b01f3"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace-service-activity",
+      "identity": "/business/connect/google-workspace?service=activity",
+      "label": "Workspace-Aktivitäten",
+      "part": "remaining",
+      "sourceSha256": "2d59a1111b6f4e1a4043e8f2cb33595ec7393b608618f7b05702e62841577665",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-activity/small.png",
+          "width": 192,
+          "sha256": "4c160f822110571e2415d481888d11c847a514f923f842f56d748359f6471dd3"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-activity/medium.png",
+          "width": 512,
+          "sha256": "390ba6d65fa0e8dd9aea54f6e394289d486af2eec1a2414758bf5ab14b1415ef"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-activity/large.png",
+          "width": 1254,
+          "sha256": "2d59a1111b6f4e1a4043e8f2cb33595ec7393b608618f7b05702e62841577665"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace-service-calendar",
+      "identity": "/business/connect/google-workspace?service=calendar",
+      "label": "Google-Kalender",
+      "part": "remaining",
+      "sourceSha256": "3088ca86bb8ecdfafa3badbeca43f1d448ec59490732df376d3e8cc5897df5b9",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-calendar/small.png",
+          "width": 192,
+          "sha256": "f02dcb5d0351f893031b375ae4d007534ab4821ce7891a4d3f0946b191af2333"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-calendar/medium.png",
+          "width": 512,
+          "sha256": "3af92aad5a3c92ec11acf015a80e0b65047b9a4b37d7749458c6aa97fb94e8be"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-calendar/large.png",
+          "width": 1254,
+          "sha256": "3088ca86bb8ecdfafa3badbeca43f1d448ec59490732df376d3e8cc5897df5b9"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace-service-chat",
+      "identity": "/business/connect/google-workspace?service=chat",
+      "label": "Google Chat",
+      "part": "remaining",
+      "sourceSha256": "dc077d66c53916e618afb604f89a1e06771cedad216cca9a60ae3ed82aa5be25",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-chat/small.png",
+          "width": 192,
+          "sha256": "749e36879af44bb12a3dbcb350178f04d01ed3c71813fff5b617b2d37a176a71"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-chat/medium.png",
+          "width": 512,
+          "sha256": "ab5e959473b09412e8b07398581563d4dccb052e711779afbc69c5fb180187cd"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-chat/large.png",
+          "width": 1254,
+          "sha256": "dc077d66c53916e618afb604f89a1e06771cedad216cca9a60ae3ed82aa5be25"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace-service-contacts",
+      "identity": "/business/connect/google-workspace?service=contacts",
+      "label": "Kontakte",
+      "part": "remaining",
+      "sourceSha256": "0ceab86402c64bc04802cc7e5275f9dfa37dfa09647a1208ea464ce61ca34f72",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-contacts/small.png",
+          "width": 192,
+          "sha256": "5103971207b8108d96adbf93a0b8567e566a2974ef5ad85dac47d0dfc191296c"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-contacts/medium.png",
+          "width": 512,
+          "sha256": "1b37d47a28dfc9ede38bb0b4f53ad4b04db583b12b20302b58a6ec0593aee399"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-contacts/large.png",
+          "width": 1254,
+          "sha256": "0ceab86402c64bc04802cc7e5275f9dfa37dfa09647a1208ea464ce61ca34f72"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace-service-docs",
+      "identity": "/business/connect/google-workspace?service=docs",
+      "label": "Google Docs",
+      "part": "remaining",
+      "sourceSha256": "6bf357a833e046f6279833163d13de719515b646c915deaa6383c699e09495bd",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-docs/small.png",
+          "width": 192,
+          "sha256": "ac6fcccfe23deaf9863775eb3a604bfa4d3ddb0b3c7d7de382576497a4c0c785"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-docs/medium.png",
+          "width": 512,
+          "sha256": "c018f4a3fad4209dcb4536339c6582fcd4a5d92a889b0d5cef707d8895d39209"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-docs/large.png",
+          "width": 1254,
+          "sha256": "6bf357a833e046f6279833163d13de719515b646c915deaa6383c699e09495bd"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace-service-drive",
+      "identity": "/business/connect/google-workspace?service=drive",
+      "label": "Google Drive",
+      "part": "remaining",
+      "sourceSha256": "a74081d5cb29fac785dbe27f5dcf04048a22c74535516b9c3ba5044a12da2c76",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-drive/small.png",
+          "width": 192,
+          "sha256": "7713073a20cf0fca1a9c679a4d152bd3167a300cd93a636532f743bb917dd968"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-drive/medium.png",
+          "width": 512,
+          "sha256": "41459934d344371181908674302160713fed39f332befe3f42e247abfe373994"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-drive/large.png",
+          "width": 1254,
+          "sha256": "a74081d5cb29fac785dbe27f5dcf04048a22c74535516b9c3ba5044a12da2c76"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace-service-gmail",
+      "identity": "/business/connect/google-workspace?service=gmail",
+      "label": "Gmail",
+      "part": "remaining",
+      "sourceSha256": "b0303a0126200ebcd258855bccb1a991298bfbab4df9898edd247bfbace5bb4e",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-gmail/small.png",
+          "width": 192,
+          "sha256": "53842e294361b73bcda1f1d54132da78b05e8c6692e6de8227c3da0fcc821863"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-gmail/medium.png",
+          "width": 512,
+          "sha256": "7881dda5e8b1541eeb0765bd9c29e112d0b954801ac39bc6d4acf751ceb68cdc"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-gmail/large.png",
+          "width": 1254,
+          "sha256": "b0303a0126200ebcd258855bccb1a991298bfbab4df9898edd247bfbace5bb4e"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace-service-meet",
+      "identity": "/business/connect/google-workspace?service=meet",
+      "label": "Google Meet",
+      "part": "remaining",
+      "sourceSha256": "9cbaf1a7b51210c51c569287dd1227db84ad7cbdf15370ad49207d4cae0650d8",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-meet/small.png",
+          "width": 192,
+          "sha256": "47cba76904aa1e1171cc5115d70fc23f93a69694d057ab338f3585d735f87aef"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-meet/medium.png",
+          "width": 512,
+          "sha256": "99f9ab74774961288f2bb6a9c7c811b103f13267c2c181a6f92e6e84334dec63"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-meet/large.png",
+          "width": 1254,
+          "sha256": "9cbaf1a7b51210c51c569287dd1227db84ad7cbdf15370ad49207d4cae0650d8"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace-service-sheets",
+      "identity": "/business/connect/google-workspace?service=sheets",
+      "label": "Google Sheets",
+      "part": "remaining",
+      "sourceSha256": "94d189a7805573d224f6e7d4b78dcebd4492583f13021541f20d7cb70f950cd8",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-sheets/small.png",
+          "width": 192,
+          "sha256": "f26d6a03f4e0c290ed8a9d8ebfacbe2a423822b4ce368d1d4202629484eed47d"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-sheets/medium.png",
+          "width": 512,
+          "sha256": "bf957fc02b73bb3e196d9cd3face0c0c5512259b38d32bd39007fbb4cb4600c7"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-sheets/large.png",
+          "width": 1254,
+          "sha256": "94d189a7805573d224f6e7d4b78dcebd4492583f13021541f20d7cb70f950cd8"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace-service-slides",
+      "identity": "/business/connect/google-workspace?service=slides",
+      "label": "Google Slides",
+      "part": "remaining",
+      "sourceSha256": "60024ea334ce53c8dac9fbecca68573ebab87e3908baff2d9aa5aac80bffa201",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-slides/small.png",
+          "width": 192,
+          "sha256": "84ae17cf1941cf88ae3c7d0463caded9ea2d2b351222e418ce05913e4d823f5c"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-slides/medium.png",
+          "width": 512,
+          "sha256": "ec91f6487243a0d8c8ca33ad7d629f22ca403f3cabd988396976c65b21aa56a4"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-slides/large.png",
+          "width": 1254,
+          "sha256": "60024ea334ce53c8dac9fbecca68573ebab87e3908baff2d9aa5aac80bffa201"
+        }
+      }
+    },
+    {
+      "id": "business-connect-google-workspace-service-tasks",
+      "identity": "/business/connect/google-workspace?service=tasks",
+      "label": "Google Tasks",
+      "part": "remaining",
+      "sourceSha256": "2f5f9285f7f79e5280a47ed724a50ffa617440d91ca5f9bfcb103eb0c9c969c0",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-tasks/small.png",
+          "width": 192,
+          "sha256": "b242396dfd784ae338920a96afcf38f71fb1610fab04b21c61e596820761a5fe"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-tasks/medium.png",
+          "width": 512,
+          "sha256": "48f63b6044d3c55de21618a078d808b9c6c9638a303d68f6fbf3fd30d063e5f6"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-connect-google-workspace-service-tasks/large.png",
+          "width": 1254,
+          "sha256": "2f5f9285f7f79e5280a47ed724a50ffa617440d91ca5f9bfcb103eb0c9c969c0"
+        }
+      }
+    },
+    {
+      "id": "business-integrations",
+      "identity": "/business/integrations",
+      "label": "Integrationen",
+      "part": "remaining",
+      "sourceSha256": "7c7473b1d62eeb942d79093c6c1e3ddb99f7d0bdbc9a6b8890c71f7acb0bd116",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-integrations/small.png",
+          "width": 192,
+          "sha256": "0a94e3736d154ff3fbc7a2c7a7aaba0c18a147ce6e7ec7fd84c456b1a268e0d8"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-integrations/medium.png",
+          "width": 512,
+          "sha256": "6386bc92c9bc9786eec6a1457f67d9df5db9c57675ec9ced1e6169b0bc34be4c"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-integrations/large.png",
+          "width": 1254,
+          "sha256": "7c7473b1d62eeb942d79093c6c1e3ddb99f7d0bdbc9a6b8890c71f7acb0bd116"
+        }
+      }
+    },
+    {
+      "id": "business-messages",
+      "identity": "/business/messages",
+      "label": "Nachrichten",
+      "part": "remaining",
+      "sourceSha256": "3d4eb4203b5e061c5b813c8468d79deed6192a05a612f90a29af0bb07a7e3df2",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages/small.png",
+          "width": 192,
+          "sha256": "8caaf3cb9c6bf0dba4da904a5650d7054b9d00d9e1a3f1d5e4b5620a073bdd11"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages/medium.png",
+          "width": 512,
+          "sha256": "977979f81c62b0231aa73e9af6bcfc967c099e3b8ac99d35c96bdb75db5e6455"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages/large.png",
+          "width": 1254,
+          "sha256": "3d4eb4203b5e061c5b813c8468d79deed6192a05a612f90a29af0bb07a7e3df2"
+        }
+      }
+    },
+    {
+      "id": "business-messages-audience-clients",
+      "identity": "/business/messages?audience=clients",
+      "label": "Klient:innen-Nachrichten",
+      "part": "remaining",
+      "sourceSha256": "5c3b046efe45cfa326991dd094c352b4019e266a80b85742578ef14647b35805",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-clients/small.png",
+          "width": 192,
+          "sha256": "7b33c7c463164c0b8bfa42f7a6a078999c404686132d56589495b95c6e542ba4"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-clients/medium.png",
+          "width": 512,
+          "sha256": "88c5162c2462fb25decf255f022ceb41c81e8d7e121ca5f77b8613b8ee4ca468"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-clients/large.png",
+          "width": 1254,
+          "sha256": "5c3b046efe45cfa326991dd094c352b4019e266a80b85742578ef14647b35805"
+        }
+      }
+    },
+    {
+      "id": "business-messages-audience-employees",
+      "identity": "/business/messages?audience=employees",
+      "label": "Mitarbeitenden-Nachrichten",
+      "part": "remaining",
+      "sourceSha256": "5027398e498b7da2e31ec8eb50afc7cff4ad0dee93ee1ee87930736bedca6fd1",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-employees/small.png",
+          "width": 192,
+          "sha256": "0f5cee2ea30440ec6a4e356a41ece784fb426370608be15f9864693b11ffcb21"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-employees/medium.png",
+          "width": 512,
+          "sha256": "665eeabe6a3a8feaf075635fb04e1debd6275fa28aa4f98812d788d1209f9766"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-employees/large.png",
+          "width": 1254,
+          "sha256": "5027398e498b7da2e31ec8eb50afc7cff4ad0dee93ee1ee87930736bedca6fd1"
+        }
+      }
+    },
+    {
+      "id": "business-messages-audience-employees-chatage-new-view-chats",
+      "identity": "/business/messages?audience=employees&chatAge=new&view=chats",
+      "label": "Nachrichten",
+      "part": "remaining",
+      "sourceSha256": "23af9c9cc47b8de9b64618d68e0a0e285ae8589c38ca231ec006547b8ca70c13",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-employees-chatage-new-view-chats/small.png",
+          "width": 192,
+          "sha256": "137ce3f24d54cd6b1b98eced4c50396ec0b170141941457fbbb45406a9cc0350"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-employees-chatage-new-view-chats/medium.png",
+          "width": 512,
+          "sha256": "6bbb4f467dc0bb554b76a4f2057193ef21ffa29142ec41d190ec1702d7fae376"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-employees-chatage-new-view-chats/large.png",
+          "width": 1254,
+          "sha256": "23af9c9cc47b8de9b64618d68e0a0e285ae8589c38ca231ec006547b8ca70c13"
+        }
+      }
+    },
+    {
+      "id": "business-messages-audience-employees-view-broadcasts",
+      "identity": "/business/messages?audience=employees&view=broadcasts",
+      "label": "Broadcasts",
+      "part": "remaining",
+      "sourceSha256": "aaa0529723fee6697762a3412d41fee8062848a70fd424ad3972532fb5388d0e",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-employees-view-broadcasts/small.png",
+          "width": 192,
+          "sha256": "2b0abaca1e5499570fa6743951d077d829d726b1201d1c53a2a68394c78c9178"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-employees-view-broadcasts/medium.png",
+          "width": 512,
+          "sha256": "49345bae9fa850310f8fab57cedab49e1368e1cf6b0fe57bd9da7b3c7cfaaf68"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-messages-audience-employees-view-broadcasts/large.png",
+          "width": 1254,
+          "sha256": "aaa0529723fee6697762a3412d41fee8062848a70fd424ad3972532fb5388d0e"
+        }
+      }
+    },
+    {
+      "id": "business-modules",
+      "identity": "/business/modules",
+      "label": "Module & Lizenzen",
+      "part": "remaining",
+      "sourceSha256": "de5452ee4510d7ff9a4ad61178d771218da51022952459246740f75c5a36431f",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-modules/small.png",
+          "width": 192,
+          "sha256": "f2a5546ca2ea8240fd2314303142c935a370b9ddc5a5e9d973f1909063ebaaf2"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-modules/medium.png",
+          "width": 512,
+          "sha256": "703042efbde5f8827ea509afe38b7ca17724a079b018466b5bc18c40d7a927e8"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-modules/large.png",
+          "width": 1254,
+          "sha256": "de5452ee4510d7ff9a4ad61178d771218da51022952459246740f75c5a36431f"
+        }
+      }
+    },
+    {
       "id": "business-office-access",
       "identity": "/business/office/access",
       "label": "Portale & Zugänge",
@@ -982,6 +1798,150 @@
           "path": "/widget-artwork/originals-20261106-v1/business-office-time-tracking-live/large.png",
           "width": 1254,
           "sha256": "229dfc031d986db5c66844c0369fa304531005a13e5246dce51b2d8e49d36c1c"
+        }
+      }
+    },
+    {
+      "id": "business-ops",
+      "identity": "/business/ops",
+      "label": "Betrieb & Monitoring",
+      "part": "remaining",
+      "sourceSha256": "740e50a98c55c16d1396484ac0478f66905da9be277a1ce1a6b2ffad5025f124",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-ops/small.png",
+          "width": 192,
+          "sha256": "54affd7b99b7d3fcd73b714c5b554a156775257c223ac6408a14c20a943068f3"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-ops/medium.png",
+          "width": 512,
+          "sha256": "10164df79a983ed14be751832467fedd5f05b0cd0fbfae684b996c4b42d2b1f5"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-ops/large.png",
+          "width": 1254,
+          "sha256": "740e50a98c55c16d1396484ac0478f66905da9be277a1ce1a6b2ffad5025f124"
+        }
+      }
+    },
+    {
+      "id": "business-reporting",
+      "identity": "/business/reporting",
+      "label": "Reporting",
+      "part": "remaining",
+      "sourceSha256": "ef3b45309aa71b3331d4aa13bb6c9ff83aa2d4268280031b7b1d4fcbd2f8e82d",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-reporting/small.png",
+          "width": 192,
+          "sha256": "d88b0ffc3289179466e43bc906d195c337afb6da5a6a73d666a0f67ea7739c5f"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-reporting/medium.png",
+          "width": 512,
+          "sha256": "af88782e82c135ed807c793f767ac5fba71f7a51ab0c3ff0a4d3808da486654d"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-reporting/large.png",
+          "width": 1254,
+          "sha256": "ef3b45309aa71b3331d4aa13bb6c9ff83aa2d4268280031b7b1d4fcbd2f8e82d"
+        }
+      }
+    },
+    {
+      "id": "business-subscription",
+      "identity": "/business/subscription",
+      "label": "Abonnement",
+      "part": "remaining",
+      "sourceSha256": "644176c6ad6245bf0c9042e86c0e822c665819fd0a57f4fe93938906f984b7c3",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-subscription/small.png",
+          "width": 192,
+          "sha256": "13cddf14cdc31eb11f509b9763f21bc294abce5e111f8335dd2965e9aca584b4"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-subscription/medium.png",
+          "width": 512,
+          "sha256": "8ec57833af39b2c95915108848b25ccdf78f65848e6953f3a9bc77b9e6cfea3f"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-subscription/large.png",
+          "width": 1254,
+          "sha256": "644176c6ad6245bf0c9042e86c0e822c665819fd0a57f4fe93938906f984b7c3"
+        }
+      }
+    },
+    {
+      "id": "business-templates-documents-hub",
+      "identity": "/business/templates/documents-hub",
+      "label": "Vorlageneinstellungen",
+      "part": "remaining",
+      "sourceSha256": "d08f81745c0099cda82a851d98ad4e36704e18a5f919091771a27ec890833ef8",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/business-templates-documents-hub/small.png",
+          "width": 192,
+          "sha256": "3e2caaaeeea233b4d98ae64480d53ce1fe41a56a83b5399907851f97997c3c47"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/business-templates-documents-hub/medium.png",
+          "width": 512,
+          "sha256": "60b18ee787a42f10883bf97ff407bf996f6c4ccb0f35af9d947603d8818e05d8"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/business-templates-documents-hub/large.png",
+          "width": 1254,
+          "sha256": "d08f81745c0099cda82a851d98ad4e36704e18a5f919091771a27ec890833ef8"
+        }
+      }
+    },
+    {
+      "id": "command-center",
+      "identity": "/command-center",
+      "label": "Command Center",
+      "part": "remaining",
+      "sourceSha256": "5456778c36991659115a05b86b6b0fe53990579e37487d5c8495861ef3a4ded9",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/command-center/small.png",
+          "width": 192,
+          "sha256": "ed4289bf89cf87f995550b9932d56343a5b71ce09b113c10b8c2acbbc616970e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/command-center/medium.png",
+          "width": 512,
+          "sha256": "b7925868d167e5917e0fa05ecc8f2bdbdd7359fcf81ffa9961b2603b50ad34bd"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/command-center/large.png",
+          "width": 1254,
+          "sha256": "5456778c36991659115a05b86b6b0fe53990579e37487d5c8495861ef3a4ded9"
+        }
+      }
+    },
+    {
+      "id": "insight",
+      "identity": "/insight",
+      "label": "InsightCenter",
+      "part": "remaining",
+      "sourceSha256": "98758920598c5b326605a9ddf53a53d6995d506577ab593b80168622dec0869c",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/insight/small.png",
+          "width": 192,
+          "sha256": "b79f413383f41fdc3543775d778f1a4d1ba75a59a414a2dc8712a1cb8c08055d"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/insight/medium.png",
+          "width": 512,
+          "sha256": "be5cde833e3ad763ce653df8713f1be181604daafd8f58036a0bc5d50e0823fb"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/insight/large.png",
+          "width": 1254,
+          "sha256": "98758920598c5b326605a9ddf53a53d6995d506577ab593b80168622dec0869c"
         }
       }
     },
@@ -2042,6 +3002,390 @@
       }
     },
     {
+      "id": "platform-audit",
+      "identity": "/platform/audit",
+      "label": "Audit",
+      "part": "remaining",
+      "sourceSha256": "970960755da50cdc52c131bc48c29f52045e7f8e3862eef6962c202c4622e532",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-audit/small.png",
+          "width": 192,
+          "sha256": "5c38b7247d6bbc93ad82da8d8bea0eba1dc672594c2bdf7ce1a6eab14c89a1dd"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-audit/medium.png",
+          "width": 512,
+          "sha256": "7cf213fe778d136cd52d148cdd0a4c70878fe0cc79868fcab05a09af1de6d82a"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-audit/large.png",
+          "width": 1254,
+          "sha256": "970960755da50cdc52c131bc48c29f52045e7f8e3862eef6962c202c4622e532"
+        }
+      }
+    },
+    {
+      "id": "platform-billing",
+      "identity": "/platform/billing",
+      "label": "Abrechnung",
+      "part": "remaining",
+      "sourceSha256": "61d517cf3159111414b3e943d5a54bcc33c17d7b7fcd84b33ca9e55eb999e45b",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-billing/small.png",
+          "width": 192,
+          "sha256": "af4e08e89c6d660dddcf9cba302d2da109522e38aab4c6e35ac42753e11b3d80"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-billing/medium.png",
+          "width": 512,
+          "sha256": "22378d3dbb77a7bdcdb9862e78355be397a07eae4844364d39eb2503f539078c"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-billing/large.png",
+          "width": 1254,
+          "sha256": "61d517cf3159111414b3e943d5a54bcc33c17d7b7fcd84b33ca9e55eb999e45b"
+        }
+      }
+    },
+    {
+      "id": "platform-plans",
+      "identity": "/platform/plans",
+      "label": "Tarife",
+      "part": "remaining",
+      "sourceSha256": "832c766fb9707b4b977a6196c9443abc72a41e731c4daeefd5371afbb805208d",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-plans/small.png",
+          "width": 192,
+          "sha256": "c89b240bf1e6425c2e4a6660f86b8738a6f2d7b5778746e54aabf246bae98310"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-plans/medium.png",
+          "width": 512,
+          "sha256": "abfe8077cddb3d8d7c39d016e69d3a895228518ec01ddacdc13ee9b705a68503"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-plans/large.png",
+          "width": 1254,
+          "sha256": "832c766fb9707b4b977a6196c9443abc72a41e731c4daeefd5371afbb805208d"
+        }
+      }
+    },
+    {
+      "id": "platform-releases",
+      "identity": "/platform/releases",
+      "label": "Releases",
+      "part": "remaining",
+      "sourceSha256": "065fc402e6881e732e19e36376a7e3dbce2e134b1585b559cdfc92143aa77afa",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-releases/small.png",
+          "width": 192,
+          "sha256": "457df1b7c377b75ce7905f67a4386e0d2c3b4c5abc2ab6a70a520120d957354e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-releases/medium.png",
+          "width": 512,
+          "sha256": "f90d4a8e7ad4c166dce2381daee49f824f7b2380eb6eb0f3c38450fed8797ba3"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-releases/large.png",
+          "width": 1254,
+          "sha256": "065fc402e6881e732e19e36376a7e3dbce2e134b1585b559cdfc92143aa77afa"
+        }
+      }
+    },
+    {
+      "id": "platform-support",
+      "identity": "/platform/support",
+      "label": "Support",
+      "part": "remaining",
+      "sourceSha256": "9e9a66a3d8ac46b851c0f484016eab90f25d7f79b0eb57937f2c1760565d4ebd",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-support/small.png",
+          "width": 192,
+          "sha256": "b80739355c3d9d75819a62842935b0493a441659c00cda7671df4e971e57b5e4"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-support/medium.png",
+          "width": 512,
+          "sha256": "0f037981cdd322b2ad018ac3509d15fc19bc0a15a9a23cf686e7736f9fe2c5a0"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-support/large.png",
+          "width": 1254,
+          "sha256": "9e9a66a3d8ac46b851c0f484016eab90f25d7f79b0eb57937f2c1760565d4ebd"
+        }
+      }
+    },
+    {
+      "id": "platform-tenants",
+      "identity": "/platform/tenants",
+      "label": "Mandanten",
+      "part": "remaining",
+      "sourceSha256": "a5b9a00a342a623c2afcc5443d9fa55a9dcf804c23da9385239bedaa6a79733e",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-tenants/small.png",
+          "width": 192,
+          "sha256": "ad2eca45931da241623f3aca728c74ce22a2c4290755a5ff6a1d2350263f3a2e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-tenants/medium.png",
+          "width": 512,
+          "sha256": "d4016151acb19cbc95fdaf28570c4e9cbc65f8500ba034c9b1ac26084705fb6a"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-tenants/large.png",
+          "width": 1254,
+          "sha256": "a5b9a00a342a623c2afcc5443d9fa55a9dcf804c23da9385239bedaa6a79733e"
+        }
+      }
+    },
+    {
+      "id": "robotics",
+      "identity": "/robotics",
+      "label": "Robotics",
+      "part": "remaining",
+      "sourceSha256": "92c12935b7f7f76adc0b4f009a0d2d9178bd740ac0f7be4f789a526eb519786d",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics/small.png",
+          "width": 192,
+          "sha256": "a01b51fe04fcfb9461faf5b64ff9232b75a5aba2d989efed1c00ad58c7b820cd"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics/medium.png",
+          "width": 512,
+          "sha256": "7872f41680b9a5f80820fbfbaee8d4a8b9151a7479df7beb9a2b90b00b79e2c9"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics/large.png",
+          "width": 1254,
+          "sha256": "92c12935b7f7f76adc0b4f009a0d2d9178bd740ac0f7be4f789a526eb519786d"
+        }
+      }
+    },
+    {
+      "id": "robotics-area-devices",
+      "identity": "/robotics?area=devices",
+      "label": "Geräte",
+      "part": "remaining",
+      "sourceSha256": "8569ccae34a9e274562c614ea772becc37c67d1d4786968293e28cd8db69bdda",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-devices/small.png",
+          "width": 192,
+          "sha256": "9d5f1d0d176f31507d2d17d55d8f8724b3eebb79852d7b78bce10a547bfe0b32"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-devices/medium.png",
+          "width": 512,
+          "sha256": "21121b01fd897d6ae2d334547247afecd45c4392c7ba9068d325c0de62611b92"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-devices/large.png",
+          "width": 1254,
+          "sha256": "8569ccae34a9e274562c614ea772becc37c67d1d4786968293e28cd8db69bdda"
+        }
+      }
+    },
+    {
+      "id": "robotics-area-handover",
+      "identity": "/robotics?area=handover",
+      "label": "Übergaben",
+      "part": "remaining",
+      "sourceSha256": "ddd1e91e2607cf7ae4688253b591ba1a88d76141f00a9125ebcd903f8c6d8d9b",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-handover/small.png",
+          "width": 192,
+          "sha256": "40ab329e92f1c8e797f4fbaba9e6ceebab4faf983d3a1c29833af65ba1b15c73"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-handover/medium.png",
+          "width": 512,
+          "sha256": "223a6445dcb349c04540c41379e6f60b17450107a5d1fdf6a266ac459033c70d"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-handover/large.png",
+          "width": 1254,
+          "sha256": "ddd1e91e2607cf7ae4688253b591ba1a88d76141f00a9125ebcd903f8c6d8d9b"
+        }
+      }
+    },
+    {
+      "id": "robotics-area-maintenance",
+      "identity": "/robotics?area=maintenance",
+      "label": "Wartung",
+      "part": "remaining",
+      "sourceSha256": "4657f2c3d0c402e16b8342e9fdde988b192a0e800b09ee29a021630d32b16abb",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-maintenance/small.png",
+          "width": 192,
+          "sha256": "0b6880f81734314d801262686d723f3e7a2eaae89a4e4aeb6cbd8c0188da10e3"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-maintenance/medium.png",
+          "width": 512,
+          "sha256": "8188f27cd5e1bd49d784051988e5681a64f610e840ffc0dc006dfb4dc22b5cb1"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-maintenance/large.png",
+          "width": 1254,
+          "sha256": "4657f2c3d0c402e16b8342e9fdde988b192a0e800b09ee29a021630d32b16abb"
+        }
+      }
+    },
+    {
+      "id": "robotics-area-tasks",
+      "identity": "/robotics?area=tasks",
+      "label": "Aufgaben",
+      "part": "remaining",
+      "sourceSha256": "00f2a37b3d8e2dab8e11e51d3c87d4403563d3eac0e127a10340a711bd5e0213",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-tasks/small.png",
+          "width": 192,
+          "sha256": "6f4490e087af966ee9e766cb999f0482db1c7f556945935ba61333e09f16671a"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-tasks/medium.png",
+          "width": 512,
+          "sha256": "5750f15588f08115e2aa1fa827fe33c8d556f67a0483a0576bdc3c2feebcdc76"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-tasks/large.png",
+          "width": 1254,
+          "sha256": "00f2a37b3d8e2dab8e11e51d3c87d4403563d3eac0e127a10340a711bd5e0213"
+        }
+      }
+    },
+    {
+      "id": "robotics-area-telemetry",
+      "identity": "/robotics?area=telemetry",
+      "label": "Telemetrie",
+      "part": "remaining",
+      "sourceSha256": "9572eeddf1fedcb8beaa465b2b6fd66f0c0412293120efb12d9013face2b2c93",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-telemetry/small.png",
+          "width": 192,
+          "sha256": "e02945ab241924af37fda2c195fb91f0480b075688b0a93388e06ba45745fc43"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-telemetry/medium.png",
+          "width": 512,
+          "sha256": "e0e9555102f3ca2b58d6594138b042190bd12a3ce28463267d39a8708cd88df9"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-telemetry/large.png",
+          "width": 1254,
+          "sha256": "9572eeddf1fedcb8beaa465b2b6fd66f0c0412293120efb12d9013face2b2c93"
+        }
+      }
+    },
+    {
+      "id": "robotics-area-zones",
+      "identity": "/robotics?area=zones",
+      "label": "Sicherheitszonen",
+      "part": "remaining",
+      "sourceSha256": "44328828b130d1a13c75c20ccbe45a0d672bb1d697923a5becb555d53c7acc65",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-zones/small.png",
+          "width": 192,
+          "sha256": "6d9cc323d0ec03c7089573ac44086f9058a0636a4f1878915d967a46d669fad8"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-zones/medium.png",
+          "width": 512,
+          "sha256": "4f9ea8abbb6b975bee8dabec5557cf691c9b384c6b3376cc9efaab5cdf123678"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/robotics-area-zones/large.png",
+          "width": 1254,
+          "sha256": "44328828b130d1a13c75c20ccbe45a0d672bb1d697923a5becb555d53c7acc65"
+        }
+      }
+    },
+    {
+      "id": "settings-appearance",
+      "identity": "/settings/appearance",
+      "label": "Branding",
+      "part": "remaining",
+      "sourceSha256": "43fe311af89426be9a7ca0e689980d124aa1f812a43e1efa1482e16ff0a1949e",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-appearance/small.png",
+          "width": 192,
+          "sha256": "d63784c869da6adde5e47a27f86643874b46777203a4ccb2a725425a5531402a"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-appearance/medium.png",
+          "width": 512,
+          "sha256": "c834fb7602cfb9d15f9ac12e2022497046f8c4b02ec67116c1990ef714644c28"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-appearance/large.png",
+          "width": 1254,
+          "sha256": "43fe311af89426be9a7ca0e689980d124aa1f812a43e1efa1482e16ff0a1949e"
+        }
+      }
+    },
+    {
+      "id": "settings-data-request",
+      "identity": "/settings/data-request",
+      "label": "Datenschutz",
+      "part": "remaining",
+      "sourceSha256": "068a8e29e193b28efa4f582ba6d6b512b101058a8637983ac158c0e412e15007",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-data-request/small.png",
+          "width": 192,
+          "sha256": "877690d3f19a418581f36a28d7c5f3f412e19c7ebfd3fd6eaae4db88f39e718b"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-data-request/medium.png",
+          "width": 512,
+          "sha256": "f9fad4a8f0a94e71a3b52fba5ec4462aebb06383d8e84447c59215f549db1065"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-data-request/large.png",
+          "width": 1254,
+          "sha256": "068a8e29e193b28efa4f582ba6d6b512b101058a8637983ac158c0e412e15007"
+        }
+      }
+    },
+    {
+      "id": "settings-tenant",
+      "identity": "/settings/tenant",
+      "label": "Organisation",
+      "part": "remaining",
+      "sourceSha256": "a85dcf25ae648db8f97705e84023529da77d8299fe25c4ace2be1ca5e9660def",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-tenant/small.png",
+          "width": 192,
+          "sha256": "0ed6dd6b1b5d247649651ca2eccb724c68942c4d6d0f44ec94d06ce3fc7e1db3"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-tenant/medium.png",
+          "width": 512,
+          "sha256": "5bd77ec9a847ae009b3cc7f7ca33ec5ac0d65bac9e0882b54098e348b4240f63"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-tenant/large.png",
+          "width": 1254,
+          "sha256": "a85dcf25ae648db8f97705e84023529da77d8299fe25c4ace2be1ca5e9660def"
+        }
+      }
+    },
+    {
       "id": "stationaer",
       "identity": "/stationaer",
       "label": "Dashboard",
@@ -2278,6 +3622,54 @@
           "path": "/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/large.png",
           "width": 1254,
           "sha256": "8c16c3b512d63681238b759a791faba3625ee1f85b820a3de00634de58d6b76e"
+        }
+      }
+    },
+    {
+      "id": "unternehmen",
+      "identity": "/unternehmen",
+      "label": "Unternehmen",
+      "part": "remaining",
+      "sourceSha256": "8fdbf69e9b52a899d1a20db4e83c138061689366d3c1974adeedf832ee82fc1a",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/unternehmen/small.png",
+          "width": 192,
+          "sha256": "06d2b7d4144dad9b9b5a9a8970c25d1fd19893971618c977d2ccf5345b8d638e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/unternehmen/medium.png",
+          "width": 512,
+          "sha256": "e4b5f6285755c6a5f3029cc13adfc92436b9cd2d0a4f4f446f94f786a8a91a3e"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/unternehmen/large.png",
+          "width": 1254,
+          "sha256": "8fdbf69e9b52a899d1a20db4e83c138061689366d3c1974adeedf832ee82fc1a"
+        }
+      }
+    },
+    {
+      "id": "unternehmen-inventar",
+      "identity": "/unternehmen/inventar",
+      "label": "Inventar",
+      "part": "remaining",
+      "sourceSha256": "ae0b8442fb68ad082c4a2bb47361dcd47d23451e1c281bd18178a197b36f1054",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/unternehmen-inventar/small.png",
+          "width": 192,
+          "sha256": "6dc77c41593ecacdaea33c000b11b7d9a1ded036e4be02a3b49ea5fb62ddbbde"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/unternehmen-inventar/medium.png",
+          "width": 512,
+          "sha256": "68fb2ea430e43f63e298a23dba05bb7f3a6aeb296fc3bba060fa8d4e2e9bf98a"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/unternehmen-inventar/large.png",
+          "width": 1254,
+          "sha256": "ae0b8442fb68ad082c4a2bb47361dcd47d23451e1c281bd18178a197b36f1054"
         }
       }
     }
