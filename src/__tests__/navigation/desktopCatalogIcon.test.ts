@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { buildSync } from 'esbuild';
 import { resolve } from 'node:path';
 import { DOMParser } from '@xmldom/xmldom';
@@ -57,6 +57,8 @@ type ArtworkCatalog = {
   buildDesktopApps: (widgets: readonly CatalogEntry[], role?: string) => CatalogEntry[];
   WIDGETS: readonly CatalogEntry[];
   WORKFLOWS: readonly CatalogEntry[];
+  stationaerNav: { groups: { items: { href: string }[] }[] };
+  beratungNav: { groups: { items: { href: string }[] }[] };
 };
 
 // Keep static image requires in the real catalogue, but resolve them to local
@@ -68,29 +70,62 @@ const artworkBundle = buildSync({
       export { widgetArtworkTheme } from './src/liquid-command/components/widgetArtworkTheme.shared';
       export { buildDesktopApps } from './src/liquid-command/navigation/desktopAppCatalogModel';
       export { WIDGETS, WORKFLOWS } from './src/liquid-command/screens/administrationDesktopCatalog';
+      export { stationaerNav } from './src/lib/navigation/moduleNav/stationaerNav';
+      export { beratungNav } from './src/lib/navigation/moduleNav/beratungNav';
     `,
     resolveDir: process.cwd(), loader: 'ts',
   },
   bundle: true, write: false, platform: 'node', format: 'cjs',
   external: ['react-native', '*.png', '*.jpg'],
 }).outputFiles[0].text;
-const artworkModule = { exports: {} as ArtworkCatalog };
-new Function('require', 'module', 'exports', artworkBundle)((id: string) => {
-  if (id === 'react-native') return { Platform: { OS: 'web' } };
-  const assetsIndex = id.indexOf('assets/');
-  if (assetsIndex >= 0 && /\.(png|jpg)$/.test(id)) return { uri: resolve(id.slice(assetsIndex)) };
-  const publicIndex = id.indexOf('public/widget-artwork/');
-  if (publicIndex >= 0 && /\.png$/.test(id)) return { uri: resolve(id.slice(publicIndex)) };
-  throw new Error(`Unexpected artwork dependency: ${id}`);
-}, artworkModule, artworkModule.exports);
-const artworkCatalog = artworkModule.exports;
+function loadArtworkCatalog(platform = 'web'): ArtworkCatalog {
+  const artworkModule = { exports: {} as ArtworkCatalog };
+  new Function('require', 'module', 'exports', artworkBundle)((id: string) => {
+    if (id === 'react-native') return { Platform: { OS: platform } };
+    const assetsIndex = id.indexOf('assets/');
+    if (assetsIndex >= 0 && /\.(png|jpg)$/.test(id)) return { uri: resolve(id.slice(assetsIndex)) };
+    const publicIndex = id.indexOf('public/widget-artwork/');
+    if (publicIndex >= 0 && /\.png$/.test(id)) return { uri: resolve(id.slice(publicIndex)) };
+    throw new Error(`Unexpected artwork dependency: ${id}`);
+  }, artworkModule, artworkModule.exports);
+  return artworkModule.exports;
+}
+const artworkCatalog = loadArtworkCatalog();
 
 describe('unique function artwork', () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   const entries = [
     ...artworkCatalog.buildDesktopApps(artworkCatalog.WIDGETS, 'business_admin'),
     ...artworkCatalog.buildDesktopApps(artworkCatalog.WIDGETS, 'platform_admin'),
     ...artworkCatalog.WIDGETS, ...artworkCatalog.WORKFLOWS,
   ];
+
+  it.each(['web', 'android', 'ios'])('requires a 3D original for every catalogue function on %s, with consultation enabled and disabled', platform => {
+    for (const enabled of ['false', 'true']) {
+      vi.stubEnv('EXPO_PUBLIC_CONSULTATION_WORKSPACE_ENABLED', enabled);
+      const catalogue = loadArtworkCatalog(platform);
+      const functions = [
+        ...['business_admin', 'business_manager', 'dispatch', 'platform_admin'].flatMap(role => catalogue.buildDesktopApps(catalogue.WIDGETS, role)),
+        ...catalogue.WIDGETS, ...catalogue.WORKFLOWS,
+        ...[catalogue.stationaerNav, catalogue.beratungNav].flatMap(nav => nav.groups.flatMap(group => group.items.map(item => ({ route: item.href })))),
+      ];
+      for (const entry of functions) {
+        const images = catalogue.desktopCatalogArtwork(entry.route);
+        expect(images.large.uri, `${entry.route}, consultation=${enabled}`).toMatch(/\/widget-artwork\/[^/]+\/[^/]+\/large\.png$/);
+        expect(images.small.uri).toMatch(/\/small\.png$/);
+        expect(images.medium.uri).toMatch(/\/medium\.png$/);
+      }
+    }
+  });
+
+  it('keeps the redirected Beratung entry and the published workspace on the same original', () => {
+    const original = artworkCatalog.desktopCatalogArtwork('/beratung');
+    expect(original.large.uri).toContain('/beratung/large.png');
+    expect(artworkCatalog.desktopCatalogArtwork('/beratung/arbeitsplatz')).toBe(original);
+    expect(artworkCatalog.desktopCatalogArtwork('/beratung/arbeitsplatz/?source=desktop#overview')).toBe(original);
+    expect(artworkCatalog.desktopCatalogArtwork('/beratung/protokolle').large.uri).not.toBe(original.large.uri);
+  });
 
   it('uses recovered 3D originals for published functions and keeps aliases on the same original', () => {
     const clients = artworkCatalog.desktopCatalogArtwork('/business/office/clients');

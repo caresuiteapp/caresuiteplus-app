@@ -20,13 +20,16 @@ Für das Importieren genau eines Pakets dient
 Das Originalarchiv selbst ist kein Buildbestandteil. Das Manifest und die Dateien
 liegen mit dem jeweiligen Commit im Repository. Der Releasecheck prüft die Hashes,
 Auflösungen, Transparenz, eigenständige Zuordnung und die statischen App-Imports.
-Noch fehlende Originale behalten ausschließlich ihre eigene bestehende Grafik;
-ein Bild einer anderen Funktion wird dafür nicht verwendet. Die acht im Archiv
-genannten fehlenden Zuordnungen und zusätzliche QM-Unterfunktionen bleiben als
-eigener Gestaltungsschritt offen, bis ihre Originale vorliegen und geprüft sind.
 
-Die folgenden Regeln für automatische Grafiken gelten für diese noch nicht mit
-Originalen ausgestatteten Funktionen und neu hinzukommende Ziele weiter.
+Die Ergänzung vom 06.11.2026 schließt die acht Lücken für Einstellungen, Profil,
+Support, Feature Flags, Wohnbereiche, Zimmer, Übergabe und Übergabeberichte mit
+eigenen Motiven. `/beratung/arbeitsplatz` und der dorthin umleitende Einstieg
+`/beratung` verwenden dasselbe vorhandene Beratungsoriginal. Unterfunktionen wie
+Protokolle behalten ihre eigenen Bilder.
+
+Die folgenden Regeln für automatische Grafiken gelten nur als vorläufige Hilfe
+bei neu hinzukommenden Entwicklungszielen. Sie ersetzen kein freigabefähiges
+3D-Original für eine Katalogfunktion.
 
 Jede Funktion besitzt ein eigenes Hauptmotiv mit einem passenden Kontextobjekt.
 Ein fertiges Bild darf nicht für eine andere Funktion verwendet werden. Notizen,
@@ -49,7 +52,8 @@ Pfade und Farben. Es werden keine Bilder zur Laufzeit extern erzeugt oder gelade
 Ein neues Ziel im vorhandenen App-Katalog ist bereits automatisch als Widget
 verfügbar. Es erhält sofort eine Grafik aus seinem Funktionsthema und seiner
 stabilen Identität. Für neue fachliche Begriffe die semantischen Regeln ergänzen.
-Die automatische Grafik ist kein Ersatz für die visuelle Prüfung vor Freigabe.
+Die automatische Grafik ist kein Ersatz für ein eigenes 3D-Original und die
+visuelle Prüfung vor Freigabe.
 
 ## Verbindliche Erweiterung und Prüfung
 
@@ -59,7 +63,9 @@ Die automatische Grafik ist kein Ersatz für die visuelle Prüfung vor Freigabe.
    eigene Form in `WIDGET_ARTWORK_PATHS` ergänzen. Bloße Farbänderungen begründen
    kein neues Motiv. Unterschiedliche Funktionen dürfen dieselbe Kombination
    aus Hauptmotiv und Kontext nicht verwenden.
-3. Das Ergebnis in kleinen Navigationssymbolen und großen Widgets ansehen.
+3. Ein eigenes transparentes 3D-PNG erzeugen und mit eindeutiger Identität ins
+   Originalmanifest sowie die Web-/Native-Assetzuordnung aufnehmen. Das Ergebnis
+   in kleinen Navigationssymbolen und großen Widgets ansehen.
    Überschriften stehen außerhalb der Grafik. Keine Schrift oder Datenwerte in
    die Illustration einbauen. Umrandungen und Schatten dürfen nicht abschneiden.
 4. `npm run verify:widget-artwork:release` sowie die betroffenen Interaktions-
@@ -67,7 +73,9 @@ Die automatische Grafik ist kein Ersatz für die visuelle Prüfung vor Freigabe.
    automatisch mit aus.
 
 Die Prüfung untersucht die echten Kataloge für Web, Android und iOS einschließlich
-Stationär und Beratung. Sie prüft Motive und fertige Zeichnungen auf Doppelungen,
+Stationär und Beratung mit aktivierter und deaktivierter Beratungsfreigabe. Jeder
+Eintrag muss zu einem 3D-Original aufgelöst werden; SVG-Grafiken lassen die
+Releaseprüfung fehlschlagen. Sie prüft Motive und fertige Zeichnungen auf Doppelungen,
 vollständige Grafikpfade, Mastergröße, verbotene externe Inhalte und Plattform-
 Unterschiede. Sie verändert keine Berechtigungen und gibt keine gesperrten Module
 frei. Browserprüfungen belegen die Optik getrennt von den Funktionsprüfungen.

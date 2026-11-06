@@ -637,6 +637,11 @@ export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
     medium: require('../../../public/widget-artwork/originals-20261106-v1/platform-billing/medium.png'),
     large: require('../../../public/widget-artwork/originals-20261106-v1/platform-billing/large.png'),
   },
+  "platform-feature-flags": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/platform-feature-flags/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/platform-feature-flags/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/platform-feature-flags/large.png'),
+  },
   "platform-plans": {
     small: require('../../../public/widget-artwork/originals-20261106-v1/platform-plans/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/platform-plans/medium.png'),
@@ -692,6 +697,11 @@ export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
     medium: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-zones/medium.png'),
     large: require('../../../public/widget-artwork/originals-20261106-v1/robotics-area-zones/large.png'),
   },
+  "settings": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/settings/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/settings/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/settings/large.png'),
+  },
   "settings-appearance": {
     small: require('../../../public/widget-artwork/originals-20261106-v1/settings-appearance/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/settings-appearance/medium.png'),
@@ -701,6 +711,11 @@ export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
     small: require('../../../public/widget-artwork/originals-20261106-v1/settings-data-request/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/settings-data-request/medium.png'),
     large: require('../../../public/widget-artwork/originals-20261106-v1/settings-data-request/large.png'),
+  },
+  "settings-profile": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/settings-profile/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/settings-profile/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/settings-profile/large.png'),
   },
   "settings-tenant": {
     small: require('../../../public/widget-artwork/originals-20261106-v1/settings-tenant/small.png'),
@@ -756,6 +771,31 @@ export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
     small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/medium.png'),
     large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/large.png'),
+  },
+  "stationaer-uebergabe": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-uebergabe/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-uebergabe/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-uebergabe/large.png'),
+  },
+  "stationaer-uebergabebericht": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-uebergabebericht/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-uebergabebericht/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-uebergabebericht/large.png'),
+  },
+  "stationaer-wohnbereiche": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-wohnbereiche/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-wohnbereiche/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-wohnbereiche/large.png'),
+  },
+  "stationaer-zimmer": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-zimmer/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-zimmer/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-zimmer/large.png'),
+  },
+  "support": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/support/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/support/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/support/large.png'),
   },
   "unternehmen": {
     small: require('../../../public/widget-artwork/originals-20261106-v1/unternehmen/small.png'),

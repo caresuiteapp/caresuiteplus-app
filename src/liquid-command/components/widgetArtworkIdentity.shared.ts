@@ -6,6 +6,9 @@ export function widgetArtworkIdentity(route: string): string {
   const [location] = canonical.split('#', 1);
   const [rawPath, search = ''] = location.split('?');
   let path = rawPath.replace(/\/+$/, '') || '/';
+  // The published Beratung index redirects to this same workspace. Keep its
+  // existing original on both entry points without borrowing it for subpages.
+  if (path === '/beratung/arbeitsplatz') path = '/beratung';
   const aliases: Record<string, string> = {
     '/': '/Desktop', '/business': '/Desktop', '/business/home': '/Desktop',
     '/office/clients': '/business/office/clients',

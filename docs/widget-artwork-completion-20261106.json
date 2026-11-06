@@ -1,0 +1,94 @@
+{
+  "date": "2026-11-06",
+  "style": "Premium photorealistic miniature 3D dioramas, silver, porcelain white, blue, teal and warm wood; transparent background; distinct subject per function.",
+  "artworks": [
+    {
+      "id": "settings",
+      "identity": "/settings",
+      "label": "Einstellungen",
+      "subject": "General application settings: a sophisticated physical desktop control console with three substantial mechanical sliders, tactile switches, and a visible precision gear assembly. A small angled glass control display and a slim tuning tool emphasize configuring the application. This should look like a believable high-end configuration workstation, with blue indicators, silver controls, warm neutral base. No people, no flag pennants.",
+      "generator": "image_gen",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "sourceSha256": "0ae73d0bbe362ef0ab86c176c0e355a8d9f1442eddc1e2452be61c8bb7f7f221"
+    },
+    {
+      "id": "settings-profile",
+      "identity": "/settings/profile",
+      "label": "Profil",
+      "subject": "Personal user profile and account: a realistic miniature personal identity desk display with the framed portrait of ONE friendly adult care professional, a standing personal ID card with portrait but no writing, a smartphone showing a large portrait area and a tiny key. Polished individual-account scene in pale blue and silver. Keep clearly distinct from an employee list or team permissions dashboard; one person only, no group board, no vault.",
+      "generator": "image_gen",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "sourceSha256": "6fd238e99abdf6ada30c060d40db3f654588535a6acfb7d60177f9b2b52a6e71"
+    },
+    {
+      "id": "support",
+      "identity": "/support",
+      "label": "Support & Hilfe",
+      "subject": "Customer support and help: a lifelike miniature helpful support agent wearing a headset, seated at a compact curved desk with a laptop, two clear blue speech-message panels, and a small open troubleshooting notebook. Human-centred service-desk diorama with realistic cloth, face, silver laptop, white and blue desk. No floating question-mark glyph as the main motif. A single agent, no second person.",
+      "generator": "image_gen",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "sourceSha256": "ad2d1befe4b581fd28f105d3e76d23b8fcb0d8d259209d5328b9a335190491f7"
+    },
+    {
+      "id": "platform-feature-flags",
+      "identity": "/platform/feature-flags",
+      "label": "Feature Flags",
+      "subject": "Software feature flags and controlled release: a miniature release-control laboratory with three upright translucent feature cards, substantial individual on/off toggle switches in different positions, two small real fabric flag pennants on short silver poles, green and amber status lights, and a small test-stage platform. The physical flags plus switches must make feature activation recognizable. No people, no generic settings gear as the main motif. No text on cards.",
+      "generator": "image_gen",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "sourceSha256": "15f25e8bbc668e8af3710e88162b7915cdfa0518db03138d5de9190f222a9aa3"
+    },
+    {
+      "id": "stationaer-wohnbereiche",
+      "identity": "/stationaer/wohnbereiche",
+      "label": "Wohnbereiche",
+      "subject": "Residential care areas: an elegant architectural cutaway miniature of one residential care wing, showing several separate accessible rooms connected by a broad corridor and a shared lounge with armchairs, a side table and green plants. Show the relation between distinct rooms and the shared living area clearly, in a cohesive three-dimensional building cross-section. Calm blue and warm wood interior, no labels, no people. This is a whole care wing, not a single bedroom.",
+      "generator": "image_gen",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "sourceSha256": "6413519f5feb8712734515176ae65301772b4b28f25e52db7fb547bc43a6ba6a"
+    },
+    {
+      "id": "stationaer-zimmer",
+      "identity": "/stationaer/zimmer",
+      "label": "Zimmer",
+      "subject": "Individual resident room in a care home: one complete accessible bedroom cutaway, with ONE neatly made height-adjustable care bed in pale teal bedding, a bedside cabinet and reading lamp, an upholstered armchair, a small wardrobe and a visible nurse-call handset near the bed. Realistic warm wooden floor on a miniature architectural base. Clear personal bedroom setting, distinct from a multi-room building or hospital ward. No people.",
+      "generator": "image_gen",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "sourceSha256": "a626815691d1a66bf365b9809eab5a5a1e5b5b8715928be3dadffece6ca012bb"
+    },
+    {
+      "id": "stationaer-uebergabe",
+      "identity": "/stationaer/uebergabe",
+      "label": "Übergabe",
+      "subject": "Care shift handover: two realistic miniature nursing professionals at a compact ward handover desk, one passing a single open clinical clipboard to the other while both review it attentively. Add a small desktop clock and an angled tablet with simple colored care-status rows, without writing. Warm human interaction, blue and white workwear, professional care context. Main subject is the transfer between two people, not a pile of reports.",
+      "generator": "image_gen",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "sourceSha256": "eb89006e0c5c3436e6da12391f49d96a6492eab24a615d52c96513c3b35b8040"
+    },
+    {
+      "id": "stationaer-uebergabebericht",
+      "identity": "/stationaer/uebergabebericht",
+      "label": "Übergabeberichte",
+      "subject": "Written care shift handover reports: a richly detailed open blue leather shift logbook with distinct colored divider tabs, structured chart lines without words, a polished pen, a few neatly clipped handover report sheets, and a propped tablet displaying a structured shift-report grid. Add a small unobtrusive clock. The main subject is clear reviewed written handover documentation. No people. Horizontal open-logbook composition, distinct from a vertical document binder or general notebook.",
+      "generator": "image_gen",
+      "width": 1254,
+      "height": 1254,
+      "mode": "RGBA",
+      "sourceSha256": "edeaf10b006e32bd7bb8b63782dd6e4861a80b24fcf29ddfe59e11f33c0242e4"
+    }
+  ]
+}

@@ -15,6 +15,7 @@ for (const artwork of rasterManifest.artworks) {
   sourceHashes.add(artwork.sourceSha256);
   for (const [size, expectedWidth] of [['small', 192], ['medium', 512], ['large', 1254]]) {
     const variant = artwork.variants[size];
+    if (variant.width !== expectedWidth) throw new Error(`Incorrect variant resolution: ${artwork.identity}/${size}`);
     if (!variant.path.startsWith(`/widget-artwork/${rasterManifest.version}/${artwork.id}/`) || variant.path.includes('..')) throw new Error(`Invalid 3D path: ${artwork.identity}`);
     const bytes = readFileSync(resolve(root, `public${variant.path}`));
     const hash = createHash('sha256').update(bytes).digest('hex');
@@ -35,7 +36,9 @@ const code = buildSync({ stdin: { contents: `
   external: ['react-native'], loader: { '.png': 'empty', '.jpg': 'empty' },
 }).outputFiles[0].text;
 const functions = new Map();
-for (const platform of ['web', 'android', 'ios']) {
+const consultationFlag = process.env.EXPO_PUBLIC_CONSULTATION_WORKSPACE_ENABLED;
+for (const consultationEnabled of ['false', 'true']) for (const platform of ['web', 'android', 'ios']) {
+  process.env.EXPO_PUBLIC_CONSULTATION_WORKSPACE_ENABLED = consultationEnabled;
   const loaded = { exports: {} };
   new Function('require', 'module', 'exports', code)(id => {
     if (id === 'react-native') return { Platform: { OS: platform } };
@@ -59,6 +62,9 @@ for (const platform of ['web', 'android', 'ios']) {
   const drawings = new Map();
   const motifs = new Map();
   for (const entry of entries) {
+    // A development vector is no release-ready 3D original. Inspect both
+    // consultation configurations so the published workspace cannot be missed.
+    if (!catalog.widgetRasterArtwork(entry.route)) throw new Error(`Missing 3D original: ${entry.route} (${platform}, consultation=${consultationEnabled}). Add its own original before release.`);
     const theme = catalog.widgetArtworkTheme(entry.route, entry.label);
     const xml = catalog.desktopCatalogArtworkXml(entry.route, entry.label);
     if (!catalog.WIDGET_ARTWORK_PATHS[theme.primary] || !catalog.WIDGET_ARTWORK_PATHS[theme.secondary]) throw new Error(`Missing subject: ${entry.route}`);
@@ -79,5 +85,7 @@ for (const platform of ['web', 'android', 'ios']) {
     functions.set(theme.identity, hash);
   }
 }
+if (consultationFlag === undefined) delete process.env.EXPO_PUBLIC_CONSULTATION_WORKSPACE_ENABLED;
+else process.env.EXPO_PUBLIC_CONSULTATION_WORKSPACE_ENABLED = consultationFlag;
 console.log(`[widget-artwork] ${functions.size} functions: unique subjects/compositions, 2048 px vector masters, Web/Android/iOS parity. No shared stock fallback.`);
-console.log(`[widget-artwork] ${rasterManifest.artworks.length} recovered 3D originals: unique SHA-256, unchanged 1254 px RGBA masters, 192/512 px derivatives, matching native bundles and versioned Web paths.`);
+console.log(`[widget-artwork] ${rasterManifest.artworks.length} unique 3D originals: unchanged high-resolution RGBA masters, 192/512 px derivatives, matching native bundles and versioned Web paths. Every catalogue entry is covered with consultation enabled and disabled.`);

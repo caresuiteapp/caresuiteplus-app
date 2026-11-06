@@ -3050,6 +3050,30 @@
       }
     },
     {
+      "id": "platform-feature-flags",
+      "identity": "/platform/feature-flags",
+      "label": "Feature Flags",
+      "part": "remaining",
+      "sourceSha256": "15f25e8bbc668e8af3710e88162b7915cdfa0518db03138d5de9190f222a9aa3",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-feature-flags/small.png",
+          "width": 192,
+          "sha256": "e5c7fa827463d3c4c14fdc2b0029aabca7f471b22140d03dce631ac494467c03"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-feature-flags/medium.png",
+          "width": 512,
+          "sha256": "50d5d024a7858e36e50fd9761f87ae3f6f442857d3b841ac85bc49220871cafb"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/platform-feature-flags/large.png",
+          "width": 1254,
+          "sha256": "15f25e8bbc668e8af3710e88162b7915cdfa0518db03138d5de9190f222a9aa3"
+        }
+      }
+    },
+    {
       "id": "platform-plans",
       "identity": "/platform/plans",
       "label": "Tarife",
@@ -3314,6 +3338,30 @@
       }
     },
     {
+      "id": "settings",
+      "identity": "/settings",
+      "label": "Einstellungen",
+      "part": "remaining",
+      "sourceSha256": "0ae73d0bbe362ef0ab86c176c0e355a8d9f1442eddc1e2452be61c8bb7f7f221",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/settings/small.png",
+          "width": 192,
+          "sha256": "ebd75d8fffc87f21f8cb9049bf8ea91a4bb90fa77bef07dc9a43fa73dbecabab"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/settings/medium.png",
+          "width": 512,
+          "sha256": "5731128c4b845e7deeaa029c0212e72940a0f9078b339dc6659415b12c201a31"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/settings/large.png",
+          "width": 1254,
+          "sha256": "0ae73d0bbe362ef0ab86c176c0e355a8d9f1442eddc1e2452be61c8bb7f7f221"
+        }
+      }
+    },
+    {
       "id": "settings-appearance",
       "identity": "/settings/appearance",
       "label": "Branding",
@@ -3358,6 +3406,30 @@
           "path": "/widget-artwork/originals-20261106-v1/settings-data-request/large.png",
           "width": 1254,
           "sha256": "068a8e29e193b28efa4f582ba6d6b512b101058a8637983ac158c0e412e15007"
+        }
+      }
+    },
+    {
+      "id": "settings-profile",
+      "identity": "/settings/profile",
+      "label": "Profil",
+      "part": "remaining",
+      "sourceSha256": "6fd238e99abdf6ada30c060d40db3f654588535a6acfb7d60177f9b2b52a6e71",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-profile/small.png",
+          "width": 192,
+          "sha256": "9125f71017442fc5f512d736292bbf554b32f9c32d31376d4384e0a0d1d9b810"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-profile/medium.png",
+          "width": 512,
+          "sha256": "64d5aa032e4556d5e6a8dddc31e8d1a85f4d5d207d4cbf39f5390a3c55931009"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/settings-profile/large.png",
+          "width": 1254,
+          "sha256": "6fd238e99abdf6ada30c060d40db3f654588535a6acfb7d60177f9b2b52a6e71"
         }
       }
     },
@@ -3622,6 +3694,126 @@
           "path": "/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/large.png",
           "width": 1254,
           "sha256": "8c16c3b512d63681238b759a791faba3625ee1f85b820a3de00634de58d6b76e"
+        }
+      }
+    },
+    {
+      "id": "stationaer-uebergabe",
+      "identity": "/stationaer/uebergabe",
+      "label": "Übergabe",
+      "part": "care",
+      "sourceSha256": "eb89006e0c5c3436e6da12391f49d96a6492eab24a615d52c96513c3b35b8040",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-uebergabe/small.png",
+          "width": 192,
+          "sha256": "85f6674ec51cf6a8c49f4f68fa56652878aa0c872855c4068c94fe1c80f6cda0"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-uebergabe/medium.png",
+          "width": 512,
+          "sha256": "19f86ebd7abde88746a5c11ddeeb0abc3771bd21a7f3426cc95b51f248a8c534"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-uebergabe/large.png",
+          "width": 1254,
+          "sha256": "eb89006e0c5c3436e6da12391f49d96a6492eab24a615d52c96513c3b35b8040"
+        }
+      }
+    },
+    {
+      "id": "stationaer-uebergabebericht",
+      "identity": "/stationaer/uebergabebericht",
+      "label": "Übergabeberichte",
+      "part": "care",
+      "sourceSha256": "edeaf10b006e32bd7bb8b63782dd6e4861a80b24fcf29ddfe59e11f33c0242e4",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-uebergabebericht/small.png",
+          "width": 192,
+          "sha256": "52abe548b3e30fde650b66fbe9210787b52322c9787a7b706ef2284ea50187d2"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-uebergabebericht/medium.png",
+          "width": 512,
+          "sha256": "effc1bcb5a87f41b3513be280288108d0b6f01467d189e6c85fad6ffc3d72f93"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-uebergabebericht/large.png",
+          "width": 1254,
+          "sha256": "edeaf10b006e32bd7bb8b63782dd6e4861a80b24fcf29ddfe59e11f33c0242e4"
+        }
+      }
+    },
+    {
+      "id": "stationaer-wohnbereiche",
+      "identity": "/stationaer/wohnbereiche",
+      "label": "Wohnbereiche",
+      "part": "care",
+      "sourceSha256": "6413519f5feb8712734515176ae65301772b4b28f25e52db7fb547bc43a6ba6a",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-wohnbereiche/small.png",
+          "width": 192,
+          "sha256": "b7144d08425a7fe2f0509e492c8d5dc1f27c3737dcfc79ae0a55c2f995137894"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-wohnbereiche/medium.png",
+          "width": 512,
+          "sha256": "cb178f3124d55d4b302e178814b9adb02ad22d0eaa7b3259faa9999ac7c6cf0a"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-wohnbereiche/large.png",
+          "width": 1254,
+          "sha256": "6413519f5feb8712734515176ae65301772b4b28f25e52db7fb547bc43a6ba6a"
+        }
+      }
+    },
+    {
+      "id": "stationaer-zimmer",
+      "identity": "/stationaer/zimmer",
+      "label": "Zimmer",
+      "part": "care",
+      "sourceSha256": "a626815691d1a66bf365b9809eab5a5a1e5b5b8715928be3dadffece6ca012bb",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-zimmer/small.png",
+          "width": 192,
+          "sha256": "65e2f49192ba660fac7e60c5daafa0582b123311cf670d6efc43d76c26628539"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-zimmer/medium.png",
+          "width": 512,
+          "sha256": "b1ee1e7780d1389be9e85cfa328ccca518a66624c46c2f844b560d44d7563d32"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-zimmer/large.png",
+          "width": 1254,
+          "sha256": "a626815691d1a66bf365b9809eab5a5a1e5b5b8715928be3dadffece6ca012bb"
+        }
+      }
+    },
+    {
+      "id": "support",
+      "identity": "/support",
+      "label": "Support & Hilfe",
+      "part": "remaining",
+      "sourceSha256": "ad2d1befe4b581fd28f105d3e76d23b8fcb0d8d259209d5328b9a335190491f7",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/support/small.png",
+          "width": 192,
+          "sha256": "5241f03bda7b3136546eb50c31ba77c421e42977b20d0255ccc3fffa7c4de28b"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/support/medium.png",
+          "width": 512,
+          "sha256": "b2ae3905100c4032c112b3057960b287ba9c82705d9c8e0419fdaaaa029098bb"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/support/large.png",
+          "width": 1254,
+          "sha256": "ad2d1befe4b581fd28f105d3e76d23b8fcb0d8d259209d5328b9a335190491f7"
         }
       }
     },
