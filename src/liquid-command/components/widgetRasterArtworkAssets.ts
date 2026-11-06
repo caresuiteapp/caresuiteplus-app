@@ -72,6 +72,66 @@ export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
     medium: require('../../../public/widget-artwork/originals-20261106-v1/assist-zugeordnete-klienten/medium.png'),
     large: require('../../../public/widget-artwork/originals-20261106-v1/assist-zugeordnete-klienten/large.png'),
   },
+  "beratung": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung/large.png'),
+  },
+  "beratung-angehoerige": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung-angehoerige/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-angehoerige/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-angehoerige/large.png'),
+  },
+  "beratung-auswertungen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung-auswertungen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-auswertungen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-auswertungen/large.png'),
+  },
+  "beratung-berichte": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung-berichte/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-berichte/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-berichte/large.png'),
+  },
+  "beratung-calendar": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung-calendar/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-calendar/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-calendar/large.png'),
+  },
+  "beratung-cases": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung-cases/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-cases/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-cases/large.png'),
+  },
+  "beratung-erstgespraech": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung-erstgespraech/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-erstgespraech/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-erstgespraech/large.png'),
+  },
+  "beratung-faelle": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung-faelle/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-faelle/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-faelle/large.png'),
+  },
+  "beratung-kontaktverlauf": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung-kontaktverlauf/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-kontaktverlauf/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-kontaktverlauf/large.png'),
+  },
+  "beratung-protokolle": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung-protokolle/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-protokolle/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-protokolle/large.png'),
+  },
+  "beratung-settings": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung-settings/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-settings/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-settings/large.png'),
+  },
+  "beratung-wiedervorlagen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/beratung-wiedervorlagen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/beratung-wiedervorlagen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/beratung-wiedervorlagen/large.png'),
+  },
   "business-office-access": {
     small: require('../../../public/widget-artwork/originals-20261106-v1/business-office-access/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/business-office-access/medium.png'),
@@ -181,5 +241,240 @@ export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
     small: require('../../../public/widget-artwork/originals-20261106-v1/office-reporting/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/office-reporting/medium.png'),
     large: require('../../../public/widget-artwork/originals-20261106-v1/office-reporting/large.png'),
+  },
+  "pflege": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege/large.png'),
+  },
+  "pflege-abrechnung": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-abrechnung/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-abrechnung/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-abrechnung/large.png'),
+  },
+  "pflege-abweichungen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-abweichungen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-abweichungen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-abweichungen/large.png'),
+  },
+  "pflege-aufgaben": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-aufgaben/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-aufgaben/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-aufgaben/large.png'),
+  },
+  "pflege-aufnahme": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-aufnahme/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-aufnahme/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-aufnahme/large.png'),
+  },
+  "pflege-behandlungspflege": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-behandlungspflege/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-behandlungspflege/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-behandlungspflege/large.png'),
+  },
+  "pflege-berichte": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-berichte/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-berichte/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-berichte/large.png'),
+  },
+  "pflege-calendar": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-calendar/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-calendar/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-calendar/large.png'),
+  },
+  "pflege-diagnosen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-diagnosen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-diagnosen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-diagnosen/large.png'),
+  },
+  "pflege-dienstplaene": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-dienstplaene/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-dienstplaene/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-dienstplaene/large.png'),
+  },
+  "pflege-dokumentation": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-dokumentation/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-dokumentation/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-dokumentation/large.png'),
+  },
+  "pflege-evaluation": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-evaluation/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-evaluation/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-evaluation/large.png'),
+  },
+  "pflege-fuhrpark": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-fuhrpark/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-fuhrpark/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-fuhrpark/large.png'),
+  },
+  "pflege-gesamtabnahme": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-gesamtabnahme/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-gesamtabnahme/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-gesamtabnahme/large.png'),
+  },
+  "pflege-inventar": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-inventar/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-inventar/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-inventar/large.png'),
+  },
+  "pflege-klienten": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-klienten/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-klienten/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-klienten/large.png'),
+  },
+  "pflege-leistungskatalog": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-leistungskatalog/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-leistungskatalog/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-leistungskatalog/large.png'),
+  },
+  "pflege-leistungsnachweise": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-leistungsnachweise/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-leistungsnachweise/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-leistungsnachweise/large.png'),
+  },
+  "pflege-massnahmen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-massnahmen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-massnahmen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-massnahmen/large.png'),
+  },
+  "pflege-md-pruefbereitschaft": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-md-pruefbereitschaft/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-md-pruefbereitschaft/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-md-pruefbereitschaft/large.png'),
+  },
+  "pflege-medikation": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-medikation/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-medikation/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-medikation/large.png'),
+  },
+  "pflege-personal": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-personal/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-personal/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-personal/large.png'),
+  },
+  "pflege-plans": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-plans/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-plans/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-plans/large.png'),
+  },
+  "pflege-planung": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-planung/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-planung/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-planung/large.png'),
+  },
+  "pflege-rechnungsgrundlagen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-rechnungsgrundlagen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-rechnungsgrundlagen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-rechnungsgrundlagen/large.png'),
+  },
+  "pflege-reports": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-reports/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-reports/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-reports/large.png'),
+  },
+  "pflege-risiken": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-risiken/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-risiken/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-risiken/large.png'),
+  },
+  "pflege-settings": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-settings/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-settings/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-settings/large.png'),
+  },
+  "pflege-sis": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-sis/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-sis/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-sis/large.png'),
+  },
+  "pflege-tourenplanung": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-tourenplanung/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-tourenplanung/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-tourenplanung/large.png'),
+  },
+  "pflege-uebergaben": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-uebergaben/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-uebergaben/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-uebergaben/large.png'),
+  },
+  "pflege-verordnungen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-verordnungen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-verordnungen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-verordnungen/large.png'),
+  },
+  "pflege-versorgungsuebersicht": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-versorgungsuebersicht/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-versorgungsuebersicht/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-versorgungsuebersicht/large.png'),
+  },
+  "pflege-visiten": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-visiten/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-visiten/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-visiten/large.png'),
+  },
+  "pflege-vitalwerte": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-vitalwerte/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-vitalwerte/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-vitalwerte/large.png'),
+  },
+  "pflege-wunddokumentation": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-wunddokumentation/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-wunddokumentation/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-wunddokumentation/large.png'),
+  },
+  "pflege-zugeordnete-klienten": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/pflege-zugeordnete-klienten/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/pflege-zugeordnete-klienten/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/pflege-zugeordnete-klienten/large.png'),
+  },
+  "stationaer": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer/large.png'),
+  },
+  "stationaer-assessment": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-assessment/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-assessment/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-assessment/large.png'),
+  },
+  "stationaer-auswertungen": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-auswertungen/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-auswertungen/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-auswertungen/large.png'),
+  },
+  "stationaer-belegung": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-belegung/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-belegung/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-belegung/large.png'),
+  },
+  "stationaer-bewohner": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-bewohner/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-bewohner/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-bewohner/large.png'),
+  },
+  "stationaer-bewohnerplanung": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-bewohnerplanung/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-bewohnerplanung/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-bewohnerplanung/large.png'),
+  },
+  "stationaer-calendar": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-calendar/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-calendar/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-calendar/large.png'),
+  },
+  "stationaer-mahlzeiten": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-mahlzeiten/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-mahlzeiten/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-mahlzeiten/large.png'),
+  },
+  "stationaer-settings": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-settings/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-settings/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-settings/large.png'),
+  },
+  "stationaer-tagesstruktur": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/large.png'),
   },
 };

@@ -338,6 +338,294 @@
       }
     },
     {
+      "id": "beratung",
+      "identity": "/beratung",
+      "label": "Dashboard",
+      "part": "care",
+      "sourceSha256": "2ad1957d036b1a331b03065e55eb2848769f4908d182b072676bc3cf0a2875c2",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung/small.png",
+          "width": 192,
+          "sha256": "27b180da215ea039b36132dba189dc5dc647faa3f062be78b5514b5e6308798d"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung/medium.png",
+          "width": 512,
+          "sha256": "ce11f1e44600115aa34a684d07ecc2055feb16f5895e00974835658df9467c3c"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung/large.png",
+          "width": 1254,
+          "sha256": "2ad1957d036b1a331b03065e55eb2848769f4908d182b072676bc3cf0a2875c2"
+        }
+      }
+    },
+    {
+      "id": "beratung-angehoerige",
+      "identity": "/beratung/angehoerige",
+      "label": "Angehörige",
+      "part": "care",
+      "sourceSha256": "51ba3f764585cdd347bfcdbdeca27fe222415b939b0218b1fd42ad14906b7903",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-angehoerige/small.png",
+          "width": 192,
+          "sha256": "8ab4ef31461d74f4103c3a3326c74e6f8ab7e0325cd0ec40c3ae5439c262795b"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-angehoerige/medium.png",
+          "width": 512,
+          "sha256": "8635c37dbf0920fb2e9ac7e18bc32e685b605621ad2e70717e951c59b29a8b4d"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-angehoerige/large.png",
+          "width": 1254,
+          "sha256": "51ba3f764585cdd347bfcdbdeca27fe222415b939b0218b1fd42ad14906b7903"
+        }
+      }
+    },
+    {
+      "id": "beratung-auswertungen",
+      "identity": "/beratung/auswertungen",
+      "label": "Auswertungen",
+      "part": "care",
+      "sourceSha256": "d617c9e226329d52ff6f405b639775b5ea81ab0854c9defb9aaf83e3a2391a27",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-auswertungen/small.png",
+          "width": 192,
+          "sha256": "5bd4bb2385bc05a5d334830a8f73896d519e8a8973cdd9c9f3e7b1c8b7b7296d"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-auswertungen/medium.png",
+          "width": 512,
+          "sha256": "ed2f2e952b35370b2e5a39d0f70fba1ea3eda92c59daacc6fc7a45c1ef2be412"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-auswertungen/large.png",
+          "width": 1254,
+          "sha256": "d617c9e226329d52ff6f405b639775b5ea81ab0854c9defb9aaf83e3a2391a27"
+        }
+      }
+    },
+    {
+      "id": "beratung-berichte",
+      "identity": "/beratung/berichte",
+      "label": "Berichte",
+      "part": "care",
+      "sourceSha256": "7c1a173a00fd83f27e33869a9970c5c245b008cdc61e8f1dade3c896f1e51753",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-berichte/small.png",
+          "width": 192,
+          "sha256": "0885e3e1de83f9631c880a7a36ad4453d269454b3f035cbfc92b094f6709bd79"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-berichte/medium.png",
+          "width": 512,
+          "sha256": "a694a094299e890adca2ffc6cbf1cc7af7f59ef1298e04dcdf6fd3f5f75ad742"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-berichte/large.png",
+          "width": 1254,
+          "sha256": "7c1a173a00fd83f27e33869a9970c5c245b008cdc61e8f1dade3c896f1e51753"
+        }
+      }
+    },
+    {
+      "id": "beratung-calendar",
+      "identity": "/beratung/calendar",
+      "label": "Kalender",
+      "part": "care",
+      "sourceSha256": "7ca4898e457f7e60faaa92cd2e3f18b261fe6ffc4a142b772af9277f439de67b",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-calendar/small.png",
+          "width": 192,
+          "sha256": "8603bc86215b98aef78833a9e2d80a336ddf0b18282eec31dd3b8384808f7592"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-calendar/medium.png",
+          "width": 512,
+          "sha256": "f168028ab4302ac6d49a5832391f2e16b0b3b56ecfc6830c5f9dcabb4102124d"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-calendar/large.png",
+          "width": 1254,
+          "sha256": "7ca4898e457f7e60faaa92cd2e3f18b261fe6ffc4a142b772af9277f439de67b"
+        }
+      }
+    },
+    {
+      "id": "beratung-cases",
+      "identity": "/beratung/cases",
+      "label": "Fälle",
+      "part": "care",
+      "sourceSha256": "1b661230d06f3867bc8498fd3ad3a1916e188ab9e1ac9399b461ac8d30bb9c37",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-cases/small.png",
+          "width": 192,
+          "sha256": "a47e10a57c0ca1c2de06415f9e39ec27feda5ecbd98b2a1597e38d1a952242da"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-cases/medium.png",
+          "width": 512,
+          "sha256": "72a6dd498ac5634461010bddcdadb5caeb2e34ff643828075922dba42efcacdf"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-cases/large.png",
+          "width": 1254,
+          "sha256": "1b661230d06f3867bc8498fd3ad3a1916e188ab9e1ac9399b461ac8d30bb9c37"
+        }
+      }
+    },
+    {
+      "id": "beratung-erstgespraech",
+      "identity": "/beratung/erstgespraech",
+      "label": "Erstgespräch",
+      "part": "care",
+      "sourceSha256": "80de08149a1afd6f73241e0671390b10d4d0fc79405e1adef1c27539ef6416a2",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-erstgespraech/small.png",
+          "width": 192,
+          "sha256": "c6fa959c8616f0837e9432f8d1be13b347728c146853192f2369d8968b6d053b"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-erstgespraech/medium.png",
+          "width": 512,
+          "sha256": "abdc6c8edcde4ed62d671671ca453dadcb78b485ff123652f31bb8a01eadbccc"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-erstgespraech/large.png",
+          "width": 1254,
+          "sha256": "80de08149a1afd6f73241e0671390b10d4d0fc79405e1adef1c27539ef6416a2"
+        }
+      }
+    },
+    {
+      "id": "beratung-faelle",
+      "identity": "/beratung/faelle",
+      "label": "Fallübersicht",
+      "part": "care",
+      "sourceSha256": "5b94608bb37a7de887870b34af58e362c2207d2e0313a2099c1d934fb833694c",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-faelle/small.png",
+          "width": 192,
+          "sha256": "7dbede98c5a8dee93ec5e66a905011732f548f553f0adfde802ca16d37f2a153"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-faelle/medium.png",
+          "width": 512,
+          "sha256": "fb7fbc6c73c78bf80fb5573a0945a398d354aaec3c38e6dbae6f9d670ac55110"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-faelle/large.png",
+          "width": 1254,
+          "sha256": "5b94608bb37a7de887870b34af58e362c2207d2e0313a2099c1d934fb833694c"
+        }
+      }
+    },
+    {
+      "id": "beratung-kontaktverlauf",
+      "identity": "/beratung/kontaktverlauf",
+      "label": "Kontaktverlauf",
+      "part": "care",
+      "sourceSha256": "598050b64f8e959d90ec1fcd5cba2efb30515e24597accac2f0de7fd9973e19e",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-kontaktverlauf/small.png",
+          "width": 192,
+          "sha256": "26fdc9ca8889accb5ba2e93207e302e60c23d1313fc4d1a2339fb97d58074aa9"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-kontaktverlauf/medium.png",
+          "width": 512,
+          "sha256": "3cc6e52b81ebd1ada359ffcd03c4ee5564846c5665f6d4e0d5668d652803928c"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-kontaktverlauf/large.png",
+          "width": 1254,
+          "sha256": "598050b64f8e959d90ec1fcd5cba2efb30515e24597accac2f0de7fd9973e19e"
+        }
+      }
+    },
+    {
+      "id": "beratung-protokolle",
+      "identity": "/beratung/protokolle",
+      "label": "Protokolle",
+      "part": "care",
+      "sourceSha256": "41214f13c0bb9fbd420cb5f9674afe278431eedfc3df171c31757825d923b0a9",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-protokolle/small.png",
+          "width": 192,
+          "sha256": "7686994b6d5764fc2b7e9a9b48d47d8c16f5faeb6a365ae362a39c5b06e7a81b"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-protokolle/medium.png",
+          "width": 512,
+          "sha256": "ced12f88f0de7332c13ffac0787fc12ca30ec6d5083d1a693b36a8908b05d75c"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-protokolle/large.png",
+          "width": 1254,
+          "sha256": "41214f13c0bb9fbd420cb5f9674afe278431eedfc3df171c31757825d923b0a9"
+        }
+      }
+    },
+    {
+      "id": "beratung-settings",
+      "identity": "/beratung/settings",
+      "label": "Einstellungen",
+      "part": "care",
+      "sourceSha256": "cdf57c327989f03b272c31427a25d5cb9f62f1b2e367b4ec52ec44cab8a7bc40",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-settings/small.png",
+          "width": 192,
+          "sha256": "e08b46af15afaf1175a83c5ab1e20dfbfe69768982895b66badee3d26e30f6a4"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-settings/medium.png",
+          "width": 512,
+          "sha256": "8af06fdfe5d57741d97c9496435f49cc44856c4bc5716c0b54172522dfccdea2"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-settings/large.png",
+          "width": 1254,
+          "sha256": "cdf57c327989f03b272c31427a25d5cb9f62f1b2e367b4ec52ec44cab8a7bc40"
+        }
+      }
+    },
+    {
+      "id": "beratung-wiedervorlagen",
+      "identity": "/beratung/wiedervorlagen",
+      "label": "Wiedervorlagen",
+      "part": "care",
+      "sourceSha256": "a1347bfe5ce0afdc7e1f49b9d9801843257288e00bcb4385ee844eedb30d8751",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-wiedervorlagen/small.png",
+          "width": 192,
+          "sha256": "325743c0d15ed6cda9950676005a44c82ab28fa3944e895bc513e76607c13b43"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-wiedervorlagen/medium.png",
+          "width": 512,
+          "sha256": "deb4114381a0895dc9de518464dfb4fcd7264d35f0ba31659662e2fb2fc51372"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/beratung-wiedervorlagen/large.png",
+          "width": 1254,
+          "sha256": "a1347bfe5ce0afdc7e1f49b9d9801843257288e00bcb4385ee844eedb30d8751"
+        }
+      }
+    },
+    {
       "id": "business-office-access",
       "identity": "/business/office/access",
       "label": "Portale & Zugänge",
@@ -862,6 +1150,1134 @@
           "path": "/widget-artwork/originals-20261106-v1/office-reporting/large.png",
           "width": 1254,
           "sha256": "4a8b16e209688b3dd923cd54550410be8c7de99ad076ea5ae776235bb3d38813"
+        }
+      }
+    },
+    {
+      "id": "pflege",
+      "identity": "/pflege",
+      "label": "Pflegeübersicht",
+      "part": "care",
+      "sourceSha256": "467626d7403472cb2fb313bf2bb0cd39cae0232b0e24cd38269f5a2dc5753d7f",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege/small.png",
+          "width": 192,
+          "sha256": "83d5d32c3ebb93a2a1489a90ada87e6748cec5c258081d9b79b931ef44720937"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege/medium.png",
+          "width": 512,
+          "sha256": "7f5aa368673e3dc6c11cf1d5ee333a240b11dae5dbf595faa0078dc20a1e8e58"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege/large.png",
+          "width": 1254,
+          "sha256": "467626d7403472cb2fb313bf2bb0cd39cae0232b0e24cd38269f5a2dc5753d7f"
+        }
+      }
+    },
+    {
+      "id": "pflege-abrechnung",
+      "identity": "/pflege/abrechnung",
+      "label": "Abrechnung",
+      "part": "care",
+      "sourceSha256": "9b6c40e669cc467dc80f464e6a1c49dc0d899eac28cac5dbd08188b64a1e45dc",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-abrechnung/small.png",
+          "width": 192,
+          "sha256": "80efe463ebd431e43004d8ac120a14374224c2cd96e5e334ce5b5794e16a9d7c"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-abrechnung/medium.png",
+          "width": 512,
+          "sha256": "e276289ac423a72ec40f7db68a1277684c73320cdfe4dd60f1c4ff2843ea4875"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-abrechnung/large.png",
+          "width": 1254,
+          "sha256": "9b6c40e669cc467dc80f464e6a1c49dc0d899eac28cac5dbd08188b64a1e45dc"
+        }
+      }
+    },
+    {
+      "id": "pflege-abweichungen",
+      "identity": "/pflege/abweichungen",
+      "label": "Abweichungen",
+      "part": "care",
+      "sourceSha256": "cecdcc2726b94596ba6c638189f1c78e79e49b3fdf7f7aceeed679847026e37b",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-abweichungen/small.png",
+          "width": 192,
+          "sha256": "21382387366d6f28420b613df7b5edfe31849893fb1ba4a5475482161a9e95b0"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-abweichungen/medium.png",
+          "width": 512,
+          "sha256": "64f7de91305af282b0ad10740b9cdb8628d91f56234dc2322b34f2fd4e91dcb1"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-abweichungen/large.png",
+          "width": 1254,
+          "sha256": "cecdcc2726b94596ba6c638189f1c78e79e49b3fdf7f7aceeed679847026e37b"
+        }
+      }
+    },
+    {
+      "id": "pflege-aufgaben",
+      "identity": "/pflege/aufgaben",
+      "label": "Aufgaben & Wiedervorlagen",
+      "part": "care",
+      "sourceSha256": "b620d76720615a2ade52f6ecf1d25230c379412084b5b4766d03201c9d399003",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-aufgaben/small.png",
+          "width": 192,
+          "sha256": "4b6b1a35952457ddf4150d4d08b693a91a8a9b7d80ce7fe45334efdbed8f4f2e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-aufgaben/medium.png",
+          "width": 512,
+          "sha256": "d57662bb2cbd22010880f01af001a6c54c90e30ada7c26b4b64533cce7993326"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-aufgaben/large.png",
+          "width": 1254,
+          "sha256": "b620d76720615a2ade52f6ecf1d25230c379412084b5b4766d03201c9d399003"
+        }
+      }
+    },
+    {
+      "id": "pflege-aufnahme",
+      "identity": "/pflege/aufnahme",
+      "label": "Aufnahme & Versorgung",
+      "part": "care",
+      "sourceSha256": "91fc82b23c8c29b3e4ddb8bca9ce2f91f4aa635fd3f5f57036351f9afef6e471",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-aufnahme/small.png",
+          "width": 192,
+          "sha256": "e2f4f2c45f52ece91780bcc68a1e081f831b2ef48cb12aef33d350661388d6dd"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-aufnahme/medium.png",
+          "width": 512,
+          "sha256": "eb0c2914bf195ba56e18ff8a155d55e093402a9fa72f606e9d27581da153752e"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-aufnahme/large.png",
+          "width": 1254,
+          "sha256": "91fc82b23c8c29b3e4ddb8bca9ce2f91f4aa635fd3f5f57036351f9afef6e471"
+        }
+      }
+    },
+    {
+      "id": "pflege-behandlungspflege",
+      "identity": "/pflege/behandlungspflege",
+      "label": "Behandlungspflege",
+      "part": "care",
+      "sourceSha256": "0271746c88c0374540f610fc104e9fc1821b2b219e019ff42d3c2a93ac105b7b",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-behandlungspflege/small.png",
+          "width": 192,
+          "sha256": "707c49374e28e2756b24b8c253c19dacaa1cbd0da697296d810351e2e4632dc3"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-behandlungspflege/medium.png",
+          "width": 512,
+          "sha256": "9b323dfcc6770d4ef53ab7cdb691cb2aa649686db7120bc6b79ca75b009188ea"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-behandlungspflege/large.png",
+          "width": 1254,
+          "sha256": "0271746c88c0374540f610fc104e9fc1821b2b219e019ff42d3c2a93ac105b7b"
+        }
+      }
+    },
+    {
+      "id": "pflege-berichte",
+      "identity": "/pflege/berichte",
+      "label": "Pflegeberichte",
+      "part": "care",
+      "sourceSha256": "e1fbfa66f471425e9908e856f58fc92d7de964c9f416ca6c1cbfedc10bb50566",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-berichte/small.png",
+          "width": 192,
+          "sha256": "a7ceb165796cd63c573bd32ee033378d2e14f31c72850ca1a8976b7338b04e1e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-berichte/medium.png",
+          "width": 512,
+          "sha256": "1b19b3bd74a9e220d41752e5779d47ba3aac8294a64381c530c39bb3846957c4"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-berichte/large.png",
+          "width": 1254,
+          "sha256": "e1fbfa66f471425e9908e856f58fc92d7de964c9f416ca6c1cbfedc10bb50566"
+        }
+      }
+    },
+    {
+      "id": "pflege-calendar",
+      "identity": "/pflege/calendar",
+      "label": "Kalender",
+      "part": "care",
+      "sourceSha256": "3ea3dbf982602dd584ea9cb70b1015455883978de901ee970aca097b5d628660",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-calendar/small.png",
+          "width": 192,
+          "sha256": "2bb7c41bdba1c5f44e322966937aebf2594b4d8dfd859b6fe3210840e4c01ebe"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-calendar/medium.png",
+          "width": 512,
+          "sha256": "326588ceb9bf305959b97dbd8b5082401ca1d5cb1fed9503be673aecf838ac7b"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-calendar/large.png",
+          "width": 1254,
+          "sha256": "3ea3dbf982602dd584ea9cb70b1015455883978de901ee970aca097b5d628660"
+        }
+      }
+    },
+    {
+      "id": "pflege-diagnosen",
+      "identity": "/pflege/diagnosen",
+      "label": "Diagnosen",
+      "part": "care",
+      "sourceSha256": "cdb6ec4652dbff2db39df6cb0738217c2ea15ee53ee4833c4cbd5b7ccdfe4449",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-diagnosen/small.png",
+          "width": 192,
+          "sha256": "dc138ad3fde7431e2f08b7b873f6eed07082acb0cc2d8191ed18455ad847ebb2"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-diagnosen/medium.png",
+          "width": 512,
+          "sha256": "e978a82f61b6d292ad3c67c0b88d2fb188934cdb89944bb2a9067655903cf705"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-diagnosen/large.png",
+          "width": 1254,
+          "sha256": "cdb6ec4652dbff2db39df6cb0738217c2ea15ee53ee4833c4cbd5b7ccdfe4449"
+        }
+      }
+    },
+    {
+      "id": "pflege-dienstplaene",
+      "identity": "/pflege/dienstplaene",
+      "label": "Dienstplan",
+      "part": "care",
+      "sourceSha256": "7dd55d4405c396a66166874d57a24add05e50c47a0eadb42d778d128a5d8c56a",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-dienstplaene/small.png",
+          "width": 192,
+          "sha256": "52750efd8ddf17e15c93eef3c6603311494ccb389d482ae264795e080575fc51"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-dienstplaene/medium.png",
+          "width": 512,
+          "sha256": "986f98f7596b4f24de486ff1cf0f1e7d14c3b3ac61672b73df1fa2661e845427"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-dienstplaene/large.png",
+          "width": 1254,
+          "sha256": "7dd55d4405c396a66166874d57a24add05e50c47a0eadb42d778d128a5d8c56a"
+        }
+      }
+    },
+    {
+      "id": "pflege-dokumentation",
+      "identity": "/pflege/dokumentation",
+      "label": "Pflegedokumentation",
+      "part": "care",
+      "sourceSha256": "19b8d04bdc12015c0ffb75cbf758619ec154350b823654cd1fc5d640ec05452c",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-dokumentation/small.png",
+          "width": 192,
+          "sha256": "c18c5e94315f24c93498b26cb1fe49eaab935aeee890871b2aab607d9acee352"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-dokumentation/medium.png",
+          "width": 512,
+          "sha256": "b23dd1cb32adc5c3fb0b844edef33d2b0596b3b5c75cfca0ae6c0c09fc988672"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-dokumentation/large.png",
+          "width": 1254,
+          "sha256": "19b8d04bdc12015c0ffb75cbf758619ec154350b823654cd1fc5d640ec05452c"
+        }
+      }
+    },
+    {
+      "id": "pflege-evaluation",
+      "identity": "/pflege/evaluation",
+      "label": "Evaluationen",
+      "part": "care",
+      "sourceSha256": "e8b4bc7d73de24f13b2a7cb4b324f3e870fba50ef193d6bf9c532d837fef9702",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-evaluation/small.png",
+          "width": 192,
+          "sha256": "6efbd13949b3e546f70e48f176080a240dfcba3c68a34e9444c8b7457563d3fc"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-evaluation/medium.png",
+          "width": 512,
+          "sha256": "d5cd979011d094e1168e2d7b5e8fad51e2afeb20772c5c9791078f3d993ef712"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-evaluation/large.png",
+          "width": 1254,
+          "sha256": "e8b4bc7d73de24f13b2a7cb4b324f3e870fba50ef193d6bf9c532d837fef9702"
+        }
+      }
+    },
+    {
+      "id": "pflege-fuhrpark",
+      "identity": "/pflege/fuhrpark",
+      "label": "Fuhrpark",
+      "part": "care",
+      "sourceSha256": "a769216d37520e275a7fa29a50d3f090d835032a430e2d3b592fcc2451a682cb",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-fuhrpark/small.png",
+          "width": 192,
+          "sha256": "4c7f10e6f50402f90b908f3eb4dc2c58141dfcfe32caae8dddef254d168eeb35"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-fuhrpark/medium.png",
+          "width": 512,
+          "sha256": "bc5b4c9c56d6ab97becefe0dd75697137198b2c2593bdbfd473a188006f6cc89"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-fuhrpark/large.png",
+          "width": 1254,
+          "sha256": "a769216d37520e275a7fa29a50d3f090d835032a430e2d3b592fcc2451a682cb"
+        }
+      }
+    },
+    {
+      "id": "pflege-gesamtabnahme",
+      "identity": "/pflege/gesamtabnahme",
+      "label": "Gesamtabnahme",
+      "part": "care",
+      "sourceSha256": "f619c3e3aaba03377b96b6d3e8276e2948af01a8eb40ea5e015a97d5c0204193",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-gesamtabnahme/small.png",
+          "width": 192,
+          "sha256": "55b71fe0db5801e36cda14a01ff7201f4487e731eac8a2a57bc51d1954c5b1ab"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-gesamtabnahme/medium.png",
+          "width": 512,
+          "sha256": "bf82fd7b44416aac13854dba2b9195b74a6a8cb5c7d61735ea168457f6575ea1"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-gesamtabnahme/large.png",
+          "width": 1254,
+          "sha256": "f619c3e3aaba03377b96b6d3e8276e2948af01a8eb40ea5e015a97d5c0204193"
+        }
+      }
+    },
+    {
+      "id": "pflege-inventar",
+      "identity": "/pflege/inventar",
+      "label": "Inventar",
+      "part": "care",
+      "sourceSha256": "e975ff51641993603447e412eb921988d763c891c325b0ec4c5052d96491bde8",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-inventar/small.png",
+          "width": 192,
+          "sha256": "ded443645f9cc701d7f032a6d87e7210c66ff78473fdf4167b0a78eb22a276a5"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-inventar/medium.png",
+          "width": 512,
+          "sha256": "4e56455302f710199b14d6cedfaaca26100feb280c5e82da78008aadc882bb8c"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-inventar/large.png",
+          "width": 1254,
+          "sha256": "e975ff51641993603447e412eb921988d763c891c325b0ec4c5052d96491bde8"
+        }
+      }
+    },
+    {
+      "id": "pflege-klienten",
+      "identity": "/pflege/klienten",
+      "label": "Pflegeakten",
+      "part": "care",
+      "sourceSha256": "c1743f0eedf7d29385422dee9873377edefad8e9f57abbcdeeb6873dba985648",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-klienten/small.png",
+          "width": 192,
+          "sha256": "7eb563b5a566c413af1cf8517ab5c2a2edcef9225f0c5e8997bfb1bec24a60c0"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-klienten/medium.png",
+          "width": 512,
+          "sha256": "8b0742e34a8e8c075a2cfcde21dc9026d04cacfb5245226ec86925294090223e"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-klienten/large.png",
+          "width": 1254,
+          "sha256": "c1743f0eedf7d29385422dee9873377edefad8e9f57abbcdeeb6873dba985648"
+        }
+      }
+    },
+    {
+      "id": "pflege-leistungskatalog",
+      "identity": "/pflege/leistungskatalog",
+      "label": "Leistungen & Vergütung",
+      "part": "care",
+      "sourceSha256": "94deae8574ce634c83f154fbc19dcbdb9309bd123b29a09c2c23635888f32614",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-leistungskatalog/small.png",
+          "width": 192,
+          "sha256": "87462ea4af9e5735dd61155e3b641cc71b706bad042b86a352ced8971da687b0"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-leistungskatalog/medium.png",
+          "width": 512,
+          "sha256": "b4bc6b50919be7089bc3ea244bac9c66ca613e4ef9cf47cb5981357350d7feb8"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-leistungskatalog/large.png",
+          "width": 1254,
+          "sha256": "94deae8574ce634c83f154fbc19dcbdb9309bd123b29a09c2c23635888f32614"
+        }
+      }
+    },
+    {
+      "id": "pflege-leistungsnachweise",
+      "identity": "/pflege/leistungsnachweise",
+      "label": "Leistungsnachweise",
+      "part": "care",
+      "sourceSha256": "65ecb098728ba06b975e39bc1bf9fc0c053792b4d03b73237f58931eb8145f26",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-leistungsnachweise/small.png",
+          "width": 192,
+          "sha256": "3a7547f6af42b4e7a3c981f9863b1b3dea406a4629ba42ca2b0edcca61cea077"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-leistungsnachweise/medium.png",
+          "width": 512,
+          "sha256": "9615beb490ca6d0eacbe647d7f8f05eaacba7fc50594a20aa1acf55d0a9a428f"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-leistungsnachweise/large.png",
+          "width": 1254,
+          "sha256": "65ecb098728ba06b975e39bc1bf9fc0c053792b4d03b73237f58931eb8145f26"
+        }
+      }
+    },
+    {
+      "id": "pflege-massnahmen",
+      "identity": "/pflege/massnahmen",
+      "label": "Maßnahmen",
+      "part": "care",
+      "sourceSha256": "8df022b36f254c85cd45a44b1116456a10b3962208199a96a564c29200280d67",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-massnahmen/small.png",
+          "width": 192,
+          "sha256": "36673f5bd672f01c5b380bf1c025cace58c4f70ac8e3618002bd4e9fa099a6f4"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-massnahmen/medium.png",
+          "width": 512,
+          "sha256": "534c3539f2c72edcbd88eab862c3438c9988504e4d8c36f9e8de20c263b2c85b"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-massnahmen/large.png",
+          "width": 1254,
+          "sha256": "8df022b36f254c85cd45a44b1116456a10b3962208199a96a564c29200280d67"
+        }
+      }
+    },
+    {
+      "id": "pflege-md-pruefbereitschaft",
+      "identity": "/pflege/md-pruefbereitschaft",
+      "label": "MD-Prüfbereitschaft",
+      "part": "care",
+      "sourceSha256": "97b433b776f2e6f0c9a744f0fb536317a56508c51adc85f9c14bb5c272e849c7",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-md-pruefbereitschaft/small.png",
+          "width": 192,
+          "sha256": "cd4ce765eea788f5a23af2b6d1df92e49e17ba792ffb064806579df26fdbb3c6"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-md-pruefbereitschaft/medium.png",
+          "width": 512,
+          "sha256": "c4067cd1336173bea1e2fa029c6b068aba9b53511c89210fe46962be748877b2"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-md-pruefbereitschaft/large.png",
+          "width": 1254,
+          "sha256": "97b433b776f2e6f0c9a744f0fb536317a56508c51adc85f9c14bb5c272e849c7"
+        }
+      }
+    },
+    {
+      "id": "pflege-medikation",
+      "identity": "/pflege/medikation",
+      "label": "Medikation",
+      "part": "care",
+      "sourceSha256": "62ed344d56b76028974765c450980c1f0ed908ec91db087e432a4264ae2db936",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-medikation/small.png",
+          "width": 192,
+          "sha256": "c6fefa603fb07f3405a7e908a31ce203411443c5c302b3cdfe342e1f354cb389"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-medikation/medium.png",
+          "width": 512,
+          "sha256": "e42d706ba1d4d7d75ee2f1dc70d8e18d4b756a389b298257e438e5a863990ffa"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-medikation/large.png",
+          "width": 1254,
+          "sha256": "62ed344d56b76028974765c450980c1f0ed908ec91db087e432a4264ae2db936"
+        }
+      }
+    },
+    {
+      "id": "pflege-personal",
+      "identity": "/pflege/personal",
+      "label": "Pflegepersonal",
+      "part": "care",
+      "sourceSha256": "e7148bab3cce27017c211187efd337825ebf2a2efb8aae6ec2afac74c057d9d5",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-personal/small.png",
+          "width": 192,
+          "sha256": "87facdd688120631924527e7e75429c60ac5fa4c4f498cb7f19f1cce4e4faa03"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-personal/medium.png",
+          "width": 512,
+          "sha256": "c6de0556ce8741f94c7a5a2e76c17ebbf8bb868d248cb2f312a90c2f61efb257"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-personal/large.png",
+          "width": 1254,
+          "sha256": "e7148bab3cce27017c211187efd337825ebf2a2efb8aae6ec2afac74c057d9d5"
+        }
+      }
+    },
+    {
+      "id": "pflege-plans",
+      "identity": "/pflege/plans",
+      "label": "Pflegepläne",
+      "part": "care",
+      "sourceSha256": "8b5217f5a7b7e52b9c140a69c349eb27058e5dd07a9b614acaffcdc84a6db284",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-plans/small.png",
+          "width": 192,
+          "sha256": "6d0e4bf987b36e463dc4a5fdd9924246234ea80871ee67ae295b62402d1223d9"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-plans/medium.png",
+          "width": 512,
+          "sha256": "de030339d4afcb2abcfc7e1be31f8960a3486120b3d6054a14fd6aeaaf20eef4"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-plans/large.png",
+          "width": 1254,
+          "sha256": "8b5217f5a7b7e52b9c140a69c349eb27058e5dd07a9b614acaffcdc84a6db284"
+        }
+      }
+    },
+    {
+      "id": "pflege-planung",
+      "identity": "/pflege/planung",
+      "label": "Maßnahmen",
+      "part": "care",
+      "sourceSha256": "4c98cddd77952353f6ce8c4b32f45acc5e20985eb3f5f7c7f01051643f0d90a2",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-planung/small.png",
+          "width": 192,
+          "sha256": "47f151e3d3f8500c31cdabe209185c8cceade9431c3ab509ff1c08cb68f4f1d9"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-planung/medium.png",
+          "width": 512,
+          "sha256": "4c3b73f1c95badb6cc9ebab1e055db6c20176914430420551610a51e5aba5580"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-planung/large.png",
+          "width": 1254,
+          "sha256": "4c98cddd77952353f6ce8c4b32f45acc5e20985eb3f5f7c7f01051643f0d90a2"
+        }
+      }
+    },
+    {
+      "id": "pflege-rechnungsgrundlagen",
+      "identity": "/pflege/rechnungsgrundlagen",
+      "label": "Rechnungsgrundlagen",
+      "part": "care",
+      "sourceSha256": "c8b4d4103b6e50204ea7bf7b47809a351e95e563fea0928a69516ec34b83018e",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-rechnungsgrundlagen/small.png",
+          "width": 192,
+          "sha256": "cbdf183e8c8adc0501cf8ecf52ab580d4c1b3794003848a62dc1b01581961f3a"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-rechnungsgrundlagen/medium.png",
+          "width": 512,
+          "sha256": "53caf16e2457084080655494988c8b09863b57fa4bcfdd138d97a4b7c8495997"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-rechnungsgrundlagen/large.png",
+          "width": 1254,
+          "sha256": "c8b4d4103b6e50204ea7bf7b47809a351e95e563fea0928a69516ec34b83018e"
+        }
+      }
+    },
+    {
+      "id": "pflege-reports",
+      "identity": "/pflege/reports",
+      "label": "Qualitätskennzahlen",
+      "part": "care",
+      "sourceSha256": "ea1efb9183fc337c3a99ba47d7fba8eb46c2e5e6164492b32bf845e914dbad64",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-reports/small.png",
+          "width": 192,
+          "sha256": "8c2f6da2fec3b075e2eae0da4f65dc0ac8db44bee5fb577aee9a2c1eb5d70cdc"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-reports/medium.png",
+          "width": 512,
+          "sha256": "f8202710fb0af21e7ef991d0edeab8dc305f0fc8dba4f0c8816805b69956c872"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-reports/large.png",
+          "width": 1254,
+          "sha256": "ea1efb9183fc337c3a99ba47d7fba8eb46c2e5e6164492b32bf845e914dbad64"
+        }
+      }
+    },
+    {
+      "id": "pflege-risiken",
+      "identity": "/pflege/risiken",
+      "label": "Pflegequalität",
+      "part": "care",
+      "sourceSha256": "e284740b86e80b29964ee9c0a11a6e0b401f9aa5204a36db8dc3a9300ae7b64a",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-risiken/small.png",
+          "width": 192,
+          "sha256": "ff762ee9257ca399da411d85fd425322975a3427e5748281a4ae4f98fe93a183"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-risiken/medium.png",
+          "width": 512,
+          "sha256": "bf39cc47a1ca26d228f1163402cf3c4a1ed152aa63b4a36914b7b3c34a5ca9cb"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-risiken/large.png",
+          "width": 1254,
+          "sha256": "e284740b86e80b29964ee9c0a11a6e0b401f9aa5204a36db8dc3a9300ae7b64a"
+        }
+      }
+    },
+    {
+      "id": "pflege-settings",
+      "identity": "/pflege/settings",
+      "label": "Einstellungen",
+      "part": "care",
+      "sourceSha256": "2fd575e65eea5012a85a7911c0cdc02e83be4136f04f1866c08ee8d437b9f793",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-settings/small.png",
+          "width": 192,
+          "sha256": "76d146a40714133d30e373ac1e434973b92722ee1b50930c15c2d217df8d14f0"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-settings/medium.png",
+          "width": 512,
+          "sha256": "159d5bed8b7a434861ab1a53373d336993c9eb95e273d12cc22912a03ed4f3c1"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-settings/large.png",
+          "width": 1254,
+          "sha256": "2fd575e65eea5012a85a7911c0cdc02e83be4136f04f1866c08ee8d437b9f793"
+        }
+      }
+    },
+    {
+      "id": "pflege-sis",
+      "identity": "/pflege/sis",
+      "label": "SIS & Assessment",
+      "part": "care",
+      "sourceSha256": "138ab46522939f20e3e29f3ee57ead35d5e951efd14b5e3b8d7be479b40e3835",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-sis/small.png",
+          "width": 192,
+          "sha256": "4707fcc38e35341b95a1cead52d16086c0b51442899c82fd35aa65ca0377be66"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-sis/medium.png",
+          "width": 512,
+          "sha256": "8c4e8616aeae2ec248195e445c3dbe844b236d2d14eae8352abe34aeb05e71a4"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-sis/large.png",
+          "width": 1254,
+          "sha256": "138ab46522939f20e3e29f3ee57ead35d5e951efd14b5e3b8d7be479b40e3835"
+        }
+      }
+    },
+    {
+      "id": "pflege-tourenplanung",
+      "identity": "/pflege/tourenplanung",
+      "label": "Pflegetouren",
+      "part": "care",
+      "sourceSha256": "86d445eb2c905741dd152b29652d1236aa6a1cf14457ad29e97b86185fd39382",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-tourenplanung/small.png",
+          "width": 192,
+          "sha256": "ad5bc7534af3d7273b89500e1649ae119f2f0521a52607acea700254b8087c1d"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-tourenplanung/medium.png",
+          "width": 512,
+          "sha256": "9b0be05fe9900dfd87dcdf839856b08390d188326a6d4e47bd8b5ddcb7e5af2e"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-tourenplanung/large.png",
+          "width": 1254,
+          "sha256": "86d445eb2c905741dd152b29652d1236aa6a1cf14457ad29e97b86185fd39382"
+        }
+      }
+    },
+    {
+      "id": "pflege-uebergaben",
+      "identity": "/pflege/uebergaben",
+      "label": "Übergaben",
+      "part": "care",
+      "sourceSha256": "3c3cb06deb7709c2d9c5a68d4d399f1279985e31fb28b4074b2c31067fd1b767",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-uebergaben/small.png",
+          "width": 192,
+          "sha256": "744c6f0b55fca39a4511f0336c5cb427be90211484177834da67c62ce41c19b6"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-uebergaben/medium.png",
+          "width": 512,
+          "sha256": "4fc0aac0b3d50766ead1fd4d4994c7114e56e4747f9d8f666becd996a9aec165"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-uebergaben/large.png",
+          "width": 1254,
+          "sha256": "3c3cb06deb7709c2d9c5a68d4d399f1279985e31fb28b4074b2c31067fd1b767"
+        }
+      }
+    },
+    {
+      "id": "pflege-verordnungen",
+      "identity": "/pflege/verordnungen",
+      "label": "Verordnungen",
+      "part": "care",
+      "sourceSha256": "74d55a9471ef822470af4ff034b266155c5afb5dadc08657019e05ee2299ba7b",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-verordnungen/small.png",
+          "width": 192,
+          "sha256": "38a9c1a64b437b848c6c94ec24ab1e9e1f228210e8bc1113935201f288ff0097"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-verordnungen/medium.png",
+          "width": 512,
+          "sha256": "06732bfe5e9c02dac88e750d7286468ddc63bdc84f8bdef8d6ebcccc48e70422"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-verordnungen/large.png",
+          "width": 1254,
+          "sha256": "74d55a9471ef822470af4ff034b266155c5afb5dadc08657019e05ee2299ba7b"
+        }
+      }
+    },
+    {
+      "id": "pflege-versorgungsuebersicht",
+      "identity": "/pflege/versorgungsuebersicht",
+      "label": "Versorgungsübersicht",
+      "part": "care",
+      "sourceSha256": "9a87da97487c63a24eeb02d97dcd8fbc63b9fc470e7e86af33965925c21d48d1",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-versorgungsuebersicht/small.png",
+          "width": 192,
+          "sha256": "e65f8f329c3af1b3c730dfedcec8461763ca46fba56c25ee1a537a3ff0b9e21e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-versorgungsuebersicht/medium.png",
+          "width": 512,
+          "sha256": "a1931c446366c0dab8107900ce85b868d4e5d755dbcb0d0d2f590298154947bb"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-versorgungsuebersicht/large.png",
+          "width": 1254,
+          "sha256": "9a87da97487c63a24eeb02d97dcd8fbc63b9fc470e7e86af33965925c21d48d1"
+        }
+      }
+    },
+    {
+      "id": "pflege-visiten",
+      "identity": "/pflege/visiten",
+      "label": "Pflegevisiten",
+      "part": "care",
+      "sourceSha256": "2d660f0f5596ee9da39c6dbe01232f7d68420e087fb62d004a880d788123bf01",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-visiten/small.png",
+          "width": 192,
+          "sha256": "e1beec91d4f96066ac8c29d09d7023142a35c421ea786a49b9afa60f6f0902f4"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-visiten/medium.png",
+          "width": 512,
+          "sha256": "0df2c153d442eda25c5a71193c113d2302bd316a6252bfba27976f8c99e16323"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-visiten/large.png",
+          "width": 1254,
+          "sha256": "2d660f0f5596ee9da39c6dbe01232f7d68420e087fb62d004a880d788123bf01"
+        }
+      }
+    },
+    {
+      "id": "pflege-vitalwerte",
+      "identity": "/pflege/vitalwerte",
+      "label": "Vitalwerte",
+      "part": "care",
+      "sourceSha256": "df0caa828c4e6ddb54a631fc00a1cc208bbe42cf7b361b2888f5918b8ee573d9",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-vitalwerte/small.png",
+          "width": 192,
+          "sha256": "32374745ad45dc64530d609d62974b95e419294552f750e83c79e6b008dc455e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-vitalwerte/medium.png",
+          "width": 512,
+          "sha256": "77b9f02544bc4f7bd00ae9d87de4c87852d035c1a23ad30304e5d65c86b3ca7f"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-vitalwerte/large.png",
+          "width": 1254,
+          "sha256": "df0caa828c4e6ddb54a631fc00a1cc208bbe42cf7b361b2888f5918b8ee573d9"
+        }
+      }
+    },
+    {
+      "id": "pflege-wunddokumentation",
+      "identity": "/pflege/wunddokumentation",
+      "label": "Wunddokumentation",
+      "part": "care",
+      "sourceSha256": "3f66d348933721d19ce4a7d00ec6b91bf9bbfdc4b9a3bdc6e88c7e5ddf066f21",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-wunddokumentation/small.png",
+          "width": 192,
+          "sha256": "0ef458fc64a20b13971266542786bae99f1dcbda1d3ed46feb5ecfe3e359e8c8"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-wunddokumentation/medium.png",
+          "width": 512,
+          "sha256": "76ebe9b15e7273a5a4ec14611a4ad9afe563792d66ebe10d21716dfb7408bbbf"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-wunddokumentation/large.png",
+          "width": 1254,
+          "sha256": "3f66d348933721d19ce4a7d00ec6b91bf9bbfdc4b9a3bdc6e88c7e5ddf066f21"
+        }
+      }
+    },
+    {
+      "id": "pflege-zugeordnete-klienten",
+      "identity": "/pflege/zugeordnete-klienten",
+      "label": "Zugeordnete Klient:innen",
+      "part": "care",
+      "sourceSha256": "6532ed039e73083793bbc5151df0cce959456691e4fffb4c0c1992af18168e5f",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-zugeordnete-klienten/small.png",
+          "width": 192,
+          "sha256": "9caa72e01499be4e38f277410562c63559fa0dedb20f1b718d99c07e430e9f15"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-zugeordnete-klienten/medium.png",
+          "width": 512,
+          "sha256": "43a0e401c1889e14d3bfdfb180a022f9bee21c73e9fb98059b2d8fe36e5ea149"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/pflege-zugeordnete-klienten/large.png",
+          "width": 1254,
+          "sha256": "6532ed039e73083793bbc5151df0cce959456691e4fffb4c0c1992af18168e5f"
+        }
+      }
+    },
+    {
+      "id": "stationaer",
+      "identity": "/stationaer",
+      "label": "Dashboard",
+      "part": "care",
+      "sourceSha256": "f7ac186468cafce46cfb2bd8b363d6891b08c1734b05eaaabbb30b689d3d2b30",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer/small.png",
+          "width": 192,
+          "sha256": "f4c966328e8f653a7bcf5264a57ea03cd58dc7e1de7d0db4531e4ddc7c603c37"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer/medium.png",
+          "width": 512,
+          "sha256": "84e8a44809313c89e0e9a0330fae4df6cb8b9778a4d857e36e759045578f28a7"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer/large.png",
+          "width": 1254,
+          "sha256": "f7ac186468cafce46cfb2bd8b363d6891b08c1734b05eaaabbb30b689d3d2b30"
+        }
+      }
+    },
+    {
+      "id": "stationaer-assessment",
+      "identity": "/stationaer/assessment",
+      "label": "Pflegeverständnis & SIS",
+      "part": "care",
+      "sourceSha256": "dd98bffb4096748c31a4b3ca0f3f4c87897b9ced52d5a08043f11eb964ae802c",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-assessment/small.png",
+          "width": 192,
+          "sha256": "1cfbc4f65520829d69135097c10593ce2c96001959626b9369a5429cef5faa2f"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-assessment/medium.png",
+          "width": 512,
+          "sha256": "d3859ff97802ed8c3b3e58b48514e886335b31c738a34a2b238b8940db30fd71"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-assessment/large.png",
+          "width": 1254,
+          "sha256": "dd98bffb4096748c31a4b3ca0f3f4c87897b9ced52d5a08043f11eb964ae802c"
+        }
+      }
+    },
+    {
+      "id": "stationaer-auswertungen",
+      "identity": "/stationaer/auswertungen",
+      "label": "Auswertungen",
+      "part": "care",
+      "sourceSha256": "f887ab1f6a4136940ea749d1b51bc32ee1e39c8ab2254ffe8531f525453ae8fe",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-auswertungen/small.png",
+          "width": 192,
+          "sha256": "a9d9288fbd1c160fc891f65d4480451c9c779cc1197389c7e62e8c63208af599"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-auswertungen/medium.png",
+          "width": 512,
+          "sha256": "e9db8abd26c3deb3596228901ac9e1698be2ecfcabe13d4809117e7b30e49858"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-auswertungen/large.png",
+          "width": 1254,
+          "sha256": "f887ab1f6a4136940ea749d1b51bc32ee1e39c8ab2254ffe8531f525453ae8fe"
+        }
+      }
+    },
+    {
+      "id": "stationaer-belegung",
+      "identity": "/stationaer/belegung",
+      "label": "Belegung",
+      "part": "care",
+      "sourceSha256": "7b253dff426ec062f55711a3fd93caa81fe4c9326f97c1c40fc6dc9cb7e22f56",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-belegung/small.png",
+          "width": 192,
+          "sha256": "b9303fb2820fe602140b34c39605949dc78e62272fc033fcceda3d74a6502a2f"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-belegung/medium.png",
+          "width": 512,
+          "sha256": "0f8f76a795fcbf5d0fe346efb600acdfdaecc00c7bca7392a098b4a87abb9c84"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-belegung/large.png",
+          "width": 1254,
+          "sha256": "7b253dff426ec062f55711a3fd93caa81fe4c9326f97c1c40fc6dc9cb7e22f56"
+        }
+      }
+    },
+    {
+      "id": "stationaer-bewohner",
+      "identity": "/stationaer/bewohner",
+      "label": "Bewohner:innen",
+      "part": "care",
+      "sourceSha256": "2558fd45f431751c7db15e4b2d1bf5805ed3c80d6d6b4e454b1cdfc7ded6a0e4",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-bewohner/small.png",
+          "width": 192,
+          "sha256": "d6304d099d094d0a682768a782d6f5c514addf6eaec3d4c24e5c237e0a630150"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-bewohner/medium.png",
+          "width": 512,
+          "sha256": "1ef401a00d870d1e42a13af5d67dca6006d961cb5b6232cb9871f6867a5aac90"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-bewohner/large.png",
+          "width": 1254,
+          "sha256": "2558fd45f431751c7db15e4b2d1bf5805ed3c80d6d6b4e454b1cdfc7ded6a0e4"
+        }
+      }
+    },
+    {
+      "id": "stationaer-bewohnerplanung",
+      "identity": "/stationaer/bewohnerplanung",
+      "label": "Bewohnerplanung",
+      "part": "care",
+      "sourceSha256": "65206c5c7d83454c2fedbb4e524cf2ac6046947238b6ffccb565300d35626ca3",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-bewohnerplanung/small.png",
+          "width": 192,
+          "sha256": "d60c5a1e5de0c4759e7a37b7708ce36a560d778e9a55618ad607dbab9c427c8d"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-bewohnerplanung/medium.png",
+          "width": 512,
+          "sha256": "db96be80e2acb9a30ef58fc6703293d22ac4762ed3b29f104c51423c4274e4f6"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-bewohnerplanung/large.png",
+          "width": 1254,
+          "sha256": "65206c5c7d83454c2fedbb4e524cf2ac6046947238b6ffccb565300d35626ca3"
+        }
+      }
+    },
+    {
+      "id": "stationaer-calendar",
+      "identity": "/stationaer/calendar",
+      "label": "Kalender",
+      "part": "care",
+      "sourceSha256": "71a910a92abcf158513bf4742db66a2159f08d306cc6ade01a3f52a82129a6af",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-calendar/small.png",
+          "width": 192,
+          "sha256": "762572855fe50299f3193f976f2ab0438a438b256eba9c7e9c1c5759714f74aa"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-calendar/medium.png",
+          "width": 512,
+          "sha256": "7d7f2131866a820a39b11e28392d991a950c5730c82d4fbe3403c206704ae337"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-calendar/large.png",
+          "width": 1254,
+          "sha256": "71a910a92abcf158513bf4742db66a2159f08d306cc6ade01a3f52a82129a6af"
+        }
+      }
+    },
+    {
+      "id": "stationaer-mahlzeiten",
+      "identity": "/stationaer/mahlzeiten",
+      "label": "Mahlzeiten",
+      "part": "care",
+      "sourceSha256": "0163d819487c6392bf70c732fbb254fe21bf2970047f06c33c465e5ce5ba2c8b",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-mahlzeiten/small.png",
+          "width": 192,
+          "sha256": "f4484da8d906e98ff69651bc10ddeb8458e8f90be9659ca35d90eb7698243346"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-mahlzeiten/medium.png",
+          "width": 512,
+          "sha256": "e57f22bf0237e556d76e3e3f0bc791fb0ac551efc978faa33c5f2f3e95cb0f2e"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-mahlzeiten/large.png",
+          "width": 1254,
+          "sha256": "0163d819487c6392bf70c732fbb254fe21bf2970047f06c33c465e5ce5ba2c8b"
+        }
+      }
+    },
+    {
+      "id": "stationaer-settings",
+      "identity": "/stationaer/settings",
+      "label": "Einstellungen",
+      "part": "care",
+      "sourceSha256": "5afd12328b64b365f2e27128f01c298623a1eff56e8d5fd19a07f171249e039c",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-settings/small.png",
+          "width": 192,
+          "sha256": "97620b17ba22c9e4e4a2f87752eb80b89e239b2a05ec8a7232df0bf740f4c21e"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-settings/medium.png",
+          "width": 512,
+          "sha256": "2301775c0383a7f2e656fc392c26f3b779cf31d07b775fb5437baa52e288e786"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-settings/large.png",
+          "width": 1254,
+          "sha256": "5afd12328b64b365f2e27128f01c298623a1eff56e8d5fd19a07f171249e039c"
+        }
+      }
+    },
+    {
+      "id": "stationaer-tagesstruktur",
+      "identity": "/stationaer/tagesstruktur",
+      "label": "Tagesstruktur",
+      "part": "care",
+      "sourceSha256": "8c16c3b512d63681238b759a791faba3625ee1f85b820a3de00634de58d6b76e",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/small.png",
+          "width": 192,
+          "sha256": "a99c4dc438918c31efe2a4d56386ecec596a22315011217c399136e4968e1ff5"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/medium.png",
+          "width": 512,
+          "sha256": "eb4e4261c2ae2b0b1f36e4399bbc461e66b401d406e1c47e585ddd2e4ec9847b"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/stationaer-tagesstruktur/large.png",
+          "width": 1254,
+          "sha256": "8c16c3b512d63681238b759a791faba3625ee1f85b820a3de00634de58d6b76e"
         }
       }
     }
