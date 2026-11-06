@@ -17,7 +17,7 @@ import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { LockedActionBanner } from '@/components/permissions';
 import { WorkflowToast } from '@/components/ui/WorkflowToast';
 import { withWorkflowTimeout, WorkflowActionTimeoutError } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
-import { EmployeePortalExecutionSectionBoundary, EmployeePortalMobilityPicker, EmployeePortalReturnTripModal, EmployeePortalVisitLogbookCard, EmployeePortalVisitDocumentationAiModal, EmployeePortalVisitLiveDashboard, EmployeePortalVisitMoreMenu, EmployeePortalVisitPhotoModal, EmployeePortalVisitVoiceNoteModal, EmployeePortalVisitSignaturePanel, EmployeePortalVisitStickyHeader, EmployeePortalVisitSummaryPanel, } from '@/components/portal';
+import { EmployeePortalExecutionSectionBoundary, EmployeePortalMobilityPicker, EmployeePortalReturnTripModal, EmployeePortalVisitLogbookCard, EmployeePortalVisitDocumentationAiModal, EmployeePortalVisitLiveDashboard, EmployeePortalVisitMoreMenu, EmployeePortalVisitPhotoModal, EmployeePortalVisitSignaturePanel, EmployeePortalVisitStickyHeader, EmployeePortalVisitSummaryPanel, } from '@/components/portal';
 import { EmployeePortalVisitTasksPanel } from "../../components/portal/EmployeePortalVisitTasksPanel.native.tsx";
 import { addEmployeeOptionalVisitTasks, type OptionalTaskSaveResult } from "../../lib/portal/optionalVisitTaskService.native.ts";
 import { mergeConfirmedOptionalTasks } from '@/lib/portal/mergeConfirmedVisitTasks';
@@ -143,7 +143,6 @@ function EmployeePortalVisitExecutionContent() {
     const [moreOpen, setMoreOpen] = useState(false);
     const [docLastSavedAt, setDocLastSavedAt] = useState<string | null>(null);
     const [photoModalOpen, setPhotoModalOpen] = useState(false);
-    const [voiceModalOpen, setVoiceModalOpen] = useState(false);
     const [messageModalOpen, setMessageModalOpen] = useState(false);
     const [photoReferences, setPhotoReferences] = useState<string[]>([]);
     const [documentationDraftText, setDocumentationDraftText] = useState('');
@@ -1527,8 +1526,6 @@ function EmployeePortalVisitExecutionContent() {
                     onPress: () => setMessageModalOpen(true),
                 },
                 { key: 'photo', label: 'Foto oder Video hinzufügen', onPress: () => setPhotoModalOpen(true) },
-                { key: 'voice', label: 'Interne Sprachnotiz', onPress: () => setVoiceModalOpen(true) },
-                { key: 'doc', label: 'Dokument hinzufügen', onPress: () => setPhotoModalOpen(true) },
                 {
                     key: 'ai',
                     label: 'KI-Hilfe',
@@ -1598,10 +1595,6 @@ function EmployeePortalVisitExecutionContent() {
             setLocalSuccess('Datei am Einsatz gespeichert.');
         }}/>
 
-      <EmployeePortalVisitVoiceNoteModal visible={voiceModalOpen} tenantId={portalTenantId} visitId={assistVisitId} employeeId={portalEmployeeId} onClose={() => setVoiceModalOpen(false)} onAppendText={appendDocumentationNote} onAudioUploaded={(storagePath) => {
-            setPhotoReferences((prev) => [...new Set([...prev, storagePath])]);
-            setLocalSuccess('Sprachnotiz am Einsatz gespeichert.');
-        }}/>
 
       <PortalNewChatModal visible={messageModalOpen} audience="employee" variant="glass" initialSubject={`Einsatz: ${visit.clientName}`} initialMessage={`Rückfrage zum Einsatz ${visit.assignmentId}:\n`} onClose={() => setMessageModalOpen(false)} onCreated={(threadId) => {
             setMessageModalOpen(false);

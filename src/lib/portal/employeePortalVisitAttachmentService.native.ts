@@ -17,6 +17,7 @@ export type VisitAttachmentUploadInput = {
     fileName: string;
     mimeType: string;
     bytes: Uint8Array;
+    attachmentId?: string;
 };
 type VisitAttachmentUploadResult = {
     storagePath: string;
@@ -91,16 +92,9 @@ export async function uploadEmployeePortalVisitAttachment(input: VisitAttachment
         mimeType: input.mimeType,
         sizeBytes: input.bytes.length,
     });
-    const audioTypes = new Set(['audio/webm', 'audio/ogg', 'audio/mpeg', 'audio/mp3', 'audio/wav', 'audio/mp4', 'audio/x-m4a', 'audio/m4a']);
-    if (audioTypes.has(mimeType)) {
-        if (input.bytes.length > 50 * 1024 * 1024)
-            return { ok: false, error: 'Die Audio-Aufnahme ist größer als 50 MB. Bitte eine kürzere Aufnahme verwenden.' };
-    }
-    else {
-        const validation = validateEmployeePortalPickedMedia(media, 'visit');
-        if (!validation.ok)
-            return validation;
-    }
+    const validation = validateEmployeePortalPickedMedia(media, 'visit');
+    if (!validation.ok)
+        return validation;
     if (isDemoMode()) {
         const demoPath = buildAssistVisitAttachmentStoragePath(input.tenantId, input.visitId, `demo-${Date.now()}`, input.fileName);
         return { ok: true, data: { storagePath: demoPath, metadataPersisted: true } };
@@ -109,16 +103,21 @@ export async function uploadEmployeePortalVisitAttachment(input: VisitAttachment
     if (!supabase) {
         return { ok: false, error: 'Speicher ist derzeit nicht verfügbar.' };
     }
-    const attachmentId = createAttachmentId();
+    const attachmentId = input.attachmentId ?? createAttachmentId();
     const storagePath = buildAssistVisitAttachmentStoragePath(input.tenantId, input.visitId, attachmentId, input.fileName);
     const { error } = await supabase.storage
         .from(ASSIST_EXECUTION_STORAGE_BUCKET)
-        .upload(storagePath, input.bytes, {
+        .upload(storagePath, input.bytes.slice().buffer as ArrayBuffer, {
         contentType: input.mimeType,
         upsert: false,
     });
     if (error) {
-        return { ok: false, error: toStorageUploadError(error.message) };
+        // A stable ID lets a retry verify a durable original after a lost response.
+        const recovered = input.attachmentId ? await supabase.storage.from(ASSIST_EXECUTION_STORAGE_BUCKET).download(storagePath) : null;
+        const original = recovered?.data && !recovered.error ? new Uint8Array(await recovered.data.arrayBuffer()) : null;
+        if (!original || original.length !== input.bytes.length || original.some((byte, index) => byte !== input.bytes[index])) {
+            return { ok: false, error: toStorageUploadError(error.message) };
+        }
     }
     const now = new Date().toISOString();
     const mediaKind = resolveMediaKind(input.mimeType);

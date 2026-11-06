@@ -14,7 +14,7 @@ function failure(error: unknown, write = false): DocumentationResult<never> {
     ? 'Die Speicherbestätigung fehlt. Ihr Entwurf bleibt erhalten. Prüfen Sie denselben Speichervorgang erneut.'
     : 'Die Dokumentation konnte nicht geladen werden. Bitte erneut versuchen.' };
 }
-async function request(actor: DocumentationActor, name: string, args: Row) {
+export async function documentationRequest(actor: DocumentationActor, name: string, args: Row) {
   if (!isUuid(actor.tenantId) || !isUuid(actor.userId)) throw { code: '42501' };
   const client = getSupabaseClient();
   if (!client) throw new Error('Keine Datenbankverbindung');
@@ -26,7 +26,7 @@ async function request(actor: DocumentationActor, name: string, args: Row) {
 }
 export async function listDocumentation(actor: DocumentationActor, filters: DocumentationFilters): Promise<DocumentationResult<DocumentationPage>> {
   try {
-    const data = await request(actor, 'office_documentation_workspace', { p_filters: filters });
+    const data = await documentationRequest(actor, 'office_documentation_workspace', { p_filters: filters });
     if (!Array.isArray(data.items) || data.items.length > 50 || !Number.isSafeInteger(data.total) || Number(data.total) < 0
       || !Array.isArray(data.clients) || !Array.isArray(data.employees) || !Array.isArray(data.months)
       || data.months.some(m => typeof m !== 'string' || !/^\d{4}-(0[1-9]|1[0-2])$/.test(m))) throw new Error('Ungültige Liste');
@@ -48,7 +48,7 @@ export async function createDocumentation(actor: DocumentationActor, id: string,
   if (invalid) return { ok: false, error: invalid };
   if (!isUuid(id)) return { ok: false, error: 'Der Eintrag hat keine gültige Kennung. Bitte neu öffnen.' };
   try {
-    const data = await request(actor, 'office_documentation_create', { p_id: id, p_draft: { ...draft, title: draft.title.trim(), body: draft.body.trim() } });
+    const data = await documentationRequest(actor, 'office_documentation_create', { p_id: id, p_draft: { ...draft, title: draft.title.trim(), body: draft.body.trim() } });
     if (data.id !== id || data.tenant_id !== actor.tenantId || !Number.isFinite(Date.parse(String(data.created_at)))) throw new Error('Ungültige Bestätigung');
     return { ok: true, data: { id } };
   } catch (error) { return failure(error, true); }

@@ -13,6 +13,6 @@ export function OfficeDocumentationScreen() {
     const allowed = tenantId && user?.id && (roleKey === 'employee_portal' || (!isPortalOnlyRole(roleKey) && can('office.access')));
     const scope = JSON.stringify([tenantId, user?.id, roleKey, portalSession?.accountId]);
     return <ScreenShell title="Dokumentation" scroll={false} contentOwnsHeader>
-    {allowed ? <DocumentationWorkspace key={scope} actor={{ tenantId, userId: user!.id }}/> : <NativeSection role="status" style={{ padding: 28, color: '#234457' }}><NativeH1>Dokumentation</NativeH1><NativeP>Bitte mit einem aktiven Teamzugang anmelden, um die gemeinsame Dokumentation zu öffnen.</NativeP></NativeSection>}
+    {allowed ? <DocumentationWorkspace key={scope} actor={{ tenantId, userId: user!.id, canUpload: !isPortalOnlyRole(roleKey) }}/> : <NativeSection role="status" style={{ padding: 28, color: '#234457' }}><NativeH1>Dokumentation</NativeH1><NativeP>Bitte mit einem aktiven Teamzugang anmelden, um die gemeinsame Dokumentation zu öffnen.</NativeP></NativeSection>}
   </ScreenShell>;
 }

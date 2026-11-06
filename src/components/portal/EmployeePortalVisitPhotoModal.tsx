@@ -1,4 +1,5 @@
-import { useCallback, useMemo, useState } from 'react';
+import { secureRandomId } from '@/lib/platform/secureRandomId';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, StyleSheet, Text, View } from 'react-native';
 import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { Ionicons } from '@expo/vector-icons';
@@ -53,6 +54,7 @@ export function EmployeePortalVisitPhotoModal({
   const [settingsRequired, setSettingsRequired] = useState(false);
   const [permissionHelp, setPermissionHelp] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const attachmentId = useRef(secureRandomId());
   const [error, setError] = useState<string | null>(null);
 
   const styles = useMemo(
@@ -149,6 +151,7 @@ export function EmployeePortalVisitPhotoModal({
     setSettingsRequired(false);
     setPermissionHelp(null);
     if (picked?.uri && picked.uri !== result.media.uri) releaseEmployeePortalMediaUri(picked.uri);
+    attachmentId.current = secureRandomId();
     setPicked(result.media);
     return result.media;
   };
@@ -182,6 +185,7 @@ export function EmployeePortalVisitPhotoModal({
       tenantId,
       visitId,
       employeeId,
+      attachmentId: attachmentId.current,
       fileName: media.fileName,
       mimeType: media.mimeType,
       bytes,
@@ -204,7 +208,7 @@ export function EmployeePortalVisitPhotoModal({
         ? await openEmployeePortalCamera()
         : source === 'library'
           ? await openEmployeePortalMediaLibrary()
-          : await openEmployeePortalDocumentPicker({ includeMediaFallback: true });
+          : await openEmployeePortalDocumentPicker({ includeMediaFallback: true, mediaOnly: true });
     const acceptedMedia = acceptPickerResult(result);
     if (acceptedMedia) await handleUpload(acceptedMedia);
   };

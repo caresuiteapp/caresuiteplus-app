@@ -60,7 +60,7 @@ describe('employee portal camera and media upload R1', () => {
     ).toBe(false);
   });
 
-  it('keeps visit documents limited to PDF while allowing photos and videos', () => {
+  it('reserves additional visit document types for Office', () => {
     const pdf = normalizeEmployeePortalPickedMedia({
       uri: 'file:///nachweis.pdf',
       fileName: 'nachweis.pdf',
@@ -71,7 +71,8 @@ describe('employee portal camera and media upload R1', () => {
       fileName: 'nachweis.docx',
       sizeBytes: 200,
     });
-    expect(validateEmployeePortalPickedMedia(pdf, 'visit')).toEqual({ ok: true });
+    expect(validateEmployeePortalPickedMedia(pdf, 'visit').ok).toBe(false);
+    expect(validateEmployeePortalPickedMedia(pdf, 'portal-upload')).toEqual({ ok: true });
     expect(validateEmployeePortalPickedMedia(word, 'visit').ok).toBe(false);
   });
 

@@ -2,6 +2,7 @@
 import {NativeVideo} from '@/components/layout/NativeWorkspaceElements.native';
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { secureRandomId } from '@/lib/platform/secureRandomId';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
@@ -28,6 +29,7 @@ export function EmployeePortalVisitPhotoModal({ visible, tenantId, visitId, empl
     const [savedPath, setSavedPath] = useState<string | null>(null);
     const selected = useRef<EmployeePortalPickedMedia | null>(null);
     const flight = useRef(false);
+    const attachmentId = useRef(secureRandomId());
     const epoch = useRef(0);
     const refs = useRef(existingReferences);
     refs.current = existingReferences;
@@ -58,7 +60,7 @@ export function EmployeePortalVisitPhotoModal({ visible, tenantId, visitId, empl
         const generation = epoch.current;
         try {
             const result = source === 'camera' ? await openEmployeePortalCamera() : source === 'library'
-                ? await openEmployeePortalMediaLibrary() : await openEmployeePortalDocumentPicker({ includeMediaFallback: true });
+                ? await openEmployeePortalMediaLibrary() : await openEmployeePortalDocumentPicker({ includeMediaFallback: true, mediaOnly: true });
             if (epoch.current !== generation) {
                 if (result.ok)
                     releaseEmployeePortalMediaUri(result.media?.uri);
@@ -78,6 +80,7 @@ export function EmployeePortalVisitPhotoModal({ visible, tenantId, visitId, empl
                 return;
             }
             releaseEmployeePortalMediaUri(selected.current?.uri);
+            attachmentId.current = secureRandomId();
             selected.current = result.media;
             setPicked(result.media);
         }
@@ -115,7 +118,7 @@ export function EmployeePortalVisitPhotoModal({ visible, tenantId, visitId, empl
                     return;
                 }
                 const result = await uploadEmployeePortalVisitAttachment({ tenantId, visitId, employeeId,
-                    fileName: picked.fileName, mimeType: picked.mimeType, bytes });
+                    attachmentId: attachmentId.current, fileName: picked.fileName, mimeType: picked.mimeType, bytes });
                 if (generation !== epoch.current)
                     return;
                 if (!result.ok) {
@@ -140,11 +143,11 @@ export function EmployeePortalVisitPhotoModal({ visible, tenantId, visitId, empl
         }
     };
     const busy = phase !== 'idle';
-    return <PlatformModal visible={visible} title="Foto, Video oder PDF" subtitle="Medien zu diesem Einsatz" onClose={() => void close()} dismissOnBackdrop={!busy} maxWidth={760} surfaceScope="personal">
+    return <PlatformModal visible={visible} title="Fotos & Videos" subtitle="Medien zu diesem Einsatz" onClose={() => void close()} dismissOnBackdrop={!busy} maxWidth={760} surfaceScope="personal">
     <View style={styles.body}>
       <View style={styles.info}><Text style={styles.title}>Auswählen, ansehen und hochladen</Text>
         <Text style={styles.text}>Diese Dateien bleiben intern am Einsatz. Sie erscheinen nicht automatisch im Leistungsnachweis oder Klient:innenportal.</Text>
-        <Text style={styles.meta}>Fotos und PDF bis 15 MB · Videos bis 50 MB</Text></View>
+        <Text style={styles.meta}>Fotos bis 15 MB · Videos bis 50 MB</Text></View>
       <View style={styles.actions}>
         <PremiumButton title="Kamera" variant="secondary" onPress={() => void pick('camera')} disabled={busy || Boolean(savedPath)}/>
         <PremiumButton title="Fotos & Videos" variant="secondary" onPress={() => void pick('library')} disabled={busy || Boolean(savedPath)}/>

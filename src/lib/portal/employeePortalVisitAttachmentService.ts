@@ -22,6 +22,7 @@ export type VisitAttachmentUploadInput = {
   fileName: string;
   mimeType: string;
   bytes: Uint8Array;
+  attachmentId?: string;
 };
 
 type VisitAttachmentUploadResult = {
@@ -114,7 +115,7 @@ export async function uploadEmployeePortalVisitAttachment(
     return { ok: false, error: 'Speicher ist derzeit nicht verfügbar.' };
   }
 
-  const attachmentId = createAttachmentId();
+  const attachmentId = input.attachmentId ?? createAttachmentId();
   const storagePath = buildAssistVisitAttachmentStoragePath(
     input.tenantId,
     input.visitId,
@@ -124,13 +125,18 @@ export async function uploadEmployeePortalVisitAttachment(
 
   const { error } = await supabase.storage
     .from(ASSIST_EXECUTION_STORAGE_BUCKET)
-    .upload(storagePath, input.bytes, {
+    .upload(storagePath, input.bytes.slice().buffer as ArrayBuffer, {
       contentType: input.mimeType,
       upsert: false,
     });
 
   if (error) {
-    return { ok: false, error: toStorageUploadError(error.message) };
+    // A stable ID lets a retry verify a durable original after a lost response.
+    const recovered = input.attachmentId ? await supabase.storage.from(ASSIST_EXECUTION_STORAGE_BUCKET).download(storagePath) : null;
+    const original = recovered?.data && !recovered.error ? new Uint8Array(await recovered.data.arrayBuffer()) : null;
+    if (!original || original.length !== input.bytes.length || original.some((byte, index) => byte !== input.bytes[index])) {
+      return { ok: false, error: toStorageUploadError(error.message) };
+    }
   }
 
   const now = new Date().toISOString();

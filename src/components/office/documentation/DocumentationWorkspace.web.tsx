@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
 import { DOCUMENTATION_AREAS, DOCUMENTATION_CATEGORIES, berlinMonth, documentationDateTime, documentationDraft, newDocumentationId, shiftDocumentationMonth, validateDocumentation } from '@/lib/office/documentation/model';
-import type { DocumentationActor, DocumentationDraft, DocumentationEntry, DocumentationFilters, DocumentationPage } from '@/lib/office/documentation/model';
+import type { DocumentationActor, DocumentationDraft, DocumentationEntry, DocumentationFilters, DocumentationPage, DocumentationUpload } from '@/lib/office/documentation/model';
 import { createDocumentation, listDocumentation } from '@/lib/office/documentation/service';
+import { DocumentationReader } from './DocumentationReader.web';
+import { DocumentationFilePicker } from './DocumentationFiles.web';
+import { discardDocumentationFile, uploadDocumentationFile } from '@/lib/office/documentation/attachments';
 import { documentationCss } from './documentationCss.web';
 
 const initialFilters = (): DocumentationFilters => ({ month: berlinMonth(), area: '', clientId: '', employeeId: '', category: '', source: '', priority: '', query: '', offset: 0 });
@@ -39,11 +42,15 @@ export function DocumentationWorkspace({ actor }: { actor: DocumentationActor })
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [draft, setDraft] = useState<DocumentationDraft | null>(null);
   const [draftId, setDraftId] = useState('');
+  const [files, setFiles] = useState<DocumentationUpload[]>([]);
+  const [savedId, setSavedId] = useState('');
+  const [recording, setRecording] = useState(false);
+  const fileState = useRef({ files, savedId }); fileState.current = { files, savedId };
   const [saveError, setSaveError] = useState('');
   const [uncertain, setUncertain] = useState(false);
   const [busy, setBusy] = useState(false);
   const alive = useRef(true), requestNumber = useRef(0), locked = useRef(false);
-  const confirmLeave = useUnsavedWebChanges(Boolean(draft && (draft.title || draft.body)), busy);
+  const confirmLeave = useUnsavedWebChanges(Boolean(draft && (draft.title || draft.body || files.length)), busy || recording);
   const refresh = useCallback(async () => {
     const request = ++requestNumber.current; setLoading(true); setError('');
     const result = await listDocumentation(actor, filters);
@@ -54,37 +61,52 @@ export function DocumentationWorkspace({ actor }: { actor: DocumentationActor })
     } else { setPage(emptyPage); setSelected(null); setError(result.error); }
     setLoading(false);
   }, [actor.tenantId, actor.userId, filters]);
-  useEffect(() => { alive.current = true; return () => { alive.current = false; requestNumber.current++; }; }, []);
+  useEffect(() => { alive.current = true; return () => { alive.current = false; requestNumber.current++; const state = fileState.current; if (state.savedId) for (const f of state.files.filter(f => !f.done)) void discardDocumentationFile(actor, { id: state.savedId, source: 'manual' }, f).catch(() => {}); }; }, []);
   useEffect(() => { void refresh(); }, [refresh]);
   useEffect(() => { const id = setTimeout(() => setFilters(f => f.query === search.trim() ? f : { ...f, query: search.trim(), offset: 0 }), 280); return () => clearTimeout(id); }, [search]);
   const filter = (patch: Partial<DocumentationFilters>) => { setSelected(null); setFilters(f => ({ ...f, ...patch, offset: 0 })); };
   const months = useMemo(() => [...new Set([berlinMonth(), filters.month, ...page.months].filter(Boolean))].sort().reverse(), [page.months, filters.month]);
   const start = async (entry?: DocumentationEntry) => {
     if (locked.current || !(await confirmLeave()) || !alive.current) return;
+    if (savedId) for (const f of files.filter(f => !f.done)) void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => {});
     setDraft(documentationDraft(entry ? { area: entry.area, clientId: entry.client_id ?? '', employeeId: entry.employee_id ?? '', category: entry.category,
       title: `Ergänzung: ${entry.title}`.slice(0, 180), body: `Bezug: ${entry.title}, ${documentationDateTime(entry.occurred_at)}\n\n` }
       : { area: (filters.area || (filters.clientId ? 'client' : filters.employeeId ? 'employee' : 'administration')) as DocumentationDraft['area'], clientId: filters.clientId, employeeId: filters.employeeId }));
-    setDraftId(newDocumentationId()); setSelected(null); setSaveError(''); setUncertain(false); setNotice('');
+    setDraftId(newDocumentationId()); setFiles([]); setSavedId(''); setSelected(null); setSaveError(''); setUncertain(false); setNotice('');
   };
-  const close = async () => { if (locked.current || !(await confirmLeave()) || !alive.current) return; setDraft(null); setSelected(null); setSaveError(''); setUncertain(false); };
-  const open = async (entry: DocumentationEntry) => { if (locked.current || !(await confirmLeave()) || !alive.current) return; setDraft(null); setSelected(entry); setSaveError(''); setUncertain(false); };
+  const close = async () => { if (locked.current || !(await confirmLeave()) || !alive.current) return; if (savedId) for (const f of files.filter(f => !f.done)) void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => {}); setDraft(null); setFiles([]); setSavedId(''); setSelected(null); setSaveError(''); setUncertain(false); };
+  const open = async (entry: DocumentationEntry) => { if (locked.current || !(await confirmLeave()) || !alive.current) return; if (savedId) for (const f of files.filter(f => !f.done)) void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => {}); setFiles([]); setSavedId(''); setDraft(null); setSelected(entry); setSaveError(''); setUncertain(false); };
   const save = async () => {
-    if (!draft || locked.current) return;
+    if (!draft || locked.current || recording) return;
     const invalid = validateDocumentation(draft); if (invalid) { setSaveError(invalid); return; }
     locked.current = true; setBusy(true); setSaveError('');
     try {
-      const result = await createDocumentation(actor, draftId, draft);
+      let entryId = savedId;
+      if (!entryId) {
+        const result = await createDocumentation(actor, draftId, draft);
+        if (!alive.current) return;
+        if (!result.ok) { setSaveError(result.error); setUncertain(Boolean(result.uncertain)); return; }
+        entryId = result.data.id; setSavedId(entryId); setUncertain(false);
+      }
+      try {
+        for (const file of files.filter(f => !f.done)) {
+          await uploadDocumentationFile(actor, { id: entryId, source: 'manual' }, file);
+          if (!alive.current) return;
+          setFiles(current => current.map(item => item.id === file.id ? { ...item, done: true } : item));
+        }
+      } catch {
+        if (alive.current) setSaveError('Der Text ist gespeichert. Mindestens ein Anhang fehlt noch. Bitte die fehlenden Anhänge erneut speichern.');
+        return;
+      }
       if (!alive.current) return;
-      if (result.ok) {
-        setDraft(null); setUncertain(false); setSearch(''); setSelected(null);
-        setFilters({ ...initialFilters(), month: berlinMonth(new Date(draft.occurredAt)) });
-        setNotice('Dokumentation gespeichert. Der Eintrag ist für das gesamte Team verfügbar.');
-      } else { setSaveError(result.error); setUncertain(Boolean(result.uncertain)); }
+      setDraft(null); setFiles([]); setSavedId(''); setUncertain(false); setSearch(''); setSelected(null);
+      setFilters({ ...initialFilters(), month: berlinMonth(new Date(draft.occurredAt)) });
+      setNotice('Dokumentation gespeichert. Der Eintrag ist für das gesamte Team verfügbar.');
     } finally { locked.current = false; if (alive.current) setBusy(false); }
   };
-  const changeDraft = (patch: Partial<DocumentationDraft>) => { if (!busy && !uncertain) setDraft(d => d ? { ...d, ...patch } : d); };
+  const changeDraft = (patch: Partial<DocumentationDraft>) => { if (!busy && !uncertain && !savedId) setDraft(d => d ? { ...d, ...patch } : d); };
   const reset = () => { setSearch(''); setSelected(null); setFilters({ ...initialFilters(), month: '' }); };
-  const hasPanel = Boolean(draft || selected);
+  const hasPanel = Boolean(draft);
   return <main className="cs-doc" aria-label="Gemeinsame Dokumentation">
     <style>{documentationCss}</style>
     <header className="cs-doc-head"><div><p className="cs-doc-eyebrow">Office · Gemeinsamer Verlauf</p><h1>Dokumentation</h1>
@@ -116,10 +138,10 @@ export function DocumentationWorkspace({ actor }: { actor: DocumentationActor })
           : !error && page.items.length === 0 ? <div className="cs-doc-empty"><h2>Hier beginnt der Überblick.</h2><p>Für diese Auswahl gibt es noch keine Einträge. Sie können jederzeit frei dokumentieren. Gespeicherte Berichte erscheinen automatisch nach Abschluss des Einsatzes.</p><button type="button" className="cs-doc-btn primary" onClick={() => void start()}>Dokumentation erfassen</button></div>
           : <div className={`cs-doc-list${compact ? ' compact' : ''}`}>{page.items.map(entry => {
             const c = DOCUMENTATION_CATEGORIES.find(c => c.value === entry.category)!;
-            return <button type="button" className="cs-doc-card" key={`${entry.source}:${entry.id}`} style={{ '--category': c.color } as React.CSSProperties} aria-pressed={selected?.id === entry.id && selected.source === entry.source} onClick={() => void open(entry)}>
+            return <button type="button" className="cs-doc-card" key={`${entry.source}:${entry.id}`} style={{ '--category': c.color } as React.CSSProperties} aria-haspopup="dialog" aria-label={`Dokumentation öffnen: ${entry.title}, ${entry.client_name || entry.employee_name || 'Verwaltung'}`} aria-expanded={selected?.id === entry.id && selected.source === entry.source} onClick={() => void open(entry)}>
               <div className="cs-doc-card-top"><span className="cs-doc-badge" style={{ color: c.color, background: c.tint }}><span className="cs-doc-dot" />{c.label}</span>
                 <span className="cs-doc-subtle">{documentationDateTime(entry.occurred_at)}</span></div>
-              <h3>{entry.title}</h3><p className="cs-doc-preview">{entry.body}</p><div className="cs-doc-card-bottom">
+              <h3>{entry.title}</h3><p className="cs-doc-preview">{entry.body}</p><div className="cs-doc-card-bottom"><span className="cs-doc-read-label">Groß lesen ↗</span>
                 <strong>{entry.client_name || entry.employee_name || 'Verwaltung'}</strong><span>{entry.author_name}</span><span>{entry.source === 'visit' ? '↳ Aus Einsatz übernommen' : 'Freier Eintrag'}</span>
                 {entry.priority !== 'normal' && <span className="cs-doc-badge cs-doc-priority">{entry.priority === 'urgent' ? 'Dringend' : 'Wichtig'}</span>}</div></button>;
           })}</div>}
@@ -130,7 +152,7 @@ export function DocumentationWorkspace({ actor }: { actor: DocumentationActor })
         <form className="cs-doc-panel-body" onSubmit={e => { e.preventDefault(); void save(); }}>
           <p className="cs-doc-hint">Dieser Eintrag ist für das gesamte Team Ihres Unternehmens sichtbar. Vertrauliche Personalakten bleiben in der Personalverwaltung.</p>
           {saveError && <div role="alert" className="cs-doc-error">{saveError}</div>}
-          <fieldset disabled={busy || uncertain} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}><div className="cs-doc-form-grid">
+          <fieldset disabled={busy || uncertain || Boolean(savedId)} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}><div className="cs-doc-form-grid">
             <label>Bereich<select value={draft.area} onChange={e => changeDraft({ area: e.target.value as DocumentationDraft['area'] })}>{DOCUMENTATION_AREAS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}</select></label>
             <label>Kategorie<select value={draft.category} onChange={e => changeDraft({ category: e.target.value as DocumentationDraft['category'] })}>{DOCUMENTATION_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select></label>
             <label>Klient{draft.area === 'client' ? ' *' : ' (optional)'}<select value={draft.clientId} required={draft.area === 'client'} onChange={e => changeDraft({ clientId: e.target.value })}><option value="">Bitte auswählen</option>{page.clients.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
@@ -140,15 +162,11 @@ export function DocumentationWorkspace({ actor }: { actor: DocumentationActor })
             <label className="cs-doc-full">Titel *<input required autoFocus maxLength={180} value={draft.title} placeholder="Was möchten Sie festhalten?" onChange={e => changeDraft({ title: e.target.value })} /></label>
             <label className="cs-doc-full">Dokumentation *<textarea required maxLength={20000} value={draft.body} placeholder="Beobachtungen, Gespräche, Absprachen oder wichtige Veränderungen …" onChange={e => changeDraft({ body: e.target.value })} /></label>
           </div></fieldset>
+          {actor.canUpload && <DocumentationFilePicker files={files} disabled={busy || uncertain} onRecording={setRecording} onChange={next => { if (savedId) for (const f of files.filter(f => !f.done && !next.some(n => n.id === f.id))) void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => {}); setFiles(next); }} />}
           <p className="cs-doc-hint">Verfasser und Erfassungszeit werden automatisch gespeichert. Gespeicherte Inhalte bleiben erhalten; Korrekturen werden als Ergänzung dokumentiert.</p>
-          <div className="cs-doc-actions"><button type="submit" className="cs-doc-btn primary" disabled={busy}>{busy ? 'Wird gespeichert …' : uncertain ? 'Speicherbestätigung prüfen' : 'Eintrag speichern'}</button><button type="button" className="cs-doc-btn" disabled={busy} onClick={() => void close()}>Abbrechen</button></div>
+          <div className="cs-doc-actions"><button type="submit" className="cs-doc-btn primary" disabled={busy || recording}>{busy ? 'Wird gespeichert …' : uncertain ? 'Speicherbestätigung prüfen' : savedId ? 'Fehlende Anhänge speichern' : 'Eintrag speichern'}</button><button type="button" className="cs-doc-btn" disabled={busy} onClick={() => void close()}>Abbrechen</button></div>
         </form></aside>}
-      {selected && <aside className="cs-doc-panel" aria-label="Dokumentation im Detail"><div className="cs-doc-panel-head"><div><p className="cs-doc-eyebrow">{selected.source === 'visit' ? 'Aus abgeschlossenem Einsatz' : 'Freie Dokumentation'}</p><h2>{selected.title}</h2></div><button type="button" className="cs-doc-btn icon" aria-label="Details schließen" onClick={() => void close()}>×</button></div>
-        <div className="cs-doc-panel-body"><dl className="cs-doc-meta"><div><dt>Zeitpunkt</dt><dd>{documentationDateTime(selected.occurred_at)}</dd></div><div><dt>Verfasst von</dt><dd>{selected.author_name}</dd></div>
-          <div><dt>Klient</dt><dd>{selected.client_name || 'Keine Zuordnung'}</dd></div><div><dt>Mitarbeitende</dt><dd>{selected.employee_name || 'Keine Zuordnung'}</dd></div>
-          <div><dt>Kategorie</dt><dd>{DOCUMENTATION_CATEGORIES.find(c => c.value === selected.category)?.label}</dd></div><div><dt>Erfasst am</dt><dd>{documentationDateTime(selected.created_at)}</dd></div></dl>
-          <div className="cs-doc-copy">{selected.body}</div><p className="cs-doc-hint">{selected.source === 'visit' ? 'Dieser Bericht stammt aus dem Einsatz. Das Original bleibt dort gespeichert. Ergänzungen können Sie hier als neuen Eintrag festhalten.' : 'Der gespeicherte Eintrag bleibt erhalten. Ergänzen Sie neue Informationen oder Korrekturen mit einem weiteren Eintrag.'}</p>
-          <button type="button" className="cs-doc-btn primary" onClick={() => void start(selected)}>Ergänzung erfassen</button></div></aside>}
+      {selected && <DocumentationReader actor={actor} entry={selected} onClose={() => void close()} onAdd={() => void start(selected)} />}
     </div>
     <p className="cs-doc-hint" style={{ marginTop: 22 }}>Gemeinsam im Team · Abgeschlossene Einsätze werden automatisch eingebunden · Freie Einträge sind unabhängig vom Einsatzplan</p>
   </main>;

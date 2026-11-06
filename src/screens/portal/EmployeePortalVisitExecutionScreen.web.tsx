@@ -32,7 +32,6 @@ import {
   EmployeePortalVisitLiveDashboard,
   EmployeePortalVisitMoreMenu,
   EmployeePortalVisitPhotoModal,
-  EmployeePortalVisitVoiceNoteModal,
   EmployeePortalVisitSignaturePanel,
   EmployeePortalVisitStickyHeader,
   EmployeePortalVisitSummaryPanel,
@@ -252,7 +251,6 @@ function EmployeePortalVisitExecutionContent() {
   const [moreOpen, setMoreOpen] = useState(false);
   const [docLastSavedAt, setDocLastSavedAt] = useState<string | null>(null);
   const [photoModalOpen, setPhotoModalOpen] = useState(false);
-  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
   const [messageModalOpen, setMessageModalOpen] = useState(false);
   const [photoReferences, setPhotoReferences] = useState<string[]>([]);
   const [documentationDraftText, setDocumentationDraftText] = useState('');
@@ -1953,8 +1951,6 @@ function EmployeePortalVisitExecutionContent() {
               onPress: () => setMessageModalOpen(true),
             },
             { key: 'photo', label: 'Foto oder Video hinzufügen', onPress: () => setPhotoModalOpen(true) },
-            { key: 'voice', label: 'Interne Sprachnotiz', onPress: () => setVoiceModalOpen(true) },
-            { key: 'doc', label: 'Dokument hinzufügen', onPress: () => setPhotoModalOpen(true) },
             {
               key: 'ai',
               label: 'KI-Hilfe',
@@ -2076,18 +2072,6 @@ function EmployeePortalVisitExecutionContent() {
         }}
       />
 
-      <EmployeePortalVisitVoiceNoteModal
-        visible={voiceModalOpen}
-        tenantId={portalTenantId}
-        visitId={assistVisitId}
-        employeeId={portalEmployeeId}
-        onClose={() => setVoiceModalOpen(false)}
-        onAppendText={appendDocumentationNote}
-        onAudioUploaded={(storagePath) => {
-          setPhotoReferences((prev) => [...new Set([...prev, storagePath])]);
-          setLocalSuccess('Sprachnotiz am Einsatz gespeichert.');
-        }}
-      />
 
       <PortalNewChatModal
         visible={messageModalOpen}

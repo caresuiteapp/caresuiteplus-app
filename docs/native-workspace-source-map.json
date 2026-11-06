@@ -2210,15 +2210,29 @@
       "environment": []
     },
     {
+      "web": "src/components/office/documentation/DocumentationFiles.web.tsx",
+      "native": "src/components/office/documentation/DocumentationFiles.native.tsx",
+      "sourceHash": "817415107f9edd5182b53c33db7d41f582a262a8f2450e3a8714e41110e50646",
+      "environment": []
+    },
+    {
       "web": "src/components/office/documentation/documentationCss.web.ts",
       "native": "src/components/office/documentation/documentationCss.native.ts",
-      "sourceHash": "2f96a81790613bedf27f2addb6650cb5d36d625825ea3a64d743953bf5c877a1",
+      "sourceHash": "28c5f0fde5d5c75b4d659c13ca4102fb4168901caff40c11bece7321565533d9",
       "environment": []
+    },
+    {
+      "web": "src/components/office/documentation/DocumentationReader.web.tsx",
+      "native": "src/components/office/documentation/DocumentationReader.native.tsx",
+      "sourceHash": "9148f8566983a96b5368fd6367331c11f00d246edd6928a6dad1e0d32d57eec9",
+      "environment": [
+        "document"
+      ]
     },
     {
       "web": "src/components/office/documentation/DocumentationWorkspace.web.tsx",
       "native": "src/components/office/documentation/DocumentationWorkspace.native.tsx",
-      "sourceHash": "3c70df8206f97d240cb16b06703d4cc712d6898b9214fbde03dc78202ef04e15",
+      "sourceHash": "38593e0f10c03ae04036de9e4a18d65b69c1b8039ae86f0c324b34e0c4f4c379",
       "environment": []
     },
     {
@@ -3961,7 +3975,7 @@
     {
       "web": "src/lib/portal/employeePortalVisitAttachmentService.web.ts",
       "native": "src/lib/portal/employeePortalVisitAttachmentService.native.ts",
-      "sourceHash": "d008de2d586c0b06eded785bffc9a7ff289054d8cfbfe57e86952f1c805e994a",
+      "sourceHash": "5ebb6685d992c55230c37c1826239a4c805a244fbc228a53a2d2b05033ffcbd1",
       "environment": [
         "crypto"
       ]
@@ -3969,7 +3983,7 @@
     {
       "web": "src/components/portal/EmployeePortalVisitPhotoModal.web.tsx",
       "native": "src/components/portal/EmployeePortalVisitPhotoModal.native.tsx",
-      "sourceHash": "da8696cd1d3c63db3c5580d5ae1fc96c71e377f9eedf4b3d9e27d05c519dd2ad",
+      "sourceHash": "7fc984f06b3f977ca6485459a558e1cfb84a375eec487f84dcf0e8e09c9b0be3",
       "environment": []
     },
     {
@@ -5583,7 +5597,7 @@
     {
       "web": "src/screens/office/OfficeDocumentationScreen.web.tsx",
       "native": "src/screens/office/OfficeDocumentationScreen.native.tsx",
-      "sourceHash": "d4c6ecdb2d0087c7becceb31c6156100fe1a8b62867617781ef1ea2139bdc6d1",
+      "sourceHash": "685c4343c47384da007483098525c9a788af9798eea3e2c6257b5a870b58f790",
       "environment": []
     },
     {
@@ -6452,7 +6466,7 @@
     {
       "web": "src/screens/portal/EmployeePortalVisitExecutionScreen.web.tsx",
       "native": "src/screens/portal/EmployeePortalVisitExecutionScreen.native.tsx",
-      "sourceHash": "46d9dadac0f27029207c265beaf25a4c88805a9955b9e0bfaf52db8d84a10890",
+      "sourceHash": "fec60a0d92e9fc2b7559fd8cfa245e6576b8cbc523606aee9d7dd71ede819730",
       "environment": []
     },
     {

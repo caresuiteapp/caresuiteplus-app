@@ -119,7 +119,7 @@
     "verify:assignments:release": "node scripts/verify-assignments-workspace.mjs",
     "verify:calendar:release": "node scripts/verify-calendar-workspace.mjs",
     "verify:live-status:release": "node scripts/verify-live-status-workspace.mjs",
-    "verify:office-documentation:release": "node scripts/verify-office-documentation-db.mjs && vitest run --maxWorkers=1 src/__tests__/office/documentationWorkspace.test.tsx src/__tests__/office/documentationService.test.ts",
+    "verify:office-documentation:release": "node scripts/verify-office-documentation-db.mjs && vitest run --maxWorkers=1 src/__tests__/office/documentationWorkspace.test.tsx src/__tests__/office/documentationService.test.ts src/__tests__/office/documentationAttachments.test.ts src/__tests__/portal/employeeDocumentationMediaUpload.test.ts src/__tests__/portal/employeeDocumentationPhotoModal.test.tsx src/__tests__/portal/employeePortalCameraMediaUploadR1.test.ts src/__tests__/portal/employeePortalCameraPersistenceR5.test.ts",
     "verify:office-notes:release": "node scripts/verify-office-notes-workspace.mjs",
     "verify:budgets:release": "node scripts/verify-budgets-workspace.mjs",
     "verify:assist-clients:release": "node scripts/verify-assist-clients-workspace.mjs",

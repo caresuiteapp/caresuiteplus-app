@@ -308,9 +308,10 @@ export async function openEmployeePortalMediaLibrary(): Promise<EmployeePortalMe
 
 export async function openEmployeePortalDocumentPicker(options?: {
   includeMediaFallback?: boolean;
+  mediaOnly?: boolean;
 }): Promise<EmployeePortalMediaPickerResult> {
   try {
-    const types = options?.includeMediaFallback
+    const types = options?.mediaOnly ? ['image/*', 'video/*'] : options?.includeMediaFallback
       ? [...DOCUMENT_MIME_TYPES, 'image/*', 'video/*']
       : [...DOCUMENT_MIME_TYPES];
     const result = await DocumentPicker.getDocumentAsync({

@@ -6,8 +6,9 @@ import { DocumentationWorkspace, berlinInputToIso } from '@/components/office/do
 import type { DocumentationEntry, DocumentationPage } from '@/lib/office/documentation/model';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-const api=vi.hoisted(()=>({list:vi.fn(),create:vi.fn()}));
+const api=vi.hoisted(()=>({list:vi.fn(),create:vi.fn(),upload:vi.fn()}));
 vi.mock('@/lib/office/documentation/service',()=>({listDocumentation:api.list,createDocumentation:api.create}));
+vi.mock('@/lib/office/documentation/attachments',async(importOriginal)=>({...await importOriginal<object>(),listDocumentationFiles:vi.fn(async()=>({items:[],canUpload:false})),uploadDocumentationFile:api.upload}));
 vi.mock('@/hooks/useUnsavedWebChanges.web',()=>({useUnsavedWebChanges:()=>async()=>true}));
 const actor={tenantId:'11111111-1111-4111-8111-111111111111',userId:'22222222-2222-4222-8222-222222222222'};
 const entry:DocumentationEntry={id:'33333333-3333-4333-8333-333333333333',tenant_id:actor.tenantId,source:'visit',area:'client',client_id:'44444444-4444-4444-8444-444444444444',employee_id:null,category:'care',priority:'normal',title:'Abgeschlossener Einsatz',body:'Gespeicherte Beobachtung',occurred_at:'2026-11-04T17:00:00Z',created_at:'2026-11-04T17:05:00Z',author_name:'Team Test',client_name:'Client Test',employee_name:'',visit_id:'55555555-5555-4555-8555-555555555555'};
@@ -16,15 +17,31 @@ const page:DocumentationPage={items:[entry],total:1,months:['2026-11'],clients:[
 beforeEach(()=>{vi.clearAllMocks();api.list.mockResolvedValue({ok:true,data:structuredClone(page)});api.create.mockResolvedValue({ok:true,data:{id:entry.id}});host=document.createElement('div');document.body.append(host);root=createRoot(host);});
 afterEach(async()=>{await act(async()=>root.unmount());host.remove();});
 const render=async()=>{await act(async()=>root.render(<DocumentationWorkspace actor={actor}/>));};
-const click=async(label:string)=>{const el=[...host.querySelectorAll('button')].find(b=>b.textContent?.trim()===label||b.getAttribute('aria-label')===label);expect(el,label).toBeTruthy();await act(async()=>el!.click());};
+const click=async(label:string)=>{const el=[...document.querySelectorAll('button')].find(b=>b.textContent?.trim()===label||b.getAttribute('aria-label')===label);expect(el,label).toBeTruthy();await act(async()=>el!.click());};
 const input=async(label:string,value:string)=>{const el=[...host.querySelectorAll('label')].find(l=>l.childNodes[0]?.textContent?.trim()===label)?.querySelector('input,textarea,select') as HTMLInputElement;expect(el,label).toBeTruthy();await act(async()=>{const proto=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:el.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(proto,'value')!.set!.call(el,value);el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}));});};
 describe('shared documentation workspace',()=>{
  it('opens completed report details, creates a linked-context addition and persists without an assignment',async()=>{
-  await render();await act(async()=>host.querySelector<HTMLButtonElement>('.cs-doc-card')!.click());expect(host.querySelector('.cs-doc-copy')?.textContent).toBe(entry.body);
+  await render();await act(async()=>host.querySelector<HTMLButtonElement>('.cs-doc-card')!.click());expect(document.querySelector('dialog[open] .cs-doc-copy')?.textContent).toBe(entry.body);
   await click('Ergänzung erfassen');expect(host.querySelector('textarea')?.value).toContain('Bezug: Abgeschlossener Einsatz');
   await input('Dokumentation *','Neue Beobachtung');await click('Eintrag speichern');
   expect(api.create).toHaveBeenCalledOnce();expect(api.create.mock.calls[0][2]).toMatchObject({area:'client',clientId:entry.client_id,body:'Neue Beobachtung'});
   expect(api.create.mock.calls[0][2]).not.toHaveProperty('assignmentId');expect(host.textContent).toContain('Dokumentation gespeichert');
+ });
+ it('opens a large reader from a single click, increases text size and closes with Escape',async()=>{
+  await render();await act(async()=>host.querySelector<HTMLButtonElement>('.cs-doc-card')!.click());
+  const dialog=document.querySelector('dialog')!;expect(dialog.open).toBe(true);expect(dialog.getAttribute('aria-labelledby')).toBeTruthy();
+  await click('Schrift vergrößern');expect(document.querySelector<HTMLElement>('.cs-doc-copy')?.style.fontSize).toBe('18px');
+  await act(async()=>dialog.dispatchEvent(new Event('cancel',{cancelable:true})));expect(document.querySelector('dialog')).toBeNull();
+ });
+ it('keeps a committed text receipt and retries only failed files',async()=>{
+  await act(async()=>root.render(<DocumentationWorkspace actor={{...actor,canUpload:true}}/>));
+  await click('＋ Neuer Eintrag');await input('Titel *','Mit Foto');await input('Dokumentation *','Beschreibung');
+  const picker=host.querySelector<HTMLInputElement>('input[type=file]')!;
+  const file={name:'foto.png',type:'image/png',size:3,arrayBuffer:async()=>new Uint8Array([1,2,3]).buffer};
+  await act(async()=>{Object.defineProperty(picker,'files',{value:[file],configurable:true});picker.dispatchEvent(new Event('change',{bubbles:true}));});
+  api.upload.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined);
+  await click('Eintrag speichern');expect(api.create).toHaveBeenCalledOnce();expect(host.textContent).toContain('Der Text ist gespeichert');
+  await click('Fehlende Anhänge speichern');expect(api.create).toHaveBeenCalledOnce();expect(api.upload).toHaveBeenCalledTimes(2);expect(api.upload.mock.calls[0][2].id).toBe(api.upload.mock.calls[1][2].id);
  });
  it('keeps content and request identity frozen when a save receipt is uncertain',async()=>{
   await render();await click('＋ Neuer Eintrag');await input('Titel *','Teamabsprache');await input('Dokumentation *','Rückmeldung dokumentiert');

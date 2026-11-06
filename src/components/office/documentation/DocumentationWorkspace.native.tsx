@@ -1,11 +1,14 @@
 // Generated native presentation from src/components/office/documentation/DocumentationWorkspace.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeMain,NativeStyle,NativeHeader,NativeDiv,NativeP,NativeH1,NativeButton,NativeSpan,NativeSelect,NativeOption,NativeSection,NativeLabel,NativeInput,NativeStrong,NativeH2,NativeH3,NativeNav,NativeAside,NativeForm,NativeFieldset,NativeTextarea,NativeDl,NativeDt,NativeDd,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeMain,NativeStyle,NativeHeader,NativeDiv,NativeP,NativeH1,NativeButton,NativeSpan,NativeSelect,NativeOption,NativeSection,NativeLabel,NativeInput,NativeStrong,NativeH2,NativeH3,NativeNav,NativeAside,NativeForm,NativeFieldset,NativeTextarea,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useUnsavedWebChanges } from "../../../hooks/useUnsavedWebChanges.native.ts";
 import { DOCUMENTATION_AREAS, DOCUMENTATION_CATEGORIES, berlinMonth, documentationDateTime, documentationDraft, newDocumentationId, shiftDocumentationMonth, validateDocumentation } from '@/lib/office/documentation/model';
-import type { DocumentationActor, DocumentationDraft, DocumentationEntry, DocumentationFilters, DocumentationPage } from '@/lib/office/documentation/model';
+import type { DocumentationActor, DocumentationDraft, DocumentationEntry, DocumentationFilters, DocumentationPage, DocumentationUpload } from '@/lib/office/documentation/model';
 import { createDocumentation, listDocumentation } from '@/lib/office/documentation/service';
+import { DocumentationReader } from "./DocumentationReader.native.tsx";
+import { DocumentationFilePicker } from "./DocumentationFiles.native.tsx";
+import { discardDocumentationFile, uploadDocumentationFile } from '@/lib/office/documentation/attachments';
 import { documentationCss } from "./documentationCss.native.ts";
 const initialFilters = (): DocumentationFilters => ({ month: berlinMonth(), area: '', clientId: '', employeeId: '', category: '', source: '', priority: '', query: '', offset: 0 });
 const emptyPage: DocumentationPage = { items: [], total: 0, months: [], clients: [], employees: [] };
@@ -47,11 +50,16 @@ export function DocumentationWorkspace({ actor }: {
     const [filtersOpen, setFiltersOpen] = useState(false);
     const [draft, setDraft] = useState<DocumentationDraft | null>(null);
     const [draftId, setDraftId] = useState('');
+    const [files, setFiles] = useState<DocumentationUpload[]>([]);
+    const [savedId, setSavedId] = useState('');
+    const [recording, setRecording] = useState(false);
+    const fileState = useRef({ files, savedId });
+    fileState.current = { files, savedId };
     const [saveError, setSaveError] = useState('');
     const [uncertain, setUncertain] = useState(false);
     const [busy, setBusy] = useState(false);
     const alive = useRef(true), requestNumber = useRef(0), locked = useRef(false);
-    const confirmLeave = useUnsavedWebChanges(Boolean(draft && (draft.title || draft.body)), busy);
+    const confirmLeave = useUnsavedWebChanges(Boolean(draft && (draft.title || draft.body || files.length)), busy || recording);
     const refresh = useCallback(async () => {
         const request = ++requestNumber.current;
         setLoading(true);
@@ -70,7 +78,9 @@ export function DocumentationWorkspace({ actor }: {
         }
         setLoading(false);
     }, [actor.tenantId, actor.userId, filters]);
-    useEffect(() => { alive.current = true; return () => { alive.current = false; requestNumber.current++; }; }, []);
+    useEffect(() => { alive.current = true; return () => { alive.current = false; requestNumber.current++; const state = fileState.current; if (state.savedId)
+        for (const f of state.files.filter(f => !f.done))
+            void discardDocumentationFile(actor, { id: state.savedId, source: 'manual' }, f).catch(() => { }); }; }, []);
     useEffect(() => { void refresh(); }, [refresh]);
     useEffect(() => { const id = setTimeout(() => setFilters(f => f.query === search.trim() ? f : { ...f, query: search.trim(), offset: 0 }), 280); return () => clearTimeout(id); }, [search]);
     const filter = (patch: Partial<DocumentationFilters>) => { setSelected(null); setFilters(f => ({ ...f, ...patch, offset: 0 })); };
@@ -78,21 +88,30 @@ export function DocumentationWorkspace({ actor }: {
     const start = async (entry?: DocumentationEntry) => {
         if (locked.current || !(await confirmLeave()) || !alive.current)
             return;
+        if (savedId)
+            for (const f of files.filter(f => !f.done))
+                void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => { });
         setDraft(documentationDraft(entry ? { area: entry.area, clientId: entry.client_id ?? '', employeeId: entry.employee_id ?? '', category: entry.category,
             title: `Ergänzung: ${entry.title}`.slice(0, 180), body: `Bezug: ${entry.title}, ${documentationDateTime(entry.occurred_at)}\n\n` }
             : { area: (filters.area || (filters.clientId ? 'client' : filters.employeeId ? 'employee' : 'administration')) as DocumentationDraft['area'], clientId: filters.clientId, employeeId: filters.employeeId }));
         setDraftId(newDocumentationId());
+        setFiles([]);
+        setSavedId('');
         setSelected(null);
         setSaveError('');
         setUncertain(false);
         setNotice('');
     };
     const close = async () => { if (locked.current || !(await confirmLeave()) || !alive.current)
-        return; setDraft(null); setSelected(null); setSaveError(''); setUncertain(false); };
+        return; if (savedId)
+        for (const f of files.filter(f => !f.done))
+            void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => { }); setDraft(null); setFiles([]); setSavedId(''); setSelected(null); setSaveError(''); setUncertain(false); };
     const open = async (entry: DocumentationEntry) => { if (locked.current || !(await confirmLeave()) || !alive.current)
-        return; setDraft(null); setSelected(entry); setSaveError(''); setUncertain(false); };
+        return; if (savedId)
+        for (const f of files.filter(f => !f.done))
+            void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => { }); setFiles([]); setSavedId(''); setDraft(null); setSelected(entry); setSaveError(''); setUncertain(false); };
     const save = async () => {
-        if (!draft || locked.current)
+        if (!draft || locked.current || recording)
             return;
         const invalid = validateDocumentation(draft);
         if (invalid) {
@@ -103,21 +122,43 @@ export function DocumentationWorkspace({ actor }: {
         setBusy(true);
         setSaveError('');
         try {
-            const result = await createDocumentation(actor, draftId, draft);
+            let entryId = savedId;
+            if (!entryId) {
+                const result = await createDocumentation(actor, draftId, draft);
+                if (!alive.current)
+                    return;
+                if (!result.ok) {
+                    setSaveError(result.error);
+                    setUncertain(Boolean(result.uncertain));
+                    return;
+                }
+                entryId = result.data.id;
+                setSavedId(entryId);
+                setUncertain(false);
+            }
+            try {
+                for (const file of files.filter(f => !f.done)) {
+                    await uploadDocumentationFile(actor, { id: entryId, source: 'manual' }, file);
+                    if (!alive.current)
+                        return;
+                    setFiles(current => current.map(item => item.id === file.id ? { ...item, done: true } : item));
+                }
+            }
+            catch {
+                if (alive.current)
+                    setSaveError('Der Text ist gespeichert. Mindestens ein Anhang fehlt noch. Bitte die fehlenden Anhänge erneut speichern.');
+                return;
+            }
             if (!alive.current)
                 return;
-            if (result.ok) {
-                setDraft(null);
-                setUncertain(false);
-                setSearch('');
-                setSelected(null);
-                setFilters({ ...initialFilters(), month: berlinMonth(new Date(draft.occurredAt)) });
-                setNotice('Dokumentation gespeichert. Der Eintrag ist für das gesamte Team verfügbar.');
-            }
-            else {
-                setSaveError(result.error);
-                setUncertain(Boolean(result.uncertain));
-            }
+            setDraft(null);
+            setFiles([]);
+            setSavedId('');
+            setUncertain(false);
+            setSearch('');
+            setSelected(null);
+            setFilters({ ...initialFilters(), month: berlinMonth(new Date(draft.occurredAt)) });
+            setNotice('Dokumentation gespeichert. Der Eintrag ist für das gesamte Team verfügbar.');
         }
         finally {
             locked.current = false;
@@ -125,10 +166,10 @@ export function DocumentationWorkspace({ actor }: {
                 setBusy(false);
         }
     };
-    const changeDraft = (patch: Partial<DocumentationDraft>) => { if (!busy && !uncertain)
+    const changeDraft = (patch: Partial<DocumentationDraft>) => { if (!busy && !uncertain && !savedId)
         setDraft(d => d ? { ...d, ...patch } : d); };
     const reset = () => { setSearch(''); setSelected(null); setFilters({ ...initialFilters(), month: '' }); };
-    const hasPanel = Boolean(draft || selected);
+    const hasPanel = Boolean(draft);
     return <NativeWorkspaceStyleScope css={[documentationCss, documentationCss]}>{<NativeMain className="cs-doc" aria-label="Gemeinsame Dokumentation">
     <NativeStyle>{documentationCss}</NativeStyle>
     <NativeHeader className="cs-doc-head"><NativeDiv><NativeP className="cs-doc-eyebrow">Office · Gemeinsamer Verlauf</NativeP><NativeH1>Dokumentation</NativeH1>
@@ -160,10 +201,10 @@ export function DocumentationWorkspace({ actor }: {
             : !error && page.items.length === 0 ? <NativeDiv className="cs-doc-empty"><NativeH2>Hier beginnt der Überblick.</NativeH2><NativeP>Für diese Auswahl gibt es noch keine Einträge. Sie können jederzeit frei dokumentieren. Gespeicherte Berichte erscheinen automatisch nach Abschluss des Einsatzes.</NativeP><NativeButton type="button" className="cs-doc-btn primary" onClick={() => void start()}>Dokumentation erfassen</NativeButton></NativeDiv>
                 : <NativeDiv className={`cs-doc-list${compact ? ' compact' : ''}`}>{page.items.map(entry => {
                         const c = DOCUMENTATION_CATEGORIES.find(c => c.value === entry.category)!;
-                        return <NativeWorkspaceStyleScope key={`${entry.source}:${entry.id}`} css={[documentationCss]}>{<NativeButton type="button" className="cs-doc-card" key={`${entry.source}:${entry.id}`} style={{ '--category': c.color } as React.CSSProperties} aria-pressed={selected?.id === entry.id && selected.source === entry.source} onClick={() => void open(entry)}>
+                        return <NativeWorkspaceStyleScope key={`${entry.source}:${entry.id}`} css={[documentationCss]}>{<NativeButton type="button" className="cs-doc-card" key={`${entry.source}:${entry.id}`} style={{ '--category': c.color } as React.CSSProperties} aria-haspopup="dialog" aria-label={`Dokumentation öffnen: ${entry.title}, ${entry.client_name || entry.employee_name || 'Verwaltung'}`} aria-expanded={selected?.id === entry.id && selected.source === entry.source} onClick={() => void open(entry)}>
               <NativeDiv className="cs-doc-card-top"><NativeSpan className="cs-doc-badge" style={{ color: c.color, background: c.tint }}><NativeSpan className="cs-doc-dot"/>{c.label}</NativeSpan>
                 <NativeSpan className="cs-doc-subtle">{documentationDateTime(entry.occurred_at)}</NativeSpan></NativeDiv>
-              <NativeH3>{entry.title}</NativeH3><NativeP className="cs-doc-preview">{entry.body}</NativeP><NativeDiv className="cs-doc-card-bottom">
+              <NativeH3>{entry.title}</NativeH3><NativeP className="cs-doc-preview">{entry.body}</NativeP><NativeDiv className="cs-doc-card-bottom"><NativeSpan className="cs-doc-read-label">Groß lesen ↗</NativeSpan>
                 <NativeStrong>{entry.client_name || entry.employee_name || 'Verwaltung'}</NativeStrong><NativeSpan>{entry.author_name}</NativeSpan><NativeSpan>{entry.source === 'visit' ? '↳ Aus Einsatz übernommen' : 'Freier Eintrag'}</NativeSpan>
                 {entry.priority !== 'normal' && <NativeSpan className="cs-doc-badge cs-doc-priority">{entry.priority === 'urgent' ? 'Dringend' : 'Wichtig'}</NativeSpan>}</NativeDiv></NativeButton>}</NativeWorkspaceStyleScope>;
                     })}</NativeDiv>}
@@ -174,7 +215,7 @@ export function DocumentationWorkspace({ actor }: {
         <NativeForm className="cs-doc-panel-body" onSubmit={e => { e.preventDefault(); void save(); }}>
           <NativeP className="cs-doc-hint">Dieser Eintrag ist für das gesamte Team Ihres Unternehmens sichtbar. Vertrauliche Personalakten bleiben in der Personalverwaltung.</NativeP>
           {saveError && <NativeDiv role="alert" className="cs-doc-error">{saveError}</NativeDiv>}
-          <NativeFieldset disabled={busy || uncertain} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}><NativeDiv className="cs-doc-form-grid">
+          <NativeFieldset disabled={busy || uncertain || Boolean(savedId)} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}><NativeDiv className="cs-doc-form-grid">
             <NativeLabel>Bereich<NativeSelect value={draft.area} onChange={e => changeDraft({ area: e.target.value as DocumentationDraft['area'] })}>{DOCUMENTATION_AREAS.map(a => <NativeOption key={a.value} value={a.value}>{a.label}</NativeOption>)}</NativeSelect></NativeLabel>
             <NativeLabel>Kategorie<NativeSelect value={draft.category} onChange={e => changeDraft({ category: e.target.value as DocumentationDraft['category'] })}>{DOCUMENTATION_CATEGORIES.map(c => <NativeOption key={c.value} value={c.value}>{c.label}</NativeOption>)}</NativeSelect></NativeLabel>
             <NativeLabel>Klient{draft.area === 'client' ? ' *' : ' (optional)'}<NativeSelect value={draft.clientId} required={draft.area === 'client'} onChange={e => changeDraft({ clientId: e.target.value })}><NativeOption value="">Bitte auswählen</NativeOption>{page.clients.map(o => <NativeOption key={o.id} value={o.id}>{o.name}</NativeOption>)}</NativeSelect></NativeLabel>
@@ -184,15 +225,13 @@ export function DocumentationWorkspace({ actor }: {
             <NativeLabel className="cs-doc-full">Titel *<NativeInput required autoFocus maxLength={180} value={draft.title} placeholder="Was möchten Sie festhalten?" onChange={e => changeDraft({ title: e.target.value })}/></NativeLabel>
             <NativeLabel className="cs-doc-full">Dokumentation *<NativeTextarea required maxLength={20000} value={draft.body} placeholder="Beobachtungen, Gespräche, Absprachen oder wichtige Veränderungen …" onChange={e => changeDraft({ body: e.target.value })}/></NativeLabel>
           </NativeDiv></NativeFieldset>
+          {actor.canUpload && <DocumentationFilePicker files={files} disabled={busy || uncertain} onRecording={setRecording} onChange={next => { if (savedId)
+            for (const f of files.filter(f => !f.done && !next.some(n => n.id === f.id)))
+                void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => { }); setFiles(next); }}/>}
           <NativeP className="cs-doc-hint">Verfasser und Erfassungszeit werden automatisch gespeichert. Gespeicherte Inhalte bleiben erhalten; Korrekturen werden als Ergänzung dokumentiert.</NativeP>
-          <NativeDiv className="cs-doc-actions"><NativeButton type="submit" className="cs-doc-btn primary" disabled={busy}>{busy ? 'Wird gespeichert …' : uncertain ? 'Speicherbestätigung prüfen' : 'Eintrag speichern'}</NativeButton><NativeButton type="button" className="cs-doc-btn" disabled={busy} onClick={() => void close()}>Abbrechen</NativeButton></NativeDiv>
+          <NativeDiv className="cs-doc-actions"><NativeButton type="submit" className="cs-doc-btn primary" disabled={busy || recording}>{busy ? 'Wird gespeichert …' : uncertain ? 'Speicherbestätigung prüfen' : savedId ? 'Fehlende Anhänge speichern' : 'Eintrag speichern'}</NativeButton><NativeButton type="button" className="cs-doc-btn" disabled={busy} onClick={() => void close()}>Abbrechen</NativeButton></NativeDiv>
         </NativeForm></NativeAside>}
-      {selected && <NativeAside className="cs-doc-panel" aria-label="Dokumentation im Detail"><NativeDiv className="cs-doc-panel-head"><NativeDiv><NativeP className="cs-doc-eyebrow">{selected.source === 'visit' ? 'Aus abgeschlossenem Einsatz' : 'Freie Dokumentation'}</NativeP><NativeH2>{selected.title}</NativeH2></NativeDiv><NativeButton type="button" className="cs-doc-btn icon" aria-label="Details schließen" onClick={() => void close()}>×</NativeButton></NativeDiv>
-        <NativeDiv className="cs-doc-panel-body"><NativeDl className="cs-doc-meta"><NativeDiv><NativeDt>Zeitpunkt</NativeDt><NativeDd>{documentationDateTime(selected.occurred_at)}</NativeDd></NativeDiv><NativeDiv><NativeDt>Verfasst von</NativeDt><NativeDd>{selected.author_name}</NativeDd></NativeDiv>
-          <NativeDiv><NativeDt>Klient</NativeDt><NativeDd>{selected.client_name || 'Keine Zuordnung'}</NativeDd></NativeDiv><NativeDiv><NativeDt>Mitarbeitende</NativeDt><NativeDd>{selected.employee_name || 'Keine Zuordnung'}</NativeDd></NativeDiv>
-          <NativeDiv><NativeDt>Kategorie</NativeDt><NativeDd>{DOCUMENTATION_CATEGORIES.find(c => c.value === selected.category)?.label}</NativeDd></NativeDiv><NativeDiv><NativeDt>Erfasst am</NativeDt><NativeDd>{documentationDateTime(selected.created_at)}</NativeDd></NativeDiv></NativeDl>
-          <NativeDiv className="cs-doc-copy">{selected.body}</NativeDiv><NativeP className="cs-doc-hint">{selected.source === 'visit' ? 'Dieser Bericht stammt aus dem Einsatz. Das Original bleibt dort gespeichert. Ergänzungen können Sie hier als neuen Eintrag festhalten.' : 'Der gespeicherte Eintrag bleibt erhalten. Ergänzen Sie neue Informationen oder Korrekturen mit einem weiteren Eintrag.'}</NativeP>
-          <NativeButton type="button" className="cs-doc-btn primary" onClick={() => void start(selected)}>Ergänzung erfassen</NativeButton></NativeDiv></NativeAside>}
+      {selected && <DocumentationReader actor={actor} entry={selected} onClose={() => void close()} onAdd={() => void start(selected)}/>}
     </NativeDiv>
     <NativeP className="cs-doc-hint" style={{ marginTop: 22 }}>Gemeinsam im Team · Abgeschlossene Einsätze werden automatisch eingebunden · Freie Einträge sind unabhängig vom Einsatzplan</NativeP>
   </NativeMain>}</NativeWorkspaceStyleScope>;

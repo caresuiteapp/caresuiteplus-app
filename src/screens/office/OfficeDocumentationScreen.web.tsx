@@ -12,6 +12,6 @@ export function OfficeDocumentationScreen() {
   const allowed = tenantId && user?.id && (roleKey === 'employee_portal' || (!isPortalOnlyRole(roleKey) && can('office.access')));
   const scope = JSON.stringify([tenantId, user?.id, roleKey, portalSession?.accountId]);
   return <ScreenShell title="Dokumentation" scroll={false} contentOwnsHeader>
-    {allowed ? <DocumentationWorkspace key={scope} actor={{ tenantId, userId: user!.id }} /> : <section role="status" style={{ padding: 28, color: '#234457' }}><h1>Dokumentation</h1><p>Bitte mit einem aktiven Teamzugang anmelden, um die gemeinsame Dokumentation zu öffnen.</p></section>}
+    {allowed ? <DocumentationWorkspace key={scope} actor={{ tenantId, userId: user!.id, canUpload: !isPortalOnlyRole(roleKey) }} /> : <section role="status" style={{ padding: 28, color: '#234457' }}><h1>Dokumentation</h1><p>Bitte mit einem aktiven Teamzugang anmelden, um die gemeinsame Dokumentation zu öffnen.</p></section>}
   </ScreenShell>;
 }

@@ -178,8 +178,8 @@ export function validateEmployeePortalPickedMedia(
     };
   }
 
-  if (mode === 'visit' && media.kind === 'document' && media.mimeType !== 'application/pdf') {
-    return { ok: false, error: 'Am Einsatz sind Fotos, Videos und PDF-Dokumente erlaubt.' };
+  if (mode === 'visit' && media.kind === 'document') {
+    return { ok: false, error: 'Mitarbeitende können am Einsatz Fotos und Videos hinzufügen. Weitere Dateitypen ergänzt die Verwaltung.' };
   }
 
   const maxBytes = maxBytesForMedia(media, mode);
