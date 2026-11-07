@@ -18,6 +18,8 @@ import {
   SuccessState,
   CachedDataBanner,
   ListFilterSelect,
+  PremiumButton,
+  SegmentedTabs,
 } from '@/components/ui';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalAppointments } from '@/hooks/usePortalAppointments';
@@ -35,6 +37,9 @@ import { spacing } from '@/theme';
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { liquidRadius } from '@/liquid-command/foundation/tokens';
 import { portalPremium } from '@/design/tokens/portalPremium';
+import { employeePortalWorkspace } from './employee/employeePortalDesign';
+
+type EmployeeView = 'all' | 'upcoming' | 'past';
 
 type PortalAppointmentsTabProps = {
   audience: OperationalPortalAudience;
@@ -55,6 +60,7 @@ export function PortalAppointmentsTab({
   const type = resolveGalaxyTypography(width);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [clientView, setClientView] = useState<'upcoming' | 'past'>('upcoming');
+  const [employeeView, setEmployeeView] = useState<EmployeeView>('all');
   const [historyMonth, setHistoryMonth] = useState('all');
 
   const {
@@ -114,40 +120,48 @@ export function PortalAppointmentsTab({
     );
   }
 
-  const openEmployeeAssignment = (appt: (typeof items)[number]) => {
-    if (audience !== 'employee') return;
+  const continuationRoute = (appt: (typeof items)[number]) => {
+    if (audience !== 'employee') return null;
+    if (!detailBasePath || appt.id.startsWith('calendar:') || fromCache || (appt as CachedPortalAppointmentItem).cacheStale) return null;
     const status = appt.assignmentStatus ?? remoteStatusToAssignment(appt.status);
+    if (status === 'geplant' || status === 'bestaetigt' || status === 'storniert' || status === 'nicht_erschienen') return null;
     const pending = resolveEmployeePortalAssignmentPendingFlags({
       status,
       assignmentIncomplete: appt.assignmentIncomplete,
       documentationPending: appt.documentationPending,
       signaturePending: appt.signaturePending,
     });
-    if (
-      detailBasePath &&
-      !appt.id.startsWith('calendar:') &&
-      !fromCache && !(appt as CachedPortalAppointmentItem).cacheStale &&
-      shouldNavigateEmployeePortalAssignmentToExecution({
+    return shouldNavigateEmployeePortalAssignmentToExecution({
         status,
         documentationPending: pending.documentationPending,
         signaturePending: pending.signaturePending,
       })
-    ) {
-      router.push(`${detailBasePath}/${appt.id}/execute` as never);
-      return;
-    }
-    setPreviewId(appt.id);
+      ? `${detailBasePath}/${appt.id}/execute` : null;
   };
+  const visibleEmployeeGroups = appointmentGroups.filter(group => employeeView === 'all' || group.key === employeeView);
+  const showHistoryMonth = (isEmployeePortal ? employeeView : clientView) === 'past';
 
   const listBody = (
     <>
-      <PortalTabHero
+      {!isEmployeePortal ? <PortalTabHero
         tab="appointments"
         scope={scope}
         totalCount={items.length}
-        activeCount={isEmployeePortal ? items.filter((a) => a.status === 'aktiv').length : clientUpcoming.length}
+        activeCount={clientUpcoming.length}
         titleOverride={appointmentsLabel}
-      />
+      /> : (
+        <View style={styles.employeeToolbar}>
+          <View style={styles.employeeFilter}>
+            <SegmentedTabs layout="wrap" activeKey={employeeView} onSelect={key => setEmployeeView(key as EmployeeView)}
+              tabs={[
+                { key: 'all', label: `Alle (${items.length})` },
+                { key: 'upcoming', label: `Kommend (${clientUpcoming.length})` },
+                { key: 'past', label: `Vergangen (${clientPast.length})` },
+              ]} />
+          </View>
+          <PremiumButton size="sm" variant="secondary" title={refreshing ? 'Wird aktualisiert…' : 'Aktualisieren'} disabled={refreshing} onPress={refresh} />
+        </View>
+      )}
 
       {showSuccess ? (
         <SuccessState message={`${appointmentsLabel} aktualisiert.`} />
@@ -192,7 +206,7 @@ export function PortalAppointmentsTab({
         </View>
       ) : null}
 
-      {!isEmployeePortal && clientView === 'past' && historyMonths.length > 0 ? (
+      {showHistoryMonth && historyMonths.length > 0 ? (
         <ListFilterSelect
           label="Monat der Einsatzhistorie"
           value={selectedHistoryMonth?.key ?? 'all'}
@@ -214,25 +228,25 @@ export function PortalAppointmentsTab({
           onAction={refresh}
         />
       ) : isEmployeePortal ? (
-        appointmentGroups.map((group) => (
+        visibleEmployeeGroups.length === 0 ? (
+          <EmptyState title={employeeView === 'past' ? 'Keine vergangenen Einsätze' : 'Keine kommenden Einsätze'}
+            message="In diesem Zeitraum sind keine Einsätze eingetragen." actionLabel="Alle Einsätze anzeigen"
+            onAction={() => setEmployeeView('all')} />
+        ) : visibleEmployeeGroups.map((group) => (
           <View key={group.key}>
-            <Text style={[type.label, { color: text.primary, marginBottom: careSpacing.sm }]}>
-              {group.label}
+            <Text accessibilityRole="header" style={[type.label, { color: employeePortalWorkspace.text, marginBottom: careSpacing.sm }]}>
+              {showHistoryMonth && selectedHistoryMonth ? selectedHistoryMonth.label : group.label}
             </Text>
-            {group.items.map((appt) => {
+            {(showHistoryMonth && selectedHistoryMonth ? selectedHistoryMonth.items : group.items).map((appt) => {
               const cachedItem = appt as CachedPortalAppointmentItem;
+              const executionRoute = continuationRoute(appt);
               return (
                 <EmployeePortalAssignmentCard
                   key={appt.id}
                   appointment={appt}
-                  cacheStale={cachedItem.cacheStale}
-                  onPreview={() => openEmployeeAssignment(appt)}
-                  onStartTrip={
-                    detailBasePath && !appt.id.startsWith('calendar:') && !fromCache && !cachedItem.cacheStale
-                      ? () => router.push(`${detailBasePath}/${appt.id}/execute` as never)
-                      : undefined
-                  }
-                  startBlockedReason="Start erst kurz vor Einsatzbeginn möglich."
+                  cacheStale={fromCache || cachedItem.cacheStale}
+                  onPreview={() => setPreviewId(appt.id)}
+                  onContinue={executionRoute ? () => router.push(executionRoute as never) : undefined}
                 />
               );
             })}
@@ -287,7 +301,7 @@ export function PortalAppointmentsTab({
   return (
     <ScrollView
       style={styles.scrollViewport}
-      showsVerticalScrollIndicator={false}
+      showsVerticalScrollIndicator={isEmployeePortal}
       keyboardShouldPersistTaps="handled"
       nestedScrollEnabled
       refreshControl={
@@ -302,6 +316,8 @@ export function PortalAppointmentsTab({
 }
 
 const styles = StyleSheet.create({
+  employeeToolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
+  employeeFilter: { flexGrow: 1, flexShrink: 1, flexBasis: 310, minWidth: 0 },
   scroll: {
     gap: spacing.md,
     paddingBottom: spacing.xxl,

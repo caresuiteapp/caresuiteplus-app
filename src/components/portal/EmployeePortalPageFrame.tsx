@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react';
-import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
-import { careSpacing } from '@/design/tokens/spacing';
-import { HealthOSPageSurface, HealthOSPageZone } from '@/components/layout/HealthOSPageSurface';
-import { PortalPremiumPageHero } from '@/components/portal/PortalPremiumPageHero';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { StyleSheet, View } from 'react-native';
+import { HealthOSPageZone } from '@/components/layout/HealthOSPageSurface';
 import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { EmployeePortalPageHeader } from './employee/EmployeePortalPageHeader';
+import { employeePortalLayout, employeePortalWorkspace as c } from './employee/employeePortalDesign';
 
 type Props = {
   title: string;
@@ -24,7 +23,7 @@ type Props = {
 export function EmployeePortalPageFrame({
   title,
   subtitle,
-  eyebrow = 'MEIN MITARBEITENDENPORTAL',
+  eyebrow,
   children,
   compact = false,
   showHero = true,
@@ -33,38 +32,29 @@ export function EmployeePortalPageFrame({
   filtersSlot,
   tabsSlot,
 }: Props) {
-  const { isPhone } = useDeviceClass();
-  const naturalHeight = scrollable;
+  const { width, isPhone } = useDeviceClass();
+  const { padding } = employeePortalLayout(width);
+  const sizing = scrollable ? styles.naturalContent : styles.fillContent;
 
   return (
-    <View style={[styles.page, naturalHeight ? styles.naturalContent : styles.fillContent, isPhone && styles.pagePhone]} testID="employee-portal-page-frame">
-      {showHero ? (
-        <PortalPremiumPageHero
-          kind="employee"
-          title={title}
-          subtitle={subtitle}
-          eyebrow={eyebrow}
-          compact={compact}
-        />
-      ) : null}
-      <SurfaceContrastProvider tone="light">
-        <HealthOSPageSurface
-          fill={!naturalHeight}
-          padded={!isPhone}
-          contentStyle={isPhone ? styles.workspacePhone : styles.workspace}
-          testID="employee-portal-page-surface"
-        >
-          <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone>
+    <SurfaceContrastProvider tone="light">
+      <View style={[styles.page, sizing, { paddingHorizontal: padding }, isPhone && styles.pagePhone]} testID="employee-portal-page-frame">
+        {showHero ? (
+          <EmployeePortalPageHeader title={title} subtitle={subtitle} eyebrow={eyebrow} compact={compact || isPhone}
+            actions={actionsSlot} testID="employee-portal-premium-page-hero" />
+        ) : null}
+        <View style={[styles.content, sizing]} testID="employee-portal-page-surface">
+          {!showHero ? <HealthOSPageZone kind="actions">{actionsSlot}</HealthOSPageZone> : null}
           <HealthOSPageZone kind="filters">{filtersSlot}</HealthOSPageZone>
           <HealthOSPageZone kind="tabs">{tabsSlot}</HealthOSPageZone>
-          <HealthOSPageZone kind="content" fill={!naturalHeight}>
-            <View style={[styles.content, naturalHeight ? styles.naturalContent : styles.fillContent]} testID="employee-portal-contrast-r4-workspace">
+          <HealthOSPageZone kind="content" fill={!scrollable}>
+            <View style={[styles.content, sizing]} testID="employee-portal-contrast-r4-workspace">
               {children}
             </View>
           </HealthOSPageZone>
-        </HealthOSPageSurface>
-      </SurfaceContrastProvider>
-    </View>
+        </View>
+      </View>
+    </SurfaceContrastProvider>
   );
 }
 
@@ -73,39 +63,19 @@ const styles = StyleSheet.create({
     width: '100%',
     minWidth: 0,
     minHeight: 0,
-    maxWidth: 1540,
+    maxWidth: 1440,
     alignSelf: 'center',
-    gap: careSpacing.lg,
+    paddingVertical: 18,
+    gap: 14,
+    backgroundColor: c.canvas,
   },
   content: {
     width: '100%',
     minWidth: 0,
     minHeight: 0,
-    gap: careSpacing.md,
+    gap: 12,
   },
   fillContent: { flex: 1 },
   naturalContent: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto' },
-  pagePhone: {
-    gap: careSpacing.sm,
-  },
-  workspacePhone: {
-    backgroundColor: 'transparent',
-    borderWidth: 0,
-    borderRadius: 0,
-  },
-  workspace: {
-    backgroundColor: portalPremium.surface,
-    borderWidth: 1,
-    borderColor: portalPremium.borderStrong,
-    borderRadius: portalPremium.radius.panel,
-    ...(Platform.OS === 'web'
-      ? ({ boxShadow: portalPremium.shadow.panel } as ViewStyle)
-      : {
-          shadowColor: '#001B3D',
-          shadowOpacity: 0.18,
-          shadowRadius: 20,
-          shadowOffset: { width: 0, height: 12 },
-          elevation: 8,
-        }),
-  },
+  pagePhone: { paddingVertical: 10, gap: 8 },
 });

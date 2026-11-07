@@ -9,6 +9,7 @@ import {
 } from '@/liquid-command/foundation/tokens';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { useLiquidVisualMode } from '@/liquid-command/components/LiquidPrimitives';
+import { employeePortalWorkspace } from '@/components/portal/employee/employeePortalDesign';
 
 type GlassCardProps = {
   children: ReactNode;
@@ -24,13 +25,14 @@ export function GlassCard({ children, onPress, glow = false, accentColor, select
   const portal = usePortalPremiumTheme();
   const orbit = useLiquidVisualMode() === 'orbit';
   const light = portal.active || orbit;
+  const employee = portal.kind === 'employee';
   const styles = useMemo(
     () => createStyles(accentColor, glow || selected, light),
     [accentColor, glow, light, selected],
   );
   const body = (
-    <View style={[styles.card, style]}>
-      <LinearGradient
+    <View style={[styles.card, employee && employeeCard, style]}>
+      {!employee ? <LinearGradient
         colors={light
           ? ['#FFFFFF', '#F3F9FF', '#E4F1FF']
           : ['rgba(6,27,53,0.94)', 'rgba(3,17,39,0.98)']}
@@ -38,7 +40,7 @@ export function GlassCard({ children, onPress, glow = false, accentColor, select
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}
         pointerEvents="none"
-      />
+      /> : null}
       {accentColor ? <View style={styles.accentEdge} /> : null}
       <View style={styles.highlight} pointerEvents="none" />
       <View style={styles.content}>{children}</View>
@@ -47,6 +49,13 @@ export function GlassCard({ children, onPress, glow = false, accentColor, select
   if (!onPress) return body;
   return <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => pressed ? styles.pressed : undefined}>{body}</Pressable>;
 }
+
+const employeeCard: ViewStyle = {
+  borderRadius: employeePortalWorkspace.radius,
+  borderColor: employeePortalWorkspace.line,
+  backgroundColor: employeePortalWorkspace.surface,
+  ...(Platform.OS === 'web' ? ({ boxShadow: 'none', backdropFilter: 'none' } as ViewStyle) : null),
+};
 
 function createStyles(accentColor?: string, glow = false, light = false) {
   return StyleSheet.create({

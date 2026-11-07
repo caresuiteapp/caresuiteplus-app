@@ -3,7 +3,7 @@ import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScr
 
 export default function EmployeeUploadsRoute() {
   return (
-    <PortalTabScreen title="Uploads / Dokumente" subtitle="Dokumente an die Verwaltung senden" hideHeaderOnPhone>
+    <PortalTabScreen title="Dateien einreichen" subtitle="Unterlagen auswählen, zuordnen und an die Verwaltung senden">
       <EmployeePortalUploadScreen />
     </PortalTabScreen>
   );

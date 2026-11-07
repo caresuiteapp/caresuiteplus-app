@@ -3,7 +3,7 @@ import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScr
 
 export default function EmployeeCalendarRoute() {
   return (
-    <PortalTabScreen title="Teamkalender" subtitle="Alle Mitarbeitenden, Einsätze, Termine und Abwesenheiten" hideHeaderOnPhone>
+    <PortalTabScreen title="Teamkalender" subtitle="Einsätze, Termine und Abwesenheiten im Team">
       <EmployeePortalCalendarScreen />
     </PortalTabScreen>
   );

@@ -16,16 +16,16 @@ describe('portal premium system R26', () => {
     expect(shell).toContain('PortalTextSizeControls');
   });
 
-  it('uses one responsive page hero and page width for both portals', () => {
+  it('uses responsive page headings and bounded workspaces in both portals', () => {
     const client = read('src/components/portal/ClientPortalPageFrame.tsx');
     const employee = read('src/components/portal/EmployeePortalPageFrame.tsx');
-    for (const source of [client, employee]) {
-      expect(source).toContain('PortalPremiumPageHero');
-      expect(source).toContain('maxWidth: 1540');
-      expect(source).toContain('HealthOSPageSurface');
-    }
-    expect(client).toContain('kind="client"');
-    expect(employee).toContain('kind="employee"');
+    expect(client).toContain('PortalPremiumPageHero');
+    expect(client).toContain('maxWidth: 1540');
+    expect(client).toContain('HealthOSPageSurface');
+    expect(employee).toContain('EmployeePortalPageHeader');
+    expect(employee).toContain('maxWidth: 1440');
+    expect(employee).toContain('HealthOSPageZone');
+    expect(employee).toContain('minHeight: 0');
   });
 
   it('switches heroes and work cards to a dedicated mobile layout below 760 px', () => {

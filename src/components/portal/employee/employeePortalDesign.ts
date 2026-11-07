@@ -6,6 +6,19 @@ export const employeePortalDesign = {
   accent: '#8DDCF4', selected: '#123F59', warning: '#FFD596', danger: '#FFBDCA',
 } as const;
 
+export const employeePortalWorkspace = {
+  canvas: '#F0F5F8',
+  surface: '#FFFFFF',
+  subtle: '#EAF2F7',
+  line: '#D2E0E9',
+  text: '#102B40',
+  secondary: '#3D5A70',
+  accent: '#086B69',
+  accentSoft: '#E4F3F1',
+  danger: '#A4233B',
+  radius: 16,
+} as const;
+
 /** Use available workspace width, including the always-visible navigation rail. */
 export function employeePortalLayout(width: number, fontScale = 1) {
   const phone = width < 600;
@@ -42,7 +55,9 @@ export const employeeRailIds = [
 
 export function employeePortalActiveId(pathname: string, navigation: readonly LiquidPortalNavigationItem[]) {
   const path = pathname.replace(/\/+$/, '').replace(/^\/portal\/employee\/times(?=\/|$)/, '/portal/employee/arbeitszeit')
-    .replace(/^\/portal\/employee\/signatures(?=\/|$)/, '/portal/employee/documents/signatures');
+    .replace(/^\/portal\/employee\/signatures(?=\/|$)/, '/portal/employee/documents/signatures')
+    .replace(/^\/portal\/employee\/schedule$/, '/portal/employee/calendar')
+    .replace(/^\/portal\/employee\/execution$/, '/portal/employee/assignments');
   return [...navigation].sort((a, b) => b.route.length - a.route.length)
     .find(item => path === item.route || path.startsWith(`${item.route}/`))?.id ?? 'home';
 }

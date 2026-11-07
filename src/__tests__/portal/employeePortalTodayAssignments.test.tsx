@@ -77,7 +77,7 @@ describe('actual employee home assignment rows', () => {
     await act(async () => root.render(<HealthOSEmployeePortalTodayView dashboard={data} displayName="Mara" loading={false} error={null} onRefresh={() => {}} />));
     expect(host.textContent).toContain('Nachrichtenstatus nicht verfügbar');
     expect(host.textContent).toContain('Der aktuelle Nachrichtenstatus ist nicht verfügbar.');
-    expect(host.textContent).toContain('Der Unterschriftenstatus wird geprüft.');
+    expect(host.textContent).toContain('Unterschriftenstatus derzeit nicht verfügbar.');
     expect(host.textContent).not.toContain('Keine neuen Nachrichten.');
     expect(host.textContent).not.toContain('Alles erledigt.');
   });

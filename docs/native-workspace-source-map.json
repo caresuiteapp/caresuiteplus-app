@@ -3951,7 +3951,7 @@
     {
       "web": "src/components/portal/EmployeePortalVisitBottomBar.web.tsx",
       "native": "src/components/portal/EmployeePortalVisitBottomBar.native.tsx",
-      "sourceHash": "1a40d9fbc2b3448bca92f573fef3618ce259477465ab032b323e85add90d680a",
+      "sourceHash": "9acdac99fc94426f9e73afb8636ad8bba96537b9a8ed82cd7a3033fc83a47297",
       "environment": []
     },
     {
@@ -4001,7 +4001,7 @@
     {
       "web": "src/components/portal/EmployeePortalVisitStickyHeader.web.tsx",
       "native": "src/components/portal/EmployeePortalVisitStickyHeader.native.tsx",
-      "sourceHash": "73ffce288b1669f152f044b0f478cd9040bf96cdbcab6bcda961ea1dc2ead30f",
+      "sourceHash": "94df4753cb7f361195385894aa8401b37b57c9b13eefcfae628acbb60f0634fb",
       "environment": []
     },
     {
@@ -5597,7 +5597,7 @@
     {
       "web": "src/screens/office/OfficeDocumentationScreen.web.tsx",
       "native": "src/screens/office/OfficeDocumentationScreen.native.tsx",
-      "sourceHash": "685c4343c47384da007483098525c9a788af9798eea3e2c6257b5a870b58f790",
+      "sourceHash": "1dfad1ced9c2efca9196f12fb5961ceefc5d3241e69b1e7329cb25593494b99d",
       "environment": []
     },
     {
@@ -6466,7 +6466,7 @@
     {
       "web": "src/screens/portal/EmployeePortalVisitExecutionScreen.web.tsx",
       "native": "src/screens/portal/EmployeePortalVisitExecutionScreen.native.tsx",
-      "sourceHash": "fec60a0d92e9fc2b7559fd8cfa245e6576b8cbc523606aee9d7dd71ede819730",
+      "sourceHash": "640ece878cde9a0d773fcd2205fc8138f00d5e8ad26827040a6c3be417bf26d2",
       "environment": []
     },
     {
@@ -7757,13 +7757,13 @@
     {
       "web": "app/portal/employee/akademie/index.web.tsx",
       "native": "app/portal/employee/akademie/index.native.tsx",
-      "sourceHash": "f7e2a67c3931c60eb1ce7cdad1d74c43dc52e4cc84d0640f7440f9ff85a5b11f",
+      "sourceHash": "7b147d8d8f9e491451ea21bd1463504f8f749d9442d68ccdb6182fad9b718704",
       "environment": []
     },
     {
       "web": "app/portal/employee/beratung/index.web.tsx",
       "native": "app/portal/employee/beratung/index.native.tsx",
-      "sourceHash": "b7d372b678ad70b3c5866ce719770e0b6395026175ee6a8c5618f9696435d0b8",
+      "sourceHash": "8f875324b9b0472622255e5d6b3c4de19aac2229fbd76cc89abaee039533fcd3",
       "environment": []
     },
     {
@@ -7775,7 +7775,7 @@
     {
       "web": "app/portal/employee/dokumentation.web.tsx",
       "native": "app/portal/employee/dokumentation.native.tsx",
-      "sourceHash": "b6714c188ed3d22b4e49d63bb677b857af92d165f207a8e0b8ab764e396962b8",
+      "sourceHash": "7ef2f7d31f652b39588f3b05f0e58df726f9153f11766cbcb6ac6830dd954696",
       "environment": []
     },
     {

@@ -12,11 +12,11 @@ describe('Mobile Portal Consistency V34.5', () => {
     expect(read('src/components/portal/EmployeePortalPageFrame.tsx')).toContain('employee-portal-page-frame');
   });
 
-  it('verwendet für Mitarbeitenden-Tabs den räumlichen statt hellen Hero', () => {
+  it('zeigt kompakte Überschriften und Kennzahlen in Mitarbeitenden-Tabs', () => {
     const hero = read('src/components/portal/PortalTabHero.tsx');
-    expect(hero).toContain('PortalTabHeroSpatial');
+    expect(hero).toContain('EmployeeTabOverview');
     expect(hero).toContain("props.scope === 'portal_employee'");
-    expect(hero).toContain('SpatialPortalSection');
+    expect(hero).toContain('EmployeePortalFacts');
   });
 
   it('führt Nachrichten und Arbeitszeitbereiche über PortalTabScreen', () => {

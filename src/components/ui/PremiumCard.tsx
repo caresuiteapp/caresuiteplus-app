@@ -23,6 +23,7 @@ import { motion, radius } from '@/theme';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { employeePortalWorkspace } from '@/components/portal/employee/employeePortalDesign';
 
 type Props = {
   children: React.ReactNode;
@@ -37,6 +38,14 @@ type Props = {
 
 const webCursor =
   Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
+const employeeCard: ViewStyle = {
+  borderRadius: employeePortalWorkspace.radius,
+  borderColor: employeePortalWorkspace.line,
+  backgroundColor: employeePortalWorkspace.surface,
+  shadowOpacity: 0,
+  elevation: 0,
+  ...(Platform.OS === 'web' ? ({ boxShadow: 'none' } as ViewStyle) : null),
+};
 
 /**
  * Verbindliche Systemkarte für Office, Assist und alle Portale.
@@ -54,6 +63,7 @@ export function PremiumCard({
 }: Props) {
   const portal = usePortalPremiumTheme();
   const { isPhone } = useDeviceClass();
+  const employee = portal.kind === 'employee' && !onDarkSurface;
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -134,13 +144,13 @@ export function PremiumCard({
   const body = (
     <LlganGlassShell
       kind="card"
-      style={styles.host}
+      style={[styles.host, employee && employeeCard]}
       dataSet={{
         csHealthosComponent: onPress ? 'interactive-card' : 'card',
         csHealthosSurface: onDarkSurface ? 'dark' : 'light',
       }}
     >
-      <LinearGradient
+      {!employee ? <LinearGradient
         colors={onDarkSurface
           ? variant === 'elevated'
             ? ['#173F66', '#0D2B49', '#071A31']
@@ -156,10 +166,12 @@ export function PremiumCard({
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
         pointerEvents="none"
-      />
-      {sheen ? <View style={styles.glow} pointerEvents="none" /> : null}
-      <View style={styles.innerBorder} pointerEvents="none" />
-      <View style={styles.edge} pointerEvents="none" />
+      /> : null}
+      {!employee ? <>
+        {sheen ? <View style={styles.glow} pointerEvents="none" /> : null}
+        <View style={styles.innerBorder} pointerEvents="none" />
+        <View style={styles.edge} pointerEvents="none" />
+      </> : null}
       <SurfaceContrastProvider tone={onDarkSurface ? 'dark' : 'light'}>
         <View style={[styles.content, contentStyle]}>{children}</View>
       </SurfaceContrastProvider>

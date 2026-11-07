@@ -3,7 +3,7 @@ import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScr
 
 export default function EmployeeClientRecordsRoute() {
   return (
-    <PortalTabScreen title="Klientenakten" subtitle="Mandantenweiter Lesezugriff auf alle Klient:innen" hideHeaderOnPhone scroll={false}>
+    <PortalTabScreen title="Klientenakten" subtitle="Aktive Akten, Kontaktdaten und Einsatzhinweise" scroll={false}>
       <EmployeePortalClientRecordsScreen />
     </PortalTabScreen>
   );

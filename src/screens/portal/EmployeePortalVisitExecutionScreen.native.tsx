@@ -49,6 +49,7 @@ import type { WorkflowDeviationApproval } from "../../features/assistWorkflow/st
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
 import { portalPremium } from "../../design/tokens/portalPremium.tsx";
+import { employeePortalWorkspace } from '@/components/portal/employee/employeePortalDesign';
 import { employeePortalExecutionSurface } from '@/lib/portal/employeePortalExecutionSurface';
 import { fetchPortalAppointments } from '@/lib/portal/appointmentService';
 import { isLastScheduledEmployeeAssignmentOfDay, loadUnfinishedEmployeeReturnTrip, returnTripDestinationFromTrip, } from '@/lib/portal/employeePortalReturnTrip';
@@ -1405,7 +1406,12 @@ function EmployeePortalVisitExecutionContent() {
     return (<PortalTabScreen title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`} contentOwnsHero scroll={false}>
       <WorkflowFeedbackOverlay loading={blockingWorkflowLoading} loadingMessage={blockingWorkflowMessage}/>
       <View style={styles.focusRoot} testID="employee-visit-fullscreen-workspace">
-        <EmployeePortalVisitStickyHeader clientName={visit.clientName} plannedStartAt={visit.plannedStartAt} plannedEndAt={visit.plannedEndAt} effectiveStatus={effectiveStatus} statusLabelOverride={workflowConfirmationPending ? 'Serverantwort ausstehend' : signatureConfirmationStalled ? 'Unterschrift noch nicht bestätigt' : signatureConfirmationPending ? 'Unterschrift wird geprüft' : undefined} timers={timers} requiresSignature={visit.requiresSignature} signatureCaptured={signatureCaptured && !signatureConfirmationPending} tasksComplete={allTasksComplete} documentationComplete={documentationSubmitted && !documentationDirty} serviceEnded={isServiceEnded} showProgress={showCompactProgress(phase)} onExit={() => router.back()} guideMessage={guide.message} guideTone={guide.tone} guideActionLabel={guideNeedsRefresh
+        <EmployeePortalVisitStickyHeader clientName={visit.clientName} plannedStartAt={visit.plannedStartAt} plannedEndAt={visit.plannedEndAt} effectiveStatus={effectiveStatus} statusLabelOverride={workflowConfirmationPending ? 'Serverantwort ausstehend' : signatureConfirmationStalled ? 'Unterschrift noch nicht bestätigt' : signatureConfirmationPending ? 'Unterschrift wird geprüft' : undefined} timers={timers} requiresSignature={visit.requiresSignature} signatureCaptured={signatureCaptured && !signatureConfirmationPending} tasksComplete={allTasksComplete} documentationComplete={documentationSubmitted && !documentationDirty} serviceEnded={isServiceEnded} showProgress={showCompactProgress(phase)} onExit={() => {
+            if (router.canGoBack())
+                router.back();
+            else
+                router.replace('/portal/employee/assignments' as never);
+        }} guideMessage={guide.message} guideTone={guide.tone} guideActionLabel={guideNeedsRefresh
             ? 'Status erneut prüfen'
             : guideCanEndService
                 ? 'Einsatz beenden'
@@ -1685,7 +1691,7 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
         overflow: 'hidden',
-        backgroundColor: employeePortalExecutionSurface.background,
+        backgroundColor: employeePortalWorkspace.canvas,
     },
     focusStageViewport: {
         flex: 1,
@@ -1697,14 +1703,14 @@ const styles = StyleSheet.create({
         minWidth: 0,
         minHeight: 0,
         width: '100%',
-        backgroundColor: employeePortalExecutionSurface.background,
+        backgroundColor: employeePortalWorkspace.canvas,
         ...{},
     },
     focusStageContent: {
         flexGrow: 1,
         flexShrink: 0,
         width: '100%',
-        maxWidth: 1600,
+        maxWidth: 1180,
         alignSelf: 'center',
         gap: spacing.md,
         paddingHorizontal: spacing.md,

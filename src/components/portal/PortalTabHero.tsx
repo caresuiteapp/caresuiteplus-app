@@ -7,12 +7,8 @@ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { PortalTabGlassHero } from '@/components/portal/PortalTabGlassHero';
 import { resolvePortalTabHeroContent } from '@/components/portal/portalTabHeroContent';
-import {
-  SpatialPortalMetric,
-  SpatialPortalSection,
-} from '@/components/portal/SpatialPortalSurface';
-import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
-import { AdaptiveKpiGrid } from '@/components/adaptive/AdaptiveKpiGrid';
+import { EmployeePortalFacts, EmployeePortalPageHeader } from '@/components/portal/employee/EmployeePortalPageHeader';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 import type { PortalScope } from '@/types/portal';
 import { designTokens, spacing } from '@/theme';
@@ -132,45 +128,25 @@ function PortalTabHeroLegacy(props: PortalTabHeroProps) {
   );
 }
 
-/**
- * Employee portal hero using the same spatial section hierarchy on every tab.
- * This deliberately bypasses the legacy light/dark theme branch so messages,
- * documents, appointments and signatures cannot drift into different worlds.
- */
-function PortalTabHeroSpatial(props: PortalTabHeroProps) {
+function EmployeeTabOverview(props: PortalTabHeroProps) {
   const { colors } = useLegacyTheme();
-  const { title, subtitle, meta, kpis } = resolvePortalTabHeroContent(props, colors);
-
+  const { isPhone } = useDeviceClass();
+  const { title, subtitle, kpis } = resolvePortalTabHeroContent(props, colors);
   return (
-    <SpatialPortalSection
-      title={title}
-      subtitle={`${meta} · ${subtitle}`}
-      accentColor={spatialCareColors.cyanLight}
-    >
-      <AdaptiveKpiGrid
-        style={stylesSpatial.metrics}
-        phoneLayout="grid"
-        columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
-        items={kpis.map((kpi) => ({
-          id: kpi.id,
-          node: <SpatialPortalMetric
-            key={kpi.id}
-            label={kpi.label}
-            value={String(kpi.numericValue ?? 0)}
-            subValue={kpi.numericValue ? kpi.subValue : kpi.fallbackLabel}
-            icon={kpi.icon}
-            accentColor={kpi.accentColor ?? spatialCareColors.cyanLight}
-          />,
-        }))}
-      />
-    </SpatialPortalSection>
+    <View style={stylesEmployee.overview}>
+      <EmployeePortalPageHeader title={title} subtitle={subtitle} compact={isPhone} />
+      <EmployeePortalFacts items={kpis.map(kpi => ({
+        id: kpi.id, label: kpi.label, value: kpi.numericValue ?? '—',
+        detail: kpi.numericValue ? kpi.subValue : undefined,
+      }))} />
+    </View>
   );
 }
 
 export function PortalTabHero(props: PortalTabHeroProps) {
   const useLightGlass = useLightLiquidGlassShell();
   if (props.scope === 'portal_employee') {
-    return <PortalTabHeroSpatial {...props} />;
+    return <EmployeeTabOverview {...props} />;
   }
   const useGlassHero =
     useLightGlass || props.scope === 'portal_client' || props.scope === 'portal_family';
@@ -182,11 +158,4 @@ export function PortalTabHero(props: PortalTabHeroProps) {
 
 const iconSize = designTokens.hero.iconBadgeSize;
 
-const stylesSpatial = StyleSheet.create({
-  metrics: {
-    width: '100%',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-});
+const stylesEmployee = StyleSheet.create({ overview: { gap: spacing.sm, minWidth: 0, width: '100%' } });

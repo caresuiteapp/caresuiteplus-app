@@ -90,6 +90,7 @@ function EmployeePortalChrome({
     <EmployeePortalWorkspaceContext.Provider value={{ ...workspace, select }}>
       <EmployeePortalFrame width={width} displayName={actor.displayName} {...avatar}
         navigation={workspace.navigation} activeId={employeePortalActiveId(pathname, workspace.navigation)}
+        lightWorkspace={!blocked && pathname.replace(/\/+$/, '') !== '/portal/employee'}
         unreadCount={unreadCount} keyboardVisible={keyboardVisible} focus={focus && !blocked}
         insets={insets} overlay={overlay}
         onNavigate={route => router.push(route as never)} onSignOut={onSignOut}>

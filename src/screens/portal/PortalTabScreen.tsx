@@ -9,6 +9,7 @@ import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { usePathname } from 'expo-router';
 import { EmployeePortalPageFrame } from '@/components/portal/EmployeePortalPageFrame';
+import { employeePortalWorkspace } from '@/components/portal/employee/employeePortalDesign';
 import { ClientPortalPageFrame } from '@/components/portal/ClientPortalPageFrame';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import {
@@ -109,7 +110,7 @@ export function PortalTabScreen({
         subtitle={subtitle}
         eyebrow={eyebrow}
         compact={hideHeaderOnPhone && isPhone}
-        showHero={!isPortalHome && !contentProvidesHero}
+        showHero={!contentProvidesHero}
         actionsSlot={actionsSlot}
         filtersSlot={filtersSlot}
         tabsSlot={tabsSlot}
@@ -121,7 +122,7 @@ export function PortalTabScreen({
     if (scroll) {
       return (
         <PortalKeyboardScrollView
-          contentContainerStyle={[styles.employeeScrollContent, barePaddingStyle]}
+          contentContainerStyle={styles.employeeScrollContent}
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
           showsVerticalScrollIndicator
@@ -134,7 +135,7 @@ export function PortalTabScreen({
     }
 
     return (
-      <View style={[styles.employeePage, barePaddingStyle]} testID="employee-portal-tab-screen">
+      <View style={styles.employeePage} testID="employee-portal-tab-screen">
         {page}
       </View>
     );
@@ -246,6 +247,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     minHeight: 0,
+    backgroundColor: employeePortalWorkspace.canvas,
   },
   employeeVisitFocus: {
     flex: 1,
@@ -264,6 +266,7 @@ const styles = StyleSheet.create({
     width: '100%',
     minWidth: 0,
     minHeight: 0,
+    backgroundColor: employeePortalWorkspace.canvas,
     ...(Platform.OS === 'web'
       ? ({
           overflowY: 'auto',

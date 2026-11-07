@@ -30,11 +30,11 @@ describe('employee logbook standalone module P0', () => {
     const screen = read('src/screens/portal/EmployeeLogbookScreen.tsx');
 
     expect(screen).toContain("usePageTab<Tab>('EmployeeLogbookScreen.tab', 'overview')");
-    expect(screen).toContain("['overview','Übersicht']");
-    expect(screen).toContain("['record','Aufzeichnen']");
-    expect(screen).toContain("['trips','Meine Fahrten']");
-    expect(screen).toContain("['receipts','Belege']");
-    expect(screen).toContain("['profile','Führerschein']");
+    expect(screen).toContain("['overview', 'Übersicht']");
+    expect(screen).toContain("['record', 'Aufzeichnen']");
+    expect(screen).toContain("['trips', 'Meine Fahrten']");
+    expect(screen).toContain("['receipts', 'Belege']");
+    expect(screen).toContain("['profile', 'Führerschein']");
     expect(screen).toContain('testID="employee-logbook-overview"');
   });
 });

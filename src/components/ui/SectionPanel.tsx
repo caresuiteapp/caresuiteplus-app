@@ -17,6 +17,7 @@ import { useSurfaceContrastTone } from "@/design/tokens/surfaceContrast";
 import { resolveUserFacingSubtitle } from "@/lib/ui/uiVisibility";
 import { radius, spacing } from "@/theme";
 import { useDeviceClass } from "@/hooks/useDeviceClass";
+import { employeePortalWorkspace } from "@/components/portal/employee/employeePortalDesign";
 
 type SectionPanelProps = {
   title: string;
@@ -52,6 +53,7 @@ export function SectionPanel({
   const openSurface = surface === "open";
   const nativePortalSection = portal.active && isPhone;
   const effectiveOpenSurface = openSurface || nativePortalSection;
+  const employee = portal.kind === "employee" && !onDarkSurface;
   const moduleAccent = accentColor ?? colors.cyan;
   const userSubtitle = resolveUserFacingSubtitle(subtitle);
 
@@ -169,7 +171,7 @@ export function SectionPanel({
 
   return (
     <View
-      style={styles.panel}
+      style={[styles.panel, employee && !effectiveOpenSurface && employeePanel]}
       {...(Platform.OS === "web"
         ? ({
             dataSet: {
@@ -179,11 +181,11 @@ export function SectionPanel({
           } as object)
         : {})}
     >
-      {!effectiveOpenSurface ? (
+      {!effectiveOpenSurface && !employee ? (
         <View style={styles.innerBorder} pointerEvents="none" />
       ) : null}
-      <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
+      <View style={[styles.header, employee && { borderBottomColor: employeePortalWorkspace.line }]}>
+        <Text accessibilityRole={employee ? "header" : undefined} style={styles.title}>{title}</Text>
         {userSubtitle ? (
           <Text style={styles.subtitle}>{userSubtitle}</Text>
         ) : null}
@@ -192,3 +194,10 @@ export function SectionPanel({
     </View>
   );
 }
+
+const employeePanel: ViewStyle = {
+  borderRadius: employeePortalWorkspace.radius,
+  borderColor: employeePortalWorkspace.line,
+  backgroundColor: employeePortalWorkspace.surface,
+  ...(Platform.OS === "web" ? ({ boxShadow: "none", backdropFilter: "none", WebkitBackdropFilter: "none" } as ViewStyle) : null),
+};

@@ -73,7 +73,7 @@ describe('actual native logbook renderer with inert service boundaries',()=>{
 
  it('mounts the actual employee screen and all five tabs with real shared UI and finite native text styles',async()=>{
   await render();expect(host.textContent).toContain('Monatsübersicht');
-  for(const title of ['Aufzeichnen','Meine Fahrten','Belege','Führerschein','Übersicht']){await click(title);expect(host.textContent).toContain('FAHRTENBUCH');}
+  for(const title of ['Aufzeichnen','Meine Fahrten','Belege','Führerschein','Übersicht']){await click(title);expect(host.textContent).toContain('Bereit für die nächste Fahrt');}
   expect(h.upload).not.toHaveBeenCalled();expect(h.receipt).not.toHaveBeenCalled();expect(h.profile).not.toHaveBeenCalled();
  });
 });

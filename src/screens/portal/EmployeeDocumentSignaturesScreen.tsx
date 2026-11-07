@@ -1,10 +1,9 @@
 import { useCallback, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { CsDocumentRequestCard } from '@/components/office/documentSignatures/CsDocumentRequestCard';
-import { EmptyState, ErrorState, LoadingState, SegmentedTabs } from '@/components/ui';
-import { moduleColor } from '@/design/tokens/modules';
+import { EmptyState, ErrorState, LoadingState, PremiumButton, SegmentedTabs } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -49,19 +48,20 @@ export function EmployeeDocumentSignaturesScreen() {
 
   if (!can('portal.employee.documents.view' as never)) {
     return (
-      <C14vSubpageShell title="Dokumente & Unterschriften" showBack accentColor={moduleColor('assist')}>
+      <PortalTabScreen title="Unterschriften">
         <EmptyState title="Kein Zugriff" message="Dokumente sind für Ihr Profil nicht freigegeben." />
-      </C14vSubpageShell>
+      </PortalTabScreen>
     );
   }
 
   return (
-    <C14vSubpageShell
-      title="Dokumente & Unterschriften"
-      subtitle="Offene Dokumente zum Unterschreiben"
-      showBack
-      accentColor={moduleColor('assist')}
-      actions={[{ key: 'refresh', label: 'Aktualisieren', onPress: () => query.refresh(), variant: 'ghost' as const }]}
+    <PortalTabScreen
+      title="Unterschriften"
+      subtitle="Dokumente prüfen, unterschreiben und abgeschlossene Vorgänge wiederfinden"
+      actionsSlot={<>
+        <PremiumButton title="Zu den Dokumenten" size="sm" variant="secondary" onPress={() => router.navigate('/portal/employee/documents' as never)} />
+        <PremiumButton title="Aktualisieren" size="sm" variant="secondary" disabled={query.loading || query.refreshing} onPress={() => void query.refresh()} />
+      </>}
     >
       <View style={styles.filterCard}>
         <SegmentedTabs
@@ -95,7 +95,7 @@ export function EmployeeDocumentSignaturesScreen() {
           ))}
         </View>
       )}
-    </C14vSubpageShell>
+    </PortalTabScreen>
   );
 }
 

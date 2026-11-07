@@ -1,1 +1,1 @@
-export { OfficeDocumentationScreen as default } from '@/screens/office/OfficeDocumentationScreen.web';
+export { default } from './dokumentation.web';

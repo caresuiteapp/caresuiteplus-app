@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Modal, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Modal, StyleSheet, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
@@ -8,13 +8,12 @@ import {
   ErrorState,
   LoadingState,
   PremiumButton,
-  PremiumKpiCard,
   SectionPanel,
   SuccessState,
   InfoBanner,
 } from '@/components/ui';
 import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
-import { moduleColor } from '@/design/tokens/modules';
+import { EmployeePortalFacts } from '@/components/portal/employee/EmployeePortalPageHeader';
 import { careSpacing } from '@/design/tokens/spacing';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -79,7 +78,6 @@ function formatDuration(minutes: number): string {
 export function TimeTrackingEmployeeScreen() {
   const router = useRouter();
   const pathname = usePathname();
-  const { width, fontScale } = useWindowDimensions();
   const { profile, user } = useAuth();
   const { employeeId: portalEmployeeId } = usePortalActor();
   const tenantId = useServiceTenantId();
@@ -88,7 +86,6 @@ export function TimeTrackingEmployeeScreen() {
   const roleKey = profile?.roleKey ?? null;
   const { can, check, roleLabel } = usePermissions();
   const text = portalText;
-  const accent = moduleColor('office');
   const wfmSource = resolveWfmSource(pathname);
 
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
@@ -303,16 +300,11 @@ export function TimeTrackingEmployeeScreen() {
       {statusQuery.refreshError ? <ErrorState title="Arbeitszeit nicht aktuell" message={statusQuery.refreshError} onRetry={() => void refresh()} /> : null}
       {settingsQuery.error || settingsQuery.refreshError ? <ErrorState title="Arbeitszeiteinstellungen nicht verfügbar" message={settingsQuery.error ?? settingsQuery.refreshError!} onRetry={() => void settingsQuery.refresh()} /> : settingsQuery.data?.moduleEnabled === false ? <InfoBanner variant="warning" message="Die Verwaltung hat die Zeiterfassung für diesen Mandanten deaktiviert." /> : null}
       <SectionPanel title="Heute" subtitle="Status und erfasste Nettozeit auf einen Blick">
-        <View style={[styles.kpiRow, width < 600 * Math.max(1, fontScale) && styles.kpiColumn]}>
-          <PremiumKpiCard label="Status" value={statusLabel} valueLines={0} accentColor={accent} />
-          <PremiumKpiCard label="Blöcke" value={String(events.length)} accentColor={accent} />
-          <PremiumKpiCard
-            label="Netto"
-            value={session ? formatDuration(session.netMinutes ?? session.grossMinutes) : '—'}
-            valueLines={0}
-            accentColor={accent}
-          />
-        </View>
+        <EmployeePortalFacts items={[
+          { id: 'status', label: 'Status', value: statusLabel },
+          { id: 'blocks', label: 'Zeitblöcke', value: events.length },
+          { id: 'net', label: 'Nettozeit', value: session ? formatDuration(session.netMinutes ?? session.grossMinutes) : '—' },
+        ]} />
       </SectionPanel>
 
       <SectionPanel
@@ -496,8 +488,6 @@ function PrivacyConsentModal(props: {
 }
 
 const styles = StyleSheet.create({
-  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
-  kpiColumn: { flexDirection: 'column', flexWrap: 'nowrap', width: '100%' },
   blockRow: { paddingVertical: careSpacing.xs },
   modalBackdrop: {
     flex: 1,

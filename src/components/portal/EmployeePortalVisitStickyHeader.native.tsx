@@ -11,6 +11,7 @@ import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import type { EmployeePortalLiveTimers } from '@/types/modules/employeePortalTracking';
 import { spacing } from '@/theme';
+import { employeePortalWorkspace as c } from './employee/employeePortalDesign';
 import { EmployeePortalVisitProgressSteps } from "./EmployeePortalVisitProgressSteps.native.tsx";
 type Props = {
     clientName: string;
@@ -61,7 +62,7 @@ export function EmployeePortalVisitStickyHeader(props: Props) {
       <View style={styles.row}>
         <PremiumBadge label={props.statusLabelOverride ?? ASSIGNMENT_STATUS_LABELS[effectiveStatus]} variant={effectiveStatus === 'abgeschlossen' ? 'green' : 'muted'}/>
         {props.dayGpsActive ? <PremiumBadge label="GPS · TAG AKTIV" variant="green" dot/> : null}
-        {props.onOpenMedia ? <Pressable onPress={props.onOpenMedia} style={styles.button} accessibilityRole="button" accessibilityLabel="Foto, Video oder Datei hinzufügen" testID="employee-visit-media-always-available"><Text style={styles.buttonText}>Medien</Text></Pressable> : null}
+        {props.onOpenMedia ? <Pressable onPress={props.onOpenMedia} style={styles.button} accessibilityRole="button" accessibilityLabel="Foto oder Video hinzufügen" testID="employee-visit-media-always-available"><Text style={styles.buttonText}>Medien</Text></Pressable> : null}
         {seconds !== null && Number.isFinite(seconds) ? <Text style={styles.timer} accessibilityLabel={timerLabel + ' ' + formatLiveTimer(seconds) + ' (Std:Min:Sek)'}>{timerLabel} · {formatLiveTimer(Math.max(0, Math.floor(seconds)))}</Text> : null}
       </View>
       {props.showProgress !== false ? <EmployeePortalVisitProgressSteps status={effectiveStatus} requiresSignature={props.requiresSignature} signatureCaptured={props.signatureCaptured} tasksComplete={props.tasksComplete} documentationComplete={props.documentationComplete} serviceEnded={props.serviceEnded}/> : null}
@@ -80,14 +81,14 @@ export function EmployeePortalVisitStickyHeader(props: Props) {
     </View>);
 }
 const styles = StyleSheet.create({
-    root: { backgroundColor: employeePortalExecutionSurface.background, borderBottomWidth: 1, borderBottomColor: employeePortalExecutionSurface.border, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.xs },
+    root: { backgroundColor: employeePortalExecutionSurface.background, borderBottomWidth: 1, borderBottomColor: c.line, paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.xs },
     row: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: spacing.sm },
     identity: { flex: 1, minWidth: 100 },
     clientName: { fontSize: font(22), lineHeight: font(28), fontWeight: '800', color: employeePortalExecutionText.primary },
     caption: { fontSize: font(14), lineHeight: font(20), color: employeePortalExecutionText.secondary },
     timer: { fontSize: font(15), lineHeight: font(21), fontWeight: '700', color: employeePortalExecutionText.primary, fontVariant: ['tabular-nums'] },
-    button: { minHeight: 44, paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: employeePortalExecutionSurface.border, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-    buttonText: { fontSize: font(14), lineHeight: font(20), color: '#056CE8', fontWeight: '700' },
+    button: { minHeight: 44, paddingHorizontal: spacing.sm, borderWidth: 1, borderColor: c.line, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
+    buttonText: { fontSize: font(14), lineHeight: font(20), color: c.accent, fontWeight: '700' },
     helpButton: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#EFF7FF', borderWidth: 1, borderColor: '#8BC2FF' },
     robot: { width: 40, height: 40 },
     info: { position: 'absolute', right: -2, bottom: -2, width: 21, height: 21, borderRadius: 11, textAlign: 'center', lineHeight: 21, backgroundColor: '#056CE8', color: '#FFFFFF', fontSize: 16, fontWeight: '800' },

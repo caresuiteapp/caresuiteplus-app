@@ -55,7 +55,7 @@ export function EmployeePortalVisitStickyHeader(props: Props) {
       <View style={styles.row}>
         <PremiumBadge label={props.statusLabelOverride ?? ASSIGNMENT_STATUS_LABELS[effectiveStatus]} variant={effectiveStatus === 'abgeschlossen' ? 'green' : 'muted'} />
         {props.dayGpsActive ? <PremiumBadge label="GPS · TAG AKTIV" variant="green" dot /> : null}
-        {props.onOpenMedia ? <Pressable onPress={props.onOpenMedia} style={styles.button} accessibilityRole="button" accessibilityLabel="Foto, Video oder Datei hinzufügen" testID="employee-visit-media-always-available"><Text style={styles.buttonText}>Medien</Text></Pressable> : null}
+        {props.onOpenMedia ? <Pressable onPress={props.onOpenMedia} style={styles.button} accessibilityRole="button" accessibilityLabel="Foto oder Video hinzufügen" testID="employee-visit-media-always-available"><Text style={styles.buttonText}>Medien</Text></Pressable> : null}
       </View>
       {seconds !== null ? <Text style={styles.timer} accessibilityLabel={timerLabel + ' ' + formatLiveTimer(seconds) + ' (Std:Min:Sek)'}>{timerLabel} · {formatLiveTimer(seconds)}</Text> : null}
       {props.showProgress !== false ? <EmployeePortalVisitProgressSteps status={effectiveStatus} requiresSignature={props.requiresSignature} signatureCaptured={props.signatureCaptured} tasksComplete={props.tasksComplete} documentationComplete={props.documentationComplete} serviceEnded={props.serviceEnded} /> : null}

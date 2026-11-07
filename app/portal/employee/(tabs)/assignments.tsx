@@ -3,7 +3,7 @@ import { PortalTabScreen } from '@/product-workflows/screens/portal/PortalTabScr
 
 export default function EmployeeAssignmentsRoute() {
   return (
-    <PortalTabScreen title="Einsätze" hideHeaderOnPhone scroll={false}>
+    <PortalTabScreen title="Meine Einsätze" subtitle="Planung, Durchführung und Verlauf" scroll={false}>
       <PortalAppointmentsTab
         audience="employee"
         appointmentsLabel="Einsätze"

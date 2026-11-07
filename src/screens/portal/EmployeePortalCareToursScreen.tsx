@@ -6,8 +6,7 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { berlinCalendarDate } from '@/lib/pflege/careTourWorkflow';
 import { isCalendarDate } from '@/lib/pflege/ambulatoryOperationsDomain';
 import { loadEmployeePortalCareTours } from '@/lib/portal/employee/employeePortalCareTours';
-import { employeePortalDesign as c } from '@/components/portal/employee/employeePortalDesign';
-import { EmployeePortalArtwork } from '@/components/portal/employee/EmployeePortalArtwork';
+import { employeePortalWorkspace as c } from '@/components/portal/employee/employeePortalDesign';
 import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 
@@ -26,16 +25,11 @@ export function EmployeePortalCareToursScreen() {
   });
   const error = tours.error ?? tours.refreshError;
   return (
-    <PortalTabScreen title="Meine Pflegetouren" scroll hideHeaderOnPhone>
+    <PortalTabScreen title="Meine Pflegetouren" subtitle="Freigegebene Touren und Einsatzorte nach Datum">
       <View style={styles.root}>
-        <View style={styles.heading}>
-          <EmployeePortalArtwork id="care-tours" label="Meine Pflegetouren" size={58} />
-          <Text accessibilityRole="header" style={styles.title}>Meine Pflegetouren</Text>
-        </View>
-        <Text style={styles.body}>Ihre freigegebenen Touren und Einsatzorte für den ausgewählten Tag.</Text>
         <View style={styles.controls}>
           <TextInput accessibilityLabel="Tourdatum (JJJJ-MM-TT)" value={input} onChangeText={setInput}
-            autoCorrect={false} autoCapitalize="none" maxLength={10} placeholder="JJJJ-MM-TT" placeholderTextColor={c.muted} style={styles.input} />
+            autoCorrect={false} autoCapitalize="none" maxLength={10} placeholder="JJJJ-MM-TT" placeholderTextColor={c.secondary} style={styles.input} />
           <Pressable accessibilityRole="button" disabled={!isCalendarDate(input)} accessibilityState={{ disabled: !isCalendarDate(input) }}
             style={[styles.button, !isCalendarDate(input) && styles.disabled]}
             onPress={() => input === day ? void tours.refresh() : setDay(input)}>
@@ -48,7 +42,7 @@ export function EmployeePortalCareToursScreen() {
             <Text style={styles.buttonText}>Erneut laden</Text>
           </Pressable></View> : null}
         {!tours.loading && !error && !tours.data?.length ? <Text style={styles.body}>Für diesen Tag ist keine Pflegetour für Sie freigegeben.</Text> : null}
-        {!error ? tours.data?.map(tour => (
+        {tours.data?.map(tour => (
           <View key={tour.id} style={styles.card}>
             <Text accessibilityRole="header" style={styles.cardTitle}>{tour.name}</Text>
             <Text style={styles.body}>{tourStatus[tour.status] ?? tour.status}{tour.vehicle ? ` · ${tour.vehicle}` : ''}</Text>
@@ -60,24 +54,22 @@ export function EmployeePortalCareToursScreen() {
               </View>
             ))}
           </View>
-        )) : null}
+        ))}
       </View>
     </PortalTabScreen>
   );
 }
 
 const styles = StyleSheet.create(withCareSuiteTypography({
-  root: { width: '100%', padding: 16, gap: 14, backgroundColor: c.canvas },
-  heading: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  title: { flex: 1, minWidth: 0, color: c.text, fontSize: font(25), lineHeight: font(33), fontWeight: '700' },
+  root: { width: '100%', minWidth: 0, gap: 12 },
   cardTitle: { color: c.text, fontSize: font(16), lineHeight: font(23), fontWeight: '700' },
-  body: { color: c.muted, fontSize: font(14), lineHeight: font(22) },
+  body: { color: c.secondary, fontSize: font(14), lineHeight: font(22) },
   controls: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
-  input: { width: 150, maxWidth: '100%', minHeight: 44, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: c.line, backgroundColor: c.panel, color: c.text, fontSize: font(14) },
-  button: { minHeight: 44, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: c.line, backgroundColor: c.raised, justifyContent: 'center' },
+  input: { width: 150, maxWidth: '100%', minHeight: 44, padding: 10, borderRadius: 10, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, color: c.text, fontSize: font(14) },
+  button: { minHeight: 44, alignSelf: 'flex-start', paddingHorizontal: 12, paddingVertical: 10, borderRadius: 10, borderWidth: 1, borderColor: c.line, backgroundColor: c.accentSoft, justifyContent: 'center' },
   buttonText: { color: c.accent, fontSize: font(14), lineHeight: font(21) },
   disabled: { opacity: 0.5 },
-  card: { gap: 8, padding: 16, backgroundColor: c.panel, borderColor: c.line, borderWidth: 1, borderRadius: 16 },
+  card: { gap: 8, padding: 16, backgroundColor: c.surface, borderColor: c.line, borderWidth: 1, borderRadius: c.radius },
   stop: { gap: 5, paddingVertical: 10, borderTopWidth: 1, borderColor: c.line },
   error: { color: c.danger, fontSize: font(14), lineHeight: font(21) },
 }));

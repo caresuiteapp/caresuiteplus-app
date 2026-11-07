@@ -36,6 +36,7 @@ describe('Portal messaging and navigation R8', () => {
       'home',
       'assignments',
       'open-assignments',
+      'documentation',
       'clients',
       'calendar',
       'time',

@@ -22,9 +22,8 @@ describe('employee portal readability (contrast + text layout)', () => {
   it('assignment cards use the readable premium light card', () => {
     const card = readSrc('src/components/portal/EmployeePortalAssignmentCard.tsx');
     expect(card).toContain('portalPremium.text');
-    expect(card).toContain('LinearGradient');
-    expect(card).toContain('spatialCare');
-    expect(card).toContain("colors={['#FFFFFF', '#F2F8FF', '#E3F1FF']}");
+    expect(card).toContain('backgroundColor: c.surface');
+    expect(card).toContain("flexWrap: 'wrap'");
     expect(card).not.toContain('lightLiquidGlass.card');
     expect(card).not.toContain('useAuroraAdaptiveText');
     expect(card).not.toMatch(/notes[\s\S]*numberOfLines/);
@@ -60,7 +59,7 @@ describe('employee portal readability (contrast + text layout)', () => {
   it('employee portal list rows allow multiline names and subtitles', () => {
     expect(readSrc('src/components/portal/EmployeePortalClientRecordsScreen.tsx')).not.toContain('numberOfLines');
     expect(readSrc('src/components/portal/EmployeePortalUploadScreen.tsx')).toContain('multiline');
-    expect(readSrc('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx')).toContain('multiline');
+    expect(readSrc('src/components/portal/employee/EmployeePortalToday.tsx')).toContain('minWidth: 0');
     expect(readSrc('src/components/ui/PremiumListRow.tsx')).toContain('multiline?: boolean');
   });
 });

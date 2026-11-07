@@ -9,10 +9,10 @@ function readSrc(relativePath: string): string {
 }
 
 describe('employee portal visit execution UX completion', () => {
-  it('execution screen wires photo, voice and attachment references', () => {
-    const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+  it('employee execution links photo and video attachments', () => {
+    const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.web.tsx');
     expect(screen).toContain('EmployeePortalVisitPhotoModal');
-    expect(screen).toContain('EmployeePortalVisitVoiceNoteModal');
+    expect(screen).not.toContain('EmployeePortalVisitVoiceNoteModal');
     expect(screen).toContain('photoReferences');
     expect(screen).toContain('onOpenAttachments');
     expect(screen).not.toContain('Foto-Anhang ist in dieser Version noch nicht verfügbar');

@@ -86,6 +86,7 @@ import type { WorkflowDeviationApproval } from '@/features/assistWorkflow/startS
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
 import { portalPremium } from '@/design/tokens/portalPremium';
+import { employeePortalWorkspace } from '@/components/portal/employee/employeePortalDesign';
 import { employeePortalExecutionSurface } from '@/lib/portal/employeePortalExecutionSurface';
 import { fetchPortalAppointments } from '@/lib/portal/appointmentService';
 import {
@@ -1757,7 +1758,7 @@ function EmployeePortalVisitExecutionContent() {
           documentationComplete={documentationSubmitted && !documentationDirty}
           serviceEnded={isServiceEnded}
           showProgress={showCompactProgress(phase)}
-          onExit={() => router.back()}
+          onExit={() => { if (router.canGoBack()) router.back(); else router.replace('/portal/employee/assignments' as never); }}
           guideMessage={guide.message}
           guideTone={guide.tone}
           guideActionLabel={
@@ -2214,7 +2215,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     overflow: 'hidden',
-    backgroundColor: employeePortalExecutionSurface.background,
+    backgroundColor: employeePortalWorkspace.canvas,
   },
   focusStageViewport: {
     flex: 1,
@@ -2226,7 +2227,7 @@ const styles = StyleSheet.create({
     minWidth: 0,
     minHeight: 0,
     width: '100%',
-    backgroundColor: employeePortalExecutionSurface.background,
+    backgroundColor: employeePortalWorkspace.canvas,
     ...(Platform.OS === 'web'
       ? ({
           overflowY: 'auto',
@@ -2241,7 +2242,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     flexShrink: 0,
     width: '100%',
-    maxWidth: 1600,
+    maxWidth: 1180,
     alignSelf: 'center',
     gap: spacing.md,
     paddingHorizontal: spacing.md,

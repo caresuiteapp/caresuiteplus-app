@@ -1,6 +1,5 @@
 import { useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -9,9 +8,9 @@ import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton } fro
 import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
 import { dialPhoneNumber } from '@/components/portal/EmployeePortalClientRecordContactActions';
 import { useEmployeePortalClientRecords } from '@/hooks/useEmployeePortalClientRecords';
-import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { portalPremium } from '@/design/tokens/portalPremium';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { employeePortalWorkspace as c } from './employee/employeePortalDesign';
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
@@ -70,26 +69,11 @@ export function EmployeePortalClientRecordsScreen() {
       keyboardShouldPersistTaps="handled"
       testID="employee-portal-client-records"
     >
-      <PremiumButton title="Klientenakten aktualisieren" variant="secondary" onPress={() => void refresh()} />
+      <View style={styles.toolbar}>
+        <Text style={styles.resultCount}>{normalizedSearch ? `${visibleRecords.length} von ${records.length} aktiven Akten` : `${records.length} aktive Akten`}</Text>
+        <PremiumButton title="Klientenakten aktualisieren" size="sm" variant="secondary" onPress={() => void refresh()} />
+      </View>
       {refreshError ? <ErrorState title="Aktualisierung nicht möglich" message={refreshError} onRetry={refresh} /> : null}
-      <LinearGradient
-        colors={['#FFFFFF', '#EEF6FF', '#DCEEFF']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={[styles.directoryHeader, compact && styles.directoryHeaderCompact]}
-      >
-        <View style={styles.directoryCopy}>
-          <Text style={styles.directoryEyebrow}>VERSORGUNGSVERZEICHNIS</Text>
-          <Text style={[styles.directoryTitle, compact && styles.directoryTitleCompact]}>Aktive Klient:innen</Text>
-          <Text style={styles.directoryText}>
-            {records.length} aktive Akten · Entwürfe und beendete Akten sind ausgeblendet
-          </Text>
-        </View>
-        <View style={[styles.directoryMetric, compact && styles.directoryMetricCompact]}>
-          <Text style={styles.directoryMetricValue}>{records.length}</Text>
-          <Text style={styles.directoryMetricLabel}>AKTEN</Text>
-        </View>
-      </LinearGradient>
 
       <View style={styles.searchBar}>
         <Ionicons name="search-outline" color={portalPremium.accent.blueDark} size={20} />
@@ -123,13 +107,7 @@ export function EmployeePortalClientRecordsScreen() {
             testID={`employee-portal-client-card-${record.clientId}`}
             style={[styles.cardPressable, compact && styles.cardPressableCompact]}
           >
-            <LinearGradient
-              colors={['#FFFFFF', '#F2F8FF', '#E5F2FF']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-              style={[styles.card, compact && styles.cardCompact]}
-            >
-              <View style={styles.cardGlow} pointerEvents="none" />
+            <View style={[styles.card, compact && styles.cardCompact]}>
               <Pressable style={[styles.cardHeader, compact && styles.cardHeaderCompact, webCursor]}
                 accessibilityRole="button" accessibilityLabel={`Klientenakte ${record.displayName} öffnen`}
                 onPress={() => router.push(`/portal/employee/clients/${record.clientId}` as never)}>
@@ -188,7 +166,7 @@ export function EmployeePortalClientRecordsScreen() {
                   onPress={() => router.push(`/portal/employee/clients/${record.clientId}` as never)}
                 />
               </View>
-            </LinearGradient>
+            </View>
           </View>
         );
       })}
@@ -205,71 +183,35 @@ const styles = StyleSheet.create({
   container: {
     flexGrow: 0,
     flexShrink: 0,
-    gap: careSpacing.lg,
+    gap: careSpacing.md,
     width: '100%',
     maxWidth: 1440,
     alignSelf: 'center',
     paddingBottom: careSpacing.xxl,
   },
-  directoryHeader: {
-    flexShrink: 0,
-    minHeight: 150, borderRadius: spatialCare.radius.stage, borderWidth: 1,
-    borderColor: portalPremium.border, padding: careSpacing.xl,
-    flexDirection: 'row', alignItems: 'center', gap: careSpacing.lg, overflow: 'hidden',
-  },
-  directoryHeaderCompact: {
-    minHeight: 0,
-    padding: careSpacing.md,
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    gap: careSpacing.md,
-  },
-  directoryCopy: { flex: 1, minWidth: 0, gap: 4 },
-  directoryEyebrow: { color: portalPremium.accent.blueDark, fontSize: 12, fontWeight: '900', letterSpacing: 0.6 },
-  directoryTitle: { color: portalPremium.text.primary, fontSize: 28, lineHeight: 34, fontWeight: '900', letterSpacing: -0.6 },
-  directoryTitleCompact: { fontSize: 24, lineHeight: 29 },
-  directoryText: { color: portalPremium.text.secondary, fontSize: 14, lineHeight: 20, fontWeight: '500' },
-  directoryMetric: {
-    minWidth: 96, minHeight: 96, padding: careSpacing.sm, borderRadius: 48, borderWidth: 1,
-    borderColor: portalPremium.borderStrong, backgroundColor: 'rgba(5,108,232,0.10)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  directoryMetricCompact: {
-    width: '100%',
-    minHeight: 58,
-    borderRadius: 17,
-    flexDirection: 'row',
-    gap: 8,
-  },
-  directoryMetricValue: { color: portalPremium.text.primary, fontSize: 28, lineHeight: 32, fontWeight: '900' },
-  directoryMetricLabel: { color: portalPremium.accent.blueDark, fontSize: 12, fontWeight: '900', letterSpacing: 0.5 },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 8 },
+  resultCount: { ...careTypography.bodyStrong, color: c.secondary },
   searchBar: {
     flexShrink: 0,
-    minHeight: 58, paddingHorizontal: 17, borderRadius: 18, borderWidth: 1,
-    borderColor: portalPremium.border, backgroundColor: portalPremium.surfaceRaised,
+    minHeight: 48, paddingHorizontal: 12, borderRadius: 12, borderWidth: 1,
+    borderColor: c.line, backgroundColor: c.surface,
     flexDirection: 'row', alignItems: 'center', gap: 12,
   },
-  searchInput: { flex: 1, minWidth: 0, color: portalPremium.text.primary, fontSize: 15, lineHeight: 20, outlineStyle: 'none' } as never,
+  searchInput: { flex: 1, minWidth: 0, color: portalPremium.text.primary, fontSize: 15, lineHeight: 20, minHeight: 44 } as never,
   clearButton: { width: 34, height: 34, borderRadius: 17, alignItems: 'center', justifyContent: 'center', backgroundColor: portalPremium.surfaceSoft },
   grid: {
     flexShrink: 0, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'flex-start', gap: careSpacing.md,
   },
-  hint: {
-    ...careTypography.caption,
-    marginBottom: careSpacing.xs,
-  },
-  cardPressable: { flexGrow: 1, flexShrink: 0, flexBasis: 460, minWidth: 0, maxWidth: '100%' },
+  cardPressable: { flexGrow: 1, flexShrink: 0, flexBasis: 315, minWidth: 0, maxWidth: '100%' },
   cardPressableCompact: { flexBasis: '100%', width: '100%' },
-  cardPressed: { opacity: 0.96, transform: [{ scale: 0.992 }] },
   card: {
-    flexShrink: 0, gap: careSpacing.md, padding: careSpacing.lg,
-    borderRadius: spatialCare.radius.card, borderWidth: 1, borderColor: portalPremium.border,
+    flexShrink: 0, gap: careSpacing.sm, padding: 14,
+    borderRadius: c.radius, borderWidth: 1, borderColor: c.line, backgroundColor: c.surface,
     overflow: 'hidden',
   },
   cardCompact: {
     padding: careSpacing.md,
   },
-  cardGlow: { position: 'absolute', right: -48, top: -58, width: 170, height: 170, borderRadius: 85, backgroundColor: 'rgba(53,151,255,0.10)' },
   cardHeader: { flexDirection: 'row', gap: careSpacing.sm, alignItems: 'flex-start' },
   cardHeaderCompact: { flexWrap: 'wrap' },
   titleCol: { flex: 1, gap: 4, minWidth: 0 },

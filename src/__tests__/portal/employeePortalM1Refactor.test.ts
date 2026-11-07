@@ -45,6 +45,7 @@ describe('employee portal M.1 refactor', () => {
       'Nachrichten',
       'Profil',
       'Uploads',
+      'Dokumentation',
       'Klientenakten',
       'Arbeitszeiten',
       'Fahrtenbuch',
@@ -56,6 +57,7 @@ describe('employee portal M.1 refactor', () => {
       'Offene Einsätze',
       'Uploads',
       'Klientenakten',
+      'Dokumentation',
       'Arbeitszeiten',
       'Fahrtenbuch',
       'Gehalt & Auslagen',
@@ -63,7 +65,8 @@ describe('employee portal M.1 refactor', () => {
       'Abwesenheiten',
     ]);
     const all = resolveEmployeePortalNavigationTabs(PORTAL_EMPLOYEE_TABS);
-    expect(all).toHaveLength(13);
+    expect(all).toHaveLength(EMPLOYEE_PORTAL_NAV_LABELS.length);
+    expect(new Set(all.map(tab => tab.key)).size).toBe(all.length);
     expect(all.map((tab) => tab.label)).not.toContain('Meine Zeiten');
     expect(all.map((tab) => tab.label)).not.toContain('Dokumente');
     expect(all.map((tab) => tab.label)).not.toContain('Offene Aufgaben');
@@ -79,9 +82,8 @@ describe('employee portal M.1 refactor', () => {
   it('employee assignment cards use the shared premium light surface', () => {
     const card = readSrc('src/components/portal/EmployeePortalAssignmentCard.tsx');
     expect(card).toContain('portalPremium.text');
-    expect(card).toContain('LinearGradient');
-    expect(card).toContain('spatialCare');
-    expect(card).toContain("colors={['#FFFFFF', '#F2F8FF', '#E3F1FF']}");
+    expect(card).toContain('backgroundColor: c.surface');
+    expect(card).toContain("flexWrap: 'wrap'");
     expect(card).not.toContain('useAuroraAdaptiveText');
   });
 

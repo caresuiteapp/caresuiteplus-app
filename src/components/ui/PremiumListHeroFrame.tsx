@@ -4,6 +4,7 @@ import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { LinearGradient } from 'expo-linear-gradient';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { employeePortalWorkspace } from '@/components/portal/employee/employeePortalDesign';
 
 type PremiumListHeroFrameProps = {
   children: React.ReactNode;
@@ -25,11 +26,13 @@ export function PremiumListHeroFrame({
   accentColor,
 }: PremiumListHeroFrameProps) {
   const portal = usePortalPremiumTheme();
+  const employee = portal.kind === 'employee';
   return (
     <View
       style={[
         styles.frame,
         portal.active && styles.portalFrame,
+        employee && styles.employeeFrame,
         accentColor ? { borderColor: accentColor } : null,
         style,
       ]}
@@ -37,7 +40,7 @@ export function PremiumListHeroFrame({
         ? ({ dataSet: { csHealthosComponent: 'list-overview' } } as object)
         : {})}
     >
-      {portal.active ? (
+      {portal.active && !employee ? (
         <LinearGradient
           colors={['#FFFFFF', '#F3F9FF', '#E4F1FF']}
           start={{ x: 0, y: 0 }}
@@ -46,9 +49,11 @@ export function PremiumListHeroFrame({
           pointerEvents="none"
         />
       ) : null}
-      <View pointerEvents="none" style={[styles.ambientGlow, portal.active && styles.portalAmbientGlow]} />
-      <View pointerEvents="none" style={[styles.lightRail, portal.active && styles.portalLightRail]} />
-      <View pointerEvents="none" style={[styles.innerBorder, portal.active && styles.portalInnerBorder]} />
+      {!employee ? <>
+        <View pointerEvents="none" style={[styles.ambientGlow, portal.active && styles.portalAmbientGlow]} />
+        <View pointerEvents="none" style={[styles.lightRail, portal.active && styles.portalLightRail]} />
+        <View pointerEvents="none" style={[styles.innerBorder, portal.active && styles.portalInnerBorder]} />
+      </> : null}
       {children}
     </View>
   );
@@ -78,6 +83,12 @@ const styles = StyleSheet.create({
     ...(Platform.OS === 'web'
       ? ({ boxShadow: portalPremium.shadow.card } as unknown as ViewStyle)
       : { shadowColor: '#00265A', shadowOpacity: 0.16, shadowRadius: 18, elevation: 7 }),
+  },
+  employeeFrame: {
+    borderRadius: employeePortalWorkspace.radius,
+    borderColor: employeePortalWorkspace.line,
+    backgroundColor: employeePortalWorkspace.surface,
+    ...(Platform.OS === 'web' ? ({ boxShadow: 'none' } as ViewStyle) : { shadowOpacity: 0, elevation: 0 }),
   },
   innerBorder: {
     ...StyleSheet.absoluteFill,

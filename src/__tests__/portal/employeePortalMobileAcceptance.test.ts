@@ -25,20 +25,19 @@ describe('employee portal mobile acceptance fixes', () => {
 
   it('employee dashboard delegates to HealthOS today view with KPI metrics', () => {
     const dashboard = readSrc('src/screens/portal/EmployeePortalDashboardScreen.tsx');
-    const todayView = readSrc('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
+    const todayView = readSrc('src/components/portal/employee/EmployeePortalToday.tsx');
     expect(dashboard).toContain('HealthOSEmployeePortalTodayView');
     expect(dashboard).toContain('useEmployeePortalDashboard');
-    expect(todayView).toContain('AdaptiveKpiGrid');
-    expect(todayView).toContain('SpatialPortalMetric');
-    expect(todayView).toContain('SpatialPortalSection');
+    expect(todayView).toContain('layout.metricColumns');
+    expect(todayView).toContain('layout.splitFocus');
     expect(todayView).toContain('buildEmployeePortalTodayModel');
   });
 
   it('calendar route uses EmployeePortalCalendarScreen with tab header', () => {
     const route = readSrc('app/portal/employee/(tabs)/calendar.tsx');
-    expect(route).toContain('hideHeaderOnPhone');
+    expect(route).toContain('title="Teamkalender"');
     expect(route).toContain('EmployeePortalCalendarScreen');
-    expect(route).toContain('subtitle="Alle Mitarbeitenden, Einsätze, Termine und Abwesenheiten"');
+    expect(route).toContain('subtitle="Einsätze, Termine und Abwesenheiten im Team"');
   });
 
   it('legacy schedule route redirects to calendar', () => {

@@ -10,18 +10,19 @@ import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { EmployeePortalArtwork } from './EmployeePortalArtwork';
 import { EmployeePortalMenuContext } from './EmployeePortalMenuContext';
 import { useEmployeePortalWorkspaceContext } from './EmployeePortalWorkspaceContext';
-import { employeePortalDesign as c, employeePortalLayout, employeeRailIds } from './employeePortalDesign';
+import { employeePortalDesign as c, employeePortalLayout, employeePortalWorkspace, employeeRailIds } from './employeePortalDesign';
 
 type Props = {
   children: ReactNode; overlay?: ReactNode; width: number; displayName: string;
   avatarUrl?: string; avatarVersion?: string;
   navigation: readonly LiquidPortalNavigationItem[]; activeId: string; unreadCount: number;
+  lightWorkspace?: boolean;
   keyboardVisible: boolean; focus: boolean; insets: { top: number; bottom: number };
   onNavigate: (route: string) => void; onSignOut: () => Promise<void>;
 };
 
 /** Shared native/Web chrome: one header and a narrow left rail at every width. */
-export function EmployeePortalFrame({ children, overlay, width, displayName, avatarUrl, avatarVersion, navigation, activeId, unreadCount, keyboardVisible, focus, insets, onNavigate, onSignOut }: Props) {
+export function EmployeePortalFrame({ children, overlay, width, displayName, avatarUrl, avatarVersion, navigation, activeId, unreadCount, lightWorkspace, keyboardVisible, focus, insets, onNavigate, onSignOut }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [moduleOpen, setModuleOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
@@ -86,7 +87,7 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, ava
           <Ionicons name="grid-outline" size={22} color={c.accent} />
         </Pressable>
       </View>
-      <View style={styles.workspace} testID="employee-portal-workspace">{children}</View>
+      <View style={[styles.workspace, lightWorkspace && styles.lightWorkspace]} testID="employee-portal-workspace">{children}</View>
     </View>
     <View testID="portal-navigation-footer" style={[styles.footer, { paddingBottom: keyboardVisible ? 0 : insets.bottom }]}>{overlay}</View>
     {workspace ? <Modal visible={moduleOpen} transparent animationType="fade" onRequestClose={() => setModuleOpen(false)}>
@@ -153,6 +154,7 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   railDivider: { height: 1, width: 34, backgroundColor: c.line, marginVertical: 4 },
   selected: { backgroundColor: c.selected, borderColor: '#3787A8' }, pressed: { opacity: 0.75 },
   workspace: { flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', backgroundColor: c.canvas },
+  lightWorkspace: { backgroundColor: employeePortalWorkspace.canvas },
   badge: { position: 'absolute', top: 0, right: 0, backgroundColor: '#086B8A', paddingHorizontal: 4, minWidth: 18, borderRadius: 8, alignItems: 'center' }, badgeText: { color: c.text, fontSize: font(10), lineHeight: font(15) },
   footer: { flexShrink: 0, backgroundColor: c.rail },
   menuBackdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12, backgroundColor: 'rgba(0,10,24,0.78)' },

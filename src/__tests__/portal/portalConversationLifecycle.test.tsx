@@ -12,6 +12,16 @@ import { LiquidPortalRouteLayout } from '@/liquid-command/shell/LiquidPortalRout
 import { PortalMessengerFocusProvider, usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import type { OfficeMessage, OfficeMessageThreadDetail } from '@/types/office/messaging';
 
+vi.mock('@expo/vector-icons/Ionicons', () => ({ default: () => null }));
+vi.mock('@/components/portal/employee/EmployeePortalArtwork', () => ({ EmployeePortalArtwork: () => null }));
+vi.mock('@/hooks/useEmployeePortalWorkspace', async () => {
+  const { employeePortalNavigation } = await import('@/lib/portal/employee/employeePortalNavigation');
+  return { useEmployeePortalWorkspace: () => ({ selected: 'assist', available: ['assist'],
+    loading: false, error: null, navigation: employeePortalNavigation('assist'), select: vi.fn() }) };
+});
+vi.mock('@/hooks/usePortalProfileAvatar', () => ({ usePortalProfileAvatarForActor: () => ({}) }));
+vi.mock('@/components/portal/PortalReadOnlyAvatar', () => ({ PortalReadOnlyAvatar: () => null }));
+
 const h = vi.hoisted(() => ({
   details: new Map<string, OfficeMessageThreadDetail>(),
   composer: null as any,

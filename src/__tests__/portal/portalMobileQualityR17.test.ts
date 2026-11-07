@@ -50,7 +50,7 @@ describe('R17 native mobile quality gate', () => {
     const employeeFrame = read('src/components/portal/EmployeePortalPageFrame.tsx');
     const clientFrame = read('src/components/portal/ClientPortalPageFrame.tsx');
     const payroll = read('src/screens/portal/EmployeePayrollMonthScreen.tsx');
-    expect(employeeFrame).toContain('padded={!isPhone}');
+    expect(employeeFrame).toContain('isPhone && styles.pagePhone');
     expect(clientFrame).toContain('padded={!isPhone}');
     expect(payroll).toContain('styles.actionsPhone');
     expect(payroll).toContain('fullWidth={isPhone}');

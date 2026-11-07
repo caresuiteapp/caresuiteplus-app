@@ -11,7 +11,7 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 import { employeePortalCalendarEventHref, employeePortalCalendarEventOverlaps, employeePortalCalendarPeriod } from '@/lib/portal/employeePortalCalendarNavigation';
 import { careTypography } from '@/design/tokens/typography';
 import { careSpacing } from '@/design/tokens/spacing';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { employeePortalLayout, employeePortalWorkspace as c } from './employee/employeePortalDesign';
 import { useEmployeePortalCalendarEvents } from '@/hooks/useEmployeePortalCalendarEvents';
 import {
   addDays,
@@ -30,7 +30,7 @@ type EmployeePortalCalendarScreenProps = {
 
 export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCalendarScreenProps) {
   const router = useRouter();
-  const { isPhone } = useDeviceClass();
+  const { isPhone, width } = useDeviceClass();
   const { tenantId, employeeId, actorId, roleKey } = usePortalActor();
   const [viewMode, setViewMode] = useState<CalendarViewMode>('agenda');
   const [anchor, setAnchor] = useState(() => new Date());
@@ -47,7 +47,7 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
     range.rangeEnd,
   );
 
-  const accent = config?.moduleColor ?? '#FFB020';
+  const accent = config?.moduleColor ?? c.accent;
   const weekStartDay = 1 as const;
 
   const title = useMemo(() => {
@@ -106,7 +106,8 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
     config?.emptyStateMessage ??
     'Im gewählten Zeitraum sind keine Einträge sichtbar. Wechseln Sie die Ansicht oder den Zeitraum.';
 
-  const needsWideCanvas = !isPhone && (viewMode === 'month' || viewMode === 'week' || viewMode === 'year');
+  const needsWideCanvas = !isPhone && employeePortalLayout(width).contentWidth < 1080
+    && (viewMode === 'month' || viewMode === 'week' || viewMode === 'year');
 
   const calendarGrid = (
     <CalendarEventGrid
@@ -124,7 +125,9 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
 
   return (
     <View style={[styles.wrap, isPhone && styles.wrapPhone]} testID="employee-portal-calendar">
-      <PremiumButton title="Kalender aktualisieren" variant="secondary" disabled={refreshing} onPress={() => void refresh()} />
+      <View style={styles.tools}>
+        <PremiumButton title="Aktualisieren" size="sm" variant="secondary" disabled={refreshing} onPress={() => void refresh()} />
+      </View>
       {refreshError ? <ErrorState title="Aktualisierung nicht möglich" message={refreshError} onRetry={refresh} /> : null}
       <CalendarToolbar
         viewMode={viewMode}
@@ -138,6 +141,7 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
         includeYear={!isPhone}
       />
 
+      {needsWideCanvas ? <Text style={styles.scrollHint}>Für weitere Tage horizontal wischen oder scrollen.</Text> : null}
       {phoneEvents.length === 0 ? (
         <EmptyState title="Keine Ereignisse in diesem Zeitraum" message={emptyMessage} />
       ) : isPhone ? (
@@ -181,10 +185,8 @@ export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCal
 
 const styles = StyleSheet.create({
   wrap: {
-    width: '100%', minWidth: 0, gap: careSpacing.lg, padding: careSpacing.md, borderRadius: 22,
-    borderWidth: 1, borderColor: portalPremium.border,
-    backgroundColor: portalPremium.surface,
-    ...(Platform.OS === 'web' ? ({ boxShadow: portalPremium.shadow.card } as unknown as ViewStyle) : null),
+    width: '100%', minWidth: 0, gap: 12, padding: 14, borderRadius: c.radius,
+    borderWidth: 1, borderColor: c.line, backgroundColor: c.surface,
   },
   wrapPhone: {
     gap: careSpacing.md,
@@ -195,6 +197,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0,
     elevation: 0,
   },
+  tools: { alignItems: 'flex-end' },
+  scrollHint: { ...careTypography.caption, color: c.secondary },
   horizontalViewport: {
     width: '100%',
     minWidth: 0,

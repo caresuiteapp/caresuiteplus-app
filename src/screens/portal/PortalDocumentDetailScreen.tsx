@@ -1,10 +1,9 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useFlowRouter as useRouter } from '@/hooks/useFlowRouter';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalDocumentDetailHero } from '@/components/portal';
-import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import {
   ErrorState,
@@ -72,16 +71,10 @@ export function PortalDocumentDetailScreen() {
   if (!data) return null;
 
   return (
-    <C14vSubpageShell
-      title={data.title}
-      eyebrow="PORTAL · DOKUMENT"
-      subtitle={data.displayFileName ?? undefined}
-      rightSlot={
-        <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
-      }
-      contentOwnsHero
-    >
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+    <PortalTabScreen title={data.title} contentOwnsHero
+      actionsSlot={<PremiumButton title="Zu den Dokumenten" size="sm" variant="secondary"
+        onPress={() => router.replace('/portal/employee/documents' as never)} />}>
+      <View style={styles.content}>
         {successMessage ? <SuccessState message={successMessage} /> : null}
 
         <PortalDocumentDetailHero document={data} scope="employee" />
@@ -115,19 +108,14 @@ export function PortalDocumentDetailScreen() {
               : 'Download derzeit nicht verfügbar.'}
           </Text>
         )}
-      </ScrollView>
-    </C14vSubpageShell>
+      </View>
+    </PortalTabScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    gap: spacing.md,
-    paddingBottom: spacing.xxl,
-    flexGrow: 1,
-  },
+  content: { gap: spacing.md, paddingBottom: spacing.md },
   previewSection: {
-    flex: 1,
     width: '100%',
     alignSelf: 'stretch',
     minWidth: 0,

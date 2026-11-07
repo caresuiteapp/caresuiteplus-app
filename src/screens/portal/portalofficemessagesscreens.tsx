@@ -2,6 +2,9 @@ import { useEffect } from 'react';
 import { BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
+import { EmployeePortalPageHeader } from '@/components/portal/employee/EmployeePortalPageHeader';
+import { employeePortalLayout } from '@/components/portal/employee/employeePortalDesign';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { PortalOfficeMessenger } from '@/components/portal/portalofficemessenger';
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
 import { LockedActionBanner } from '@/components/permissions';
@@ -73,6 +76,7 @@ export function ClientPortalOfficeMessagesScreen() {
 
 export function EmployeePortalOfficeMessagesScreen() {
   const { can, check } = usePermissions();
+  const { width, isPhone } = useDeviceClass();
   const { compose } = useLocalSearchParams<{ compose?: string }>();
   const { active: messengerFocusActive, closeThread } = usePortalMessengerFocus();
   useEffect(() => () => closeThread(), [closeThread]);
@@ -93,11 +97,11 @@ export function EmployeePortalOfficeMessagesScreen() {
       hideHeaderOnPhone
       scroll={false}
     >
-      <View style={styles.employeeMessages}>
-        {!messengerFocusActive ? <PortalGlassHero
-          title="Ihre Gespräche"
-          subtitle="Alles Wichtige an einem Ort – neue Antworten erscheinen sofort."
-          showStatusDot
+      <View style={[styles.employeeMessages, !messengerFocusActive && { padding: employeePortalLayout(width).padding }]}>
+        {!messengerFocusActive ? <EmployeePortalPageHeader
+          title="Nachrichten"
+          subtitle="Gespräche mit der Verwaltung und dem Team"
+          compact={isPhone}
         />
         : null}
         <PortalOfficeMessenger audience="employee" variant="glass" initialComposeOpen={compose === '1' || compose === 'true'} />
@@ -232,7 +236,7 @@ const styles = StyleSheet.create({
     minHeight: 0,
     width: '100%',
     alignSelf: 'stretch',
-    gap: careSpacing.md,
+    gap: careSpacing.sm,
   },
   thread: { flex: 1, minHeight: 0, paddingHorizontal: careSpacing.md },
 });

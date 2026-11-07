@@ -6,6 +6,7 @@ import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { SpaceKpiIcon } from '@/components/icons/space';
 import { radius } from '@/theme';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { employeePortalWorkspace } from '@/components/portal/employee/employeePortalDesign';
 
 type Props = {
   label: string;
@@ -43,6 +44,7 @@ export function PremiumKpiCard({
   const portal = usePortalPremiumTheme();
   const { width } = useWindowDimensions();
   const dense = Platform.OS === 'web' && portal.kind === 'workspace' && width < 900;
+  const employee = portal.kind === 'employee';
   const resolvedAccent = accentColor ?? colors.cyan;
 
   const styles = useMemo(
@@ -52,21 +54,21 @@ export function PremiumKpiCard({
           // Legacy surface CSS resets min-width. A real flex basis keeps KPI
           // rows wrapping instead of squeezing every card into a single row.
           ...(Platform.OS === 'web'
-            ? { flexGrow: 1, flexShrink: 1, flexBasis: dense ? 124 : 168 }
+            ? { flexGrow: 1, flexShrink: 1, flexBasis: employee ? 112 : dense ? 124 : 168 }
             : { flex: 1 }),
-          minWidth: dense ? 124 : 168,
-          minHeight: dense ? 90 : 108,
+          minWidth: employee ? 96 : dense ? 124 : 168,
+          minHeight: employee ? 76 : dense ? 90 : 108,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: portal.active ? portalPremium.border : systemLiquidGlass.borderStrong,
+          borderColor: employee ? employeePortalWorkspace.line : portal.active ? portalPremium.border : systemLiquidGlass.borderStrong,
           backgroundColor: portal.active ? portalPremium.surfaceRaised : systemLiquidGlass.panelStrong,
           overflow: 'hidden',
-          shadowOpacity: 0.2,
+          shadowOpacity: employee ? 0 : 0.2,
           shadowRadius: 12,
           shadowOffset: { width: 0, height: 5 },
-          elevation: 6,
+          elevation: employee ? 0 : 6,
           ...(Platform.OS === 'web'
-            ? ({ boxShadow: portal.active ? portalPremium.shadow.card : systemLiquidGlass.shadowSoft } as unknown as ViewStyle)
+            ? ({ boxShadow: employee ? 'none' : portal.active ? portalPremium.shadow.card : systemLiquidGlass.shadowSoft } as unknown as ViewStyle)
             : null),
         },
         innerBorder: {
@@ -104,8 +106,8 @@ export function PremiumKpiCard({
           opacity: 0.85,
         },
         content: {
-          minHeight: dense ? 88 : 106,
-          padding: dense ? 12 : 16,
+          minHeight: employee ? 74 : dense ? 88 : 106,
+          padding: employee ? 10 : dense ? 12 : 16,
           gap: 3,
           justifyContent: 'center',
         },
@@ -144,6 +146,7 @@ export function PremiumKpiCard({
       }),
     [
       dense,
+      employee,
       labelCase,
       portal.active,
       resolvedAccent,
@@ -171,9 +174,11 @@ export function PremiumKpiCard({
         ? ({ dataSet: { csHealthosComponent: 'kpi-card' } } as object)
         : {})}
     >
-      <View style={styles.ambientGlow} pointerEvents="none" />
-      <View style={styles.horizon} pointerEvents="none" />
-      <View style={styles.innerBorder} pointerEvents="none" />
+      {!employee ? <>
+        <View style={styles.ambientGlow} pointerEvents="none" />
+        <View style={styles.horizon} pointerEvents="none" />
+        <View style={styles.innerBorder} pointerEvents="none" />
+      </> : null}
       <View style={[styles.rim, { backgroundColor: resolvedAccent }]} />
       <View style={styles.content}>
         {icon ? (
