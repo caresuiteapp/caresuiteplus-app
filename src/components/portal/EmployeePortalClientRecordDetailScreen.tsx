@@ -92,7 +92,7 @@ function ClientRecordHero({ record }: { record: EmployeePortalClientRecordDetail
         id: 'next',
         node: (
           <View style={styles.kpiTile}>
-            <Text style={[styles.kpiLabel, { color: text.muted }]}>Nächster Einsatz</Text>
+            <Text style={[styles.kpiLabel, { color: text.muted }]}>Mein nächster Einsatz</Text>
             <Text style={[styles.kpiValue, { color: text.primary }]}>
               {formatDate(record.nextAssignmentAt)}
             </Text>
@@ -113,8 +113,8 @@ function ClientRecordHero({ record }: { record: EmployeePortalClientRecordDetail
       id: 'active',
       node: (
         <View style={styles.kpiTile}>
-          <Text style={[styles.kpiLabel, { color: text.muted }]}>Aktive Einsätze</Text>
-          <Text style={[styles.kpiValue, { color: text.primary }]}>{record.activeAssignmentCount}</Text>
+          <Text style={[styles.kpiLabel, { color: text.muted }]}>Meine aktiven Einsätze</Text>
+          <Text style={[styles.kpiValue, { color: text.primary }]}>{record.assignmentHistoryError ? 'Nicht verfügbar' : record.activeAssignmentCount}</Text>
         </View>
       ),
     });
@@ -185,9 +185,11 @@ export function EmployeePortalClientRecordDetailScreen({
   return (
     <>
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <PremiumButton title="Zur Klientenübersicht" variant="secondary" onPress={() => router.replace('/portal/employee/clients' as never)} />
-        <PremiumButton title="Akte aktualisieren" variant="secondary" onPress={() => void refresh()} />
-        {refreshError ? <ErrorState title="Aktualisierung nicht möglich" message={refreshError} onRetry={refresh} /> : null}
+        <View style={styles.toolbar}>
+          <PremiumButton title="Zur Klientenübersicht" variant="secondary" onPress={() => router.replace('/portal/employee/clients' as never)} />
+          <PremiumButton title="Akte aktualisieren" variant="secondary" onPress={() => void refresh()} />
+        </View>
+        {refreshError ? <ErrorState title="Aktualisierung nicht möglich" message={refreshError} onRetry={refresh} presentation="inline" /> : null}
         <Text style={[styles.readOnlyHint, { color: text.muted }]}>
           Nur-Lese-Ansicht — Bearbeitung erfolgt im Office.
         </Text>
@@ -215,7 +217,7 @@ export function EmployeePortalClientRecordDetailScreen({
           <InfoBlock label="Klingel" value={record.doorbellName} />
         </SectionPanel>
 
-        {record.accessError ? <ErrorState title="Zugangshinweise nicht verfügbar" message={record.accessError} onRetry={refresh} /> : null}
+        {record.accessError ? <ErrorState title="Zugangshinweise nicht verfügbar" message={record.accessError} onRetry={refresh} presentation="inline" /> : null}
         {(record.hints || record.accessHint ||
           record.keyManagementNotes ||
           record.employeeNotes ||
@@ -237,7 +239,7 @@ export function EmployeePortalClientRecordDetailScreen({
           </SectionPanel>
         )}
 
-        {record.contactsError ? <ErrorState title="Ansprechpartner nicht verfügbar" message={record.contactsError} onRetry={refresh} /> : null}
+        {record.contactsError ? <ErrorState title="Ansprechpartner nicht verfügbar" message={record.contactsError} onRetry={refresh} presentation="inline" /> : null}
         {record.contacts.length > 0 ? (
           <SectionPanel title="Ansprechpartner">
             {record.contacts.map((contact, index) => {
@@ -280,8 +282,8 @@ export function EmployeePortalClientRecordDetailScreen({
         ) : null}
 
         <SectionPanel title="Freigegebene Dokumente">
-          {record.documentsError ? <ErrorState title="Dokumente nicht verfügbar" message={record.documentsError} onRetry={refresh} /> : record.portalDocuments.length === 0 ? (
-            <EmptyState title="Keine Dokumente" message="Für diese:n Klient:in sind keine Portal-Dokumente freigegeben." />
+          {record.documentsError ? <ErrorState title="Dokumente nicht verfügbar" message={record.documentsError} onRetry={refresh} presentation="inline" /> : record.portalDocuments.length === 0 ? (
+            <EmptyState title="Keine Dokumente" message="Für diese Akte sind in Ihrem Portal keine Dokumente freigegeben." />
           ) : (
             record.portalDocuments.map((doc, index) => (
               <PremiumListRow
@@ -297,9 +299,11 @@ export function EmployeePortalClientRecordDetailScreen({
           )}
         </SectionPanel>
 
-        <SectionPanel title="Einsatzhistorie">
-          {record.assignmentHistory.length === 0 ? (
-            <EmptyState title="Keine Einsätze" message="Noch keine Einsätze für diese:n Klient:in." />
+        <SectionPanel title="Meine Einsätze">
+          {record.assignmentHistoryError ? (
+            <ErrorState title="Einsatzhistorie nicht verfügbar" message={record.assignmentHistoryError} onRetry={refresh} presentation="inline" />
+          ) : record.assignmentHistory.length === 0 ? (
+            <EmptyState title="Keine eigenen Einsätze" message="Ihnen sind für diese Klientenakte keine Einsätze zugeordnet." />
           ) : (
             record.assignmentHistory.slice(0, historyLimit).map((entry) => (
               <View key={entry.assignmentId} style={styles.historyRow}>
@@ -332,6 +336,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     width: '100%',
   },
+  toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   readOnlyHint: { ...careTypography.caption, fontStyle: 'italic' },
   heroCard: { gap: careSpacing.md },
   heroTop: { flexDirection: 'row', gap: careSpacing.md, alignItems: 'flex-start' },

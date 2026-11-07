@@ -133,7 +133,7 @@ export function EmployeePortalClientRecordsScreen() {
                 {record.nextAssignmentAt ? (
                   <View style={styles.metaChip}>
                     <Ionicons name="calendar-outline" color={portalPremium.accent.blueDark} size={15} />
-                    <Text style={[styles.meta, { color: text.secondary }]}>Nächster Einsatz {formatDate(record.nextAssignmentAt)}</Text>
+                    <Text style={[styles.meta, { color: text.secondary }]}>Mein nächster Einsatz {formatDate(record.nextAssignmentAt)}</Text>
                   </View>
                 ) : null}
                 {record.activeAssignmentCount > 0 ? (

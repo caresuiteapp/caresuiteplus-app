@@ -32,12 +32,11 @@ describe('employee portal R23 production acceptance', () => {
     const clients = readSrc('src/lib/portal/employeePortalClientRecordsService.ts');
     const patch = readSrc('supabase/patches/ambulatory_employee_portal_scope.sql');
 
-    expect(clients).toContain('loadTeamClientVisits');
+    expect(clients).toContain('loadEmployeeClientVisits');
     expect(clients).toContain(".eq('status', 'active')");
     expect(clients).toContain(".is('deleted_at', null)");
-    expect(clients).toContain('loadAllTenantClients');
-    expect(clients).toContain('if (!tenantId.trim() || !_employeeId.trim())');
-    expect(clients).toContain('fetchLivePortalAppointmentsForEmployeeTeam');
+    expect(clients).toContain('loadActiveTenantClients');
+    expect(clients).toContain('!isEmployeePortalScopeId(tenantId) || !isEmployeePortalScopeId(employeeId)');
     expect(clients).toContain(".eq('tenant_id', tenantId)");
     expect(clients).toContain('sanitizeEmployeePortalPayload');
     expect(patch).toContain('tenant_id = public.current_tenant_id()');

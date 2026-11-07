@@ -8,8 +8,10 @@ const read = (relativePath: string) => readFileSync(path.join(root, relativePath
 describe('CareSuite App P0 quality gate R20', () => {
   it('shows only active, non-deleted client records in both loading paths', () => {
     const source = read('src/lib/portal/employeePortalClientRecordsService.ts');
-    expect(source.match(/\.eq\('status', 'active'\)/g)).toHaveLength(2);
-    expect(source.match(/\.is\('deleted_at', null\)/g)?.length).toBeGreaterThanOrEqual(2);
+    expect(source).toContain("loadActiveTenantClients(tenantId)");
+    expect(source).toContain("loadActiveTenantClients(tenantId, clientId)");
+    expect(source).toContain(".eq('status', 'active')");
+    expect(source).toContain(".is('deleted_at', null)");
     expect(source).not.toContain(".or('status.is.null,status.neq.deleted')");
   });
 

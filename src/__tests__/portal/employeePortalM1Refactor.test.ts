@@ -139,10 +139,8 @@ describe('employee portal M.1 refactor', () => {
     expect(service).toContain('postal_code');
     expect(service).not.toContain('care_grade');
     expect(service).not.toMatch(/CLIENT_LIST_SELECT\s*=\s*'[^']*\bzip\b/);
-    expect(service).toContain('loadTeamClientVisits');
-    expect(service).toContain('loadAllTenantClients');
-    expect(service).toContain('fetchLivePortalAppointmentsForEmployee');
-    expect(service).toContain('fetchLivePortalAppointmentsForEmployeeTeam');
+    expect(service).toContain('loadEmployeeClientVisits');
+    expect(service).toContain('loadActiveTenantClients');
     expect(service).toContain('assist_visits');
     expect(service).not.toMatch(/assist_visits[\s\S]*clients\(/);
   });

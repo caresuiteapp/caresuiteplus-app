@@ -31,7 +31,7 @@ test('mehrere eigene Einsätze desselben Pflegefalls erweitern den Pflegefallumf
   assert.equal(value.visits.length, 2);
 });
 
-test('ohne eigene Zuweisung entsteht kein tenantweites Klientenverzeichnis', () => {
+test('ohne eigene Zuweisung bleibt die eigene Einsatzhistorie leer', () => {
   const value = buildEmployeePortalClientScope(id(1), id(2), []);
   assert.deepEqual(value.clientIds, []);
   assert.deepEqual(value.visits, []);
@@ -62,24 +62,16 @@ test('Zuweisungssnapshot und Ergebnislisten bleiben unveränderlich', () => {
   assert.equal(Object.isFrozen(value.visits[0]), true);
 });
 
-test('Live-Service filtert serverseitig auf eigene Mitarbeitenden-ID und lädt nur abgeleitete Pflegefälle', async () => {
-  const service = await fs.readFile(new URL('../../src/lib/portal/employeePortalClientRecordsService.web.ts', import.meta.url), 'utf8');
-  assert.match(service, /loadEmployeeClientVisits\(tenantId, employeeId\)/);
+test('Verzeichnis und Einzelakte verwenden aktive Mandantenakten, die Historie eigene sichtbare Einsätze', async () => {
+  const service = await fs.readFile(new URL('../../src/lib/portal/employeePortalClientRecordsService.ts', import.meta.url), 'utf8');
+  assert.match(service, /loadActiveTenantClients\(tenantId\)/);
+  assert.match(service, /loadActiveTenantClients\(tenantId, clientId\)/);
+  assert.match(service, /\.eq\('status', 'active'\)/);
+  assert.match(service, /\.is\('deleted_at', null\)/);
   assert.match(service, /\.eq\('employee_id', employeeId\)/);
-  assert.match(service, /loadClientsByIds\(tenantId, clientIds\)/);
-  assert.match(service, /fetchLivePortalAppointmentsForEmployee\(tenantId, employeeId\)/);
-  assert.match(service, /visitsResult\.error === EMPLOYEE_PORTAL_SCOPE_ERROR/);
-  assert.match(service, /item\.employeeId !== employeeId/);
-  assert.match(service, /!clientIds\.includes\(row\.id\)/);
-  assert.match(service, /!isEmployeePortalScopeId\(item\.clientId\)/);
-  assert.doesNotMatch(service, /loadAllTenantClients|fetchLivePortalAppointmentsForEmployeeTeam/);
-});
-
-test('Detailpfad bleibt im eigenen Einsatzumfang und gibt nur Primär- oder Notfallkontakte weiter', async () => {
-  const service = await fs.readFile(new URL('../../src/lib/portal/employeePortalClientRecordsService.web.ts', import.meta.url), 'utf8');
-  assert.match(service, /const base = list\.data\.find\(\(item\) => item\.clientId === clientId\)/);
-  assert.match(service, /if \(!base\) return \{ ok: true, data: null \}/);
+  assert.match(service, /\.eq\('employee_portal_visible', true\)/);
   assert.match(service, /row\.is_emergency_contact === true \|\| row\.is_primary_contact === true/);
+  assert.doesNotMatch(service, /fetchLivePortalAppointmentsForEmployeeTeam/);
 });
 
 test('RLS-Patch entfernt tenantweite Lesepolicies und bindet Klienten, Adressen, Kontakte und Einsätze an die eigene Zuweisung', async () => {

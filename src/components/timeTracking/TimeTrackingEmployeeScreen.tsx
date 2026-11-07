@@ -298,7 +298,16 @@ export function TimeTrackingEmployeeScreen() {
   return (
     <PortalTabScreen title="Arbeitszeit" subtitle={subtitle} scroll>
       {statusQuery.refreshError ? <ErrorState title="Arbeitszeit nicht aktuell" message={statusQuery.refreshError} onRetry={() => void refresh()} /> : null}
-      {settingsQuery.error || settingsQuery.refreshError ? <ErrorState title="Arbeitszeiteinstellungen nicht verfügbar" message={settingsQuery.error ?? settingsQuery.refreshError!} onRetry={() => void settingsQuery.refresh()} /> : settingsQuery.data?.moduleEnabled === false ? <InfoBanner variant="warning" message="Die Verwaltung hat die Zeiterfassung für diesen Mandanten deaktiviert." /> : null}
+      {settingsQuery.error || settingsQuery.refreshError ? (
+        <ErrorState
+          title="Arbeitszeiteinstellungen nicht verfügbar"
+          message={settingsQuery.error ?? settingsQuery.refreshError!}
+          onRetry={() => void settingsQuery.refresh()}
+          presentation="inline"
+        />
+      ) : settingsQuery.data?.moduleEnabled === false ? (
+        <InfoBanner variant="warning" message="Die Verwaltung hat die Zeiterfassung für diesen Mandanten deaktiviert." />
+      ) : null}
       <SectionPanel title="Heute" subtitle="Status und erfasste Nettozeit auf einen Blick">
         <EmployeePortalFacts items={[
           { id: 'status', label: 'Status', value: statusLabel },

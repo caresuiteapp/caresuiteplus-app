@@ -24,9 +24,8 @@ export const isEmployeePortalScopeId = (value: unknown): value is string =>
   typeof value === 'string' && UUID.test(value) && value === value.toLowerCase();
 
 /**
- * Treat the server-side assignment result as an authorization boundary, not as
- * a convenient tenant directory. Any foreign, hidden or draft row invalidates
- * the whole snapshot so it can never widen the client-record query.
+ * Validate the employee's visit history independently of the client directory.
+ * A foreign, hidden or draft row invalidates the visit snapshot.
  */
 export function buildEmployeePortalClientScope(
   tenantId: string,
@@ -50,6 +49,7 @@ export function buildEmployeePortalClientScope(
       row.employee_id !== employeeId ||
       row.employee_portal_visible !== true ||
       typeof row.planning_status !== 'string' ||
+      !row.planning_status.trim() ||
       row.planning_status.trim().toLowerCase() === 'draft' ||
       typeof row.planned_start_at !== 'string' ||
       !Number.isFinite(Date.parse(row.planned_start_at))
