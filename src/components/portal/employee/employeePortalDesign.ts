@@ -23,6 +23,10 @@ export function employeePortalLayout(width: number, fontScale = 1) {
 
 /** These are the same functions in the administration and the employee's scope. */
 export const employeePortalArtwork: Record<string, string> = {
+  home: '/portal/employee', 'open-assignments': '/portal/employee/offene-einsaetze',
+  leave: '/portal/employee/arbeitszeit/urlaub', absence: '/portal/employee/arbeitszeit/abwesenheiten',
+  uploads: '/portal/employee/uploads', announcements: '/business/messages?audience=employees&view=broadcasts',
+  payroll: '/business/office/payroll', 'care-tours': '/pflege/tourenplanung',
   assignments: '/assist/assignments', documentation: '/office/dokumentation',
   clients: '/assist/zugeordnete-klienten', calendar: '/assist/calendar',
   time: '/business/office/time-tracking', logbook: '/business/office/fahrtenbuch',
@@ -31,7 +35,10 @@ export const employeePortalArtwork: Record<string, string> = {
   consultation: '/beratung', profile: '/settings/profile', help: '/support',
 };
 
-export const employeeRailIds = ['home', 'assignments', 'open-assignments', 'documentation', 'clients', 'calendar', 'time', 'logbook', 'messages'] as const;
+export const employeeRailIds = [
+  'home', 'assignments', 'open-assignments', 'documentation', 'clients', 'calendar',
+  'care-tours', 'consultation', 'academy', 'time', 'logbook', 'messages',
+] as const;
 
 export function employeePortalActiveId(pathname: string, navigation: readonly LiquidPortalNavigationItem[]) {
   const path = pathname.replace(/\/+$/, '').replace(/^\/portal\/employee\/times(?=\/|$)/, '/portal/employee/arbeitszeit')
@@ -42,8 +49,9 @@ export function employeePortalActiveId(pathname: string, navigation: readonly Li
 
 export function employeePortalGroups(navigation: readonly LiquidPortalNavigationItem[]) {
   return [
-    { title: 'Mein Arbeitstag', ids: ['assignments', 'documentation', 'clients'] },
+    { title: 'Mein Arbeitstag', ids: ['assignments', 'documentation', 'clients', 'care-tours', 'consultation', 'academy'] },
     { title: 'Zeit & unterwegs', ids: ['calendar', 'time', 'logbook'] },
     { title: 'Im Austausch', ids: ['messages', 'tasks', 'documents'] },
-  ].map(group => ({ title: group.title, items: group.ids.flatMap(id => navigation.filter(item => item.id === id)) }));
+  ].map(group => ({ title: group.title, items: group.ids.flatMap(id => navigation.filter(item => item.id === id)) }))
+    .filter(group => group.items.length);
 }

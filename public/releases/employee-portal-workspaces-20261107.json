@@ -1,0 +1,8 @@
+{
+  "release": "employee-portal-workspaces-20261107",
+  "personalModuleGrants": true,
+  "deviceModulePreference": true,
+  "profilePhotos": true,
+  "portalArtworkOriginalsAdded": 5,
+  "careToursPatch": "employee_portal_care_tours.sql"
+}

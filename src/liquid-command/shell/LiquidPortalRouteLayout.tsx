@@ -5,8 +5,13 @@ import { Stack, usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth, RequireAuth, RequireEmployeePasswordSetup, RequireRole } from '@/lib/auth';
 import { EmployeePortalFrame } from '@/components/portal/employee/EmployeePortalFrame';
-import { employeePortalActiveId } from '@/components/portal/employee/employeePortalDesign';
-import { employeePortalNavigation } from '@/lib/portal/employee/employeePortalNavigation';
+import { EmployeePortalWorkspaceContext } from '@/components/portal/employee/EmployeePortalWorkspaceContext';
+import { employeePortalActiveId, employeePortalDesign } from '@/components/portal/employee/employeePortalDesign';
+import { employeePortalWorkspaceForPath } from '@/lib/portal/employee/employeePortalNavigation';
+import { employeePortalWorkspaceLabels, type EmployeePortalWorkspace } from '@/lib/portal/employee/employeePortalWorkspaces';
+import { usePortalActor } from '@/hooks/usePortalActor';
+import { usePortalProfileAvatarForActor } from '@/hooks/usePortalProfileAvatar';
+import { useEmployeePortalWorkspace } from '@/hooks/useEmployeePortalWorkspace';
 import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import { useClientPortalSettings } from '@/hooks/useClientPortalSettings';
 import { formatNavBadgeLabel } from '@/lib/navigation/navBadgeLabel';
@@ -61,6 +66,54 @@ function PortalStack() {
   );
 }
 
+function EmployeePortalChrome({
+  overlay, width, pathname, unreadCount, keyboardVisible, focus, insets, onSignOut,
+}: {
+  overlay?: ReactNode; width: number; pathname: string; unreadCount: number;
+  keyboardVisible: boolean; focus: boolean; insets: { top: number; bottom: number };
+  onSignOut: () => Promise<void>;
+}) {
+  const router = useRouter();
+  const actor = usePortalActor();
+  const avatar = usePortalProfileAvatarForActor(actor);
+  const workspace = useEmployeePortalWorkspace(actor);
+  const required = employeePortalWorkspaceForPath(pathname);
+  const canOpen = !required || (!workspace.loading && workspace.available.includes(required));
+  const different = canOpen && required && required !== workspace.selected ? required : null;
+  const blocked = !canOpen || Boolean(different);
+  const select = (key: EmployeePortalWorkspace) => {
+    if (!workspace.available.includes(key)) return;
+    workspace.select(key);
+    if (required && required !== key) router.replace('/portal/employee');
+  };
+  return (
+    <EmployeePortalWorkspaceContext.Provider value={{ ...workspace, select }}>
+      <EmployeePortalFrame width={width} displayName={actor.displayName} {...avatar}
+        navigation={workspace.navigation} activeId={employeePortalActiveId(pathname, workspace.navigation)}
+        unreadCount={unreadCount} keyboardVisible={keyboardVisible} focus={focus && !blocked}
+        insets={insets} overlay={overlay}
+        onNavigate={route => router.push(route as never)} onSignOut={onSignOut}>
+        {blocked ? (
+          <View style={styles.employeeModuleNotice} testID="employee-portal-module-route-guard">
+            <Text accessibilityLiveRegion="polite" style={styles.employeeModuleNoticeText}>
+              {workspace.loading ? 'Ihre Modulfreigaben werden geprüft…' : workspace.error ??
+                (different ? `Diese Seite gehört zum Arbeitsmodul ${employeePortalWorkspaceLabels[different]}.`
+                  : 'Diese Seite gehört zu einem Arbeitsmodul, das für Ihr Konto derzeit nicht verfügbar ist.')}
+            </Text>
+            {!workspace.loading ? <Pressable accessibilityRole="button"
+              style={styles.employeeModuleNoticeButton}
+              onPress={workspace.error ? workspace.retry : different ? () => select(different) : () => router.replace('/portal/employee')}>
+              <Text style={styles.employeeModuleNoticeButtonText}>
+                {workspace.error ? 'Erneut prüfen' : different ? `Zu ${employeePortalWorkspaceLabels[different]} wechseln` : 'Zur Übersicht'}
+              </Text>
+            </Pressable> : null}
+          </View>
+        ) : <PortalStack />}
+      </EmployeePortalFrame>
+    </EmployeePortalWorkspaceContext.Provider>
+  );
+}
+
 function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
@@ -72,11 +125,8 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
   const [moreOpen, setMoreOpen] = useState(false);
   const { settings: clientPortalSettings } = useClientPortalSettings(kind === 'client');
   const familySession = auth.portalSession?.roleKey === 'family_portal' || auth.profile?.roleKey === 'family_portal';
-  const navigation = useMemo(() => {
-    const items = releasedLiquidPortalNavigation(kind, clientPortalSettings).filter(item => !familySession || item.id !== 'budget');
-    if (kind !== 'employee') return items;
-    return employeePortalNavigation();
-  }, [kind, clientPortalSettings, familySession]);
+  const navigation = useMemo(() => releasedLiquidPortalNavigation(kind, clientPortalSettings)
+    .filter(item => !familySession || item.id !== 'budget'), [kind, clientPortalSettings, familySession]);
   const compactNavigation = navigation.filter((item) => item.compact).slice(0, 4);
   const moreNavigation = navigation.filter((item) => !compactNavigation.some(primary => primary.id === item.id));
   const profileRoute =
@@ -113,12 +163,11 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
       : label;
 
   const activeId = useMemo(() => {
-    if (kind === 'employee') return employeePortalActiveId(pathname, navigation);
     const matching = [...navigation]
       .sort((a, b) => b.route.length - a.route.length)
       .find((item) => pathname === item.route || pathname.startsWith(`${item.route}/`));
     return matching?.id ?? 'home';
-  }, [kind, navigation, pathname]);
+  }, [navigation, pathname]);
 
   const signOut = async () => {
     await auth.signOut();
@@ -129,12 +178,10 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
     <View testID="portal-visual-viewport" style={[styles.viewport, visibleHeight !== null ? {
       position: 'fixed', top: offsetTop, left: offsetLeft, height: visibleHeight, width: visibleWidth ?? '100%',
     } as unknown as ViewStyle : null, Platform.OS !== 'web' && { paddingLeft: insets.left, paddingRight: insets.right }]}>
-      <EmployeePortalFrame width={visibleWidth ?? layout.width} displayName={displayName} navigation={navigation}
-        activeId={activeId} unreadCount={unreadMessageCount} keyboardVisible={keyboardVisible}
+      <EmployeePortalChrome width={visibleWidth ?? layout.width} pathname={pathname}
+        unreadCount={unreadMessageCount} keyboardVisible={keyboardVisible}
         focus={visitExecutionFocus || compactMessengerFocus} insets={insets} overlay={overlay}
-        onNavigate={route => router.push(route as never)} onSignOut={signOut}>
-        <PortalStack />
-      </EmployeePortalFrame>
+        onSignOut={signOut} />
     </View>
   ) : null;
   if (employeeChrome) return employeeChrome;
@@ -442,6 +489,10 @@ export function LiquidPortalRouteLayout({
 }
 
 const styles = StyleSheet.create(withCareSuiteTypography({
+  employeeModuleNotice: { margin: 16, padding: 16, gap: 12, borderRadius: 14, borderWidth: 1, borderColor: employeePortalDesign.line, backgroundColor: employeePortalDesign.panel },
+  employeeModuleNoticeText: { color: employeePortalDesign.text, fontSize: webScaledFontMetric(15), lineHeight: webScaledFontMetric(22) },
+  employeeModuleNoticeButton: { minHeight: 44, alignSelf: 'flex-start', justifyContent: 'center', paddingHorizontal: 12, borderRadius: 10, backgroundColor: employeePortalDesign.selected },
+  employeeModuleNoticeButtonText: { color: employeePortalDesign.accent, fontSize: webScaledFontMetric(14), lineHeight: webScaledFontMetric(21) },
   viewport: { flex: 1, minHeight: 0, minWidth: 0, overflow: 'hidden' },
   portalFooterQuiet: { paddingTop: 0, paddingBottom: 0 },
   shell: {

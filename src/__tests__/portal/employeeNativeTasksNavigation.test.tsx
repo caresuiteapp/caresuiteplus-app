@@ -19,6 +19,17 @@ vi.mock('react-native', async importOriginal => {
   };
 });
 vi.mock('@/components/portal/employee/EmployeePortalArtwork', () => ({ EmployeePortalArtwork: () => null }));
+vi.mock('@/components/portal/PortalReadOnlyAvatar', () => ({ PortalReadOnlyAvatar: () => null }));
+vi.mock('@/hooks/usePortalProfileAvatar', () => ({ usePortalProfileAvatarForActor: () => ({}) }));
+vi.mock('@/hooks/useEmployeePortalWorkspace', async () => {
+  const { employeePortalNavigation } = await import('@/lib/portal/employee/employeePortalNavigation');
+  return { useEmployeePortalWorkspace: () => ({
+    selected: h.actor.isLinkedReady ? 'assist' : null,
+    available: h.actor.isLinkedReady ? ['assist'] : [],
+    navigation: employeePortalNavigation(h.actor.isLinkedReady ? 'assist' : null),
+    loading: false, error: null, retry: vi.fn(), select: vi.fn(),
+  }) };
+});
 vi.mock('expo-router', () => ({ Stack: () => h.path === '/portal/employee/tasks' && h.receiver ? React.createElement(h.receiver) : <span>Heute</span>, usePathname: () => h.path, useRouter: () => ({ push: h.push, replace: h.replace }), useIsFocused: () => true, useNavigation: () => ({ dispatch: vi.fn() }) }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => h.auth }));
 vi.mock('@/lib/auth', async () => ({ useAuth: () => h.auth, ...await import('@/lib/auth/RequireAuth'), ...await import('@/lib/auth/RequireRole'), ...await import('@/lib/auth/RequireEmployeePasswordSetup') }));
@@ -98,7 +109,8 @@ describe('actual native employee shell to tasks receiving workflow', () => {
   });
   it('keeps the existing receiving fallback and avoids data reads without a verified employee link', async () => {
     h.path = '/portal/employee/tasks'; h.actor.isLinkedReady = false; h.actor.employeeId = null; await render();
-    expect(host.textContent).toContain('Mitarbeiterzugang nicht zugeordnet'); expect(h.list).not.toHaveBeenCalled(); expect(h.update).not.toHaveBeenCalled();
+    expect(host.querySelector('[data-testid="employee-portal-module-route-guard"]')).not.toBeNull();
+    expect(h.list).not.toHaveBeenCalled(); expect(h.update).not.toHaveBeenCalled();
   });
   it('keeps the actual role guard before the native tasks receiver', async () => {
     h.path = '/portal/employee/tasks'; h.auth.portalSession.roleKey = 'client_portal'; await render();

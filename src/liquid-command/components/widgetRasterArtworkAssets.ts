@@ -662,6 +662,31 @@ export const WIDGET_RASTER_IMAGES: Record<string, WidgetRasterImages> = {
     medium: require('../../../public/widget-artwork/originals-20261106-v1/platform-tenants/medium.png'),
     large: require('../../../public/widget-artwork/originals-20261106-v1/platform-tenants/large.png'),
   },
+  "employee-portal-today": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-today/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-today/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-today/large.png'),
+  },
+  "employee-portal-absence": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-absence/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-absence/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-absence/large.png'),
+  },
+  "employee-portal-leave": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-leave/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-leave/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-leave/large.png'),
+  },
+  "employee-portal-open-assignments": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-open-assignments/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-open-assignments/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-open-assignments/large.png'),
+  },
+  "employee-portal-uploads": {
+    small: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-uploads/small.png'),
+    medium: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-uploads/medium.png'),
+    large: require('../../../public/widget-artwork/originals-20261106-v1/employee-portal-uploads/large.png'),
+  },
   "robotics": {
     small: require('../../../public/widget-artwork/originals-20261106-v1/robotics/small.png'),
     medium: require('../../../public/widget-artwork/originals-20261106-v1/robotics/medium.png'),

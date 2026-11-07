@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '@/lib/auth/context';
 import { fetchEmployeePortalAvatar } from '@/lib/portal/employeePortalAvatar';
-import { usePortalActor } from '@/hooks/usePortalActor';
+import { usePortalActor, type PortalActor } from '@/hooks/usePortalActor';
 
 export type PortalProfileAvatar = {
   avatarUrl: string | undefined;
@@ -14,9 +14,12 @@ export type PortalProfileAvatar = {
  * Cache-bust version prefers employee updated_at, then profile.updatedAt.
  */
 export function usePortalProfileAvatar(): PortalProfileAvatar {
-  const { profile } = useAuth();
-  const { roleKey, tenantId, employeeId, actorId } = usePortalActor();
-  const avatarScope = JSON.stringify([roleKey, tenantId, actorId, employeeId]);
+  return usePortalProfileAvatarForActor(usePortalActor());
+}
+
+export function usePortalProfileAvatarForActor({ roleKey, tenantId, employeeId, actorId, employeeLinkReadOnly }: PortalActor): PortalProfileAvatar {
+  const { profile, user } = useAuth();
+  const avatarScope = JSON.stringify([roleKey, tenantId, actorId, employeeId, user?.id]);
   const [employeeAvatar, setEmployeeAvatar] = useState<{
     scope: string;
     avatarUrl: string | null;
@@ -24,7 +27,7 @@ export function usePortalProfileAvatar(): PortalProfileAvatar {
   } | null>(null);
 
   useEffect(() => {
-    if (roleKey !== 'employee_portal' || !employeeId || !tenantId) {
+    if (!employeeId || !tenantId || employeeLinkReadOnly) {
       setEmployeeAvatar(null);
       return;
     }
@@ -40,10 +43,10 @@ export function usePortalProfileAvatar(): PortalProfileAvatar {
     return () => {
       cancelled = true;
     };
-  }, [roleKey, employeeId, tenantId, avatarScope, profile?.avatarUrl, profile?.updatedAt]);
+  }, [employeeId, tenantId, avatarScope, employeeLinkReadOnly, profile?.avatarUrl, profile?.updatedAt]);
 
   return useMemo(() => {
-    const userAvatar = profile?.avatarUrl?.trim() || undefined;
+    const userAvatar = profile?.tenantId === tenantId ? profile?.avatarUrl?.trim() || undefined : undefined;
     const currentEmployeeAvatar = employeeAvatar?.scope === avatarScope ? employeeAvatar : null;
     const employeeUrl = currentEmployeeAvatar?.avatarUrl?.trim() || undefined;
     const avatarUrl = employeeUrl ?? userAvatar;
@@ -58,5 +61,5 @@ export function usePortalProfileAvatar(): PortalProfileAvatar {
       avatarVersion,
       isReady: Boolean(profile),
     };
-  }, [employeeAvatar, avatarScope, profile]);
+  }, [employeeAvatar, avatarScope, profile, tenantId]);
 }

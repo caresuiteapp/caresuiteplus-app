@@ -8,6 +8,8 @@ const state = vi.hoisted(() => ({
   top: 24, left: 0, right: 0, keyboard: false,
   trip: null as Record<string, unknown> | null, gate: false, slot: 0, unread: 0,
   replace: vi.fn(), push: vi.fn(),
+  modules: ['assist'] as ('assist' | 'pflege')[],
+  selected: 'assist' as 'assist' | 'pflege',
 }));
 vi.mock('react', async (original) => ({
   ...await original<object>(),
@@ -22,6 +24,19 @@ vi.mock('react-native', () => ({
   StyleSheet: { create: (styles: unknown) => styles },
 }));
 vi.mock('@/components/portal/employee/EmployeePortalArtwork', () => ({ EmployeePortalArtwork: () => null }));
+vi.mock('@/components/portal/PortalReadOnlyAvatar', () => ({ PortalReadOnlyAvatar: 'Avatar' }));
+vi.mock('@/hooks/usePortalProfileAvatar', () => ({ usePortalProfileAvatarForActor: () => ({ avatarUrl: 'https://example.test/employee.png' }) }));
+vi.mock('@/components/portal/employee/EmployeePortalWorkspaceContext', () => ({
+  EmployeePortalWorkspaceContext: { Provider: 'Workspace' },
+  useEmployeePortalWorkspaceContext: () => null,
+}));
+vi.mock('@/hooks/useEmployeePortalWorkspace', async () => {
+  const { employeePortalNavigation } = await import('@/lib/portal/employee/employeePortalNavigation');
+  return { useEmployeePortalWorkspace: () => ({
+    selected: state.selected, available: state.modules, navigation: employeePortalNavigation(state.selected),
+    loading: false, error: null, retry: vi.fn(), select: vi.fn(),
+  }) };
+});
 vi.mock('expo-router', () => ({
   Stack: 'Stack', usePathname: () => state.path,
   useRouter: () => ({ replace: state.replace, push: state.push }),
@@ -38,7 +53,7 @@ vi.mock('@/lib/portal/portalMessengerFocusContext', () => ({
   PortalMessengerFocusProvider: 'MessengerFocus',
   usePortalMessengerFocus: () => ({ active: false }),
 }));
-vi.mock('@/hooks/usePortalActor', () => ({ usePortalActor: () => ({ isReady: true, tenantId: 'tenant', employeeId: 'employee' }) }));
+vi.mock('@/hooks/usePortalActor', () => ({ usePortalActor: () => ({ isReady: true, tenantId: 'tenant', employeeId: 'employee', displayName: 'Testkonto' }) }));
 vi.mock('@/liquid-command/foundation/useLiquidLayout', () => ({ useLiquidLayout: () => ({ width: state.width, isPhone: state.width < 600 }) }));
 vi.mock('@/liquid-command/components/LiquidPrimitives', () => ({
   LiquidBackdrop: 'Backdrop', LiquidButton: 'Button', LiquidIconButton: 'IconButton',
@@ -63,9 +78,29 @@ function shell(kind: 'employee' | 'client' = 'employee') {
   return nodes(LiquidPortalRouteLayout({ kind, overlay: <ViewMarker /> }));
 }
 function ViewMarker() { return <div data-testid="gps-slot" />; }
-beforeEach(() => { state.role = 'employee_portal'; state.clientSettings = null; vi.clearAllMocks(); state.path = '/portal/employee'; state.width = 360; state.bottom = 24; state.top = 24; state.left = 0; state.right = 0; state.keyboard = false; state.trip = null; state.gate = false; state.slot = 0; state.unread = 0; });
+beforeEach(() => { state.role = 'employee_portal'; state.clientSettings = null; vi.clearAllMocks(); state.path = '/portal/employee'; state.width = 360; state.bottom = 24; state.top = 24; state.left = 0; state.right = 0; state.keyboard = false; state.trip = null; state.gate = false; state.slot = 0; state.unread = 0; state.modules = ['assist']; state.selected = 'assist'; });
 
 describe('portal navigation stays accessible during GPS and execution', () => {
+  it('passes the authenticated employee photo into the header', () => {
+    expect(shell().find(node => node.type === 'Avatar')?.props.avatarUrl).toBe('https://example.test/employee.png');
+  });
+  it.each(['/portal/employee/beratung/case', '/portal/employee/akademie', '/portal/employee/pflegetouren'])(
+    'never mounts an unauthorized direct module route %s', (path) => {
+      state.path = path;
+      const tree = shell();
+      expect(tree.some(node => node.type === 'Stack')).toBe(false);
+      expect(tree.some(node => node.props.testID === 'employee-portal-module-route-guard')).toBe(true);
+    },
+  );
+  it('opens the personal care tour route only in the released Pflege workspace', () => {
+    state.path = '/portal/employee/pflegetouren'; state.modules = ['assist', 'pflege'];
+    expect(shell().some(node => node.type === 'Stack')).toBe(false);
+    state.selected = 'pflege';
+    const tree = shell();
+    expect(tree.some(node => node.type === 'Stack')).toBe(true);
+    expect(tree.some(node => node.props.accessibilityLabel === 'Meine Pflegetouren')).toBe(true);
+    expect(tree.some(node => node.props.accessibilityLabel === 'Offene Einsätze')).toBe(false);
+  });
   it.each(['employee', 'client'] as const)('keeps the wide %s portal and composer above the tablet system bars', (kind) => {
     state.width = 1280; state.path = `/portal/${kind}/messages`;
     state.top = 32; state.bottom = 56; state.left = 10; state.right = 18;

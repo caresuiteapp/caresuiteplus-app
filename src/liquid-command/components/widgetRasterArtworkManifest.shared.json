@@ -3170,6 +3170,126 @@
       }
     },
     {
+      "id": "employee-portal-today",
+      "identity": "/portal/employee",
+      "label": "Heute",
+      "part": "remaining",
+      "sourceSha256": "dd51f9a07da1e0940b366acff17d97710b1b8d67125e779ca728be9a7c8d276e",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-today/small.png",
+          "width": 192,
+          "sha256": "54b213c9227951f721a87fd9d0521bf93cd5d54094d3c3222c361c7db7130e19"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-today/medium.png",
+          "width": 512,
+          "sha256": "47bcf3df2a7f08cccf1e1a62bc0d727784c619d7f08042da8d0eead79dd51dd1"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-today/large.png",
+          "width": 1254,
+          "sha256": "dd51f9a07da1e0940b366acff17d97710b1b8d67125e779ca728be9a7c8d276e"
+        }
+      }
+    },
+    {
+      "id": "employee-portal-absence",
+      "identity": "/portal/employee/arbeitszeit/abwesenheiten",
+      "label": "Abwesenheit",
+      "part": "remaining",
+      "sourceSha256": "59e03d0cf55efc65db19b77c688342833a5ea9c1f124c312409acec3151907f2",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-absence/small.png",
+          "width": 192,
+          "sha256": "e5df290cf66065c0141d7a9cf92f28b8beaefe3ed5f3d1c5853c5bdc8f0b3be9"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-absence/medium.png",
+          "width": 512,
+          "sha256": "30402dfbd6258a3c8de5b0f3853714777320bfaa5ab39c83a72b9c0f6989e26c"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-absence/large.png",
+          "width": 1254,
+          "sha256": "59e03d0cf55efc65db19b77c688342833a5ea9c1f124c312409acec3151907f2"
+        }
+      }
+    },
+    {
+      "id": "employee-portal-leave",
+      "identity": "/portal/employee/arbeitszeit/urlaub",
+      "label": "Urlaub",
+      "part": "remaining",
+      "sourceSha256": "674667f9d4bfb081ddfeaaddc373148a6806fe80f8c70c8143ee04acc529cb09",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-leave/small.png",
+          "width": 192,
+          "sha256": "80487709f689f488ea8be87b5eed92c226521c3a51bf1c0d75f91372cfe85f7f"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-leave/medium.png",
+          "width": 512,
+          "sha256": "3bf0eafffa73e748703aa834ed3460a8f1fa017aa3ae208fbf6fd6219057e493"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-leave/large.png",
+          "width": 1254,
+          "sha256": "674667f9d4bfb081ddfeaaddc373148a6806fe80f8c70c8143ee04acc529cb09"
+        }
+      }
+    },
+    {
+      "id": "employee-portal-open-assignments",
+      "identity": "/portal/employee/offene-einsaetze",
+      "label": "Offene Einsätze",
+      "part": "remaining",
+      "sourceSha256": "7b934b6e03167ad85b19f5a16dabce9fdfbf22281a6a0075aeab4a952e2b11a9",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-open-assignments/small.png",
+          "width": 192,
+          "sha256": "4f649263a5185fc466af953c8f01a017705a046bdb837e2596a13c490ffcff61"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-open-assignments/medium.png",
+          "width": 512,
+          "sha256": "c77e6b1b716677bae9ef6ce83839089eaffd86fe412dfd6deb397ea78939a7d8"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-open-assignments/large.png",
+          "width": 1254,
+          "sha256": "7b934b6e03167ad85b19f5a16dabce9fdfbf22281a6a0075aeab4a952e2b11a9"
+        }
+      }
+    },
+    {
+      "id": "employee-portal-uploads",
+      "identity": "/portal/employee/uploads",
+      "label": "Uploads",
+      "part": "remaining",
+      "sourceSha256": "aedc98d7d5946e3106d8639d303b43fb228178b400d69ceed7b17023422796fb",
+      "variants": {
+        "small": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-uploads/small.png",
+          "width": 192,
+          "sha256": "d14e964d85d43ca0b1a99ce7e190f0758b21c221eb1abe2b9d6b2518efce5d68"
+        },
+        "medium": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-uploads/medium.png",
+          "width": 512,
+          "sha256": "b7fffbb6e52584466d10e73c227226d17979aa8b46711c5725ea840498d87913"
+        },
+        "large": {
+          "path": "/widget-artwork/originals-20261106-v1/employee-portal-uploads/large.png",
+          "width": 1254,
+          "sha256": "aedc98d7d5946e3106d8639d303b43fb228178b400d69ceed7b17023422796fb"
+        }
+      }
+    },
+    {
       "id": "robotics",
       "identity": "/robotics",
       "label": "Robotics",

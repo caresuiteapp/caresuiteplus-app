@@ -3,27 +3,42 @@ import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from '
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { LiquidPortalNavigationItem } from '@/liquid-command/navigation/portalCatalog';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
+import { PortalReadOnlyAvatar } from '@/components/portal/PortalReadOnlyAvatar';
+import { employeePortalWorkspaceLabels } from '@/lib/portal/employee/employeePortalWorkspaces';
 import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { EmployeePortalArtwork } from './EmployeePortalArtwork';
 import { EmployeePortalMenuContext } from './EmployeePortalMenuContext';
+import { useEmployeePortalWorkspaceContext } from './EmployeePortalWorkspaceContext';
 import { employeePortalDesign as c, employeePortalLayout, employeeRailIds } from './employeePortalDesign';
 
 type Props = {
   children: ReactNode; overlay?: ReactNode; width: number; displayName: string;
+  avatarUrl?: string; avatarVersion?: string;
   navigation: readonly LiquidPortalNavigationItem[]; activeId: string; unreadCount: number;
   keyboardVisible: boolean; focus: boolean; insets: { top: number; bottom: number };
   onNavigate: (route: string) => void; onSignOut: () => Promise<void>;
 };
 
 /** Shared native/Web chrome: one header and a narrow left rail at every width. */
-export function EmployeePortalFrame({ children, overlay, width, displayName, navigation, activeId, unreadCount, keyboardVisible, focus, insets, onNavigate, onSignOut }: Props) {
+export function EmployeePortalFrame({ children, overlay, width, displayName, avatarUrl, avatarVersion, navigation, activeId, unreadCount, keyboardVisible, focus, insets, onNavigate, onSignOut }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [moduleOpen, setModuleOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const layout = employeePortalLayout(width);
+  const workspace = useEmployeePortalWorkspaceContext();
+  const moduleLabel = workspace?.selected ? employeePortalWorkspaceLabels[workspace.selected] : workspace?.loading ? 'Wird geladen…' : 'Persönlicher Bereich';
+  const stackModule = width < 820;
+  const moduleTrigger = workspace ? (
+    <Pressable accessibilityRole="button" accessibilityLabel={`Arbeitsmodul wählen. ${moduleLabel}`}
+      accessibilityState={{ expanded: moduleOpen, busy: workspace.loading }} onPress={() => setModuleOpen(true)}
+      testID="employee-portal-module-switcher" style={[styles.moduleTrigger, stackModule && styles.moduleTriggerPhone]}>
+      <View style={styles.moduleCopy}><Text style={styles.kicker}>ARBEITSMODUL</Text><Text style={styles.moduleValue}>{moduleLabel}</Text></View>
+      <Ionicons name="chevron-down" size={17} color={c.accent} />
+    </Pressable>
+  ) : null;
   const railItems = employeeRailIds.flatMap(id => navigation.filter(item => item.id === id));
-  const initials = displayName.trim().split(/\s+/).slice(0, 2).map(word => word[0]).join('').toUpperCase();
   const badge = unreadCount > 99 ? '99+' : String(unreadCount);
   const label = (item: LiquidPortalNavigationItem) => item.id === 'messages' && unreadCount > 0 ? `${item.label}, ${unreadCount} ungelesene Nachrichten` : item.label;
   const open = (route: string) => { setMenuOpen(false); onNavigate(route); };
@@ -47,12 +62,16 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, nav
         <Text style={[styles.wordmark, layout.phone && styles.wordmarkPhone]}>CareSuite <Text style={styles.brandAccent}>HealthOS</Text></Text>
         <Text style={styles.kicker}>MITARBEITENDENPORTAL</Text>
       </Pressable>
+      {!stackModule ? moduleTrigger : null}
       <View style={styles.headerActions}>
         <PortalTextSizeControls compact={layout.phone} appearance="desktop-header" />
         {!layout.phone ? <Pressable accessibilityRole="button" accessibilityLabel="Hilfe öffnen" onPress={() => open('/portal/employee/help')} style={styles.headerButton}><Ionicons name="help-circle-outline" size={23} color={c.text} /></Pressable> : null}
         {width >= 1100 ? <View style={styles.identity}><Text style={styles.identityName}>{displayName}</Text><Text style={styles.secondary}>Mein Arbeitsbereich</Text></View> : null}
-        <Pressable accessibilityRole="button" accessibilityLabel={`Profil von ${displayName} öffnen`} onPress={() => open('/portal/employee/profile')} style={styles.avatar}><Text style={styles.avatarText}>{initials}</Text></Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel={`Profil von ${displayName} öffnen`} onPress={() => open('/portal/employee/profile')}>
+          <PortalReadOnlyAvatar name={displayName} avatarUrl={avatarUrl} avatarVersion={avatarVersion} size="md" accentColor={c.accent} />
+        </Pressable>
       </View>
+      {stackModule ? moduleTrigger : null}
     </View> : null}
     <View style={styles.body}>
       <View style={[styles.rail, { width: layout.railWidth }]} testID="employee-portal-symbol-navigation">
@@ -70,6 +89,32 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, nav
       <View style={styles.workspace} testID="employee-portal-workspace">{children}</View>
     </View>
     <View testID="portal-navigation-footer" style={[styles.footer, { paddingBottom: keyboardVisible ? 0 : insets.bottom }]}>{overlay}</View>
+    {workspace ? <Modal visible={moduleOpen} transparent animationType="fade" onRequestClose={() => setModuleOpen(false)}>
+      <View style={[styles.menuBackdrop, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 12) }]}>
+        <View style={styles.menu} accessibilityViewIsModal testID="employee-portal-modules">
+          <View style={styles.menuHeader}>
+            <Text accessibilityRole="header" style={styles.menuTitle}>Arbeitsmodul wählen</Text>
+            <Pressable accessibilityRole="button" accessibilityLabel="Modulauswahl schließen" onPress={() => setModuleOpen(false)} style={styles.headerButton}>
+              <Ionicons name="close" size={24} color={c.text} />
+            </Pressable>
+          </View>
+          <ScrollView style={styles.menuScroll} contentContainerStyle={styles.menuContent}>
+            <Text style={styles.secondary}>Die Auswahl wird für Ihr Konto auf diesem Gerät gespeichert.</Text>
+            {workspace.loading ? <Text style={styles.menuLabel}>Ihre Freigaben werden geprüft…</Text> : null}
+            {!workspace.loading && !workspace.error && !workspace.available.length ? <Text style={styles.menuLabel}>Für Ihr Konto ist derzeit kein Arbeitsmodul verfügbar.</Text> : null}
+            {workspace.error ? <Pressable accessibilityRole="button" onPress={workspace.retry} style={styles.menuItem}><Text style={styles.error}>{workspace.error} Erneut prüfen</Text></Pressable> : null}
+            {workspace.preferenceError ? <Text accessibilityRole="alert" style={styles.error}>Die Auswahl konnte auf diesem Gerät nicht gespeichert werden.</Text> : null}
+            {!workspace.loading ? workspace.available.map(key => <Pressable key={key} accessibilityRole="button"
+              accessibilityState={{ selected: key === workspace.selected }}
+              onPress={() => { workspace.select(key); setModuleOpen(false); }}
+              style={[styles.menuItem, key === workspace.selected && styles.selected]}>
+              <Text style={styles.menuLabel}>{employeePortalWorkspaceLabels[key]}</Text>
+              {key === workspace.selected ? <Ionicons name="checkmark" size={20} color={c.accent} /> : null}
+            </Pressable>) : null}
+          </ScrollView>
+        </View>
+      </View>
+    </Modal> : null}
     <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
       <View style={[styles.menuBackdrop, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 12) }]}>
         <View style={styles.menu} accessibilityViewIsModal testID="employee-portal-all-areas">
@@ -94,10 +139,13 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   headerPhone: { minHeight: 72, paddingHorizontal: 10, gap: 8 },
   brand: { minWidth: 0, flexShrink: 1, gap: 4 }, wordmark: { color: c.text, fontSize: font(27), lineHeight: font(34), letterSpacing: -1 }, wordmarkPhone: { fontSize: font(19), lineHeight: font(27) }, brandAccent: { color: c.accent },
   kicker: { color: c.muted, fontSize: font(9), lineHeight: font(14), letterSpacing: 1.2 },
-  headerActions: { minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10 },
+  headerActions: { minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10, marginLeft: 'auto' },
   headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: c.panel, borderWidth: 1, borderColor: c.line },
   identity: { maxWidth: 200, gap: 2, alignItems: 'flex-end' }, identityName: { color: c.text, fontSize: font(13), lineHeight: font(19) }, secondary: { color: c.muted, fontSize: font(12), lineHeight: font(18) },
-  avatar: { width: 44, height: 44, borderRadius: 24, borderWidth: 2, borderColor: c.accent, backgroundColor: c.selected, alignItems: 'center', justifyContent: 'center' }, avatarText: { color: c.text, fontSize: font(13), lineHeight: font(18) },
+  moduleTrigger: { minWidth: 140, maxWidth: '100%', minHeight: 44, flexShrink: 0, paddingVertical: 5, paddingHorizontal: 12, borderWidth: 1, borderColor: c.line, backgroundColor: c.panel, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  moduleTriggerPhone: { width: '100%', minWidth: 0 },
+  moduleCopy: { flexShrink: 1, minWidth: 0 },
+  moduleValue: { color: c.text, fontSize: font(15), lineHeight: font(21), fontWeight: '700' },
   body: { flex: 1, minHeight: 0, minWidth: 0, flexDirection: 'row' },
   rail: { flexShrink: 0, minHeight: 0, paddingVertical: 10, alignItems: 'center', backgroundColor: c.rail, borderRightWidth: 1, borderColor: c.line },
   railScroll: { flex: 1, width: '100%', minHeight: 0 }, railContent: { alignItems: 'center', gap: 10, paddingBottom: 12, paddingTop: 4 },

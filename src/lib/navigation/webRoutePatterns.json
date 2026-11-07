@@ -626,6 +626,7 @@
   "/portal/employee/mobilitaet",
   "/portal/employee/offene-einsaetze",
   "/portal/employee/payroll",
+  "/portal/employee/pflegetouren",
   "/portal/employee/profile",
   "/portal/employee/schedule",
   "/portal/employee/signatures",

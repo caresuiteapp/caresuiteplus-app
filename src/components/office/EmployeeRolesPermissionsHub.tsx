@@ -93,6 +93,7 @@ import type {
 } from '@/types/permissions/rbac';
 
 import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
+import { EmployeePortalModulePermissions } from './EmployeePortalModulePermissions';
 
 import { spacing } from '@/theme';
 
@@ -781,6 +782,8 @@ function EmployeeRolesPermissionsHubContent({
       {activeTab === 'module' ? (
 
         <View>
+
+          <EmployeePortalModulePermissions tenantId={tenantId} employeeId={employeeId} canEdit={canEdit && canManageTenantRoles} />
 
           {tenantModules
 

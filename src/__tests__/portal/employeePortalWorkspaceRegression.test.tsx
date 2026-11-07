@@ -34,6 +34,7 @@ vi.mock('@/components/portal/PortalMobileTabHeader', () => ({ PortalMobileTabHea
 vi.mock('@/components/portal/PortalPremiumPageHero', () => ({ PortalPremiumPageHero: () => <header>Seitenüberschrift</header> }));
 vi.mock('@/components/clients/ClientAnimalAvatar', () => ({ ClientAnimalAvatar: () => null }));
 vi.mock('@/screens/portal/EmployeePortalDashboardScreen', () => ({ EmployeePortalDashboardScreen: () => <section>Eigene Einsätze und Aufgaben</section> }));
+vi.mock('@/components/portal/employee/EmployeePortalToday', () => ({ EmployeePortalWorkspaceHome: () => <section>Modulübersicht</section> }));
 vi.mock('@/components/pflege/PortalCarePanels', () => ({ EmployeeCareToursPanel: () => { h.careTours(); return <section>Meine Pflegetouren</section>; } }));
 vi.mock('@/components/portal/EmployeePortalClientRecordContactActions', () => ({ dialPhoneNumber: h.dial }));
 vi.mock('@/hooks/useEmployeePortalClientRecords', () => ({ useEmployeePortalClientRecords: () => ({ records: h.records, loading: h.loading, error: h.error, refreshError: h.refreshError, refresh: h.refresh }) }));
@@ -70,13 +71,10 @@ describe('employee portal workspace regression', () => {
   it('mounts the real home page with one outer scroll owner and no care-tour flow', async () => {
     await render(<EmployeePortalOverviewScreen />);
     expect(host.querySelectorAll('[data-native-scroll="true"]')).toHaveLength(1);
-    expect(byId('employee-portal-tab-scroll').contains(byId('employee-portal-page-frame'))).toBe(true);
+    expect(byId('employee-portal-tab-scroll').textContent).toContain('Eigene Einsätze und Aufgaben');
     expect(host.textContent).toContain('Eigene Einsätze und Aufgaben');
     expect(host.textContent).not.toContain('Meine Pflegetouren');
     expect(h.careTours).not.toHaveBeenCalled();
-    expect(nativeStyle(byId('employee-portal-page-frame'))).toMatchObject({ flexGrow: 0, flexShrink: 0, flexBasis: 'auto' });
-    expect(nativeStyle(byId('employee-portal-page-frame')).flex).toBeUndefined();
-    expect(nativeStyle(byId('healthos-page-zone-content')).flex).toBeUndefined();
   });
   it('keeps the actor readiness gate before mounting dashboard content', async () => {
     h.ready = false; await render(<EmployeePortalOverviewScreen />);

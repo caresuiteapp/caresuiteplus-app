@@ -32,6 +32,9 @@ const code = buildSync({ stdin: { contents: `
   export { widgetRasterArtwork } from './src/liquid-command/components/widgetRasterArtwork.shared';
   export { stationaerNav } from './src/lib/navigation/moduleNav/stationaerNav';
   export { beratungNav } from './src/lib/navigation/moduleNav/beratungNav';
+  export { employeePortalArtwork } from './src/components/portal/employee/employeePortalDesign';
+  export { employeePortalNavigation } from './src/lib/portal/employee/employeePortalNavigation';
+  export { employeePortalWorkspaces } from './src/lib/portal/employee/employeePortalWorkspaces';
 `, resolveDir: root, loader: 'ts' }, bundle: true, write: false, platform: 'node', format: 'cjs',
   external: ['react-native'], loader: { '.png': 'empty', '.jpg': 'empty' },
 }).outputFiles[0].text;
@@ -48,6 +51,16 @@ for (const consultationEnabled of ['false', 'true']) for (const platform of ['we
   for (const artwork of rasterManifest.artworks) {
     const selected = catalog.widgetRasterArtwork(artwork.identity);
     if (selected?.sourceSha256 !== artwork.sourceSha256) throw new Error(`Original identity mismatch: ${platform}/${artwork.identity}`);
+  }
+  const portalArtwork = new Map();
+  for (const workspace of [null, ...catalog.employeePortalWorkspaces]) {
+    for (const item of catalog.employeePortalNavigation(workspace)) {
+      const original = catalog.widgetRasterArtwork(catalog.employeePortalArtwork[item.id] ?? '');
+      if (!original) throw new Error(`Missing employee portal original: ${item.id} (${platform}/${workspace})`);
+      const prior = portalArtwork.get(original.id);
+      if (prior && prior !== item.id) throw new Error(`Repeated portal original: ${prior} / ${item.id}`);
+      portalArtwork.set(original.id, item.id);
+    }
   }
   const apps = ['business_admin', 'business_manager', 'dispatch', 'platform_admin'].flatMap(role => {
     const pages = catalog.buildDesktopApps(catalog.WIDGETS, role);

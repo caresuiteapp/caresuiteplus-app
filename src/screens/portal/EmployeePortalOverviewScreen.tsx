@@ -3,9 +3,12 @@ import { EmployeePortalDashboardScreen } from '@/screens/portal/EmployeePortalDa
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { LoadingState } from '@/components/ui';
 import { usePortalActor } from '@/hooks/usePortalActor';
+import { useEmployeePortalWorkspaceContext } from '@/components/portal/employee/EmployeePortalWorkspaceContext';
+import { EmployeePortalWorkspaceHome } from '@/components/portal/employee/EmployeePortalToday';
 
 export function EmployeePortalOverviewScreen() {
-  const { isReady } = usePortalActor();
+  const { isReady, displayName } = usePortalActor();
+  const workspace = useEmployeePortalWorkspaceContext();
   const [showSuccess, setShowSuccess] = useState(false);
   const successTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   useEffect(() => () => { if (successTimer.current) clearTimeout(successTimer.current); }, []);
@@ -20,14 +23,14 @@ export function EmployeePortalOverviewScreen() {
 
   return (
     <PortalTabScreen title="Mitarbeiterportal" scroll hideHeaderOnPhone>
-      <EmployeePortalDashboardScreen
+      {workspace && workspace.selected !== 'assist' ? <EmployeePortalWorkspaceHome displayName={displayName} /> : <EmployeePortalDashboardScreen
         showSuccess={showSuccess}
         onRefresh={() => {
           setShowSuccess(true);
           if (successTimer.current) clearTimeout(successTimer.current);
           successTimer.current = setTimeout(() => setShowSuccess(false), 2000);
         }}
-      />
+      />}
     </PortalTabScreen>
   );
 }

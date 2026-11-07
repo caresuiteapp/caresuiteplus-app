@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -40,6 +40,7 @@ export function PremiumAvatar({
 }: Props) {
   const cfg = SIZE_CONFIG[size];
   const initials = getInitials(name);
+  const [failedUri, setFailedUri] = useState<string>();
 
   return (
     <View style={[styles.wrapper, { width: cfg.dimension, height: cfg.dimension }, style]}>
@@ -55,9 +56,10 @@ export function PremiumAvatar({
           },
         ]}
       >
-        {imageUri ? (
+        {imageUri && failedUri !== imageUri ? (
           <Image
             source={{ uri: imageUri }}
+            onError={() => setFailedUri(imageUri)}
             style={[
               styles.image,
               {

@@ -8,6 +8,7 @@ import { resolveHealthOSStatusDisplay } from '@/components/healthos/status/healt
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
 import { buildEmployeePortalTodayModel } from '@/lib/portal/employee/employeePortalTodayModel';
 import { employeePortalNavigation } from '@/lib/portal/employee/employeePortalNavigation';
+import { employeePortalWorkspaceLabels, type EmployeePortalWorkspace } from '@/lib/portal/employee/employeePortalWorkspaces';
 import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 import { useClientGreeting } from '@/hooks/useClientGreeting';
 import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
@@ -15,6 +16,7 @@ import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { useWebFontScaleValue } from '@/design/web/WebFontScaleProvider';
 import { EmployeePortalArtwork } from './EmployeePortalArtwork';
 import { useEmployeePortalMenu } from './EmployeePortalMenuContext';
+import { useEmployeePortalWorkspaceContext } from './EmployeePortalWorkspaceContext';
 import { employeePortalDesign as c, employeePortalGroups, employeePortalLayout } from './employeePortalDesign';
 
 export type EmployeePortalTodayProps = {
@@ -48,7 +50,8 @@ export function EmployeePortalToday({ dashboard, loading, error, displayName, on
   const layout = employeePortalLayout(width, Math.max(fontScale, webFontScale));
   const greeting = useClientGreeting();
   const openMenu = useEmployeePortalMenu();
-  const navigation = useMemo(employeePortalNavigation, []);
+  const workspace = useEmployeePortalWorkspaceContext();
+  const navigation = workspace?.navigation ?? employeePortalNavigation();
   const groups = useMemo(() => employeePortalGroups(navigation), [navigation]);
   const model = useMemo(() => dashboard ? buildEmployeePortalTodayModel({ dashboard, displayName }) : null, [dashboard, displayName]);
   const navigate = (route?: string) => { if (route) router.push((fromCache && route.endsWith('/execute') ? route.slice(0, -'/execute'.length) : route) as never); };
@@ -57,7 +60,7 @@ export function EmployeePortalToday({ dashboard, loading, error, displayName, on
   if (!dashboard || !model) return <View style={styles.root}><Notice message={error || 'Für Ihren Zugang sind aktuell keine Portaldaten verfügbar.'} error={Boolean(error)} onRetry={onRefresh} /></View>;
   const taskStatusUnknown = Boolean(dashboard.signatureDocumentsError);
   const messageStatusUnknown = Boolean(dashboard.messageCountUnavailable || dashboard.messagesError);
-  const personalItems = navigation.filter(item => ['leave', 'absence', 'consultation', 'academy', 'profile'].includes(item.id));
+  const personalItems = navigation.filter(item => ['leave', 'absence', 'profile'].includes(item.id));
 
   return <View style={[styles.root, { padding: layout.padding }]} testID="healthos-employee-portal-today">
     <View style={styles.greeting} testID="employee-portal-premium-home-hero">
@@ -119,6 +122,62 @@ export function EmployeePortalToday({ dashboard, loading, error, displayName, on
     <View style={styles.personal}><Text style={styles.bodyText}>Für mich</Text><View style={styles.personalActions}>{personalItems.map(item => <Action key={item.id} label={item.label} onPress={() => navigate(item.route)} />)}</View></View>
     <View style={styles.footer}><Ionicons name="shield-checkmark-outline" color={c.muted} size={15} /><Text style={styles.caption}>Persönlicher Arbeitsbereich</Text></View>
   </View>;
+}
+
+const workspaceDetails: Record<Exclude<EmployeePortalWorkspace, 'assist'>, { title: string; description: string; item: string }> = {
+  pflege: { title: 'Meine Pflegetouren', description: 'Hier finden Sie Ihre freigegebenen Touren mit den geplanten Einsatzorten und Zeiten.', item: 'care-tours' },
+  beratung: { title: 'Beratung & Schulungen', description: 'Öffnen Sie Ihre zugeteilten Beratungen und häuslichen Schulungen.', item: 'consultation' },
+  akademie: { title: 'Meine Akademie', description: 'Öffnen Sie Ihre zugewiesenen Kurse und sehen Sie Ihren Lernfortschritt.', item: 'academy' },
+  office: { title: 'Meine Unterlagen', description: 'Öffnen Sie Ihre persönlichen Dokumente und Unterlagen zur Unterschrift.', item: 'documents' },
+};
+
+export function EmployeePortalWorkspaceHome({ displayName }: { displayName: string }) {
+  const workspace = useEmployeePortalWorkspaceContext();
+  const openMenu = useEmployeePortalMenu();
+  const router = useRouter();
+  const { width } = useHydrationSafeWindowDimensions();
+  const { fontScale } = useWindowDimensions();
+  const webFontScale = useWebFontScaleValue();
+  const layout = employeePortalLayout(width, Math.max(fontScale, webFontScale));
+  const greeting = useClientGreeting();
+  const selected = workspace?.selected;
+  const details = selected && selected !== 'assist' ? workspaceDetails[selected] : null;
+  const primary = workspace?.navigation.find(item => item.id === details?.item);
+  const personal = workspace?.navigation.filter(item => ['messages', 'time', 'documents', 'leave', 'profile'].includes(item.id) && item !== primary);
+  return (
+    <View style={[styles.root, { padding: layout.padding }]} testID="employee-portal-workspace-home">
+      <View style={styles.greeting}>
+        <View style={styles.greetingCopy}>
+          <Text style={styles.eyebrow}>{selected ? employeePortalWorkspaceLabels[selected] : 'Persönlicher Bereich'}</Text>
+          <Text accessibilityRole="header" style={[styles.title, layout.phone && styles.titlePhone]}>
+            {greeting}, {displayName.trim().split(/\s+/)[0]}.
+          </Text>
+        </View>
+        <Image source={require('../../../../public/landingpage/media/neo.png')} resizeMode="contain"
+          accessible={false} style={{ width: layout.phone ? 40 : 62, height: layout.phone ? 58 : 80 }} />
+      </View>
+      {workspace?.loading ? <Notice message="Ihre Modulfreigaben werden geprüft…" /> : null}
+      {workspace?.error ? <Notice message={workspace.error} error onRetry={workspace.retry} /> : null}
+      {!selected && !workspace?.loading && !workspace?.error ? <Notice message="Für Ihr Konto ist derzeit kein Arbeitsmodul verfügbar." /> : null}
+      {details && primary ? (
+        <Panel title={details.title}>
+          <EmployeePortalArtwork id={primary.id} label={primary.label} size={72} />
+          <Text style={styles.bodyText}>{details.description}</Text>
+          <Action label={`${primary.label} öffnen`} onPress={() => router.push(primary.route as never)} primary />
+        </Panel>
+      ) : null}
+      <Panel title="Für mich">
+        {personal?.map(item => (
+          <Pressable key={item.id} accessibilityRole="button" onPress={() => router.push(item.route as never)} style={styles.shortcut}>
+            <EmployeePortalArtwork id={item.id} label={item.label} size={40} />
+            <Text style={styles.shortcutLabel}>{item.label}</Text>
+            <Ionicons name="chevron-forward" size={15} color={c.accent} />
+          </Pressable>
+        ))}
+        {openMenu ? <Action label="Alle Bereiche" onPress={openMenu} /> : null}
+      </Panel>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create(withCareSuiteTypography({
