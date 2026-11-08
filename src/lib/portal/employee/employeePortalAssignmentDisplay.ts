@@ -15,6 +15,16 @@ const weekday = new Intl.DateTimeFormat('de-DE', { weekday: 'short' });
 const month = new Intl.DateTimeFormat('de-DE', { month: 'short' });
 const clock = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '2-digit' });
 
+export function employeePortalAgendaDate(day: Date) {
+  const valid = Number.isFinite(day.getTime());
+  return {
+    date: valid ? date.format(day) : 'Datum offen',
+    weekday: valid ? weekday.format(day) : '',
+    day: valid ? String(day.getDate()).padStart(2, '0') : '',
+    monthAndYear: valid ? `${month.format(day)} ${day.getFullYear()}` : '',
+  };
+}
+
 export function employeePortalAssignmentSchedule(appointment: Pick<PortalAppointmentItem, 'startsAt' | 'endsAt'>) {
   const start = new Date(appointment.startsAt);
   const end = new Date(appointment.endsAt);
@@ -26,10 +36,7 @@ export function employeePortalAssignmentSchedule(appointment: Pick<PortalAppoint
   const remainder = minutes % 60;
 
   return {
-    date: hasStart ? date.format(start) : 'Datum offen',
-    weekday: hasStart ? weekday.format(start) : '',
-    day: hasStart ? String(start.getDate()).padStart(2, '0') : '',
-    monthAndYear: hasStart ? `${month.format(start)} ${start.getFullYear()}` : '',
+    ...employeePortalAgendaDate(start),
     time: hasStart && hasEnd ? `${clock.format(start)} – ${clock.format(end)}` : 'Uhrzeit offen',
     endDay: hasStart && hasEnd && !sameDay ? date.format(end) : null,
     duration: !hasStart || !hasEnd ? null : hours === 0

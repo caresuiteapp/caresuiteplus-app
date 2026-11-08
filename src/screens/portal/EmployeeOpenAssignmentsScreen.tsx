@@ -1,28 +1,50 @@
-import { useCallback, useMemo, useRef } from 'react';
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
+import { useCallback, useMemo, useRef, useState } from 'react';
+import { ActivityIndicator, Platform, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useFocusEffect, useRouter } from 'expo-router';
-import { usePortalAppointments } from '@/hooks/usePortalAppointments';
-import { usePortalActor } from '@/hooks/usePortalActor';
-import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
-import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
-import { selectEmployeeOpenAssignments } from '@/lib/portal/employeePortalOpenAssignments';
-import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
-import { useAsyncQuery } from '@/hooks/core';
-import { loadEmployeeDeferredTimes } from '@/lib/portal/employeeDeferredTimeService';
-import { EmployeePortalFacts } from '@/components/portal/employee/EmployeePortalPageHeader';
-import { employeePortalWorkspace as c } from '@/components/portal/employee/employeePortalDesign';
 import { EmployeeDeferredTimeCard } from '@/components/portal/EmployeeDeferredTimeCard';
+import { EmployeePortalAgendaAction } from '@/components/portal/employee/EmployeePortalAgendaAction';
+import { EmployeePortalAgendaCard, EmployeePortalAgendaStatus } from '@/components/portal/employee/EmployeePortalAgendaCard';
+import {
+  EmployeePortalAgendaBoard,
+  EmployeePortalAgendaHero,
+  EmployeePortalAgendaSection,
+  EmployeePortalAgendaToolbar,
+  useEmployeePortalAgendaLayout,
+} from '@/components/portal/employee/EmployeePortalAgendaLayout';
+import { employeePortalDesign as c } from '@/components/portal/employee/employeePortalDesign';
+import { resolveHealthOSStatusDisplay } from '@/components/healthos/status/healthosStatusMapping';
+import { InfoBanner } from '@/components/ui/InfoBanner';
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
+import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
+import { useAsyncQuery } from '@/hooks/core';
+import { usePortalActor } from '@/hooks/usePortalActor';
+import { usePortalAppointments } from '@/hooks/usePortalAppointments';
+import { employeePortalAssignmentSchedule } from '@/lib/portal/employee/employeePortalAssignmentDisplay';
 import type { EmployeeDeferredTime } from '@/lib/portal/employeeDeferredTimeModel';
+import { loadEmployeeDeferredTimes } from '@/lib/portal/employeeDeferredTimeService';
+import { selectEmployeeOpenAssignments } from '@/lib/portal/employeePortalOpenAssignments';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 
 const NO_DEFERRED_TIMES: EmployeeDeferredTime[] = [];
+const filters = [
+  { key: 'all', label: 'Alle' },
+  { key: 'action', label: 'Nacharbeit', compactLabel: 'Zu tun' },
+  { key: 'office', label: 'Verwaltung', compactLabel: 'Büro' },
+] as const;
 
 export function EmployeeOpenAssignmentsScreen() {
   const router = useRouter();
+  const layout = useEmployeePortalAgendaLayout();
+  const [filter, setFilter] = useState<(typeof filters)[number]['key']>('all');
+  const [feedback, setFeedback] = useState<{ scope: string; message: string } | null>(null);
+  const narrowSummary = layout.readableWidth < 260;
   const { employeeId, tenantId, roleKey } = usePortalActor();
   const { items, loading, error, refreshError, refresh, refreshing, fromCache, isLinkedReady } = usePortalAppointments('employee');
   const open = useMemo(() => selectEmployeeOpenAssignments(items, employeeId ?? ''), [items, employeeId]);
+  const scope = JSON.stringify(['deferred-times', tenantId, employeeId, roleKey]);
   const deferred = useAsyncQuery(() => loadEmployeeDeferredTimes(tenantId ?? '', employeeId ?? '', roleKey),
-    [tenantId, employeeId, roleKey], { enabled: Boolean(isLinkedReady && tenantId && employeeId && roleKey === 'employee_portal'), queryKey: JSON.stringify(['deferred-times', tenantId, employeeId, roleKey]) });
+    [tenantId, employeeId, roleKey], { enabled: Boolean(isLinkedReady && tenantId && employeeId && roleKey === 'employee_portal'), queryKey: scope });
   const deferredItems = deferred.data ?? NO_DEFERRED_TIMES;
   const { visitsByTask, visibleOpen } = useMemo(() => {
     const byId = new Map(open.map(item => [item.id, item]));
@@ -39,48 +61,146 @@ export function EmployeeOpenAssignmentsScreen() {
   const refreshRef = useRef(refreshAll);
   refreshRef.current = refreshAll;
   useFocusEffect(useCallback(() => { void refreshRef.current(); }, []));
+
+  const corrections = deferredItems.filter(task => task.state === 'correction_needed');
+  const office = deferredItems.filter(task => task.state !== 'correction_needed');
+  const counts = { all: visibleOpen.length + deferredItems.length, action: visibleOpen.length + corrections.length, office: office.length };
+  const countsReady = isLinkedReady && !loading && !error && !deferred.loading && !deferred.error;
+  const isRefreshing = refreshing || deferred.refreshing;
+  const visitError = error ?? refreshError;
+  const timeError = deferred.error ?? deferred.refreshError;
+  const showEmpty = countsReady && !visitError && !timeError && counts[filter] === 0;
+
+  const renderTime = (task: EmployeeDeferredTime) => {
+    const visit = visitsByTask.get(task.id);
+    return <EmployeeDeferredTimeCard key={`${scope}:${task.id}`} task={task} compact={layout.compact}
+      onSaved={deferred.refreshWithResult} onSubmitted={message => setFeedback({ scope, message })}
+      onOpenVisit={visit ? () => openVisit(visit.id) : undefined} />;
+  };
+
   return (
-    <PortalTabScreen title="Offene Einsätze" subtitle="Nacharbeiten und zurückgestellte Arbeitszeiten" scroll={false}
-      actionsSlot={<PremiumButton title="Aktualisieren" variant="secondary" size="sm" disabled={refreshing || deferred.refreshing} onPress={() => void refreshAll()} />}>
+    <PortalTabScreen title="Offene Einsätze" scroll={false}>
       <ScrollView style={styles.root} contentContainerStyle={styles.content} showsVerticalScrollIndicator
-        refreshControl={<RefreshControl refreshing={refreshing || deferred.refreshing} onRefresh={refreshAll} />}>
-        {isLinkedReady && !loading && !error && !deferred.loading && !deferred.error ? <EmployeePortalFacts items={[
-          { id: 'visits', label: 'Weitere offene Einsätze', value: visibleOpen.length },
-          { id: 'times', label: 'Zurückgestellte Zeiten', value: deferredItems.length },
-        ]} /> : null}
-        <Text style={styles.hint}>Öffnen Sie den Einsatz, um Zeiten, Kilometer, Dokumentation oder Unterschrift zu ergänzen. Zurückgestellte Zeiten können nach Korrektur und Freigabe abgerechnet werden.</Text>
-        {fromCache ? <Text style={styles.hint}>Zwischengespeicherter Stand. Zum Speichern bitte eine Verbindung herstellen.</Text> : null}
-        {loading ? <LoadingState presentation="inline" message="Offene Einsätze werden geladen…" /> : null}
-        {error ? <ErrorState presentation="inline" message={error} onRetry={refresh} /> : null}
-        {!error && refreshError ? <ErrorState presentation="inline" message={refreshError} onRetry={refresh} /> : null}
-        {!loading && !error && !isLinkedReady ? <Text style={styles.copy}>Ihr Mitarbeitendenkonto wird noch zugeordnet. Bitte erneut laden.</Text> : null}
-        {deferred.loading ? <LoadingState presentation="inline" message="Zurückgestellte Zeiten werden geladen…" /> : null}
-        {deferred.error || deferred.refreshError ? <ErrorState presentation="inline" message={deferred.error ?? deferred.refreshError!} onRetry={deferred.refresh} /> : null}
-        {deferredItems.length ? <Text style={styles.subheading}>Zurückgestellte Zeiten · {deferredItems.length}</Text> : null}
-        {deferredItems.map(task => <EmployeeDeferredTimeCard key={`${tenantId}:${employeeId}:${task.id}`} task={task}
-          onSaved={deferred.refreshWithResult} onOpenVisit={visitsByTask.has(task.id) ? () => openVisit(visitsByTask.get(task.id)!.id) : undefined} />)}
-        {!loading && !error && !refreshError && !deferred.loading && !deferred.error && !deferred.refreshError && isLinkedReady && open.length === 0 && deferredItems.length === 0 ? <Text style={styles.empty}>Alles erledigt. Sie haben keine offenen Einsätze oder zurückgestellten Zeiten.</Text> : null}
-        {visibleOpen.length > 0 && deferredItems.length > 0 ? <Text style={styles.subheading}>Weitere offene Einsätze</Text> : null}
-        {visibleOpen.map((item) => (
-          <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={`${item.clientName ?? item.title}: ${fromCache ? 'Einsatz ansehen' : 'Einsatz bearbeiten'}`}
-            onPress={() => openVisit(item.id)} style={styles.card}>
-            <Text style={styles.date}>{new Date(item.startsAt).toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' })} · {new Date(item.startsAt).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Text>
-            <Text style={styles.name}>{item.clientName ?? item.title}</Text>
-            <Text style={styles.copy}>{item.assignmentStatus ? ASSIGNMENT_STATUS_LABELS[item.assignmentStatus] : 'Offen'}</Text>
-            <Text style={styles.action}>{fromCache ? 'Einsatz ansehen' : 'Einsatz bearbeiten'} →</Text>
-          </Pressable>
-        ))}
+        keyboardShouldPersistTaps="handled" nestedScrollEnabled testID="employee-open-assignments-scroll"
+        refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={refreshAll} />}>
+        <EmployeePortalAgendaBoard layout={layout}>
+          <EmployeePortalAgendaHero layout={layout} artwork="open-assignments" kicker="Nachbearbeitung" title="Offene Einsätze"
+            subtitle="Nacharbeiten und zurückgestellte Arbeitszeiten" testID="employee-open-assignments-hero">
+            {countsReady ? (
+              <View style={styles.summary}>
+                <View style={[styles.metric, narrowSummary && styles.metricNarrow]}>
+                  <Text style={styles.metricCount}>{visibleOpen.length}</Text>
+                  <Text style={styles.metricLabel}>Weitere offene Einsätze</Text>
+                </View>
+                <View style={[styles.metric, narrowSummary && styles.metricNarrow]}>
+                  <Text style={styles.metricCount}>{deferredItems.length}</Text>
+                  <Text style={styles.metricLabel}>Zurückgestellte Zeiten</Text>
+                </View>
+              </View>
+            ) : null}
+          </EmployeePortalAgendaHero>
+
+          <EmployeePortalAgendaToolbar layout={layout} active={filter} onSelect={setFilter}
+            filters={filters.map(option => ({ ...option, count: countsReady ? counts[option.key] : null }))}
+            refresh={refreshAll} refreshing={isRefreshing} unit={['Eintrag', 'Einträge']} />
+
+          {feedback?.scope === scope ? (
+            <InfoBanner variant="success" presentation="inline" onDarkSurface message={feedback.message}
+              dismissible onDismiss={() => setFeedback(null)} />
+          ) : null}
+          {fromCache ? (
+            <InfoBanner variant="info" presentation="inline" onDarkSurface title="Zwischengespeicherte Einsätze"
+              message="Zum Speichern von Änderungen an Einsätzen bitte eine Verbindung herstellen." />
+          ) : null}
+          {loading || deferred.loading ? (
+            <View style={styles.notice} accessibilityRole="progressbar" accessibilityLabel="Einträge werden geladen">
+              <ActivityIndicator color={c.accent} />
+              <Text style={styles.copy}>Einträge werden geladen…</Text>
+            </View>
+          ) : null}
+          {visitError ? (
+            <InfoBanner variant="error" presentation="inline" onDarkSurface title="Einsätze konnten nicht geladen werden"
+              message={visitError} actionLabel="Erneut versuchen" onAction={refresh} />
+          ) : null}
+          {timeError ? (
+            <InfoBanner variant="error" presentation="inline" onDarkSurface title="Zurückgestellte Zeiten konnten nicht geladen werden"
+              message={timeError} actionLabel="Erneut versuchen" onAction={deferred.refresh} />
+          ) : null}
+          {!loading && !error && !isLinkedReady ? (
+            <InfoBanner variant="info" presentation="inline" onDarkSurface
+              message="Ihr Mitarbeitendenkonto wird noch zugeordnet. Bitte erneut laden." />
+          ) : null}
+
+          {filter !== 'office' && corrections.length ? (
+            <EmployeePortalAgendaSection layout={layout} icon="create-outline" title="Zeiten zur Korrektur"
+              count={corrections.length} warning subtitle="Die Verwaltung prüft eingereichte Korrekturen.">
+              {corrections.map(renderTime)}
+            </EmployeePortalAgendaSection>
+          ) : null}
+
+          {filter !== 'office' && visibleOpen.length ? (
+            <EmployeePortalAgendaSection layout={layout} icon="briefcase-outline" title="Weitere offene Einsätze"
+              count={visibleOpen.length} subtitle="Ergänzen Sie bei Bedarf Zeiten, Kilometer, Dokumentation oder Unterschrift.">
+              {visibleOpen.map(item => {
+                const schedule = employeePortalAssignmentSchedule(item);
+                const status = item.assignmentStatus ? resolveHealthOSStatusDisplay('assignment', item.assignmentStatus) : null;
+                return (
+                  <EmployeePortalAgendaCard key={item.id} testID={`open-assignment-${item.id}`}
+                    date={schedule} title={item.clientName ?? item.title} compact={layout.compact}
+                    status={<EmployeePortalAgendaStatus label={status?.label ?? 'Offen'} tone={status?.tone} />}
+                    actions={<EmployeePortalAgendaAction label={fromCache ? 'Einsatz ansehen' : 'Einsatz bearbeiten'}
+                      icon={fromCache ? 'eye-outline' : 'arrow-forward-outline'} primary={!fromCache} onPress={() => openVisit(item.id)} />}>
+                    <Text style={styles.visitTime}>{schedule.time}</Text>
+                    {schedule.endDay ? <Text style={styles.copy}>Ende am {schedule.endDay}</Text> : null}
+                  </EmployeePortalAgendaCard>
+                );
+              })}
+            </EmployeePortalAgendaSection>
+          ) : null}
+
+          {filter !== 'action' && office.length ? (
+            <EmployeePortalAgendaSection layout={layout} icon="time-outline" title="Bei der Verwaltung"
+              count={office.length} muted subtitle="Diese Zeiten warten auf Freigabe oder Klärung.">
+              {office.map(renderTime)}
+            </EmployeePortalAgendaSection>
+          ) : null}
+
+          {showEmpty ? (
+            <View style={styles.notice}>
+              <Ionicons name="checkmark-circle-outline" size={25} color={c.accent} accessible={false} />
+              <Text accessibilityRole="header" aria-level={2} style={styles.emptyTitle}>
+                {filter === 'all' ? 'Alles erledigt' : filter === 'action' ? 'Aktuell nichts nachzuarbeiten' : 'Keine Zeiten bei der Verwaltung'}
+              </Text>
+              {filter === 'all'
+                ? <Text style={styles.copy}>Sie haben keine offenen Einsätze oder zurückgestellten Zeiten.</Text>
+                : <EmployeePortalAgendaAction label="Alle Einträge anzeigen" icon="list-outline" onPress={() => setFilter('all')} />}
+            </View>
+          ) : null}
+        </EmployeePortalAgendaBoard>
       </ScrollView>
     </PortalTabScreen>
   );
 }
-const styles = StyleSheet.create({
-  root: { flex: 1, minHeight: 0 }, content: { gap: 12, paddingBottom: 24 },
-  subheading: { color: '#123251', fontSize: 20, fontWeight: '700', paddingTop: 8 },
-  copy: { color: '#355573', fontSize: 16, lineHeight: 23 },
-  hint: { color: '#456480', fontSize: 14, lineHeight: 21 },
-  empty: { color: '#176847', fontSize: 18, lineHeight: 26, paddingVertical: 18 },
-  card: { borderWidth: 1, borderColor: c.line, backgroundColor: c.surface, borderRadius: c.radius, padding: 14, gap: 8 },
-  date: { color: '#76500E', fontSize: 14, fontWeight: '600' }, name: { color: '#123251', fontSize: 20, fontWeight: '700' },
-  action: { color: '#0766C9', fontSize: 16, fontWeight: '700', paddingTop: 8 },
-});
+
+const styles = StyleSheet.create(withCareSuiteTypography({
+  root: {
+    flex: 1, minHeight: 0, width: '100%',
+    ...(Platform.OS === 'web' ? ({
+      overflowY: 'auto', overflowX: 'hidden', touchAction: 'pan-y',
+      overscrollBehaviorY: 'contain', scrollbarWidth: 'thin', scrollbarColor: 'rgba(188,238,255,0.38) transparent',
+    } as never) : {}),
+  },
+  content: { paddingBottom: 28 },
+  summary: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, maxWidth: 550 },
+  metric: {
+    flexGrow: 1, flexShrink: 1, flexBasis: 128, minWidth: 0, paddingHorizontal: 12, paddingVertical: 8, gap: 2,
+    borderRadius: 12, borderWidth: 1, borderColor: c.line, backgroundColor: c.control,
+  },
+  metricNarrow: { flexBasis: '100%', flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 5 },
+  metricCount: { color: c.accent, fontSize: font(21), lineHeight: font(27), fontWeight: '800', fontVariant: ['tabular-nums'] },
+  metricLabel: { flexShrink: 1, color: c.muted, fontSize: font(12), lineHeight: font(17), fontWeight: '700' },
+  notice: { gap: 10, alignItems: 'flex-start', padding: 16, borderRadius: 17, borderWidth: 1, borderColor: c.line, backgroundColor: c.panel },
+  copy: { color: c.muted, fontSize: font(13), lineHeight: font(19) },
+  emptyTitle: { color: c.text, fontSize: font(18), lineHeight: font(24), fontWeight: '800' },
+  visitTime: { color: c.text, fontSize: font(15), lineHeight: font(20), fontWeight: '800', fontVariant: ['tabular-nums'] },
+}));

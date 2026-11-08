@@ -7,17 +7,29 @@ vi.mock('react',async original=>({...await original<object>(),
   useRef:(initial:any)=>{const i=h.cursor++;return h.values[i]??={current:initial};},
 }));
 vi.mock('react-native',()=>({View:'View',Text:'Text',StyleSheet:{create:(s:any)=>s}}));
-vi.mock('@/components/ui',()=>({PremiumButton:'Button',PremiumInput:'Input'}));
+vi.mock('@/components/ui/PremiumInput',()=>({PremiumInput:'Input'}));
+vi.mock('@/components/layout/platform/platformmodal',()=>({PlatformModal:'Modal'}));
+vi.mock('@/components/portal/employee/EmployeePortalAgendaAction',()=>({EmployeePortalAgendaAction:'AgendaAction'}));
+vi.mock('@/components/portal/employee/EmployeePortalAgendaCard',()=>({EmployeePortalAgendaCard:'AgendaCard',EmployeePortalAgendaStatus:'AgendaStatus'}));
+vi.mock('@/design/web/webFontSize',()=>({webScaledFontMetric:(value:number)=>value}));
+vi.mock('@/design/withCareSuiteTypography',()=>({withCareSuiteTypography:(styles:object)=>styles}));
+vi.mock('@/design/tokens/portalPremium',()=>({portalPremium:{text:{secondary:'#123251'},accent:{danger:'#A4233B'}}}));
 vi.mock('@/lib/auth/context',()=>({useAuth:()=>({portalSession:null})}));
 vi.mock('@/lib/auth/portalSupabaseAuth',()=>({ensurePortalWriteSession:(...a:any[])=>h.session(...a)}));
 vi.mock('@/lib/portal/employeeDeferredTimeService',()=>({submitEmployeeDeferredTime:(...a:any[])=>h.submit(...a)}));
 vi.mock('@/lib/portal/employeeDeferredTimeModel',()=>({EMPLOYEE_DEFERRED_REASON_LABELS:{incomplete:'Abschluss fehlt oder ist ungültig',missing:'Zeiterfassung fehlt'}}));
 vi.mock('@/lib/supabase/client',()=>({getSupabaseClient:()=>null}));
-const saved=vi.fn(),open=vi.fn();
+const saved=vi.fn(),submitted=vi.fn(),open=vi.fn();
 let task:EmployeeDeferredTime;
 function nodes(n:any):any[]{return Array.isArray(n)?n.flatMap(nodes):n?.props?[n,...nodes(n.props.children)]:[];}
-function render(){h.cursor=0;return nodes(EmployeeDeferredTimeCard({task,onSaved:saved,onOpenVisit:open}));}
-function press(title:string){return render().find(n=>n.props.title===title).props.onPress();}
+function render(){h.cursor=0;return nodes(EmployeeDeferredTimeCard({task,compact:false,onSaved:saved,onSubmitted:submitted,onOpenVisit:open}));}
+function press(title:string){
+  const rendered=render();
+  const action=rendered.find(n=>n.type==='AgendaCard').props.actions?.props.children
+    .find((n:any)=>n?.props.label===title)?.props;
+  const footer=rendered.find(n=>n.type==='Modal')?.props.footerActions.find((a:any)=>a.title===title);
+  return (action ?? footer).onPress();
+}
 function fill(label:string,value:string){render().find(n=>n.props.label===label).props.onChangeText(value);}
 function complete(){press('Zeiten korrigieren');fill('Arbeitsbeginn (TT.MM.JJJJ HH:MM)','31.10.2026 09:00');fill('Arbeitsende (TT.MM.JJJJ HH:MM)','31.10.2026 10:30');fill('Grund der Korrektur','Abschluss nachgetragen');}
 beforeEach(()=>{
@@ -36,7 +48,8 @@ describe('employee correction form',()=>{
     complete();await press('Korrektur zur Prüfung einreichen');
     expect(h.submit).toHaveBeenCalledWith(expect.objectContaining({task,reason:'Abschluss nachgetragen',pauseMinutes:0}));
     expect(saved).toHaveBeenCalledTimes(1);
-    expect(render().some(n=>n.props.children==='Korrektur eingereicht. Die Verwaltung prüft die Zeiten vor der Nachberechnung.')).toBe(true);
+    expect(submitted).toHaveBeenCalledWith('Korrektur eingereicht. Die Verwaltung prüft die Zeiten vor der Nachberechnung.');
+    expect(render().some(n=>n.type==='Modal')).toBe(false);
   });
   it('requires complete actuals and a reason',async()=>{
     press('Zeiten korrigieren');await press('Korrektur zur Prüfung einreichen');expect(h.submit).not.toHaveBeenCalled();
@@ -58,10 +71,11 @@ describe('employee correction form',()=>{
     expect(h.submit).not.toHaveBeenCalled();
   });
   it.each(['awaiting_review','office_required'] as const)('does not offer an edit for %s',state=>{
-    task={...task,state};expect(render().some(n=>n.props.title==='Zeiten korrigieren')).toBe(false);
+    task={...task,state};
+    expect(render().find(n=>n.type==='AgendaCard').props.actions.props.children.some((n:any)=>n?.props.label==='Zeiten korrigieren')).toBe(false);
   });
   it('reports that saving succeeded even if refreshing subsequently fails',async()=>{
     saved.mockResolvedValue(false);complete();await press('Korrektur zur Prüfung einreichen');
-    expect(render().some(n=>n.props.children==='Korrektur eingereicht. Der Listenstand konnte noch nicht aktualisiert werden. Bitte erneut laden.')).toBe(true);
+    expect(submitted).toHaveBeenCalledWith('Korrektur eingereicht. Der Listenstand konnte noch nicht aktualisiert werden. Bitte erneut laden.');
   });
 });

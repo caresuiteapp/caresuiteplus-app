@@ -23,7 +23,9 @@ describe('employee portal readability (contrast + text layout)', () => {
     const card = readSrc('src/components/portal/EmployeePortalAssignmentCard.tsx');
     expect(card).toContain('webScaledFontMetric');
     expect(card).toContain('color: c.text');
-    expect(card).toContain('backgroundColor: c.panel');
+    const agendaCard = readSrc('src/components/portal/employee/EmployeePortalAgendaCard.tsx');
+    expect(card).toContain('<EmployeePortalAgendaCard');
+    expect(agendaCard).toContain('backgroundColor: c.panel');
     expect(card).toContain("flexWrap: 'wrap'");
     expect(card).not.toContain('lightLiquidGlass.card');
     expect(card).not.toContain('useAuroraAdaptiveText');

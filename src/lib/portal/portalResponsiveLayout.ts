@@ -29,7 +29,9 @@ export function resolvePortalDesktopChrome(width: number): boolean {
 /** These screens draw their own headings and let the portal backdrop show through. */
 export function employeePortalUsesAmbientWorkspace(pathname: string): boolean {
   const path = pathname.replace(/\/+$/, '');
-  return path === '/portal/employee' || path === '/portal/employee/assignments';
+  return path === '/portal/employee'
+    || path === '/portal/employee/assignments'
+    || path === '/portal/employee/offene-einsaetze';
 }
 
 /**
