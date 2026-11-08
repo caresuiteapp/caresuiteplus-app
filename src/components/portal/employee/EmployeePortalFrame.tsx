@@ -1,5 +1,5 @@
-import { useState, type ReactNode } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useRef, useState, type ReactNode } from 'react';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { LiquidPortalNavigationItem } from '@/liquid-command/navigation/portalCatalog';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
@@ -7,15 +7,17 @@ import { PortalReadOnlyAvatar } from '@/components/portal/PortalReadOnlyAvatar';
 import { employeePortalWorkspaceLabels } from '@/lib/portal/employee/employeePortalWorkspaces';
 import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
+import { useWebFontScaleValue } from '@/design/web/WebFontScaleProvider';
 import { EmployeePortalArtwork } from './EmployeePortalArtwork';
 import { EmployeePortalBackdrop } from './EmployeePortalBackdrop';
+import { EmployeePortalHeaderStatus } from './EmployeePortalHeaderStatus';
 import { EmployeePortalMenuContext } from './EmployeePortalMenuContext';
 import { useEmployeePortalWorkspaceContext } from './EmployeePortalWorkspaceContext';
-import { employeePortalDesign as c, employeePortalLayout, employeePortalWorkspace, employeeRailIds } from './employeePortalDesign';
+import { employeePortalDesign as c, employeePortalHeaderLayout, employeePortalLayout, employeePortalWorkspace, employeeRailIds } from './employeePortalDesign';
 
 type Props = {
-  children: ReactNode; overlay?: ReactNode; width: number; displayName: string;
-  avatarUrl?: string; avatarVersion?: string;
+  children: ReactNode; overlay?: ReactNode; width: number; height: number; displayName: string;
+  avatarUrl?: string; avatarVersion?: string; weatherOwner: string | null;
   navigation: readonly LiquidPortalNavigationItem[]; activeId: string; unreadCount: number;
   lightWorkspace?: boolean;
   keyboardVisible: boolean; focus: boolean; insets: { top: number; bottom: number };
@@ -23,19 +25,24 @@ type Props = {
 };
 
 /** Shared native/Web chrome with a scrollable rail and a fixed menu action. */
-export function EmployeePortalFrame({ children, overlay, width, displayName, avatarUrl, avatarVersion, navigation, activeId, unreadCount, lightWorkspace, keyboardVisible, focus, insets, onNavigate, onSignOut }: Props) {
+export function EmployeePortalFrame({ children, overlay, width, height, displayName, avatarUrl, avatarVersion, weatherOwner, navigation, activeId, unreadCount, lightWorkspace, keyboardVisible, focus, insets, onNavigate, onSignOut }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [moduleOpen, setModuleOpen] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
+  const signOutInFlight = useRef(false);
   const layout = employeePortalLayout(width);
+  const { fontScale } = useWindowDimensions();
+  const webFontScale = useWebFontScaleValue();
+  const header = employeePortalHeaderLayout(width, height, Math.max(fontScale ?? 1, webFontScale));
+  const moduleWithBrand = header.singleRow || header.groupedLandscape;
   const workspace = useEmployeePortalWorkspaceContext();
   const moduleLabel = workspace?.selected ? employeePortalWorkspaceLabels[workspace.selected] : workspace?.loading ? 'Wird geladen…' : 'Persönlicher Bereich';
-  const stackModule = width < 820;
   const moduleTrigger = workspace ? (
     <Pressable accessibilityRole="button" accessibilityLabel={`Arbeitsmodul wählen. ${moduleLabel}`}
       accessibilityState={{ expanded: moduleOpen, busy: workspace.loading }} onPress={() => setModuleOpen(true)}
-      testID="employee-portal-module-switcher" style={[styles.moduleTrigger, stackModule && styles.moduleTriggerPhone]}>
+      testID="employee-portal-module-switcher" style={[styles.moduleTrigger, header.compact && styles.moduleTriggerCompact,
+        header.phonePortrait && styles.moduleTriggerPhone, header.shortLandscape && !moduleWithBrand && styles.moduleTriggerLandscape]}>
       <View style={styles.moduleCopy}><Text style={styles.kicker}>ARBEITSMODUL</Text><Text style={styles.moduleValue}>{moduleLabel}</Text></View>
       <Ionicons name="chevron-down" size={17} color={c.accent} />
     </Pressable>
@@ -46,10 +53,43 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, ava
   const label = (item: LiquidPortalNavigationItem) => item.id === 'messages' && unreadCount > 0 ? `${item.label}, ${unreadCount} ungelesene Nachrichten` : item.label;
   const open = (route: string) => { setMenuOpen(false); onNavigate(route); };
   const logout = async () => {
+    if (signOutInFlight.current) return;
+    signOutInFlight.current = true;
     setSigningOut(true); setSignOutError(null);
     try { await onSignOut(); } catch { setSignOutError('Abmelden nicht möglich. Bitte erneut versuchen.'); }
-    finally { setSigningOut(false); }
+    finally { signOutInFlight.current = false; setSigningOut(false); }
   };
+  const headerLogout = (
+    <Pressable accessibilityRole="button" accessibilityLabel="Abmelden" accessibilityState={{ disabled: signingOut, busy: signingOut }}
+      disabled={signingOut} onPress={() => void logout()} testID="employee-portal-header-sign-out"
+      style={({ pressed }) => [styles.headerLogout, (pressed || signingOut) && styles.pressed]}>
+      <Ionicons name="log-out-outline" size={20} color={c.accent} />
+      <Text style={styles.headerLogoutText}>{signingOut ? 'Wird abgemeldet…' : 'Abmelden'}</Text>
+    </Pressable>
+  );
+  const brand = (
+    <View key="brand" style={[styles.brandGroup, header.phonePortrait && styles.headerRowPhone, header.groupedLandscape && styles.brandLandscape]}>
+      <Pressable accessibilityRole="button" accessibilityLabel="CareSuite HealthOS – Heute" onPress={() => open('/portal/employee')} style={styles.brand}>
+        <Text style={[styles.wordmark, header.compact && styles.wordmarkCompact, (header.phonePortrait || header.shortLandscape) && styles.wordmarkPhone]}>CareSuite <Text style={styles.brandAccent}>HealthOS</Text></Text>
+        <Text style={styles.kicker}>MITARBEITENDENPORTAL</Text>
+      </Pressable>
+      {header.phonePortrait ? headerLogout : moduleWithBrand ? moduleTrigger : null}
+    </View>
+  );
+  const status = <EmployeePortalHeaderStatus key="status" owner={weatherOwner}
+    compact={header.phonePortrait || header.shortLandscape || (header.singleRow && header.compact)} stacked={!header.inlineStatus} />;
+  const actions = (
+    <View key="actions" style={[styles.headerActions, header.phonePortrait && styles.headerRowPhone, header.shortLandscape && !moduleWithBrand && styles.headerRowLandscape]}>
+      {!moduleWithBrand ? moduleTrigger : null}
+      <PortalTextSizeControls compact={header.compact} appearance="desktop-header" />
+      {!header.compact ? <Pressable accessibilityRole="button" accessibilityLabel="Hilfe öffnen" onPress={() => open('/portal/employee/help')} style={styles.headerButton}><Ionicons name="help-circle-outline" size={23} color={c.text} /></Pressable> : null}
+      {!header.compact ? <View style={styles.identity}><Text style={styles.identityName}>{displayName}</Text><Text style={styles.secondary}>Mein Arbeitsbereich</Text></View> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel={`Profil von ${displayName} öffnen`} onPress={() => open('/portal/employee/profile')}>
+        <PortalReadOnlyAvatar name={displayName} avatarUrl={avatarUrl} avatarVersion={avatarVersion} size="md" accentColor={c.accent} />
+      </Pressable>
+      {!header.phonePortrait ? headerLogout : null}
+    </View>
+  );
   const railAction = (item: LiquidPortalNavigationItem) => (
     <Pressable key={item.id} accessibilityRole="tab" accessibilityLabel={label(item)} accessibilityState={{ selected: activeId === item.id }}
       accessibilityHint={item.label} {...(Platform.OS === 'web' ? { title: item.label } : {})}
@@ -61,21 +101,9 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, ava
 
   return <EmployeePortalMenuContext.Provider value={() => setMenuOpen(true)}><View style={styles.frame} testID="employee-portal-responsive-frame">
     <EmployeePortalBackdrop animated={!focus} />
-    {!focus ? <View style={[styles.header, frostedChrome, { paddingTop: Math.max(insets.top, 12) }, layout.phone && styles.headerPhone]} testID="employee-portal-header">
-      <Pressable accessibilityRole="button" accessibilityLabel="CareSuite HealthOS – Heute" onPress={() => open('/portal/employee')} style={styles.brand}>
-        <Text style={[styles.wordmark, layout.phone && styles.wordmarkPhone]}>CareSuite <Text style={styles.brandAccent}>HealthOS</Text></Text>
-        <Text style={styles.kicker}>MITARBEITENDENPORTAL</Text>
-      </Pressable>
-      {!stackModule ? moduleTrigger : null}
-      <View style={styles.headerActions}>
-        <PortalTextSizeControls compact={layout.phone} appearance="desktop-header" />
-        {!layout.phone ? <Pressable accessibilityRole="button" accessibilityLabel="Hilfe öffnen" onPress={() => open('/portal/employee/help')} style={styles.headerButton}><Ionicons name="help-circle-outline" size={23} color={c.text} /></Pressable> : null}
-        {width >= 1100 ? <View style={styles.identity}><Text style={styles.identityName}>{displayName}</Text><Text style={styles.secondary}>Mein Arbeitsbereich</Text></View> : null}
-        <Pressable accessibilityRole="button" accessibilityLabel={`Profil von ${displayName} öffnen`} onPress={() => open('/portal/employee/profile')}>
-          <PortalReadOnlyAvatar name={displayName} avatarUrl={avatarUrl} avatarVersion={avatarVersion} size="md" accentColor={c.accent} />
-        </Pressable>
-      </View>
-      {stackModule ? moduleTrigger : null}
+    {!focus ? <View style={[styles.header, frostedChrome, { paddingTop: Math.max(insets.top, header.shortLandscape ? 6 : 12) }, header.compact && styles.headerCompact, header.shortLandscape && styles.headerLandscape]} testID="employee-portal-header">
+      {header.inlineStatus || header.phonePortrait || header.shortLandscape ? [brand, status, actions] : [brand, actions, status]}
+      {signOutError && !menuOpen ? <Text accessibilityRole="alert" style={styles.headerError}>{signOutError}</Text> : null}
     </View> : null}
     <View style={styles.body}>
       <View style={[styles.rail, frostedChrome, { width: layout.railWidth }]} testID="employee-portal-symbol-navigation">
@@ -143,17 +171,28 @@ const frostedChrome = Platform.OS === 'web' ? ({
 
 const styles = StyleSheet.create(withCareSuiteTypography({
   frame: { flex: 1, minWidth: 0, minHeight: 0, position: 'relative', backgroundColor: c.canvas },
-  header: { flexShrink: 0, minHeight: 80, paddingHorizontal: 24, paddingBottom: 12, borderBottomWidth: 1, borderColor: c.line, backgroundColor: c.header, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 },
-  headerPhone: { minHeight: 72, paddingHorizontal: 10, gap: 8 },
-  brand: { minWidth: 0, flexShrink: 1, gap: 4 }, wordmark: { color: c.text, fontSize: font(27), lineHeight: font(34), letterSpacing: -1 }, wordmarkPhone: { fontSize: font(19), lineHeight: font(27) }, brandAccent: { color: c.accent },
+  header: { flexShrink: 0, minHeight: 96, paddingHorizontal: 24, paddingBottom: 12, borderBottomWidth: 1, borderColor: c.line, backgroundColor: c.header, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 },
+  headerCompact: { minHeight: 0, paddingHorizontal: 12, paddingBottom: 9, gap: 8 },
+  headerLandscape: { paddingBottom: 6, gap: 6 },
+  brandGroup: { minWidth: 0, maxWidth: '100%', flexShrink: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
+  brandLandscape: { flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch', gap: 5 },
+  headerRowPhone: { flexBasis: '100%', justifyContent: 'space-between', gap: 8 },
+  headerRowLandscape: { flexBasis: '100%', gap: 8 },
+  brand: { minWidth: 0, flexShrink: 1, gap: 4 }, wordmark: { color: c.text, fontSize: font(31), lineHeight: font(38), letterSpacing: -1 },
+  wordmarkCompact: { fontSize: font(26), lineHeight: font(32) }, wordmarkPhone: { fontSize: font(21), lineHeight: font(28) }, brandAccent: { color: c.accent },
   kicker: { color: c.muted, fontSize: font(9), lineHeight: font(14), letterSpacing: 1.2 },
-  headerActions: { minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10, marginLeft: 'auto' },
+  headerActions: { minWidth: 0, maxWidth: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10, marginLeft: 'auto' },
   headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: c.control, borderWidth: 1, borderColor: c.line },
-  identity: { maxWidth: 200, gap: 2, alignItems: 'flex-end' }, identityName: { color: c.text, fontSize: font(13), lineHeight: font(19) }, secondary: { color: c.muted, fontSize: font(12), lineHeight: font(18) },
+  identity: { maxWidth: 200, gap: 2, alignItems: 'flex-end' }, identityName: { color: c.text, fontSize: font(14), lineHeight: font(20), textAlign: 'right' }, secondary: { color: c.muted, fontSize: font(12), lineHeight: font(18) },
   moduleTrigger: { minWidth: 140, maxWidth: '100%', minHeight: 44, flexShrink: 0, paddingVertical: 5, paddingHorizontal: 12, borderWidth: 1, borderColor: c.line, backgroundColor: c.control, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
-  moduleTriggerPhone: { width: '100%', minWidth: 0 },
+  moduleTriggerCompact: { minWidth: 116, paddingHorizontal: 9, gap: 8 },
+  moduleTriggerPhone: { flex: 1 },
+  moduleTriggerLandscape: { marginRight: 'auto' },
   moduleCopy: { flexShrink: 1, minWidth: 0 },
   moduleValue: { color: c.text, fontSize: font(15), lineHeight: font(21), fontWeight: '700' },
+  headerLogout: { minHeight: 44, maxWidth: '100%', paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: c.line, borderRadius: 12, backgroundColor: c.control, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headerLogoutText: { color: c.text, fontSize: font(13), lineHeight: font(18), fontWeight: '700', flexShrink: 1 },
+  headerError: { flexBasis: '100%', color: c.danger, fontSize: font(13), lineHeight: font(19), textAlign: 'right' },
   body: { flex: 1, minHeight: 0, minWidth: 0, flexDirection: 'row' },
   rail: { flexShrink: 0, minHeight: 0, paddingVertical: 10, alignItems: 'center', backgroundColor: c.rail, borderRightWidth: 1, borderColor: c.line },
   railScroll: { flex: 1, width: '100%', minHeight: 0 }, railContent: { alignItems: 'center', gap: 7, paddingBottom: 12, paddingTop: 4 },

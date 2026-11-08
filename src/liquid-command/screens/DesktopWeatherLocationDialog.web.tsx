@@ -29,12 +29,13 @@ function loadPlaces() {
   return placesPromise;
 }
 
-export function DesktopWeatherLocationDialog({ visible, place, preferenceError, onChoose, onClose }: {
+export function DesktopWeatherLocationDialog({ visible, place, preferenceError, onChoose, onClose, eyebrow = 'IHR DESKTOP' }: {
   visible: boolean;
   place: WeatherPlace | null;
   preferenceError: string | null;
   onChoose: (place: WeatherPlace | null) => boolean;
   onClose: () => void;
+  eyebrow?: string;
 }) {
   const { width, height } = useWindowDimensions();
   const { effectiveScale: scale } = useWebFontScale();
@@ -73,7 +74,7 @@ export function DesktopWeatherLocationDialog({ visible, place, preferenceError, 
       <Pressable onPress={event => event.stopPropagation()} style={[styles.panel, { width: Math.min(width - 24, 600 * scale), maxHeight: height - 32 }]}>
         <View style={styles.heading}>
           <View style={styles.titleGroup}>
-            <Text style={[styles.eyebrow, small]}>IHR DESKTOP</Text>
+            <Text style={[styles.eyebrow, small]}>{eyebrow}</Text>
             <Text accessibilityRole="header" style={[styles.title, { fontSize: 25 * scale, lineHeight: 32 * scale }]}>Wetterort ändern</Text>
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel="Wetterort-Auswahl schließen" onPress={onClose} style={styles.close}>

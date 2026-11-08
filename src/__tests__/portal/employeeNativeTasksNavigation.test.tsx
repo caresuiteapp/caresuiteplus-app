@@ -83,6 +83,19 @@ beforeEach(() => {
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 
 describe('actual native employee shell to tasks receiving workflow', () => {
+  it('retries a failed sign-out from the visible header without opening the menu', async () => {
+    h.auth.signOut.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined);
+    await render();
+    const signOut = labelled('Abmelden')!;
+    expect(signOut.closest('[data-testid="employee-portal-header"]')).not.toBeNull();
+    await act(async () => signOut.click());
+    expect(host.textContent).toContain('Abmelden nicht möglich. Bitte erneut versuchen.');
+    expect(h.replace).not.toHaveBeenCalled();
+    await act(async () => signOut.click());
+    expect(h.auth.signOut).toHaveBeenCalledTimes(2);
+    expect(h.replace).toHaveBeenCalledWith('/');
+  });
+
   it.each([360,1280])('exposes the existing announcement and support destinations in the actual shell at width %s',async width=>{
     h.width=width;await render();
     for(const [label,target] of [['Mitteilungen','/portal/employee/announcements'],['Hilfe','/portal/employee/help']]){

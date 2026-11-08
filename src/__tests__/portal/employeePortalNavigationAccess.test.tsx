@@ -1,4 +1,5 @@
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: () => null }));
+vi.mock('@expo/vector-icons/Feather', () => ({ default: () => null }));
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LiquidPortalRouteLayout } from '@/liquid-command/shell/LiquidPortalRouteLayout';
 import { EmployeeLogbookLifecycleGate } from '@/components/portal/EmployeeLogbookLifecycleGate';
@@ -19,7 +20,8 @@ vi.mock('react', async (original) => ({
   useState: (value: unknown) => [state.gate && state.slot++ === 0 ? state.trip : value, vi.fn()],
 }));
 vi.mock('react-native', () => ({
-  View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', Modal: 'Modal',
+  View: 'View', Text: 'Text', Pressable: 'Pressable', ScrollView: 'ScrollView', Modal: 'Modal', Image: 'Image',
+  useWindowDimensions: () => ({ width: state.width, height: 800, fontScale: 1 }),
   Platform: { OS: 'android', select: (options: Record<string, unknown>) => options.android ?? options.default },
   StyleSheet: { create: (styles: unknown) => styles },
 }));
@@ -61,6 +63,7 @@ vi.mock('@/liquid-command/components/LiquidPrimitives', () => ({
   LiquidGlyph: 'Glyph', LiquidLogo: 'Logo', LiquidSurface: 'Surface', LiquidVisualModeProvider: 'Mode',
 }));
 vi.mock('@/components/portal/accessibility/PortalTextSizeControls', () => ({ PortalTextSizeControls: 'TextSize' }));
+vi.mock('@/design/web/WebFontScaleProvider', () => ({ useWebFontScaleValue: () => 1 }));
 vi.mock('@/design/tokens/portalPremium', async (original) => ({ ...await original<object>(), PortalPremiumProvider: 'Theme' }));
 vi.mock('@/lib/employeeLogbook', () => ({ flushLogbookPointQueue: vi.fn(), resumeActiveEmployeeLogbookTracking: vi.fn() }));
 vi.mock('@/features/liveTracking/assistLocationPointQueue', () => ({ flushAssistLocationPointQueue: vi.fn() }));

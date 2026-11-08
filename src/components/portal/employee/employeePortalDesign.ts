@@ -41,6 +41,20 @@ export function employeePortalLayout(width: number, fontScale = 1) {
   };
 }
 
+export function employeePortalHeaderLayout(width: number, height: number, fontScale: number) {
+  const readableWidth = width / Math.max(1, fontScale);
+  const shortLandscape = width > height && height < 520;
+  const singleRow = readableWidth >= 1020;
+  return {
+    phonePortrait: width < 600 && !shortLandscape,
+    shortLandscape,
+    singleRow,
+    groupedLandscape: shortLandscape && !singleRow && readableWidth >= 785,
+    compact: readableWidth < 1480 || shortLandscape,
+    inlineStatus: singleRow || (shortLandscape && readableWidth >= 560),
+  };
+}
+
 /** These are the same functions in the administration and the employee's scope. */
 export const employeePortalArtwork: Record<string, string> = {
   home: '/portal/employee', 'open-assignments': '/portal/employee/offene-einsaetze',

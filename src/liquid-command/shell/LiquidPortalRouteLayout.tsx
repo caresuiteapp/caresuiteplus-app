@@ -68,9 +68,9 @@ function PortalStack() {
 }
 
 function EmployeePortalChrome({
-  overlay, width, pathname, unreadCount, keyboardVisible, focus, insets, onSignOut,
+  overlay, width, height, pathname, accountId, unreadCount, keyboardVisible, focus, insets, onSignOut,
 }: {
-  overlay?: ReactNode; width: number; pathname: string; unreadCount: number;
+  overlay?: ReactNode; width: number; height: number; pathname: string; accountId: string | null; unreadCount: number;
   keyboardVisible: boolean; focus: boolean; insets: { top: number; bottom: number };
   onSignOut: () => Promise<void>;
 }) {
@@ -78,6 +78,8 @@ function EmployeePortalChrome({
   const actor = usePortalActor();
   const avatar = usePortalProfileAvatarForActor(actor);
   const workspace = useEmployeePortalWorkspace(actor);
+  const weatherAccount = accountId ?? actor.actorId;
+  const weatherOwner = weatherAccount && Platform.OS !== 'web' ? JSON.stringify([actor.tenantId, weatherAccount]) : weatherAccount;
   const required = employeePortalWorkspaceForPath(pathname);
   const canOpen = !required || (!workspace.loading && workspace.available.includes(required));
   const different = canOpen && required && required !== workspace.selected ? required : null;
@@ -89,7 +91,7 @@ function EmployeePortalChrome({
   };
   return (
     <EmployeePortalWorkspaceContext.Provider value={{ ...workspace, select }}>
-      <EmployeePortalFrame width={width} displayName={actor.displayName} {...avatar}
+      <EmployeePortalFrame width={width} height={height} displayName={actor.displayName} weatherOwner={weatherOwner} {...avatar}
         navigation={workspace.navigation} activeId={employeePortalActiveId(pathname, workspace.navigation)}
         lightWorkspace={!blocked && !employeePortalUsesAmbientWorkspace(pathname)}
         unreadCount={unreadCount} keyboardVisible={keyboardVisible} focus={focus && !blocked}
@@ -180,7 +182,8 @@ function PortalChrome({ kind, overlay }: { kind: PortalKind; overlay?: ReactNode
     <View testID="portal-visual-viewport" style={[styles.viewport, visibleHeight !== null ? {
       position: 'fixed', top: offsetTop, left: offsetLeft, height: visibleHeight, width: visibleWidth ?? '100%',
     } as unknown as ViewStyle : null, Platform.OS !== 'web' && { paddingLeft: insets.left, paddingRight: insets.right }]}>
-      <EmployeePortalChrome width={visibleWidth ?? layout.width} pathname={pathname}
+      <EmployeePortalChrome width={visibleWidth ?? (Platform.OS === 'web' ? layout.width : layout.width - insets.left - insets.right)}
+        height={visibleHeight ?? layout.height} pathname={pathname} accountId={auth.user?.id ?? null}
         unreadCount={unreadMessageCount} keyboardVisible={keyboardVisible}
         focus={visitExecutionFocus || compactMessengerFocus} insets={insets} overlay={overlay}
         onSignOut={signOut} />

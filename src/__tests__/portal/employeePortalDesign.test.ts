@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { employeePortalActiveId, employeePortalLayout } from '@/components/portal/employee/employeePortalDesign';
+import { employeePortalActiveId, employeePortalHeaderLayout, employeePortalLayout } from '@/components/portal/employee/employeePortalDesign';
 
 const navigation = [
   { id: 'home', route: '/portal/employee' }, { id: 'time', route: '/portal/employee/arbeitszeit' },
@@ -36,5 +36,14 @@ describe('employee portal responsive navigation', () => {
     expect(employeePortalLayout(1440, 1.25).shortcutTiles).toBe(false);
     expect(employeePortalLayout(1024).shortcutTiles).toBe(false);
     expect(employeePortalLayout(390).shortcutTiles).toBe(false);
+  });
+
+  it('reserves vertical workspace in landscape and lets large controls wrap', () => {
+    expect(employeePortalHeaderLayout(390, 844, 1)).toMatchObject({ phonePortrait: true, inlineStatus: false });
+    expect(employeePortalHeaderLayout(844, 390, 1)).toMatchObject({ shortLandscape: true, groupedLandscape: true, inlineStatus: true, compact: true });
+    expect(employeePortalHeaderLayout(768, 1024, 1)).toMatchObject({ shortLandscape: false, singleRow: false });
+    expect(employeePortalHeaderLayout(1024, 768, 1)).toMatchObject({ shortLandscape: false, singleRow: true, compact: true });
+    expect(employeePortalHeaderLayout(1024, 768, 1.5).singleRow).toBe(false);
+    expect(employeePortalHeaderLayout(1920, 1080, 1).compact).toBe(false);
   });
 });

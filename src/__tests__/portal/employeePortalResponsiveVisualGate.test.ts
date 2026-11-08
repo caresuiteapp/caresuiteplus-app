@@ -243,8 +243,8 @@ describe('employee portal responsive visual gate', () => {
 
     expect(employeeHome).toContain('employeePortalLayout(width, Math.max(fontScale, webFontScale))');
     expect(employeeHome).not.toContain('minHeight: 220');
-    expect(employeeHome).toContain("greetingCopy: { flex: 1, minWidth: 0");
-    expect(employeeHome).toContain('layout.phone ? 40 : 62');
+    expect(employeeHome).toContain('greetingPhone: { flexDirection: \'column\'');
+    expect(employeeHome).toContain('greetingCopy: { flexGrow: 1, flexShrink: 1, minWidth: 0');
 
     for (const styleName of ['welcomeCopyPhone', 'guideAreaPhone', 'guideBubblePhone']) {
       const styleBlock = clientHome.match(

@@ -2,15 +2,16 @@ import { useMemo, type ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useRouter } from 'expo-router';
-import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { HealthOSStatusBadge } from '@/components/healthos/HealthOSStatusBadge';
 import { resolveHealthOSStatusDisplay } from '@/components/healthos/status/healthosStatusMapping';
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
 import { buildEmployeePortalTodayModel } from '@/lib/portal/employee/employeePortalTodayModel';
+import { employeePortalDailyNote } from '@/lib/portal/employee/employeePortalDailyNote';
 import { employeePortalNavigation } from '@/lib/portal/employee/employeePortalNavigation';
 import { employeePortalWorkspaceLabels, type EmployeePortalWorkspace } from '@/lib/portal/employee/employeePortalWorkspaces';
 import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
-import { useClientGreeting } from '@/hooks/useClientGreeting';
+import { useLocalMinute } from '@/hooks/useLocalMinute';
+import { getTimeOfDayGreeting, HYDRATION_SAFE_GREETING } from '@/lib/dashboard/timeOfDayGreeting';
 import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { useWebFontScaleValue } from '@/design/web/WebFontScaleProvider';
@@ -18,7 +19,7 @@ import type { LiquidPortalNavigationItem } from '@/liquid-command/navigation/por
 import { EmployeePortalArtwork } from './EmployeePortalArtwork';
 import { useEmployeePortalMenu } from './EmployeePortalMenuContext';
 import { useEmployeePortalWorkspaceContext } from './EmployeePortalWorkspaceContext';
-import { employeePortalDesign as c, employeePortalGroups, employeePortalLayout } from './employeePortalDesign';
+import { employeePortalDesign as c, employeePortalGroups, employeePortalHeaderLayout, employeePortalLayout } from './employeePortalDesign';
 
 export type EmployeePortalTodayProps = {
   dashboard: EmployeePortalDashboardProjection | null; loading: boolean; error: string | null;
@@ -40,6 +41,33 @@ function Notice({ message, error = false, onRetry }: { message: string; error?: 
     <Text style={[styles.bodyText, error && styles.warning]}>{message}</Text>
     {onRetry ? <Action label="Erneut versuchen" onPress={onRetry} /> : null}
   </View>;
+}
+
+function EmployeeWelcome({ displayName, section, phone, shortLandscape, action }: {
+  displayName: string; section: string; phone: boolean; shortLandscape: boolean; action?: ReactNode;
+}) {
+  const now = useLocalMinute();
+  const greeting = now ? getTimeOfDayGreeting(now) : HYDRATION_SAFE_GREETING;
+  const firstName = displayName.trim().split(/\s+/)[0];
+  const note = now ? employeePortalDailyNote(now) : null;
+  return (
+    <View style={[styles.greeting, shortLandscape && styles.greetingLandscape, phone && styles.greetingPhone]} testID="employee-portal-premium-home-hero">
+      <View style={styles.greetingCopy}>
+        <Text style={styles.eyebrow}>{section}</Text>
+        <Text accessibilityRole="header" style={[styles.title, shortLandscape && styles.titleLandscape, phone && styles.titlePhone]}>
+          {firstName ? `${greeting}, ${firstName}.` : `${greeting}.`}
+        </Text>
+        {note ? <View style={styles.dailyNote} testID="employee-portal-daily-note">
+          <View style={styles.dailyIcon}><Ionicons name={note.kind === 'joke' ? 'happy-outline' : 'sparkles-outline'} size={20} color={c.accent} /></View>
+          <View style={styles.dailyCopy}>
+            <Text style={styles.dailyLabel}>{note.kind === 'joke' ? 'Witz des Tages' : 'Tagesimpuls'}</Text>
+            <Text style={styles.dailyText}>{note.text}</Text>
+          </View>
+        </View> : null}
+      </View>
+      {action}
+    </View>
+  );
 }
 
 function ArtworkSummary({ id, label, message, size }: { id: string; label: string; message: string; size: number }) {
@@ -69,18 +97,17 @@ function WorkspaceShortcut({ item, size, tile = false, onPress }: {
 /** The approved Tagesfokus/Kompakt home uses the existing read-only projection. */
 export function EmployeePortalToday({ dashboard, loading, error, displayName, onRefresh, fromCache = false, cachedAt, refreshing = false, refreshError, showSuccess }: EmployeePortalTodayProps) {
   const router = useRouter();
-  const { width, hydrated } = useHydrationSafeWindowDimensions();
+  const { width, height } = useHydrationSafeWindowDimensions();
   const { fontScale } = useWindowDimensions();
   const webFontScale = useWebFontScaleValue();
   const layout = employeePortalLayout(width, Math.max(fontScale, webFontScale));
-  const greeting = useClientGreeting();
+  const { shortLandscape } = employeePortalHeaderLayout(width, height, Math.max(fontScale, webFontScale));
   const openMenu = useEmployeePortalMenu();
   const workspace = useEmployeePortalWorkspaceContext();
   const navigation = workspace?.navigation ?? employeePortalNavigation();
   const groups = useMemo(() => employeePortalGroups(navigation), [navigation]);
   const model = useMemo(() => dashboard ? buildEmployeePortalTodayModel({ dashboard, displayName }) : null, [dashboard, displayName]);
   const navigate = (route?: string) => { if (route) router.push((fromCache && route.endsWith('/execute') ? route.slice(0, -'/execute'.length) : route) as never); };
-  const firstName = displayName.trim().split(/\s+/)[0] || displayName;
   if (loading && !dashboard) return <View style={styles.root}><Notice message="Mitarbeitendenportal wird geladen…" /></View>;
   if (!dashboard || !model) return <View style={styles.root}><Notice message={error || 'Für Ihren Zugang sind aktuell keine Portaldaten verfügbar.'} error={Boolean(error)} onRetry={onRefresh} /></View>;
   const taskStatusUnknown = Boolean(dashboard.signatureDocumentsError);
@@ -88,15 +115,8 @@ export function EmployeePortalToday({ dashboard, loading, error, displayName, on
   const personalItems = navigation.filter(item => ['leave', 'absence', 'profile'].includes(item.id));
 
   return <View style={[styles.root, { padding: layout.padding }]} testID="healthos-employee-portal-today">
-    <View style={styles.greeting} testID="employee-portal-premium-home-hero">
-      <View style={styles.greetingCopy}>
-        <Text style={styles.eyebrow}>{hydrated ? new Date().toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }) : 'Mein Arbeitstag'}</Text>
-        <Text accessibilityRole="header" style={[styles.title, layout.phone && styles.titlePhone]}>{greeting}, {firstName}.</Text>
-        <Text style={styles.bodyText}>Ihr Arbeitstag. Alles an einem Platz.</Text>
-      </View>
-      <Image source={require('../../../../public/landingpage/media/neo.png')} resizeMode="contain" accessible={false} style={{ width: layout.phone ? 40 : 62, height: layout.phone ? 58 : 80 }} />
-    </View>
-    <View style={styles.refreshRow}><Action label={refreshing ? 'Wird aktualisiert…' : 'Aktualisieren'} onPress={onRefresh} disabled={refreshing} /></View>
+    <EmployeeWelcome displayName={displayName} section="Mein Arbeitstag" phone={layout.phone} shortLandscape={shortLandscape}
+      action={<Action label={refreshing ? 'Wird aktualisiert…' : 'Aktualisieren'} onPress={onRefresh} disabled={refreshing} />} />
     {(refreshError || error) ? <Notice message={refreshError || error!} error onRetry={onRefresh} /> : null}
     {showSuccess && !refreshError ? <Notice message="Übersicht aktualisiert." /> : null}
     {fromCache ? <Notice message={`Gespeicherter Stand${cachedAt ? ` vom ${new Date(cachedAt).toLocaleString('de-DE')}` : ''}. Einsatzaktionen stehen nach dem Aktualisieren wieder zur Verfügung.`} onRetry={onRefresh} /> : null}
@@ -174,27 +194,19 @@ export function EmployeePortalWorkspaceHome({ displayName }: { displayName: stri
   const workspace = useEmployeePortalWorkspaceContext();
   const openMenu = useEmployeePortalMenu();
   const router = useRouter();
-  const { width } = useHydrationSafeWindowDimensions();
+  const { width, height } = useHydrationSafeWindowDimensions();
   const { fontScale } = useWindowDimensions();
   const webFontScale = useWebFontScaleValue();
   const layout = employeePortalLayout(width, Math.max(fontScale, webFontScale));
-  const greeting = useClientGreeting();
+  const { shortLandscape } = employeePortalHeaderLayout(width, height, Math.max(fontScale, webFontScale));
   const selected = workspace?.selected;
   const details = selected && selected !== 'assist' ? workspaceDetails[selected] : null;
   const primary = workspace?.navigation.find(item => item.id === details?.item);
   const personal = workspace?.navigation.filter(item => ['messages', 'time', 'documents', 'leave', 'profile'].includes(item.id) && item !== primary);
   return (
     <View style={[styles.root, { padding: layout.padding }]} testID="employee-portal-workspace-home">
-      <View style={styles.greeting}>
-        <View style={styles.greetingCopy}>
-          <Text style={styles.eyebrow}>{selected ? employeePortalWorkspaceLabels[selected] : 'Persönlicher Bereich'}</Text>
-          <Text accessibilityRole="header" style={[styles.title, layout.phone && styles.titlePhone]}>
-            {greeting}, {displayName.trim().split(/\s+/)[0]}.
-          </Text>
-        </View>
-        <Image source={require('../../../../public/landingpage/media/neo.png')} resizeMode="contain"
-          accessible={false} style={{ width: layout.phone ? 40 : 62, height: layout.phone ? 58 : 80 }} />
-      </View>
+      <EmployeeWelcome displayName={displayName} section={selected ? employeePortalWorkspaceLabels[selected] : 'Persönlicher Bereich'}
+        phone={layout.phone} shortLandscape={shortLandscape} />
       {workspace?.loading ? <Notice message="Ihre Modulfreigaben werden geprüft…" /> : null}
       {workspace?.error ? <Notice message={workspace.error} error onRetry={workspace.retry} /> : null}
       {!selected && !workspace?.loading && !workspace?.error ? <Notice message="Für Ihr Konto ist derzeit kein Arbeitsmodul verfügbar." /> : null}
@@ -215,9 +227,23 @@ export function EmployeePortalWorkspaceHome({ displayName }: { displayName: stri
 
 const styles = StyleSheet.create(withCareSuiteTypography({
   root: { width: '100%', minWidth: 0, padding: 16, gap: 18 },
-  greeting: { flexDirection: 'row', alignItems: 'center', gap: 12 }, greetingCopy: { flex: 1, minWidth: 0, gap: 7 },
-  eyebrow: { color: c.accent, fontSize: font(11), lineHeight: font(17), letterSpacing: 1 }, title: { color: c.text, fontSize: font(28), lineHeight: font(36), fontWeight: '700' }, titlePhone: { fontSize: font(23), lineHeight: font(31) },
-  bodyText: { color: c.muted, fontSize: font(13), lineHeight: font(21), flexShrink: 1 }, refreshRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: -6 },
+  greeting: {
+    flexDirection: 'row', alignItems: 'flex-start', gap: 18, padding: 22, borderWidth: 1,
+    borderColor: c.line, borderRadius: 20, backgroundColor: c.panel,
+  },
+  greetingPhone: { flexDirection: 'column', alignItems: 'stretch', padding: 14, gap: 12 },
+  greetingLandscape: { padding: 14, gap: 12 },
+  greetingCopy: { flexGrow: 1, flexShrink: 1, minWidth: 0, gap: 7 },
+  eyebrow: { color: c.accent, fontSize: font(12), lineHeight: font(18), letterSpacing: 1, fontWeight: '700', textTransform: 'uppercase' },
+  title: { color: c.text, fontSize: font(40), lineHeight: font(48), fontWeight: '700' },
+  titleLandscape: { fontSize: font(32), lineHeight: font(38) },
+  titlePhone: { fontSize: font(28), lineHeight: font(35) },
+  dailyNote: { flexDirection: 'row', alignItems: 'flex-start', alignSelf: 'flex-start', gap: 10, padding: 10, marginTop: 5, maxWidth: 760, backgroundColor: c.control, borderRadius: 13 },
+  dailyIcon: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: c.selected },
+  dailyCopy: { flexShrink: 1, minWidth: 0, gap: 2 },
+  dailyLabel: { color: c.accent, fontSize: font(12), lineHeight: font(17), fontWeight: '700' },
+  dailyText: { color: c.text, fontSize: font(15), lineHeight: font(22) },
+  bodyText: { color: c.muted, fontSize: font(13), lineHeight: font(21), flexShrink: 1 },
   action: { minHeight: 44, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: c.line, backgroundColor: c.control, justifyContent: 'center', alignItems: 'center', alignSelf: 'flex-start', maxWidth: '100%' },
   actionText: { color: c.accent, fontSize: font(12), lineHeight: font(19), textAlign: 'center', flexShrink: 1 }, primary: { backgroundColor: c.accent, borderColor: c.accent, alignSelf: 'center' }, primaryText: { color: '#082239', fontWeight: '700' },
   notice: { padding: 14, gap: 10, borderWidth: 1, borderColor: c.line, backgroundColor: c.raised, borderRadius: 13 }, warning: { color: c.warning },
