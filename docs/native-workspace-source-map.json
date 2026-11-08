@@ -2218,7 +2218,7 @@
     {
       "web": "src/components/office/documentation/documentationCss.web.ts",
       "native": "src/components/office/documentation/documentationCss.native.ts",
-      "sourceHash": "fe63dd6fac337a73dd0d85f988d564266f0af8530a236bb77d41a622b13b6f07",
+      "sourceHash": "d358dea7eddf95c71f071c858ae02ca0152715677aee2cbb41e403e0abcb87fa",
       "environment": []
     },
     {
@@ -2232,7 +2232,7 @@
     {
       "web": "src/components/office/documentation/DocumentationWorkspace.web.tsx",
       "native": "src/components/office/documentation/DocumentationWorkspace.native.tsx",
-      "sourceHash": "1495142c1768d679270fbe271e1a419eb02f8fc784251240326e7fec4f3453c5",
+      "sourceHash": "b82c34ad2e3ad89202cf9b72e1e325dcb6df2246af07462648b4e32f4a8d59da",
       "environment": []
     },
     {

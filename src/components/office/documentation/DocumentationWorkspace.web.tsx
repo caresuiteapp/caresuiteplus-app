@@ -132,7 +132,7 @@ export function DocumentationWorkspace({ actor, employeeView = false }: { actor:
               </div>
             </div>
             <div className="cs-doc-hero-art" aria-hidden="true">
-              <DesktopCatalogArtwork route="/office/dokumentation" label="" size={166} />
+              <DesktopCatalogArtwork route="/office/dokumentation" label="" size={144} />
             </div>
           </header>
 

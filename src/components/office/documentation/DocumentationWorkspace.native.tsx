@@ -195,7 +195,7 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
               </NativeDiv>
             </NativeDiv>
             <NativeDiv className="cs-doc-hero-art" aria-hidden="true">
-              <DesktopCatalogArtwork route="/office/dokumentation" label="" size={166}/>
+              <DesktopCatalogArtwork route="/office/dokumentation" label="" size={144}/>
             </NativeDiv>
           </NativeHeader>
 

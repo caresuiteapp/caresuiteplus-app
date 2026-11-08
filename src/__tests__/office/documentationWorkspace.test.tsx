@@ -23,6 +23,10 @@ const render=async()=>{await act(async()=>root.render(<DocumentationWorkspace ac
 const click=async(label:string)=>{const el=[...document.querySelectorAll('button')].find(b=>b.textContent?.trim()===label||b.getAttribute('aria-label')===label);expect(el,label).toBeTruthy();await act(async()=>el!.click());};
 const input=async(label:string,value:string)=>{const el=[...host.querySelectorAll('label')].find(l=>l.childNodes[0]?.textContent?.trim()===label)?.querySelector('input,textarea,select') as HTMLInputElement;expect(el,label).toBeTruthy();await act(async()=>{const proto=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:el.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(proto,'value')!.set!.call(el,value);el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}));});};
 describe('shared documentation workspace',()=>{
+ it('includes its own padding in the workspace width outside the Office surface',async()=>{
+  await render();
+  expect(getComputedStyle(host.querySelector('.cs-doc-workspace')!).boxSizing).toBe('border-box');
+ });
  it('opens completed report details, creates a linked-context addition and persists without an assignment',async()=>{
   await render();await act(async()=>host.querySelector<HTMLButtonElement>('.cs-doc-card')!.click());expect(document.querySelector('dialog[open] .cs-doc-copy')?.textContent).toBe(entry.body);
   await click('Ergänzung erfassen');expect(host.querySelector('textarea')?.value).toContain('Bezug: Abgeschlossener Einsatz');
