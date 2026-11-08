@@ -84,16 +84,16 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
     <View key="actions" style={[styles.headerActions, moduleWithBrand && styles.headerActionsInline, balancedHeader && styles.headerSide, balancedHeader && styles.headerActionsBalanced,
       header.phonePortrait && styles.headerRowPhone, header.shortLandscape && !moduleWithBrand && styles.headerRowLandscape]}>
       {!moduleWithBrand ? moduleTrigger : null}
-      <PortalTextSizeControls compact={header.compact} appearance="desktop-header" />
-      {!header.compact ? <Pressable accessibilityRole="button" accessibilityLabel="Hilfe öffnen" onPress={() => open('/portal/employee/help')} style={styles.headerButton}><Ionicons name="help-circle-outline" size={23} color={c.text} /></Pressable> : null}
       <Pressable accessibilityRole="button" accessibilityLabel={`Profil von ${displayName} öffnen`} onPress={() => open('/portal/employee/profile')}
         style={({ pressed }) => [styles.profileControl, pressed && styles.pressed]}>
-        <PortalReadOnlyAvatar name={displayName} avatarUrl={avatarUrl} avatarVersion={avatarVersion} size="md" accentColor={c.accent} />
+        <PortalReadOnlyAvatar name={displayName} avatarUrl={avatarUrl} avatarVersion={avatarVersion} size="lg" accentColor={c.accent} />
         {balancedHeader ? <View style={styles.identity}>
           <Text numberOfLines={1} style={styles.identityName}>{displayName}</Text>
           <Text style={styles.secondary}>Mein Profil</Text>
         </View> : null}
       </Pressable>
+      {!header.compact ? <Pressable accessibilityRole="button" accessibilityLabel="Hilfe öffnen" onPress={() => open('/portal/employee/help')} style={styles.headerButton}><Ionicons name="help-circle-outline" size={23} color={c.text} /></Pressable> : null}
+      <PortalTextSizeControls compact={header.compact} appearance="desktop-header" style={headerControlSurface} />
       {!header.phonePortrait ? headerLogout : null}
     </View>
   );
@@ -175,6 +175,7 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
 const frostedChrome = Platform.OS === 'web' ? ({
   backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
 } as ViewStyle) : null;
+const headerControlSurface = { backgroundColor: c.control, borderColor: c.line, borderRadius: 12 } as const;
 
 const styles = StyleSheet.create(withCareSuiteTypography({
   frame: { flex: 1, minWidth: 0, minHeight: 0, position: 'relative', backgroundColor: c.canvas },
@@ -192,7 +193,7 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   headerActions: { minWidth: 0, maxWidth: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10, marginLeft: 'auto' },
   headerActionsInline: { marginLeft: 0 },
   headerActionsBalanced: { flexWrap: 'nowrap' },
-  headerButton: { width: 44, height: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: c.control, borderWidth: 1, borderColor: c.line },
+  headerButton: { ...headerControlSurface, width: 44, height: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderWidth: 1 },
   profileControl: { minHeight: 44, minWidth: 0, flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
   identity: { maxWidth: 190, minWidth: 0, flexShrink: 1, gap: 1 },
   identityName: { color: c.text, fontSize: font(14), lineHeight: font(20) }, secondary: { color: c.muted, fontSize: font(12), lineHeight: font(18) },
@@ -202,7 +203,7 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   moduleTriggerLandscape: { marginRight: 'auto' },
   moduleCopy: { flexShrink: 1, minWidth: 0 },
   moduleValue: { color: c.text, fontSize: font(15), lineHeight: font(21), fontWeight: '700' },
-  headerLogout: { minHeight: 44, maxWidth: '100%', paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, borderColor: c.line, borderRadius: 12, backgroundColor: c.control, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  headerLogout: { ...headerControlSurface, minHeight: 44, maxWidth: '100%', paddingHorizontal: 10, paddingVertical: 5, borderWidth: 1, flexDirection: 'row', alignItems: 'center', gap: 6 },
   headerLogoutText: { color: c.text, fontSize: font(13), lineHeight: font(18), fontWeight: '700', flexShrink: 1 },
   headerError: { flexBasis: '100%', color: c.danger, fontSize: font(13), lineHeight: font(19), textAlign: 'right' },
   body: { flex: 1, minHeight: 0, minWidth: 0, flexDirection: 'row' },

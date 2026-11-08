@@ -1,13 +1,13 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { formatWebFontScaleLabel } from '@/design/web/webFontScaleConfig';
 import { useWebFontScale } from '@/design/web/WebFontScaleProvider';
 import { liquidClassicColors, liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
 import { useLiquidVisualMode } from '@/liquid-command/components/LiquidPrimitives';
 import { desktopHeaderControl, desktopHeaderControlColors } from '@/design/web/desktopHeaderControls';
 
-type Props = { compact?: boolean; dense?: boolean; appearance?: 'default' | 'desktop-header' };
+type Props = { compact?: boolean; dense?: boolean; appearance?: 'default' | 'desktop-header'; style?: StyleProp<ViewStyle> };
 
-export function PortalTextSizeControls({ compact = false, dense = false, appearance = 'default' }: Props) {
+export function PortalTextSizeControls({ compact = false, dense = false, appearance = 'default', style }: Props) {
   const { scale, increase, decrease, reset, canIncrease, canDecrease } = useWebFontScale();
   const orbit = useLiquidVisualMode() === 'orbit';
   const desktopHeader = appearance === 'desktop-header';
@@ -19,7 +19,7 @@ export function PortalTextSizeControls({ compact = false, dense = false, appeara
         accessibilityRole="button"
         accessibilityLabel={canIncrease ? `Textgröße ${label}. Text vergrößern` : `Textgröße ${label}. Auf 100 Prozent zurücksetzen`}
         onPress={canIncrease ? increase : reset}
-        style={({ pressed }) => [styles.compactTrigger, orbit && styles.orbitWrap, desktopHeader && styles.headerWrap, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.compactTrigger, orbit && styles.orbitWrap, desktopHeader && styles.headerWrap, style, pressed && styles.pressed]}
         testID="portal-text-size-controls"
       >
         <Text style={[styles.bigA, orbit && styles.orbitText, desktopHeader && styles.headerText]}>aA</Text>
@@ -30,7 +30,7 @@ export function PortalTextSizeControls({ compact = false, dense = false, appeara
   return (
     <View
       accessibilityLabel={`Textgröße ${label}`}
-      style={[styles.wrap, orbit && styles.orbitWrap, compact && styles.wrapCompact, dense && styles.denseWrap, desktopHeader && styles.headerWrap]}
+      style={[styles.wrap, orbit && styles.orbitWrap, compact && styles.wrapCompact, dense && styles.denseWrap, desktopHeader && styles.headerWrap, style]}
       testID="portal-text-size-controls"
     >
       <Pressable

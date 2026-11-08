@@ -1,14 +1,14 @@
 import { CareSuiteNativeText as Text } from '@/components/ui/CareSuiteNativeText';
 import { desktopHeaderControl, desktopHeaderControlColors } from '@/design/web/desktopHeaderControls';
 import { useState } from 'react';
-import { Linking, Modal, Platform, Pressable, StyleSheet, ScrollView, View, useWindowDimensions } from 'react-native';
+import { Linking, Modal, Platform, Pressable, StyleSheet, ScrollView, View, useWindowDimensions, type StyleProp, type ViewStyle } from 'react-native';
 import { liquidClassicColors, liquidColors, liquidRadius } from '@/liquid-command/foundation/tokens';
 import { useLiquidVisualMode } from '@/liquid-command/components/LiquidPrimitives';
 
-type Props = { compact?: boolean; dense?: boolean; appearance?: 'default' | 'desktop-header' };
+type Props = { compact?: boolean; dense?: boolean; appearance?: 'default' | 'desktop-header'; style?: StyleProp<ViewStyle> };
 
 /** Native text follows the device text scale. The dialog routes to the relevant setting on Android. */
-export function PortalTextSizeControls({ compact = false, dense = false, appearance = 'default' }: Props) {
+export function PortalTextSizeControls({ compact = false, dense = false, appearance = 'default', style }: Props) {
   const desktopHeader = appearance === 'desktop-header';
   const orbit = useLiquidVisualMode() === 'orbit';
   const { fontScale } = useWindowDimensions();
@@ -30,7 +30,7 @@ export function PortalTextSizeControls({ compact = false, dense = false, appeara
         accessibilityRole="button"
         accessibilityLabel="Textgröße ändern"
         onPress={() => setVisible(true)}
-        style={({ pressed }) => [styles.button, orbit && styles.orbitButton, compact && styles.compact, dense && styles.dense, desktopHeader && styles.header, pressed && styles.pressed]}
+        style={({ pressed }) => [styles.button, orbit && styles.orbitButton, compact && styles.compact, dense && styles.dense, desktopHeader && styles.header, style, pressed && styles.pressed]}
         testID="portal-text-size-controls"
       >
         <Text style={[styles.label, orbit && styles.orbitLabel, desktopHeader && styles.headerText]}>aA</Text>

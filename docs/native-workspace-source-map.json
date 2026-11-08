@@ -20,8 +20,8 @@
       "web": "src/components/portal/accessibility/PortalTextSizeControls.web.tsx",
       "native": "src/components/portal/accessibility/PortalTextSizeControls.native.tsx",
       "reason": "Android uses the system text scale and display settings. The Web-only font context cannot run on native.",
-      "sourceHash": "03d1ba2f708589219b723052f4b30701a451a6609d66f5dd55b5de8ea9ba5160",
-      "nativeHash": "be6ad5a2461f02a02b7f224ced5fb5ae51dfe5c20231db4b350d60c3a0d0690e"
+      "sourceHash": "c866ed3bce3307afdab10fc0703cec02555e57881af67a6324908ad68b621ce3",
+      "nativeHash": "a9b085918d058d4643e61052a59363f0062728ae9497ca3ce4750eb5267cb529"
     }
   ],
   "modules": [
