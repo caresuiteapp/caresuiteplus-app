@@ -26,6 +26,12 @@ export function resolvePortalDesktopChrome(width: number): boolean {
   return width >= PORTAL_DESKTOP_CHROME_MIN_WIDTH;
 }
 
+/** These screens draw their own headings and let the portal backdrop show through. */
+export function employeePortalUsesAmbientWorkspace(pathname: string): boolean {
+  const path = pathname.replace(/\/+$/, '');
+  return path === '/portal/employee' || path === '/portal/employee/assignments';
+}
+
 /**
  * The live visit workspace owns its own task bar. Rendering the regular portal
  * navigation on top of it leaves only a narrow strip of usable content on

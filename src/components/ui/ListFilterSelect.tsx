@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { useAuroraGlassSelectStyles } from '@/design/tokens/auroraGlass';
+import { spatialCare } from '@/design/tokens/spatialCareSuite';
 
 export type ListFilterOption = { key: string; label: string };
 
@@ -21,6 +22,7 @@ type ListFilterSelectProps = {
   /** Disable flex growth for fields stacked vertically in a form. */
   grow?: boolean;
   onLightSurface?: boolean;
+  onDarkSurface?: boolean;
 };
 
 export function ListFilterSelect({
@@ -30,6 +32,7 @@ export function ListFilterSelect({
   onChange,
   style,
   grow = true,
+  onDarkSurface = false,
 }: ListFilterSelectProps) {
   const [open, setOpen] = useState(false);
   const styles = useAuroraGlassSelectStyles();
@@ -79,18 +82,18 @@ export function ListFilterSelect({
         ? ({ dataSet: { csHealthosComponent: 'filter-select' } } as object)
         : {})}
     >
-      <Text style={styles.label}>{label}</Text>
+      <Text style={[styles.label, onDarkSurface && darkStyles.text]}>{label}</Text>
       <Pressable
         onPress={() => setOpen((current) => !current)}
-        style={({ pressed }) => [styles.trigger, pressed ? styles.triggerPressed : null]}
+        style={({ pressed }) => [styles.trigger, onDarkSurface && darkStyles.trigger, pressed && styles.triggerPressed]}
         accessibilityRole="button"
         accessibilityState={{ expanded: open }}
         accessibilityLabel={`${label}: ${selectedLabel}`}
       >
-        <Text style={styles.triggerText} numberOfLines={1}>
+        <Text style={[styles.triggerText, onDarkSurface && darkStyles.text]} numberOfLines={onDarkSurface ? undefined : 1}>
           {selectedLabel}
         </Text>
-        <Text style={styles.chevron}>
+        <Text style={[styles.chevron, onDarkSurface && darkStyles.text]}>
           {open ? '▴' : '▾'}
         </Text>
       </Pressable>
@@ -109,3 +112,8 @@ export function ListFilterSelect({
     </View>
   );
 }
+
+const darkStyles = StyleSheet.create({
+  text: { color: spatialCare.textOnNight },
+  trigger: { backgroundColor: spatialCare.input, borderColor: spatialCare.border },
+});

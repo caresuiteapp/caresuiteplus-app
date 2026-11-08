@@ -19,10 +19,11 @@ describe('employee portal readability (contrast + text layout)', () => {
     expect(sheet).not.toContain('useWindowDimensions');
   });
 
-  it('assignment cards use the readable premium light card', () => {
+  it('assignment cards scale text and allow wrapped content', () => {
     const card = readSrc('src/components/portal/EmployeePortalAssignmentCard.tsx');
-    expect(card).toContain('portalPremium.text');
-    expect(card).toContain('backgroundColor: c.surface');
+    expect(card).toContain('webScaledFontMetric');
+    expect(card).toContain('color: c.text');
+    expect(card).toContain('backgroundColor: c.panel');
     expect(card).toContain("flexWrap: 'wrap'");
     expect(card).not.toContain('lightLiquidGlass.card');
     expect(card).not.toContain('useAuroraAdaptiveText');

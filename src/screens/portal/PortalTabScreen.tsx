@@ -17,7 +17,7 @@ import {
   webSafeAreaCalc,
 } from '@/lib/platform/webSafeArea';
 import { spacing } from '@/theme';
-import { isEmployeeVisitExecutionRoute } from '@/lib/portal/portalResponsiveLayout';
+import { employeePortalUsesAmbientWorkspace, isEmployeeVisitExecutionRoute } from '@/lib/portal/portalResponsiveLayout';
 import { usePortalViewport } from '@/lib/portal/portalViewportContext';
 
 type PortalTabScreenProps = {
@@ -97,7 +97,7 @@ export function PortalTabScreen({
   }
 
   if (isEmployeePortal && !messengerFocusActive) {
-    if (isPortalHome) return scroll ? (
+    if (employeePortalUsesAmbientWorkspace(pathname)) return scroll ? (
       <PortalKeyboardScrollView contentContainerStyle={styles.employeeHomeContent} keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator style={styles.employeeHomeViewport} testID="employee-portal-tab-scroll">
         {children}

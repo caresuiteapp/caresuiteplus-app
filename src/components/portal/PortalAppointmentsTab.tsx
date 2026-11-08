@@ -5,7 +5,7 @@ import { PortalTabHero } from '@/components/portal/PortalTabHero';
 import { ClientPortalAssignmentCard } from '@/components/portal/ClientPortalAssignmentCard';
 import { ClientPortalAssignmentPreviewSheet } from '@/components/portal/ClientPortalAssignmentPreviewSheet';
 import { ClientPortalLiveTrackingSection } from '@/components/portal/ClientPortalLiveTrackingSection';
-import { EmployeePortalAssignmentCard } from '@/components/portal/EmployeePortalAssignmentCard';
+import { EmployeePortalAssignmentAgenda } from '@/components/portal/employee/EmployeePortalAssignmentAgenda';
 import { EmployeePortalAssignmentPreviewSheet } from '@/components/portal/EmployeePortalAssignmentPreviewSheet';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -18,8 +18,6 @@ import {
   SuccessState,
   CachedDataBanner,
   ListFilterSelect,
-  PremiumButton,
-  SegmentedTabs,
 } from '@/components/ui';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalAppointments } from '@/hooks/usePortalAppointments';
@@ -28,7 +26,7 @@ import {
   portalScopeForAudience,
   type OperationalPortalAudience,
 } from '@/lib/portal/portalAudience';
-import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
+import { employeePortalAssignmentStatus } from '@/lib/portal/employee/employeePortalAssignmentDisplay';
 import {
   resolveEmployeePortalAssignmentPendingFlags,
   shouldNavigateEmployeePortalAssignmentToExecution,
@@ -37,9 +35,6 @@ import { spacing } from '@/theme';
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { liquidRadius } from '@/liquid-command/foundation/tokens';
 import { portalPremium } from '@/design/tokens/portalPremium';
-import { employeePortalWorkspace } from './employee/employeePortalDesign';
-
-type EmployeeView = 'all' | 'upcoming' | 'past';
 
 type PortalAppointmentsTabProps = {
   audience: OperationalPortalAudience;
@@ -60,9 +55,9 @@ export function PortalAppointmentsTab({
   const type = resolveGalaxyTypography(width);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [clientView, setClientView] = useState<'upcoming' | 'past'>('upcoming');
-  const [employeeView, setEmployeeView] = useState<EmployeeView>('all');
   const [historyMonth, setHistoryMonth] = useState('all');
 
+  const appointmentState = usePortalAppointments(audience);
   const {
     items,
     loading,
@@ -77,27 +72,24 @@ export function PortalAppointmentsTab({
     missingClientLink,
     supabaseSessionReady,
     refreshError,
-  } = usePortalAppointments(audience);
+  } = appointmentState;
 
   const appointmentGroups = useMemo(() => groupPortalAppointmentsByTime(items), [items]);
   const clientUpcoming = appointmentGroups.find((group) => group.key === 'upcoming')?.items ?? [];
   const clientPast = appointmentGroups.find((group) => group.key === 'past')?.items ?? [];
-  const historyMonths = groupPortalPastAppointmentsByMonth(clientPast);
+  const historyMonths = !isEmployeePortal && clientView === 'past' ? groupPortalPastAppointmentsByMonth(clientPast) : [];
   const selectedHistoryMonth = historyMonths.find((group) => group.key === historyMonth);
   const clientVisibleItems = clientView === 'upcoming' ? clientUpcoming : selectedHistoryMonth?.items ?? clientPast;
 
-  if ((loading || isResolvingClientLink || !supabaseSessionReady) && items.length === 0) {
-    return (
-      <LoadingState
-        message={
-          isResolvingClientLink
-            ? 'Klient:innenprofil wird verknüpft…'
-            : !supabaseSessionReady
-              ? 'Portal-Sitzung wird hergestellt…'
-              : `${appointmentsLabel} werden geladen…`
-        }
-      />
-    );
+  const waitingForAppointments = (loading || isResolvingClientLink || !supabaseSessionReady) && items.length === 0;
+  const loadingMessage = isResolvingClientLink
+    ? 'Klient:innenprofil wird verknüpft…'
+    : !supabaseSessionReady
+      ? 'Portal-Sitzung wird hergestellt…'
+      : `${appointmentsLabel} werden geladen…`;
+
+  if (!isEmployeePortal && waitingForAppointments) {
+    return <LoadingState message={loadingMessage} />;
   }
 
   if (missingClientLink && items.length === 0) {
@@ -110,7 +102,7 @@ export function PortalAppointmentsTab({
     );
   }
 
-  if (error && items.length === 0) {
+  if (!isEmployeePortal && error && items.length === 0) {
     return (
       <ErrorState
         title={`${appointmentsLabel} konnten nicht geladen werden`}
@@ -120,11 +112,11 @@ export function PortalAppointmentsTab({
     );
   }
 
-  const continuationRoute = (appt: (typeof items)[number]) => {
-    if (audience !== 'employee') return null;
-    if (!detailBasePath || appt.id.startsWith('calendar:') || fromCache || (appt as CachedPortalAppointmentItem).cacheStale) return null;
-    const status = appt.assignmentStatus ?? remoteStatusToAssignment(appt.status);
-    if (status === 'geplant' || status === 'bestaetigt' || status === 'storniert' || status === 'nicht_erschienen') return null;
+  const continuationAction = (appt: (typeof items)[number]) => {
+    if (audience !== 'employee') return undefined;
+    if (!detailBasePath || appt.id.startsWith('calendar:') || fromCache || (appt as CachedPortalAppointmentItem).cacheStale) return undefined;
+    const status = employeePortalAssignmentStatus(appt);
+    if (status === 'geplant' || status === 'bestaetigt' || status === 'storniert' || status === 'nicht_erschienen') return undefined;
     const pending = resolveEmployeePortalAssignmentPendingFlags({
       status,
       assignmentIncomplete: appt.assignmentIncomplete,
@@ -136,32 +128,29 @@ export function PortalAppointmentsTab({
         documentationPending: pending.documentationPending,
         signaturePending: pending.signaturePending,
       })
-      ? `${detailBasePath}/${appt.id}/execute` : null;
+      ? () => router.push(`${detailBasePath}/${appt.id}/execute` as never) : undefined;
   };
-  const visibleEmployeeGroups = appointmentGroups.filter(group => employeeView === 'all' || group.key === employeeView);
-  const showHistoryMonth = (isEmployeePortal ? employeeView : clientView) === 'past';
 
-  const listBody = (
+  const listBody = isEmployeePortal ? (
     <>
-      {!isEmployeePortal ? <PortalTabHero
+      <EmployeePortalAssignmentAgenda groups={appointmentGroups} state={appointmentState}
+        loadingMessage={waitingForAppointments ? loadingMessage : undefined}
+        onPreview={setPreviewId} continuationAction={continuationAction} />
+      <EmployeePortalAssignmentPreviewSheet
+        assignmentId={previewId}
+        visible={previewId != null}
+        onClose={() => setPreviewId(null)}
+      />
+    </>
+  ) : (
+    <>
+      <PortalTabHero
         tab="appointments"
         scope={scope}
         totalCount={items.length}
         activeCount={clientUpcoming.length}
         titleOverride={appointmentsLabel}
-      /> : (
-        <View style={styles.employeeToolbar}>
-          <View style={styles.employeeFilter}>
-            <SegmentedTabs layout="wrap" activeKey={employeeView} onSelect={key => setEmployeeView(key as EmployeeView)}
-              tabs={[
-                { key: 'all', label: `Alle (${items.length})` },
-                { key: 'upcoming', label: `Kommend (${clientUpcoming.length})` },
-                { key: 'past', label: `Vergangen (${clientPast.length})` },
-              ]} />
-          </View>
-          <PremiumButton size="sm" variant="secondary" title={refreshing ? 'Wird aktualisiert…' : 'Aktualisieren'} disabled={refreshing} onPress={refresh} />
-        </View>
-      )}
+      />
 
       {showSuccess ? (
         <SuccessState message={`${appointmentsLabel} aktualisiert.`} />
@@ -171,9 +160,9 @@ export function PortalAppointmentsTab({
 
       <CachedDataBanner visible={fromCache} cachedAt={cachedAt} />
 
-      {!isEmployeePortal ? <ClientPortalLiveTrackingSection /> : null}
+      <ClientPortalLiveTrackingSection />
 
-      {!isEmployeePortal && !isEmpty ? (
+      {!isEmpty ? (
         <View style={styles.clientSwitcher} accessibilityRole="tablist">
           <Pressable
             accessibilityRole="tab"
@@ -206,7 +195,7 @@ export function PortalAppointmentsTab({
         </View>
       ) : null}
 
-      {showHistoryMonth && historyMonths.length > 0 ? (
+      {historyMonths.length > 0 ? (
         <ListFilterSelect
           label="Monat der Einsatzhistorie"
           value={selectedHistoryMonth?.key ?? 'all'}
@@ -219,39 +208,10 @@ export function PortalAppointmentsTab({
       {isEmpty ? (
         <EmptyState
           title="Keine Einsätze geplant"
-          message={
-            isEmployeePortal
-              ? 'Aktuell sind keine Einsätze für Sie eingetragen.'
-              : 'Aktuell sind keine Einsätze für Sie sichtbar. Wenn Sie Einsätze erwarten, wenden Sie sich an Ihr Pflegebüro.'
-          }
+          message="Aktuell sind keine Einsätze für Sie sichtbar. Wenn Sie Einsätze erwarten, wenden Sie sich an Ihr Pflegebüro."
           actionLabel="Erneut laden"
           onAction={refresh}
         />
-      ) : isEmployeePortal ? (
-        visibleEmployeeGroups.length === 0 ? (
-          <EmptyState title={employeeView === 'past' ? 'Keine vergangenen Einsätze' : 'Keine kommenden Einsätze'}
-            message="In diesem Zeitraum sind keine Einsätze eingetragen." actionLabel="Alle Einsätze anzeigen"
-            onAction={() => setEmployeeView('all')} />
-        ) : visibleEmployeeGroups.map((group) => (
-          <View key={group.key}>
-            <Text accessibilityRole="header" style={[type.label, { color: employeePortalWorkspace.text, marginBottom: careSpacing.sm }]}>
-              {showHistoryMonth && selectedHistoryMonth ? selectedHistoryMonth.label : group.label}
-            </Text>
-            {(showHistoryMonth && selectedHistoryMonth ? selectedHistoryMonth.items : group.items).map((appt) => {
-              const cachedItem = appt as CachedPortalAppointmentItem;
-              const executionRoute = continuationRoute(appt);
-              return (
-                <EmployeePortalAssignmentCard
-                  key={appt.id}
-                  appointment={appt}
-                  cacheStale={fromCache || cachedItem.cacheStale}
-                  onPreview={() => setPreviewId(appt.id)}
-                  onContinue={executionRoute ? () => router.push(executionRoute as never) : undefined}
-                />
-              );
-            })}
-          </View>
-        ))
       ) : clientVisibleItems.length === 0 ? (
         <ClientPortalGuide
           compact
@@ -281,26 +241,18 @@ export function PortalAppointmentsTab({
         </View>
       )}
 
-      {isEmployeePortal ? (
-        <EmployeePortalAssignmentPreviewSheet
-          assignmentId={previewId}
-          visible={previewId != null}
-          onClose={() => setPreviewId(null)}
-        />
-      ) : (
-        <ClientPortalAssignmentPreviewSheet
-          assignmentId={previewId}
-          visible={previewId != null}
-          onClose={() => setPreviewId(null)}
-          detailBasePath={detailBasePath}
-        />
-      )}
+      <ClientPortalAssignmentPreviewSheet
+        assignmentId={previewId}
+        visible={previewId != null}
+        onClose={() => setPreviewId(null)}
+        detailBasePath={detailBasePath}
+      />
     </>
   );
 
   return (
     <ScrollView
-      style={styles.scrollViewport}
+      style={[styles.scrollViewport, isEmployeePortal && styles.employeeScrollViewport]}
       showsVerticalScrollIndicator={isEmployeePortal}
       keyboardShouldPersistTaps="handled"
       nestedScrollEnabled
@@ -316,8 +268,6 @@ export function PortalAppointmentsTab({
 }
 
 const styles = StyleSheet.create({
-  employeeToolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 },
-  employeeFilter: { flexGrow: 1, flexShrink: 1, flexBasis: 310, minWidth: 0 },
   scroll: {
     gap: spacing.md,
     paddingBottom: spacing.xxl,
@@ -336,6 +286,9 @@ const styles = StyleSheet.create({
         } as never)
       : {}),
   },
+  employeeScrollViewport: Platform.OS === 'web'
+    ? ({ scrollbarWidth: 'thin', scrollbarColor: 'rgba(188,238,255,0.38) transparent' } as never)
+    : {},
   clientSwitcher: {
     width: '100%',
     padding: 4,

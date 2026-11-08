@@ -40,6 +40,7 @@ import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
 import { PortalMessengerFocusProvider, usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { PortalViewportContext } from '@/lib/portal/portalViewportContext';
 import {
+  employeePortalUsesAmbientWorkspace,
   isEmployeeVisitExecutionRoute,
   resolveCompactPortalLogoWidth,
   resolvePortalDesktopChrome,
@@ -90,7 +91,7 @@ function EmployeePortalChrome({
     <EmployeePortalWorkspaceContext.Provider value={{ ...workspace, select }}>
       <EmployeePortalFrame width={width} displayName={actor.displayName} {...avatar}
         navigation={workspace.navigation} activeId={employeePortalActiveId(pathname, workspace.navigation)}
-        lightWorkspace={!blocked && pathname.replace(/\/+$/, '') !== '/portal/employee'}
+        lightWorkspace={!blocked && !employeePortalUsesAmbientWorkspace(pathname)}
         unreadCount={unreadCount} keyboardVisible={keyboardVisible} focus={focus && !blocked}
         insets={insets} overlay={overlay}
         onNavigate={route => router.push(route as never)} onSignOut={onSignOut}>

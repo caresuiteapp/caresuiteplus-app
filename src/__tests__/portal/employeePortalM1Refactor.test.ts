@@ -79,17 +79,19 @@ describe('employee portal M.1 refactor', () => {
     expect(shell).toContain('drawerTabs');
   });
 
-  it('employee assignment cards use the shared premium light surface', () => {
+  it('employee assignment cards use the shared portal palette and assignment status labels', () => {
     const card = readSrc('src/components/portal/EmployeePortalAssignmentCard.tsx');
-    expect(card).toContain('portalPremium.text');
-    expect(card).toContain('backgroundColor: c.surface');
+    expect(card).toContain('employeePortalDesign as c');
+    expect(card).toContain("resolveHealthOSStatusDisplay('assignment', employeePortalAssignmentStatus(appointment))");
     expect(card).toContain("flexWrap: 'wrap'");
     expect(card).not.toContain('useAuroraAdaptiveText');
   });
 
   it('PortalAppointmentsTab integrates preview sheet for employees', () => {
     const tab = readSrc('src/components/portal/PortalAppointmentsTab.tsx');
-    expect(tab).toContain('EmployeePortalAssignmentCard');
+    const agenda = readSrc('src/components/portal/employee/EmployeePortalAssignmentAgenda.tsx');
+    expect(tab).toContain('<EmployeePortalAssignmentAgenda');
+    expect(agenda).toContain('<EmployeePortalAssignmentCard');
     expect(tab).toContain('EmployeePortalAssignmentPreviewSheet');
   });
 
