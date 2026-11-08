@@ -156,6 +156,10 @@ export function nativeSource(file,original){let source=original;
     replace('!field.validity.valid','!(field as unknown as {valid():boolean}).valid()');
   }
   if(file==='src/components/office/ClientRecordDocumentsPanel.web.tsx'){
+    body('deliverProofPdf',"{await shareNativeFile(bytes,fileName,'application/pdf','Leistungsnachweise speichern');}");
+    replace("import { triggerBrowserDownload } from '@/lib/documents/documentPdfService';",'');
+    replace("'PDF-Download wurde gestartet.'","'PDF wurde zum Öffnen oder Speichern übergeben.'");
+    add(delivery);
     replace('requestAnimationFrame(() => rowButtons.current?.querySelector<HTMLButtonElement>(`[data-document-id="${CSS.escape(lastOpened.current ?? \'\')}"] button`)?.focus());',"requestAnimationFrame(()=>nativeWorkspaceNodes.get('native-client-document-'+JSON.stringify([tenantId,clientId,lastOpened.current]))?.focus());");
     replace('<button className="cr-docs-row"','<button id={\'native-client-document-\'+JSON.stringify([doc.tenantId,doc.clientId,doc.id])} className="cr-docs-row"');
     add("import {nativeWorkspaceNodes} from '@/lib/platform/nativeWorkspaceNodes.shared';");

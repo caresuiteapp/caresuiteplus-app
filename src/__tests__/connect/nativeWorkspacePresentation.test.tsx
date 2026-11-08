@@ -47,6 +47,8 @@ const dependencies: Record<string, unknown> = {
   '@/lib/auth/context': { useAuth: () => ({ profile: { id: 'fixture-user', tenantId: 'fixture-tenant', roleKey: 'business_admin' } }) },
   '@/hooks/core/useAsyncQuery': { useAsyncQuery: () => ({ data: null, loading: false, refreshing: false, error: null, refreshError: null, refresh: vi.fn() }) },
   '@/lib/clients/clientDocumentsService': { listClientDocuments: vi.fn(), uploadClientDocument: vi.fn() },
+  '@/lib/platform/nativeFileDelivery.native': { shareNativeFile: vi.fn() },
+  '@/lib/supabase/client': { getSupabaseClient: () => null },
   '@/lib/services/mode': { getServiceMode: () => 'supabase' },
   '@/components/office/ClientDocumentPreview': { ClientDocumentPreview: () => <p>Lokale Dokumentvorschau</p> },
   '../documents/DocumentRecommendations.native.tsx': { DocumentRecommendations: () => null },

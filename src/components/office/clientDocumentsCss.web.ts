@@ -3,4 +3,22 @@ export const clientDocumentsCss = `
 @container client-documents (max-width:800px){.cr-docs-heading{padding:21px}.cr-docs-actions{width:100%;justify-content:flex-end}.cr-docs-filters{grid-template-columns:1fr 1fr;padding:18px 21px 14px}.cr-docs-search{grid-column:1/-1}.cr-docs-categories{padding:0 21px 16px}.cr-docs-open{font-size:0;width:15px}.cr-docs-row{grid-template-columns:42px minmax(0,1fr) auto 15px;gap:12px}.cr-docs-row-status{max-width:140px}.cr-docs-list-heading{padding-left:21px;padding-right:21px}}
 @container client-documents (max-width:520px){.cr-docs-heading{padding:19px 17px;gap:12px}.cr-docs-heading-icon{width:40px;height:48px}.cr-docs h3{font-size:20px}.cr-docs-heading-copy{min-width:130px}.cr-docs-heading p{font-size:12px}.cr-docs-actions{justify-content:stretch}.cr-docs-actions>.primary{flex:1}.cr-docs-button.subtle span{display:none}.cr-docs-filters{padding:16px;grid-template-columns:minmax(0,1fr)}.cr-docs-search{grid-column:auto}.cr-docs-categories{padding:0 16px 16px}.cr-docs-categories button{font-size:12px}.cr-docs-list{padding:0 9px 12px}.cr-docs-list-heading{padding:14px 17px 9px}.cr-docs-list-heading>span:last-child:not(:first-child){display:none}.cr-docs-row{grid-template-columns:37px minmax(0,1fr) 15px;gap:7px 12px;padding:14px 8px}.cr-docs-file{width:36px;min-height:46px;grid-row:1/3;align-self:start}.cr-docs-row-copy strong{font-size:13px}.cr-docs-row-status{grid-column:2;flex-direction:row;align-items:center;max-width:none;flex-wrap:wrap;gap:8px}.cr-docs-open{grid-column:3;grid-row:1/3}.cr-docs-upload{padding:16px;margin:16px}.cr-docs-upload-fields{grid-template-columns:minmax(0,1fr)}.cr-docs-upload-footer>.primary{width:100%}.cr-docs-notice{margin:14px 16px}.cr-docs-preview{padding:17px 16px}.cr-docs-preview-title h4{font-size:17px}.cr-docs-empty{padding:34px 20px}}
 @media(prefers-reduced-motion:reduce){.cr-docs-row{transition:none}}
+.cr-docs-proof-export{display:flex;flex-direction:column;gap:13px;margin:0 25px 18px;padding:16px 18px;border:1px solid #c5dbf3;border-radius:15px;background:linear-gradient(135deg,#f0f6ff,#fcfdff)}
+.cr-docs-proof-heading{display:flex;align-items:center;gap:12px}
+.cr-docs-proof-icon{display:grid;place-items:center;width:40px;height:40px;flex-shrink:0;border-radius:11px;background:#dfedfd;color:#175cac}
+.cr-docs-proof-icon svg{--cs-action-icon-size:20px;width:20px;height:20px}
+.cr-docs-proof-heading p,.cr-docs-proof-hint{margin:3px 0 0;color:#4f6985;font-size:12px;line-height:1.55}
+.cr-docs-proof-controls{display:flex;flex-wrap:wrap;align-items:flex-end;gap:12px 16px}
+.cr-docs-proof-dates{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;flex:0 1 355px;min-width:0}
+.cr-docs-proof-dates label{display:flex;min-width:0;flex-direction:column;gap:6px;color:#365a7f;font-size:12px;font-weight:650}
+.cr-docs-proof-dates input{min-width:0;width:100%;min-height:43px;padding:8px 10px;border:1px solid #bdd2e9;border-radius:10px;background:#fff;color:#193a5b;font:inherit;font-size:14px}
+.cr-docs-proof-buttons,.cr-docs-proof-feedback{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+.cr-docs-proof-buttons .cr-docs-button,.cr-docs-proof-row-actions .cr-docs-button{min-height:43px;padding:8px 12px;font-size:13px}
+.cr-docs-proof-hint.error,.cr-docs-proof-feedback{color:#963f33;font-size:12px}
+.cr-docs-proof-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:10px}
+.cr-docs-proof-row-actions{display:flex;align-items:center;flex-wrap:wrap;gap:7px 12px;padding-right:10px}
+.cr-docs-proof-row-actions label{display:flex;flex-direction:row;align-items:center;gap:6px;min-height:43px;color:#365a7f;font-size:12px;cursor:pointer}
+.cr-docs-proof-row-actions input[type="checkbox"]{width:19px;height:19px;margin:0;accent-color:#1763b7}
+@container client-documents (max-width:800px){.cr-docs-proof-export{margin-left:21px;margin-right:21px}.cr-docs-proof-row{display:block}.cr-docs-proof-row-actions{justify-content:flex-end;padding:0 9px 9px}}
+@container client-documents (max-width:520px){.cr-docs-proof-export{margin:0 16px 14px;padding:13px}.cr-docs-proof-controls,.cr-docs-proof-dates,.cr-docs-proof-buttons{width:100%}.cr-docs-proof-buttons .cr-docs-button{flex:1 1 150px}.cr-docs-proof-row-actions{justify-content:space-between}}
 `.replace(/font-size:(\d+)px/g, 'font-size:calc($1px * var(--app-font-scale,1))');

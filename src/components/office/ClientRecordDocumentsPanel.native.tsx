@@ -1,8 +1,9 @@
 // Generated native presentation from src/components/office/ClientRecordDocumentsPanel.web.tsx. Update through scripts/port-native-workspaces.mjs.
 import {nativeFetch as fetch} from '@/lib/platform/nativeWorkflowEnvironment.native';
 import {NativeSvgPath,NativeSvgCircle} from '@/components/layout/NativeSvgPresentation.native';
-import {NativeLi,NativeButton,NativeSpan,NativeSmall,NativeStrong,NativeDiv,NativeStyle,NativeSection,NativeHeader,NativeH3,NativeP,NativeForm,NativeH4,NativeLabel,NativeInput,NativeSelect,NativeOption,NativeUl,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeLi,NativeButton,NativeSpan,NativeSmall,NativeStrong,NativeDiv,NativeLabel,NativeInput,NativeStyle,NativeSection,NativeHeader,NativeH3,NativeP,NativeForm,NativeH4,NativeSelect,NativeOption,NativeUl,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import { nativeWorkspaceNodes } from '@/lib/platform/nativeWorkspaceNodes.shared';
+import { shareNativeFile } from '@/lib/platform/nativeFileDelivery.native';
 import { WebActionIcon } from "../icons/WebActionIcon.native.tsx";
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
@@ -14,6 +15,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { CLIENT_DOCUMENT_ALL_CATEGORY_KEY, buildClientDocumentCategoryOverview, filterClientDocumentsByCategory, getClientDocumentCategoryLabel, resolveClientDocumentCategoryKey, } from '@/lib/clients/clientDocumentCategories';
 import { listClientDocuments, uploadClientDocument } from '@/lib/clients/clientDocumentsService';
+import { CLIENT_SERVICE_PROOF_CATEGORY, isClientServiceProofPdf, isServiceProofInRange, loadClientServiceProofMetadata, normalizeServiceProofDay, prepareClientServiceProofPdf, type ClientServiceProofMetadata, type ClientServiceProofRange, } from '@/lib/clients/clientServiceProofExport';
 import { isIntakeDocumentContentMissing } from '@/lib/documents/documentPdfLogic';
 import { resolveOfficeDocumentDisplayFileName, resolveOfficeDocumentTitle } from '@/lib/office/officeDocumentDisplay';
 import { getServiceMode } from '@/lib/services/mode';
@@ -38,11 +40,21 @@ type WorkspaceProps = Props & {
     roleKey?: string | null;
     isReadOnly: boolean;
 };
+type ProofRowActions = {
+    serviceDay?: string | null;
+    selected: boolean;
+    disabled: boolean;
+    onSelect: () => void;
+    onDownload: () => void;
+};
+const emptyProofMetadata: ClientServiceProofMetadata = {};
+const emptyRange = { from: '', to: '' };
 function Icon({ name }: {
-    name: 'file' | 'upload' | 'search' | 'arrow' | 'refresh' | 'close';
+    name: 'file' | 'upload' | 'search' | 'arrow' | 'refresh' | 'close' | 'download';
 }) {
-    return <NativeWorkspaceStyleScope css={[clientDocumentsCss]}>{<WebActionIcon>{name === 'file' ? <><NativeSvgPath d="M14 3H5v18h14V8zM14 3v5h5M8 12h8m-8 4h5"/></> : name === 'upload' ? <><NativeSvgPath d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></> : name === 'search' ? <><NativeSvgCircle cx="10.5" cy="10.5" r="6.5"/><NativeSvgPath d="m16 16 5 5"/></> : name === 'refresh' ? <><NativeSvgPath d="M20 7a9 9 0 1 0 1 8M20 2v6h-6"/></> : name === 'close' ? <NativeSvgPath d="m6 6 12 12M6 18 18 6"/> : <NativeSvgPath d="m9 5 7 7-7 7"/>}</WebActionIcon>}</NativeWorkspaceStyleScope>;
+    return <NativeWorkspaceStyleScope css={[clientDocumentsCss]}>{<WebActionIcon>{name === 'file' ? <><NativeSvgPath d="M14 3H5v18h14V8zM14 3v5h5M8 12h8m-8 4h5"/></> : name === 'upload' ? <><NativeSvgPath d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6"/></> : name === 'download' ? <NativeSvgPath d="M12 3v13m-5-5 5 5 5-5M4 16v5h16v-5"/> : name === 'search' ? <><NativeSvgCircle cx="10.5" cy="10.5" r="6.5"/><NativeSvgPath d="m16 16 5 5"/></> : name === 'refresh' ? <><NativeSvgPath d="M20 7a9 9 0 1 0 1 8M20 2v6h-6"/></> : name === 'close' ? <NativeSvgPath d="m6 6 12 12M6 18 18 6"/> : <NativeSvgPath d="m9 5 7 7-7 7"/>}</WebActionIcon>}</NativeWorkspaceStyleScope>;
 }
+async function deliverProofPdf(bytes: Uint8Array, fileName: string) { await shareNativeFile(bytes, fileName, 'application/pdf', 'Leistungsnachweise speichern'); }
 function documentStatus(doc: ClientDocumentRecord) {
     if (isIntakeDocumentContentMissing(doc))
         return { label: 'Inhalt fehlt', tone: 'warning' };
@@ -68,22 +80,29 @@ function documentFormat(doc: ClientDocumentRecord) {
         return 'Word';
     return 'Datei';
 }
-function DocumentRow({ doc, onOpen }: {
+function DocumentRow({ doc, onOpen, proof }: {
     doc: ClientDocumentRecord;
     onOpen: () => void;
+    proof?: ProofRowActions;
 }) {
     const rowId = useId();
     const title = resolveOfficeDocumentTitle(doc);
     const status = documentStatus(doc);
     const fileName = resolveOfficeDocumentDisplayFileName(doc);
     const duplicateFileName = fileName?.replace(/\.[^.]+$/, '').trim().toLocaleLowerCase('de') === title.trim().toLocaleLowerCase('de');
-    return <NativeWorkspaceStyleScope css={[clientDocumentsCss]}>{<NativeLi data-document-id={doc.id}>
+    const serviceDate = proof?.serviceDay?.split('-').reverse().join('.');
+    const proofLabel = [title, serviceDate, fileName].filter(Boolean).join(', ');
+    return <NativeWorkspaceStyleScope css={[clientDocumentsCss]}>{<NativeLi data-document-id={doc.id} className={proof ? 'cr-docs-proof-row' : undefined}>
     <NativeButton id={'native-client-document-' + JSON.stringify([doc.tenantId, doc.clientId, doc.id])} className="cr-docs-row" type="button" onClick={onOpen} aria-label={`${title} ansehen`} aria-describedby={`${rowId}-meta ${rowId}-status`}>
       <NativeSpan className="cr-docs-file" aria-hidden="true"><Icon name="file"/><NativeSmall>{documentFormat(doc)}</NativeSmall></NativeSpan>
       <NativeSpan className="cr-docs-row-copy"><NativeStrong>{title}</NativeStrong><NativeSpan id={`${rowId}-meta`} className="cr-docs-row-meta">{getClientDocumentCategoryLabel(resolveClientDocumentCategoryKey(doc))}<NativeSpan aria-hidden="true"> · </NativeSpan>{doc.documentSource === 'intake' ? 'Aus der Aufnahme' : doc.documentSource === 'upload' ? 'Hochgeladen' : 'Aktenunterlage'}</NativeSpan>{fileName && !duplicateFileName ? <NativeSmall>{fileName}</NativeSmall> : null}</NativeSpan>
-      <NativeSpan id={`${rowId}-status`} className="cr-docs-row-status"><NativeSpan className={`cr-docs-status ${status.tone}`}>{status.label}</NativeSpan><NativeSmall>{documentDate(doc)}</NativeSmall></NativeSpan>
+      <NativeSpan id={`${rowId}-status`} className="cr-docs-row-status"><NativeSpan className={`cr-docs-status ${status.tone}`}>{status.label}</NativeSpan><NativeSmall>{proof ? serviceDate ? `Leistung am ${serviceDate}` : 'Leistungsdatum fehlt' : documentDate(doc)}</NativeSmall></NativeSpan>
       <NativeSpan className="cr-docs-open">Ansehen <Icon name="arrow"/></NativeSpan>
     </NativeButton>
+    {proof ? <NativeDiv className="cr-docs-proof-row-actions">
+      <NativeLabel><NativeInput type="checkbox" checked={proof.selected} disabled={proof.disabled} onChange={proof.onSelect} aria-label={`Nachweis auswählen, ${proofLabel}`}/><NativeSpan>Auswählen</NativeSpan></NativeLabel>
+      <NativeButton type="button" className="cr-docs-button" disabled={proof.disabled} onClick={proof.onDownload} aria-label={`Original-PDF herunterladen, ${proofLabel}`}><Icon name="download"/> PDF laden</NativeButton>
+    </NativeDiv> : null}
   </NativeLi>}</NativeWorkspaceStyleScope>;
 }
 /** Each identity receives a fresh workspace, including files and in-flight feedback. */
@@ -107,6 +126,13 @@ function DocumentWorkspace({ tenantId, clientId, clientLastName, initialDocument
     const [picking, setPicking] = useState(false);
     const [message, setMessage] = useState<string | null>(null);
     const [actionError, setActionError] = useState<string | null>(null);
+    const [proofRangeInput, setProofRangeInput] = useState(emptyRange);
+    const [selectedProofIds, setSelectedProofIds] = useState<string[]>([]);
+    const [pdfProgress, setPdfProgress] = useState<{
+        done: number;
+        total: number;
+    } | null>(null);
+    const pdfOperation = useRef<AbortController | null>(null);
     const busy = useRef(false);
     const fileBusy = useRef(false);
     const mounted = useRef(true);
@@ -116,7 +142,10 @@ function DocumentWorkspace({ tenantId, clientId, clientLastName, initialDocument
     const focusAfterUpload = useRef(false);
     const rowButtons = useRef<HTMLDivElement>(null);
     const lastOpened = useRef<string | null>(null);
-    useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+    useEffect(() => {
+        mounted.current = true;
+        return () => { mounted.current = false; pdfOperation.current?.abort(); };
+    }, []);
     useEffect(() => { if (uploadOpen)
         titleInput.current?.focus(); }, [uploadOpen]);
     useEffect(() => { if (selectedDocId)
@@ -129,17 +158,80 @@ function DocumentWorkspace({ tenantId, clientId, clientLastName, initialDocument
     }, [working, uploadOpen]);
     const query = useAsyncQuery(() => tenantId && clientId ? listClientDocuments(tenantId, clientId) : Promise.resolve({ ok: false as const, error: 'Die Klientenakte ist keinem Unternehmen zugeordnet.' }), [tenantId, clientId], { enabled: !!tenantId && !!clientId, queryKey: `client-documents:${tenantId}:${clientId}:${actorId}:${roleKey}` });
     const documents = useMemo(() => (query.data ?? initialDocuments ?? []).filter(doc => doc.clientId === clientId && doc.tenantId === tenantId), [query.data, initialDocuments, clientId, tenantId]);
+    const proofView = activeCategory === CLIENT_SERVICE_PROOF_CATEGORY;
+    const proofDocuments = useMemo(() => documents.filter(isClientServiceProofPdf), [documents]);
+    const proofQuery = useAsyncQuery(() => loadClientServiceProofMetadata(tenantId ?? '', clientId, proofDocuments), [tenantId, clientId, proofDocuments], {
+        enabled: proofView && !!tenantId && !!clientId && proofDocuments.length > 0,
+        queryKey: JSON.stringify(['client-proof-metadata', tenantId, clientId, actorId, roleKey,
+            proofDocuments.map(doc => [doc.id, doc.updatedAt, doc.serviceRecordId])]),
+    });
+    const proofMetadata = proofQuery.data ?? emptyProofMetadata;
+    const from = normalizeServiceProofDay(proofRangeInput.from);
+    const to = normalizeServiceProofDay(proofRangeInput.to);
+    const proofRange = useMemo(() => from && to && from <= to ? { from, to } : null, [from, to]);
+    const invalidRange = Boolean(proofRangeInput.from && proofRangeInput.to && !proofRange);
+    const periodProofs = proofRange && proofQuery.data ? proofDocuments.filter(doc => isServiceProofInRange(proofMetadata[doc.id]?.serviceDay, proofRange)) : [];
+    const selectedProofs = proofDocuments.filter(doc => selectedProofIds.includes(doc.id));
+    const proofMetadataError = proofQuery.error ?? proofQuery.refreshError;
+    const proofDisabled = Boolean(pdfProgress || query.loading || query.refreshing || proofQuery.loading || proofQuery.refreshing);
+    const undatedCount = proofQuery.data ? proofDocuments.filter(doc => !proofMetadata[doc.id]?.serviceDay).length : 0;
     const categories = useMemo(() => buildClientDocumentCategoryOverview(documents), [documents]);
     const usedCategories = categories.filter(item => item.count > 0);
     const visibleDocuments = useMemo(() => {
         const term = search.trim().toLocaleLowerCase('de');
         return filterClientDocumentsByCategory(documents, activeCategory)
+            .filter(doc => !proofView || !proofRange || !proofQuery.data || isServiceProofInRange(proofMetadata[doc.id]?.serviceDay, proofRange))
             .filter(doc => !term || [resolveOfficeDocumentTitle(doc), resolveOfficeDocumentDisplayFileName(doc), getClientDocumentCategoryLabel(resolveClientDocumentCategoryKey(doc))].filter(Boolean).join(' ').toLocaleLowerCase('de').includes(term))
             .slice().sort((a, b) => sort === 'name' ? resolveOfficeDocumentTitle(a).localeCompare(resolveOfficeDocumentTitle(b), 'de') : (Date.parse(b.updatedAt || b.createdAt) || 0) - (Date.parse(a.updatedAt || a.createdAt) || 0));
-    }, [documents, activeCategory, search, sort]);
-    const selectedDoc = selectedDocId ? documents.find(doc => doc.id === selectedDocId) : null;
+    }, [documents, activeCategory, search, sort, proofView, proofRange, proofQuery.data, proofMetadata]);
+    const previewDoc = selectedDocId ? documents.find(doc => doc.id === selectedDocId) : null;
+    const alternatePath = previewDoc && isClientServiceProofPdf(previewDoc) ? proofMetadata[previewDoc.id]?.storagePath : null;
+    const selectedDoc = previewDoc && !previewDoc.storagePath && alternatePath
+        ? { ...previewDoc, storagePath: alternatePath } : previewDoc;
     const queryError = query.error ?? query.refreshError;
-    function selectCategory(value: string) { setActiveCategory(value); setSelectedDocId(null); }
+    function selectCategory(value: string) {
+        setActiveCategory(value);
+        setSelectedDocId(null);
+        setProofRangeInput(emptyRange);
+        setSelectedProofIds([]);
+    }
+    function toggleProof(id: string) {
+        setSelectedProofIds(ids => ids.includes(id) ? ids.filter(value => value !== id) : [...ids, id]);
+    }
+    async function downloadProofs(chosen: ClientDocumentRecord[], range?: ClientServiceProofRange) {
+        if (!tenantId || proofDisabled || pdfOperation.current || !chosen.length)
+            return;
+        const controller = new AbortController();
+        pdfOperation.current = controller;
+        setMessage(null);
+        setActionError(null);
+        setPdfProgress({ done: 0, total: chosen.length });
+        try {
+            const result = await prepareClientServiceProofPdf({
+                tenantId, clientId, clientLastName, documents: chosen, metadata: proofMetadata, range, signal: controller.signal,
+                onProgress: (done, total) => { if (!controller.signal.aborted)
+                    setPdfProgress({ done, total }); },
+            });
+            if (controller.signal.aborted)
+                return;
+            if (!result.ok) {
+                setActionError(result.error);
+                return;
+            }
+            await deliverProofPdf(result.data.bytes, result.data.fileName);
+            if (!controller.signal.aborted)
+                setMessage('PDF wurde zum Öffnen oder Speichern übergeben.');
+        }
+        catch {
+            if (!controller.signal.aborted)
+                setActionError('Die PDF konnte nicht zum Speichern geöffnet werden. Bitte versuchen Sie es erneut.');
+        }
+        finally {
+            pdfOperation.current = null;
+            if (!controller.signal.aborted)
+                setPdfProgress(null);
+        }
+    }
     function showUpload() {
         if (isReadOnly || working)
             return;
@@ -259,9 +351,41 @@ function DocumentWorkspace({ tenantId, clientId, clientLastName, initialDocument
       {selectedDocId ? <NativeDiv className="cr-docs-preview"><NativeButton ref={previewBack} type="button" className="cr-docs-button" onClick={backToList}>← Zur Dokumentenliste</NativeButton>{selectedDoc ? <><NativeDiv className="cr-docs-preview-title"><NativeSpan>{getClientDocumentCategoryLabel(resolveClientDocumentCategoryKey(selectedDoc))}</NativeSpan><NativeH4>{resolveOfficeDocumentTitle(selectedDoc)}</NativeH4></NativeDiv><ClientDocumentPreview key={`${tenantId}:${clientId}:${selectedDoc.id}`} tenantId={tenantId} clientId={clientId} document={selectedDoc} clientLastName={clientLastName} actorName={actorName} onDeliveryComplete={onRecordRefresh}/></> : <NativeDiv className="cr-docs-empty" role="status"><NativeStrong>Dokument nicht mehr in dieser Liste</NativeStrong><NativeP>Die Unterlagen wurden aktualisiert. Kehren Sie zur Dokumentenliste zurück.</NativeP></NativeDiv>}</NativeDiv> : <>
         <NativeDiv className="cr-docs-filters"><NativeLabel className="cr-docs-search"><NativeSpan>Dokument suchen</NativeSpan><NativeSpan className="cr-docs-search-input"><Icon name="search"/><NativeInput type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Titel, Dateiname oder Kategorie"/></NativeSpan></NativeLabel><NativeLabel><NativeSpan>Kategorie</NativeSpan><NativeSelect value={activeCategory} onChange={event => selectCategory(event.target.value)}><NativeOption value={CLIENT_DOCUMENT_ALL_CATEGORY_KEY}>Alle Kategorien ({documents.length})</NativeOption>{categories.map(item => <NativeOption key={item.key} value={item.key}>{item.label} ({item.count})</NativeOption>)}</NativeSelect></NativeLabel><NativeLabel><NativeSpan>Sortieren</NativeSpan><NativeSelect value={sort} onChange={event => setSort(event.target.value)}><NativeOption value="newest">Zuletzt aktualisiert</NativeOption><NativeOption value="name">Titel A–Z</NativeOption></NativeSelect></NativeLabel></NativeDiv>
         {usedCategories.length ? <NativeDiv className="cr-docs-categories" aria-label="Vorhandene Dokumentkategorien"><NativeButton type="button" aria-pressed={activeCategory === CLIENT_DOCUMENT_ALL_CATEGORY_KEY} onClick={() => selectCategory(CLIENT_DOCUMENT_ALL_CATEGORY_KEY)}><NativeSpan className="cr-docs-category-label">Alle Dokumente </NativeSpan><NativeSpan className="cr-docs-category-count">{documents.length}</NativeSpan></NativeButton>{usedCategories.map(item => <NativeButton type="button" key={item.key} aria-pressed={activeCategory === item.key} onClick={() => selectCategory(item.key)}><NativeSpan className="cr-docs-category-label">{item.label}</NativeSpan><NativeSpan className="cr-docs-category-count">{item.count}</NativeSpan></NativeButton>)}</NativeDiv> : null}
+        {proofView && proofDocuments.length ? <NativeSection className="cr-docs-proof-export" aria-label="Leistungsnachweise herunterladen">
+          <NativeDiv className="cr-docs-proof-heading">
+            <NativeSpan className="cr-docs-proof-icon" aria-hidden="true"><Icon name="download"/></NativeSpan>
+            <NativeDiv><NativeH4>Leistungsnachweise herunterladen</NativeH4><NativeP>Einzeln als Original oder gesammelt in einer PDF.</NativeP></NativeDiv>
+          </NativeDiv>
+          <NativeDiv className="cr-docs-proof-controls">
+            <NativeDiv className="cr-docs-proof-dates">
+              <NativeLabel><NativeSpan>Leistungsdatum von</NativeSpan><NativeInput type="date" value={proofRangeInput.from} disabled={!!pdfProgress} onChange={event => setProofRangeInput(current => ({ ...current, from: event.target.value }))}/></NativeLabel>
+              <NativeLabel><NativeSpan>Leistungsdatum bis</NativeSpan><NativeInput type="date" value={proofRangeInput.to} disabled={!!pdfProgress} onChange={event => setProofRangeInput(current => ({ ...current, to: event.target.value }))}/></NativeLabel>
+            </NativeDiv>
+            <NativeDiv className="cr-docs-proof-buttons">
+              <NativeButton className="cr-docs-button primary" type="button" disabled={proofDisabled || !!proofMetadataError || !periodProofs.length} onClick={() => { if (proofRange)
+                void downloadProofs(periodProofs, proofRange); }}><Icon name="download"/> Zeitraum als PDF</NativeButton>
+              <NativeButton className="cr-docs-button" type="button" disabled={proofDisabled || !selectedProofs.length} onClick={() => void downloadProofs(selectedProofs)}>Auswahl als PDF ({selectedProofs.length})</NativeButton>
+              <NativeButton className="cr-docs-button" type="button" disabled={proofDisabled} onClick={() => void downloadProofs(proofDocuments)}>Alle als PDF ({proofDocuments.length})</NativeButton>
+            </NativeDiv>
+          </NativeDiv>
+          {invalidRange ? <NativeP className="cr-docs-proof-hint error" role="alert">Wählen Sie gültige Daten. Das Enddatum muss am oder nach dem Startdatum liegen.</NativeP> : null}
+          {proofMetadataError ? <NativeDiv className="cr-docs-proof-feedback" role="alert"><NativeSpan>{proofMetadataError}</NativeSpan><NativeButton type="button" className="cr-docs-button" disabled={proofDisabled} onClick={() => void proofQuery.refresh()}>Leistungsdaten erneut laden</NativeButton></NativeDiv> : null}
+          {proofRange || undatedCount || pdfProgress || proofQuery.loading ? <NativeP className="cr-docs-proof-hint" role="status">
+            {pdfProgress ? `PDF wird vorbereitet · ${pdfProgress.done} von ${pdfProgress.total} geladen`
+                        : proofQuery.loading ? 'Leistungsdaten werden geladen …'
+                            : [proofRange && proofQuery.data ? `${periodProofs.length} im Zeitraum` : null,
+                                undatedCount ? `${undatedCount} ohne Leistungsdatum · per Auswahl oder „Alle“ verfügbar` : null].filter(Boolean).join(' · ')}
+          </NativeP> : null}
+        </NativeSection> : null}
         <NativeDiv className="cr-docs-list-heading"><NativeSpan role="status">{query.loading && !documents.length ? 'Dokumente werden geladen…' : `${visibleDocuments.length} ${visibleDocuments.length === 1 ? 'Dokument' : 'Dokumente'}${activeCategory === CLIENT_DOCUMENT_ALL_CATEGORY_KEY ? ' in der Akte' : ` · ${getClientDocumentCategoryLabel(activeCategory)}`}`}</NativeSpan>{search || activeCategory !== CLIENT_DOCUMENT_ALL_CATEGORY_KEY ? <NativeButton type="button" onClick={() => { setSearch(''); selectCategory(CLIENT_DOCUMENT_ALL_CATEGORY_KEY); }}>Filter zurücksetzen</NativeButton> : <NativeSpan>Stand · zuletzt geändert</NativeSpan>}</NativeDiv>
         <NativeDiv ref={rowButtons} className="cr-docs-results" aria-busy={query.loading || query.refreshing}>
-          {visibleDocuments.length ? <NativeUl className="cr-docs-list">{visibleDocuments.map(doc => <DocumentRow key={doc.id} doc={doc} onOpen={() => { lastOpened.current = doc.id; setSelectedDocId(doc.id); }}/>)}</NativeUl> : query.loading ? <NativeDiv className="cr-docs-empty" role="status"><Icon name="file"/><NativeP>Die Unterlagen werden zusammengestellt.</NativeP></NativeDiv> : queryError && !documents.length ? <NativeDiv className="cr-docs-empty"><NativeStrong>Dokumente derzeit nicht verfügbar</NativeStrong><NativeP>Versuchen Sie, die Liste erneut zu laden.</NativeP></NativeDiv> : <NativeDiv className="cr-docs-empty"><Icon name={documents.length ? 'search' : 'file'}/><NativeStrong>{documents.length ? 'Keine passenden Dokumente' : 'Hier entsteht die Dokumentenakte.'}</NativeStrong><NativeP>{documents.length ? 'Ändern Sie die Suche oder wählen Sie eine andere Kategorie.' : 'Unterlagen aus der Aufnahme und hochgeladene Dateien werden hier gesammelt.'}</NativeP>{!documents.length && !isReadOnly ? <NativeButton type="button" className="cr-docs-button" onClick={showUpload}>Erstes Dokument hinzufügen</NativeButton> : null}</NativeDiv>}
+          {visibleDocuments.length ? <NativeUl className="cr-docs-list">{visibleDocuments.map(doc => <DocumentRow key={doc.id} doc={doc} onOpen={() => { lastOpened.current = doc.id; setSelectedDocId(doc.id); }} proof={proofView && isClientServiceProofPdf(doc) ? {
+                        serviceDay: proofMetadata[doc.id]?.serviceDay,
+                        selected: selectedProofIds.includes(doc.id),
+                        disabled: proofDisabled,
+                        onSelect: () => toggleProof(doc.id),
+                        onDownload: () => void downloadProofs([doc]),
+                    } : undefined}/>)}</NativeUl> : query.loading ? <NativeDiv className="cr-docs-empty" role="status"><Icon name="file"/><NativeP>Die Unterlagen werden zusammengestellt.</NativeP></NativeDiv> : queryError && !documents.length ? <NativeDiv className="cr-docs-empty"><NativeStrong>Dokumente derzeit nicht verfügbar</NativeStrong><NativeP>Versuchen Sie, die Liste erneut zu laden.</NativeP></NativeDiv> : <NativeDiv className="cr-docs-empty"><Icon name={documents.length ? 'search' : 'file'}/><NativeStrong>{documents.length ? 'Keine passenden Dokumente' : 'Hier entsteht die Dokumentenakte.'}</NativeStrong><NativeP>{proofRange ? 'Passen Sie den Zeitraum oder die Suche an.' : documents.length ? 'Ändern Sie die Suche oder wählen Sie eine andere Kategorie.' : 'Unterlagen aus der Aufnahme und hochgeladene Dateien werden hier gesammelt.'}</NativeP>{!documents.length && !isReadOnly ? <NativeButton type="button" className="cr-docs-button" onClick={showUpload}>Erstes Dokument hinzufügen</NativeButton> : null}</NativeDiv>}
         </NativeDiv>
       </>}
     </NativeSection>

@@ -15,7 +15,18 @@ import {
   resolveClientDocumentCategoryKey,
 } from '@/lib/clients/clientDocumentCategories';
 import { listClientDocuments, uploadClientDocument } from '@/lib/clients/clientDocumentsService';
+import {
+  CLIENT_SERVICE_PROOF_CATEGORY,
+  isClientServiceProofPdf,
+  isServiceProofInRange,
+  loadClientServiceProofMetadata,
+  normalizeServiceProofDay,
+  prepareClientServiceProofPdf,
+  type ClientServiceProofMetadata,
+  type ClientServiceProofRange,
+} from '@/lib/clients/clientServiceProofExport';
 import { isIntakeDocumentContentMissing } from '@/lib/documents/documentPdfLogic';
+import { triggerBrowserDownload } from '@/lib/documents/documentPdfService';
 import { resolveOfficeDocumentDisplayFileName, resolveOfficeDocumentTitle } from '@/lib/office/officeDocumentDisplay';
 import { getServiceMode } from '@/lib/services/mode';
 import { CLIENT_DOCUMENT_STATUS_LABELS, type ClientDocumentRecord } from '@/types/modules/client';
@@ -29,9 +40,23 @@ type Props = {
 };
 type PickedFile = { name: string; mimeType: string; sizeBytes: number; contentBase64: string };
 type WorkspaceProps = Props & { tenantId: string | null; actorId?: string; actorName: string | null; roleKey?: string | null; isReadOnly: boolean };
+type ProofRowActions = {
+  serviceDay?: string | null;
+  selected: boolean;
+  disabled: boolean;
+  onSelect: () => void;
+  onDownload: () => void;
+};
 
-function Icon({ name }: { name: 'file' | 'upload' | 'search' | 'arrow' | 'refresh' | 'close' }) {
-  return <WebActionIcon>{name === 'file' ? <><path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8m-8 4h5" /></> : name === 'upload' ? <><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6" /></> : name === 'search' ? <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></> : name === 'refresh' ? <><path d="M20 7a9 9 0 1 0 1 8M20 2v6h-6" /></> : name === 'close' ? <path d="m6 6 12 12M6 18 18 6" /> : <path d="m9 5 7 7-7 7" />}</WebActionIcon>;
+const emptyProofMetadata: ClientServiceProofMetadata = {};
+const emptyRange = { from: '', to: '' };
+
+function Icon({ name }: { name: 'file' | 'upload' | 'search' | 'arrow' | 'refresh' | 'close' | 'download' }) {
+  return <WebActionIcon>{name === 'file' ? <><path d="M14 3H5v18h14V8zM14 3v5h5M8 12h8m-8 4h5" /></> : name === 'upload' ? <><path d="M12 16V3m-5 5 5-5 5 5M4 15v6h16v-6" /></> : name === 'download' ? <path d="M12 3v13m-5-5 5 5 5-5M4 16v5h16v-5" /> : name === 'search' ? <><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></> : name === 'refresh' ? <><path d="M20 7a9 9 0 1 0 1 8M20 2v6h-6" /></> : name === 'close' ? <path d="m6 6 12 12M6 18 18 6" /> : <path d="m9 5 7 7-7 7" />}</WebActionIcon>;
+}
+
+async function deliverProofPdf(bytes: Uint8Array, fileName: string) {
+  triggerBrowserDownload(bytes, fileName, 'application/pdf');
 }
 
 function documentStatus(doc: ClientDocumentRecord) {
@@ -56,19 +81,25 @@ function documentFormat(doc: ClientDocumentRecord) {
   return 'Datei';
 }
 
-function DocumentRow({ doc, onOpen }: { doc: ClientDocumentRecord; onOpen: () => void }) {
+function DocumentRow({ doc, onOpen, proof }: { doc: ClientDocumentRecord; onOpen: () => void; proof?: ProofRowActions }) {
   const rowId = useId();
   const title = resolveOfficeDocumentTitle(doc);
   const status = documentStatus(doc);
   const fileName = resolveOfficeDocumentDisplayFileName(doc);
   const duplicateFileName = fileName?.replace(/\.[^.]+$/, '').trim().toLocaleLowerCase('de') === title.trim().toLocaleLowerCase('de');
-  return <li data-document-id={doc.id}>
+  const serviceDate = proof?.serviceDay?.split('-').reverse().join('.');
+  const proofLabel = [title, serviceDate, fileName].filter(Boolean).join(', ');
+  return <li data-document-id={doc.id} className={proof ? 'cr-docs-proof-row' : undefined}>
     <button className="cr-docs-row" type="button" onClick={onOpen} aria-label={`${title} ansehen`} aria-describedby={`${rowId}-meta ${rowId}-status`}>
       <span className="cr-docs-file" aria-hidden="true"><Icon name="file" /><small>{documentFormat(doc)}</small></span>
       <span className="cr-docs-row-copy"><strong>{title}</strong><span id={`${rowId}-meta`} className="cr-docs-row-meta">{getClientDocumentCategoryLabel(resolveClientDocumentCategoryKey(doc))}<span aria-hidden="true"> · </span>{doc.documentSource === 'intake' ? 'Aus der Aufnahme' : doc.documentSource === 'upload' ? 'Hochgeladen' : 'Aktenunterlage'}</span>{fileName && !duplicateFileName ? <small>{fileName}</small> : null}</span>
-      <span id={`${rowId}-status`} className="cr-docs-row-status"><span className={`cr-docs-status ${status.tone}`}>{status.label}</span><small>{documentDate(doc)}</small></span>
+      <span id={`${rowId}-status`} className="cr-docs-row-status"><span className={`cr-docs-status ${status.tone}`}>{status.label}</span><small>{proof ? serviceDate ? `Leistung am ${serviceDate}` : 'Leistungsdatum fehlt' : documentDate(doc)}</small></span>
       <span className="cr-docs-open">Ansehen <Icon name="arrow" /></span>
     </button>
+    {proof ? <div className="cr-docs-proof-row-actions">
+      <label><input type="checkbox" checked={proof.selected} disabled={proof.disabled} onChange={proof.onSelect} aria-label={`Nachweis auswählen, ${proofLabel}`} /><span>Auswählen</span></label>
+      <button type="button" className="cr-docs-button" disabled={proof.disabled} onClick={proof.onDownload} aria-label={`Original-PDF herunterladen, ${proofLabel}`}><Icon name="download" /> PDF laden</button>
+    </div> : null}
   </li>;
 }
 
@@ -94,6 +125,10 @@ function DocumentWorkspace({ tenantId, clientId, clientLastName, initialDocument
   const [picking, setPicking] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [proofRangeInput, setProofRangeInput] = useState(emptyRange);
+  const [selectedProofIds, setSelectedProofIds] = useState<string[]>([]);
+  const [pdfProgress, setPdfProgress] = useState<{ done: number; total: number } | null>(null);
+  const pdfOperation = useRef<AbortController | null>(null);
   const busy = useRef(false);
   const fileBusy = useRef(false);
   const mounted = useRef(true);
@@ -103,7 +138,10 @@ function DocumentWorkspace({ tenantId, clientId, clientLastName, initialDocument
   const focusAfterUpload = useRef(false);
   const rowButtons = useRef<HTMLDivElement>(null);
   const lastOpened = useRef<string | null>(null);
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  useEffect(() => {
+    mounted.current = true;
+    return () => { mounted.current = false; pdfOperation.current?.abort(); };
+  }, []);
   useEffect(() => { if (uploadOpen) titleInput.current?.focus(); }, [uploadOpen]);
   useEffect(() => { if (selectedDocId) previewBack.current?.focus(); }, [selectedDocId]);
   useEffect(() => {
@@ -119,18 +157,75 @@ function DocumentWorkspace({ tenantId, clientId, clientLastName, initialDocument
     { enabled: !!tenantId && !!clientId, queryKey: `client-documents:${tenantId}:${clientId}:${actorId}:${roleKey}` },
   );
   const documents = useMemo(() => (query.data ?? initialDocuments ?? []).filter(doc => doc.clientId === clientId && doc.tenantId === tenantId), [query.data, initialDocuments, clientId, tenantId]);
+  const proofView = activeCategory === CLIENT_SERVICE_PROOF_CATEGORY;
+  const proofDocuments = useMemo(() => documents.filter(isClientServiceProofPdf), [documents]);
+  const proofQuery = useAsyncQuery(
+    () => loadClientServiceProofMetadata(tenantId ?? '', clientId, proofDocuments),
+    [tenantId, clientId, proofDocuments],
+    {
+      enabled: proofView && !!tenantId && !!clientId && proofDocuments.length > 0,
+      queryKey: JSON.stringify(['client-proof-metadata', tenantId, clientId, actorId, roleKey,
+        proofDocuments.map(doc => [doc.id, doc.updatedAt, doc.serviceRecordId])]),
+    },
+  );
+  const proofMetadata = proofQuery.data ?? emptyProofMetadata;
+  const from = normalizeServiceProofDay(proofRangeInput.from);
+  const to = normalizeServiceProofDay(proofRangeInput.to);
+  const proofRange = useMemo(() => from && to && from <= to ? { from, to } : null, [from, to]);
+  const invalidRange = Boolean(proofRangeInput.from && proofRangeInput.to && !proofRange);
+  const periodProofs = proofRange && proofQuery.data ? proofDocuments.filter(doc =>
+    isServiceProofInRange(proofMetadata[doc.id]?.serviceDay, proofRange)) : [];
+  const selectedProofs = proofDocuments.filter(doc => selectedProofIds.includes(doc.id));
+  const proofMetadataError = proofQuery.error ?? proofQuery.refreshError;
+  const proofDisabled = Boolean(pdfProgress || query.loading || query.refreshing || proofQuery.loading || proofQuery.refreshing);
+  const undatedCount = proofQuery.data ? proofDocuments.filter(doc => !proofMetadata[doc.id]?.serviceDay).length : 0;
   const categories = useMemo(() => buildClientDocumentCategoryOverview(documents), [documents]);
   const usedCategories = categories.filter(item => item.count > 0);
   const visibleDocuments = useMemo(() => {
     const term = search.trim().toLocaleLowerCase('de');
     return filterClientDocumentsByCategory(documents, activeCategory)
+      .filter(doc => !proofView || !proofRange || !proofQuery.data || isServiceProofInRange(proofMetadata[doc.id]?.serviceDay, proofRange))
       .filter(doc => !term || [resolveOfficeDocumentTitle(doc), resolveOfficeDocumentDisplayFileName(doc), getClientDocumentCategoryLabel(resolveClientDocumentCategoryKey(doc))].filter(Boolean).join(' ').toLocaleLowerCase('de').includes(term))
       .slice().sort((a, b) => sort === 'name' ? resolveOfficeDocumentTitle(a).localeCompare(resolveOfficeDocumentTitle(b), 'de') : (Date.parse(b.updatedAt || b.createdAt) || 0) - (Date.parse(a.updatedAt || a.createdAt) || 0));
-  }, [documents, activeCategory, search, sort]);
-  const selectedDoc = selectedDocId ? documents.find(doc => doc.id === selectedDocId) : null;
+  }, [documents, activeCategory, search, sort, proofView, proofRange, proofQuery.data, proofMetadata]);
+  const previewDoc = selectedDocId ? documents.find(doc => doc.id === selectedDocId) : null;
+  const alternatePath = previewDoc && isClientServiceProofPdf(previewDoc) ? proofMetadata[previewDoc.id]?.storagePath : null;
+  const selectedDoc = previewDoc && !previewDoc.storagePath && alternatePath
+    ? { ...previewDoc, storagePath: alternatePath } : previewDoc;
   const queryError = query.error ?? query.refreshError;
 
-  function selectCategory(value: string) { setActiveCategory(value); setSelectedDocId(null); }
+  function selectCategory(value: string) {
+    setActiveCategory(value);
+    setSelectedDocId(null);
+    setProofRangeInput(emptyRange);
+    setSelectedProofIds([]);
+  }
+  function toggleProof(id: string) {
+    setSelectedProofIds(ids => ids.includes(id) ? ids.filter(value => value !== id) : [...ids, id]);
+  }
+  async function downloadProofs(chosen: ClientDocumentRecord[], range?: ClientServiceProofRange) {
+    if (!tenantId || proofDisabled || pdfOperation.current || !chosen.length) return;
+    const controller = new AbortController();
+    pdfOperation.current = controller;
+    setMessage(null);
+    setActionError(null);
+    setPdfProgress({ done: 0, total: chosen.length });
+    try {
+      const result = await prepareClientServiceProofPdf({
+        tenantId, clientId, clientLastName, documents: chosen, metadata: proofMetadata, range, signal: controller.signal,
+        onProgress: (done, total) => { if (!controller.signal.aborted) setPdfProgress({ done, total }); },
+      });
+      if (controller.signal.aborted) return;
+      if (!result.ok) { setActionError(result.error); return; }
+      await deliverProofPdf(result.data.bytes, result.data.fileName);
+      if (!controller.signal.aborted) setMessage('PDF-Download wurde gestartet.');
+    } catch {
+      if (!controller.signal.aborted) setActionError('Die PDF konnte nicht zum Speichern geöffnet werden. Bitte versuchen Sie es erneut.');
+    } finally {
+      pdfOperation.current = null;
+      if (!controller.signal.aborted) setPdfProgress(null);
+    }
+  }
   function showUpload() {
     if (isReadOnly || working) return;
     if (activeCategory !== CLIENT_DOCUMENT_ALL_CATEGORY_KEY) setCategory(activeCategory);
@@ -210,9 +305,45 @@ function DocumentWorkspace({ tenantId, clientId, clientLastName, initialDocument
       {selectedDocId ? <div className="cr-docs-preview"><button ref={previewBack} type="button" className="cr-docs-button" onClick={backToList}>← Zur Dokumentenliste</button>{selectedDoc ? <><div className="cr-docs-preview-title"><span>{getClientDocumentCategoryLabel(resolveClientDocumentCategoryKey(selectedDoc))}</span><h4>{resolveOfficeDocumentTitle(selectedDoc)}</h4></div><ClientDocumentPreview key={`${tenantId}:${clientId}:${selectedDoc.id}`} tenantId={tenantId} clientId={clientId} document={selectedDoc} clientLastName={clientLastName} actorName={actorName} onDeliveryComplete={onRecordRefresh} /></> : <div className="cr-docs-empty" role="status"><strong>Dokument nicht mehr in dieser Liste</strong><p>Die Unterlagen wurden aktualisiert. Kehren Sie zur Dokumentenliste zurück.</p></div>}</div> : <>
         <div className="cr-docs-filters"><label className="cr-docs-search"><span>Dokument suchen</span><span className="cr-docs-search-input"><Icon name="search" /><input type="search" value={search} onChange={event => setSearch(event.target.value)} placeholder="Titel, Dateiname oder Kategorie" /></span></label><label><span>Kategorie</span><select value={activeCategory} onChange={event => selectCategory(event.target.value)}><option value={CLIENT_DOCUMENT_ALL_CATEGORY_KEY}>Alle Kategorien ({documents.length})</option>{categories.map(item => <option key={item.key} value={item.key}>{item.label} ({item.count})</option>)}</select></label><label><span>Sortieren</span><select value={sort} onChange={event => setSort(event.target.value)}><option value="newest">Zuletzt aktualisiert</option><option value="name">Titel A–Z</option></select></label></div>
         {usedCategories.length ? <div className="cr-docs-categories" aria-label="Vorhandene Dokumentkategorien"><button type="button" aria-pressed={activeCategory === CLIENT_DOCUMENT_ALL_CATEGORY_KEY} onClick={() => selectCategory(CLIENT_DOCUMENT_ALL_CATEGORY_KEY)}><span className="cr-docs-category-label">Alle Dokumente </span><span className="cr-docs-category-count">{documents.length}</span></button>{usedCategories.map(item => <button type="button" key={item.key} aria-pressed={activeCategory === item.key} onClick={() => selectCategory(item.key)}><span className="cr-docs-category-label">{item.label}</span><span className="cr-docs-category-count">{item.count}</span></button>)}</div> : null}
+        {proofView && proofDocuments.length ? <section className="cr-docs-proof-export" aria-label="Leistungsnachweise herunterladen">
+          <div className="cr-docs-proof-heading">
+            <span className="cr-docs-proof-icon" aria-hidden="true"><Icon name="download" /></span>
+            <div><h4>Leistungsnachweise herunterladen</h4><p>Einzeln als Original oder gesammelt in einer PDF.</p></div>
+          </div>
+          <div className="cr-docs-proof-controls">
+            <div className="cr-docs-proof-dates">
+              <label><span>Leistungsdatum von</span><input type="date" value={proofRangeInput.from} disabled={!!pdfProgress} onChange={event => setProofRangeInput(current => ({ ...current, from: event.target.value }))} /></label>
+              <label><span>Leistungsdatum bis</span><input type="date" value={proofRangeInput.to} disabled={!!pdfProgress} onChange={event => setProofRangeInput(current => ({ ...current, to: event.target.value }))} /></label>
+            </div>
+            <div className="cr-docs-proof-buttons">
+              <button className="cr-docs-button primary" type="button" disabled={proofDisabled || !!proofMetadataError || !periodProofs.length} onClick={() => { if (proofRange) void downloadProofs(periodProofs, proofRange); }}><Icon name="download" /> Zeitraum als PDF</button>
+              <button className="cr-docs-button" type="button" disabled={proofDisabled || !selectedProofs.length} onClick={() => void downloadProofs(selectedProofs)}>Auswahl als PDF ({selectedProofs.length})</button>
+              <button className="cr-docs-button" type="button" disabled={proofDisabled} onClick={() => void downloadProofs(proofDocuments)}>Alle als PDF ({proofDocuments.length})</button>
+            </div>
+          </div>
+          {invalidRange ? <p className="cr-docs-proof-hint error" role="alert">Wählen Sie gültige Daten. Das Enddatum muss am oder nach dem Startdatum liegen.</p> : null}
+          {proofMetadataError ? <div className="cr-docs-proof-feedback" role="alert"><span>{proofMetadataError}</span><button type="button" className="cr-docs-button" disabled={proofDisabled} onClick={() => void proofQuery.refresh()}>Leistungsdaten erneut laden</button></div> : null}
+          {proofRange || undatedCount || pdfProgress || proofQuery.loading ? <p className="cr-docs-proof-hint" role="status">
+            {pdfProgress ? `PDF wird vorbereitet · ${pdfProgress.done} von ${pdfProgress.total} geladen`
+              : proofQuery.loading ? 'Leistungsdaten werden geladen …'
+              : [proofRange && proofQuery.data ? `${periodProofs.length} im Zeitraum` : null,
+                undatedCount ? `${undatedCount} ohne Leistungsdatum · per Auswahl oder „Alle“ verfügbar` : null].filter(Boolean).join(' · ')}
+          </p> : null}
+        </section> : null}
         <div className="cr-docs-list-heading"><span role="status">{query.loading && !documents.length ? 'Dokumente werden geladen…' : `${visibleDocuments.length} ${visibleDocuments.length === 1 ? 'Dokument' : 'Dokumente'}${activeCategory === CLIENT_DOCUMENT_ALL_CATEGORY_KEY ? ' in der Akte' : ` · ${getClientDocumentCategoryLabel(activeCategory)}`}`}</span>{search || activeCategory !== CLIENT_DOCUMENT_ALL_CATEGORY_KEY ? <button type="button" onClick={() => { setSearch(''); selectCategory(CLIENT_DOCUMENT_ALL_CATEGORY_KEY); }}>Filter zurücksetzen</button> : <span>Stand · zuletzt geändert</span>}</div>
         <div ref={rowButtons} className="cr-docs-results" aria-busy={query.loading || query.refreshing}>
-          {visibleDocuments.length ? <ul className="cr-docs-list">{visibleDocuments.map(doc => <DocumentRow key={doc.id} doc={doc} onOpen={() => { lastOpened.current = doc.id; setSelectedDocId(doc.id); }} />)}</ul> : query.loading ? <div className="cr-docs-empty" role="status"><Icon name="file" /><p>Die Unterlagen werden zusammengestellt.</p></div> : queryError && !documents.length ? <div className="cr-docs-empty"><strong>Dokumente derzeit nicht verfügbar</strong><p>Versuchen Sie, die Liste erneut zu laden.</p></div> : <div className="cr-docs-empty"><Icon name={documents.length ? 'search' : 'file'} /><strong>{documents.length ? 'Keine passenden Dokumente' : 'Hier entsteht die Dokumentenakte.'}</strong><p>{documents.length ? 'Ändern Sie die Suche oder wählen Sie eine andere Kategorie.' : 'Unterlagen aus der Aufnahme und hochgeladene Dateien werden hier gesammelt.'}</p>{!documents.length && !isReadOnly ? <button type="button" className="cr-docs-button" onClick={showUpload}>Erstes Dokument hinzufügen</button> : null}</div>}
+          {visibleDocuments.length ? <ul className="cr-docs-list">{visibleDocuments.map(doc => <DocumentRow
+            key={doc.id}
+            doc={doc}
+            onOpen={() => { lastOpened.current = doc.id; setSelectedDocId(doc.id); }}
+            proof={proofView && isClientServiceProofPdf(doc) ? {
+              serviceDay: proofMetadata[doc.id]?.serviceDay,
+              selected: selectedProofIds.includes(doc.id),
+              disabled: proofDisabled,
+              onSelect: () => toggleProof(doc.id),
+              onDownload: () => void downloadProofs([doc]),
+            } : undefined}
+          />)}</ul> : query.loading ? <div className="cr-docs-empty" role="status"><Icon name="file" /><p>Die Unterlagen werden zusammengestellt.</p></div> : queryError && !documents.length ? <div className="cr-docs-empty"><strong>Dokumente derzeit nicht verfügbar</strong><p>Versuchen Sie, die Liste erneut zu laden.</p></div> : <div className="cr-docs-empty"><Icon name={documents.length ? 'search' : 'file'} /><strong>{documents.length ? 'Keine passenden Dokumente' : 'Hier entsteht die Dokumentenakte.'}</strong><p>{proofRange ? 'Passen Sie den Zeitraum oder die Suche an.' : documents.length ? 'Ändern Sie die Suche oder wählen Sie eine andere Kategorie.' : 'Unterlagen aus der Aufnahme und hochgeladene Dateien werden hier gesammelt.'}</p>{!documents.length && !isReadOnly ? <button type="button" className="cr-docs-button" onClick={showUpload}>Erstes Dokument hinzufügen</button> : null}</div>}
         </div>
       </>}
     </section>

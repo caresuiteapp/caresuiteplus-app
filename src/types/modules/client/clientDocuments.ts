@@ -13,6 +13,7 @@ export type ClientDocumentRecord = TenantScopedEntity & {
   sensitivity: SensitivityLevel;
   uploadedBy: string | null;
   validUntil: string | null;
+  serviceRecordId?: string | null;
   /** Intake-/Upload-Herkunft (Merge-Schicht, nicht DB-Pflichtfeld) */
   documentSource?: 'intake' | 'upload' | null;
   intakeDocumentId?: string | null;

@@ -62,28 +62,45 @@ function base64ToBytes(base64: string): Uint8Array {
   return Uint8Array.from(atob(base64), (char) => char.charCodeAt(0));
 }
 
-function triggerBrowserDownload(bytes: Uint8Array, fileName: string, mimeType: string): void {
+export function triggerBrowserDownload(bytes: Uint8Array, fileName: string, mimeType: string): void {
   if (typeof document === 'undefined') return;
   const blob = new Blob([new Uint8Array(bytes)], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement('a');
   anchor.href = url;
   anchor.download = fileName;
-  anchor.click();
-  URL.revokeObjectURL(url);
+  document.body.appendChild(anchor);
+  try {
+    anchor.click();
+  } finally {
+    anchor.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1_000);
+  }
 }
 
-async function fetchStoredDocumentBytes(storagePath: string): Promise<ServiceResult<Uint8Array>> {
+export async function fetchStoredDocumentBytes(
+  storagePath: string,
+  signal?: AbortSignal,
+): Promise<ServiceResult<Uint8Array>> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase-Client nicht verfügbar.' };
 
-  const { data, error } = await supabase.storage.from(STORAGE_BUCKET).download(storagePath);
+  const bucket = supabase.storage.from(STORAGE_BUCKET);
+  const { data, error } = await (signal ? bucket.download(storagePath, {}, { signal }) : bucket.download(storagePath));
   if (error || !data) {
     return { ok: false, error: error?.message ?? 'Datei konnte nicht geladen werden.' };
   }
 
-  const buffer = await data.arrayBuffer();
-  return { ok: true, data: new Uint8Array(buffer) };
+  if (typeof data.arrayBuffer === 'function') {
+    return { ok: true, data: new Uint8Array(await data.arrayBuffer()) };
+  }
+  const base64 = await new Promise<string>((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result).split(',')[1] ?? '');
+    reader.onerror = () => reject(new Error('Datei konnte nicht gelesen werden.'));
+    reader.readAsDataURL(data);
+  });
+  return { ok: true, data: base64ToBytes(base64) };
 }
 
 function assertStoredHtmlIsPassive(html: string): void {

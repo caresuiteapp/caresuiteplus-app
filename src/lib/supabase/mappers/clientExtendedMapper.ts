@@ -359,7 +359,7 @@ export function mapClientContract(row: ContractRow): ClientContract {
   };
 }
 
-type DocumentRow = ClientDocumentRow;
+type DocumentRow = ClientDocumentRow & { service_record_id?: string | null };
 
 export function mapClientDocument(row: DocumentRow): ClientDocumentRecord {
   const source = row.source ?? null;
@@ -376,6 +376,7 @@ export function mapClientDocument(row: DocumentRow): ClientDocumentRecord {
     sensitivity: row.sensitivity as ClientDocumentRecord['sensitivity'],
     uploadedBy: row.uploaded_by,
     validUntil: row.valid_until,
+    serviceRecordId: row.service_record_id ?? null,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     documentSource: source === 'intake' ? 'intake' : source === 'upload' ? 'upload' : null,

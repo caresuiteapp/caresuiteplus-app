@@ -1843,13 +1843,13 @@
     {
       "web": "src/components/office/clientDocumentsCss.web.ts",
       "native": "src/components/office/clientDocumentsCss.native.ts",
-      "sourceHash": "69b032ba0571573597c2823fbb218e3bea3dd8d470f82a4fb9eba25c7ee6c070",
+      "sourceHash": "0f48a8fb99352be4d49c0d36a7a8a6c17a3935d76789348f6705ae7eb4b68522",
       "environment": []
     },
     {
       "web": "src/components/office/ClientRecordDocumentsPanel.web.tsx",
       "native": "src/components/office/ClientRecordDocumentsPanel.native.tsx",
-      "sourceHash": "c6db8ee0a868010651f7d592bf7b643378de2b4be04d8235874216a3831b96c5",
+      "sourceHash": "1738daed2e180171099c673f9e58b55a882db42fa8bfeedd1d4fc8891eaf4879",
       "environment": [
         "fetch"
       ]

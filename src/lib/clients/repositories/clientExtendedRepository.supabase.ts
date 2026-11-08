@@ -77,6 +77,28 @@ function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
+async function readStoredClientDocuments(
+  supabase: NonNullable<ReturnType<typeof getClient>>,
+  tenantId: string,
+  clientId: string,
+): Promise<ServiceResult<ClientFullDetail['documents']>> {
+  const documents: ClientFullDetail['documents'] = [];
+  const pageSize = 500;
+  while (true) {
+    const { data, count, error } = await fromUnknownTable(supabase, 'client_documents')
+      .select('*', { count: 'exact' })
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(documents.length, documents.length + pageSize - 1);
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    const page = castRows(data);
+    documents.push(...page.map(row => mapClientDocument(row as Parameters<typeof mapClientDocument>[0])));
+    if (!page.length || (count !== null && documents.length >= count)) return { ok: true, data: documents };
+  }
+}
+
 async function assertClientExists(tenantId: string, clientId: string): Promise<ServiceResult<ClientExtendedRow>> {
   const supabase = getClient();
   if (!supabase) return unavailable();
@@ -1035,11 +1057,7 @@ export const supabaseClientExtendedRepository = {
     await promoteFinalizedIntakeDocumentsToClientRecord(tenantId, clientId);
 
     const [documents, intakeDocuments] = await Promise.all([
-      fromUnknownTable(supabase, 'client_documents')
-        .select('*')
-        .eq('tenant_id', tenantId)
-        .eq('client_id', clientId)
-        .order('created_at', { ascending: false }),
+      readStoredClientDocuments(supabase, tenantId, clientId),
       fromUnknownTable(supabase, 'client_intake_documents')
         .select('*')
         .eq('tenant_id', tenantId)
@@ -1047,11 +1065,11 @@ export const supabaseClientExtendedRepository = {
         .order('updated_at', { ascending: false }),
     ]);
 
-    if (documents.error) return { ok: false, error: toGermanSupabaseError(documents.error) };
+    if (!documents.ok) return documents;
     if (intakeDocuments.error) return { ok: false, error: toGermanSupabaseError(intakeDocuments.error) };
 
     const merged = mergeClientRecordDocuments(
-      castRows(documents.data).map((row) => mapClientDocument(row as Parameters<typeof mapClientDocument>[0])),
+      documents.data,
       castRows(intakeDocuments.data) as Parameters<typeof mergeClientRecordDocuments>[1],
     );
 

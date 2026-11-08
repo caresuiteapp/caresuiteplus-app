@@ -2,11 +2,13 @@
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PDFDocument } from 'pdf-lib';
 import type { ClientDocumentRecord } from '@/types/modules/client';
 import { getCatalogOptions } from '@/lib/catalogs/systemCatalogService';
 
 const f = vi.hoisted(() => ({
   list: vi.fn(), upload: vi.fn(), pick: vi.fn(), preview: vi.fn(), recommendations: vi.fn(), recordRefresh: vi.fn(),
+  supabase: vi.fn(), loadPdf: vi.fn(), savePdf: vi.fn(),
   tenant: 'tenant-a', actor: 'actor-a', role: 'business_admin', readOnly: false,
 }));
 vi.mock('react-native', () => ({ Platform: { OS: 'web' }, AppState: { addEventListener: vi.fn() } }));
@@ -15,6 +17,10 @@ vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: { id: f.actor,
 vi.mock('@/hooks/usePermissions', () => ({ usePermissions: () => ({ isReadOnly: f.readOnly, can: () => !f.readOnly }) }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => f.tenant }));
 vi.mock('@/lib/clients/clientDocumentsService', () => ({ listClientDocuments: f.list, uploadClientDocument: f.upload }));
+vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: f.supabase }));
+vi.mock('@/lib/documents/documentPdfService', async importOriginal => ({
+  ...await importOriginal<typeof import('@/lib/documents/documentPdfService')>(), triggerBrowserDownload: f.savePdf,
+}));
 vi.mock('expo-document-picker', () => ({ getDocumentAsync: f.pick }));
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'demo' }));
 vi.mock('@/components/office/ClientDocumentPreview', () => ({ ClientDocumentPreview: (props: { document: ClientDocumentRecord; onDeliveryComplete?: () => void }) => {
@@ -74,6 +80,8 @@ beforeEach(() => {
   f.list.mockReset().mockResolvedValue({ ok: true, data: documents() });
   f.upload.mockReset().mockResolvedValue({ ok: true, data: doc('uploaded') });
   f.pick.mockReset().mockResolvedValue(picked());
+  f.supabase.mockReset().mockReturnValue(null);
+  f.loadPdf.mockReset();
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
@@ -231,5 +239,136 @@ describe('client document upload lifecycle', () => {
     expect(host.textContent).not.toContain('Dokument wurde in der Akte gespeichert.');
     expect(host.textContent).not.toContain('Fehler aus der vorherigen Akte'); expect(host.querySelector('form')).toBeNull();
     expect(f.list).toHaveBeenCalledTimes(requests); expect(f.recordRefresh).not.toHaveBeenCalled();
+  });
+});
+
+async function configureProofDownloads() {
+  const storedPath = (id: string) => `tenant/tenant-a/clients/client-a/documents/${id}.pdf`;
+  const proof = (id: string, overrides: Partial<ClientDocumentRecord> = {}) => doc(id, {
+    category: 'leistungsnachweis' as ClientDocumentRecord['category'],
+    storagePath: storedPath(id),
+    updatedAt: '2026-11-05T12:00:00Z',
+    ...overrides,
+  });
+  const proofDocuments = [
+    proof('okt-ende', { storagePath: null }),
+    proof('okt-anfang'),
+    proof('november'),
+    proof('ohne-datum'),
+    proof('andere-akte', { clientId: 'client-b' }),
+    doc('vertrag'),
+  ];
+  const proofRows = [
+    ['okt-ende', '2026-10-31T14:00:00Z'],
+    ['okt-anfang', '2026-09-30T22:30:00Z'],
+    ['november', '2026-11-02T14:00:00Z'],
+  ].map(([id, date]) => ({
+    id, tenant_id: 'tenant-a', storage_path: storedPath(id), scheduled_start: date,
+    assist_visits: { tenant_id: 'tenant-a', client_id: 'client-a', planned_start_at: '2026-11-06T14:00:00Z' },
+  }));
+  const files = new Map<string, Uint8Array>();
+  for (const [id, sizes] of [
+    ['okt-anfang', [301, 302]], ['okt-ende', [331]], ['november', [402]], ['ohne-datum', [500]],
+  ] as const) {
+    const pdf = await PDFDocument.create();
+    for (const width of sizes) pdf.addPage([width, 600]);
+    files.set(storedPath(id), await pdf.save());
+  }
+  const from = vi.fn(() => {
+    const query = {
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      in: vi.fn((_column: string, ids: string[]) => Promise.resolve({
+        data: proofRows.filter(row => ids.includes(row.id)), error: null,
+      })),
+    };
+    return query;
+  });
+  f.loadPdf.mockImplementation(async (path: string) => {
+    const bytes = files.get(path);
+    return bytes
+      ? { data: { arrayBuffer: async () => new Uint8Array(bytes).buffer }, error: null }
+      : { data: null, error: { message: 'Not found' } };
+  });
+  f.supabase.mockReturnValue({ from, storage: { from: () => ({ download: f.loadPdf }) } });
+  f.list.mockResolvedValue({ ok: true, data: proofDocuments });
+  await render();
+  await change(filterSelect(), 'leistungsnachweis');
+  await vi.waitFor(() => expect(button('Alle als PDF (4)').disabled).toBe(false));
+  return { files, storedPath, from };
+}
+
+function rangeField(index: number) {
+  return host.querySelectorAll<HTMLInputElement>('.cr-docs-proof-dates input')[index]!;
+}
+
+async function assertDownloadedPages(index: number, widths: number[]) {
+  await vi.waitFor(() => expect(f.savePdf).toHaveBeenCalledTimes(index + 1));
+  const [bytes] = f.savePdf.mock.calls[index] as [Uint8Array, string, string];
+  const pdf = await PDFDocument.load(bytes);
+  expect(pdf.getPages().map(page => page.getWidth())).toEqual(widths);
+}
+
+describe('client proof PDF downloads', () => {
+  it('uses inclusive saved service days and the linked original even if the record has no storage path', async () => {
+    const { storedPath, from } = await configureProofDownloads();
+    await change(rangeField(0), '2026-10-01');
+    await change(rangeField(1), '2026-10-31');
+    expect(host.textContent).toContain('2 im Zeitraum');
+    expect(host.textContent).toContain('Leistung am 01.10.2026');
+    expect(rows()).toEqual(['okt-ende ansehen', 'okt-anfang ansehen']);
+    await click('Zeitraum als PDF');
+    await assertDownloadedPages(0, [301, 302, 331]);
+    expect(f.loadPdf.mock.calls.map(call => call[0])).toEqual([storedPath('okt-anfang'), storedPath('okt-ende')]);
+    const metadataQuery = from.mock.results[0]?.value;
+    expect(metadataQuery.eq.mock.calls).toEqual([
+      ['tenant_id', 'tenant-a'], ['assist_visits.tenant_id', 'tenant-a'], ['assist_visits.client_id', 'client-a'],
+    ]);
+    expect(metadataQuery.in).toHaveBeenCalledWith('id', ['okt-ende', 'okt-anfang', 'november', 'ohne-datum']);
+  });
+
+  it('downloads the original bytes, the checked documents and all records as separate export options', async () => {
+    const { files, storedPath } = await configureProofDownloads();
+    const row = host.querySelector('[data-document-id="okt-ende"]')!;
+    await click('PDF laden', row);
+    await vi.waitFor(() => expect(f.savePdf).toHaveBeenCalledTimes(1));
+    expect(f.savePdf).toHaveBeenLastCalledWith(files.get(storedPath('okt-ende')), 'okt-ende.pdf', 'application/pdf');
+    for (const id of ['november', 'ohne-datum']) {
+      await act(async () => host.querySelector<HTMLInputElement>(`[data-document-id="${id}"] input[type="checkbox"]`)!.click());
+    }
+    await click('Auswahl als PDF (2)');
+    await assertDownloadedPages(1, [402, 500]);
+    await change(rangeField(0), '2026-11-02');
+    await change(rangeField(1), '2026-11-02');
+    expect(rows()).toEqual(['november ansehen']);
+    await click('Alle als PDF (4)');
+    await assertDownloadedPages(2, [301, 302, 331, 402, 500]);
+  });
+
+  it('keeps the range invalid and fails the whole bundle if an original cannot be loaded', async () => {
+    const { files, storedPath } = await configureProofDownloads();
+    await change(rangeField(0), '2026-10-31');
+    await change(rangeField(1), '2026-10-01');
+    expect(button('Zeitraum als PDF').disabled).toBe(true);
+    expect(host.textContent).toContain('Das Enddatum muss am oder nach dem Startdatum liegen.');
+    files.delete(storedPath('okt-ende'));
+    await click('Alle als PDF (4)');
+    await vi.waitFor(() => expect(host.textContent).toContain('„okt-ende.pdf“ konnte nicht als Original-PDF geladen werden.'));
+    expect(f.savePdf).not.toHaveBeenCalled();
+    expect(button('Alle als PDF (4)').disabled).toBe(false);
+  });
+
+  it('cancels an in-flight download when the active client record changes', async () => {
+    await configureProofDownloads();
+    const pending = deferred<unknown>();
+    f.loadPdf.mockReturnValueOnce(pending.promise);
+    await click('PDF laden', host.querySelector('[data-document-id="okt-ende"]')!);
+    const signal = f.loadPdf.mock.calls[0][2].signal as AbortSignal;
+    expect(signal.aborted).toBe(false);
+    await render('client-b');
+    expect(signal.aborted).toBe(true);
+    await act(async () => pending.resolve({ data: null, error: { message: 'Cancelled' } }));
+    expect(f.savePdf).not.toHaveBeenCalled();
+    expect(host.textContent).not.toContain('okt-ende.pdf');
   });
 });
