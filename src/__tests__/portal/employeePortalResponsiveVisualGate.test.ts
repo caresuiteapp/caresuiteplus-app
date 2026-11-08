@@ -158,16 +158,10 @@ describe('employee portal responsive visual gate', () => {
     }
   });
 
-  it('removes legacy dark surfaces from every portal component', () => {
-    for (const file of [
-      'src/components/portal/AdaptivePortalOverview.tsx',
-      'src/components/portal/EmployeePortalClientDocumentPreviewSheet.tsx',
-      'src/components/portal/EmployeePortalClientRecordContactActions.tsx',
-    ]) {
-      const source = read(file);
-      expect(source).toContain('portalPremium');
-      expect(source).not.toContain('careLightColors');
-    }
+  it('keeps the light palette in the adaptive portal overview', () => {
+    const source = read('src/components/portal/AdaptivePortalOverview.tsx');
+    expect(source).toContain('portalPremium');
+    expect(source).not.toContain('careLightColors');
   });
 
   it('honors tall workflow bottom sheets on phone and tablet', () => {

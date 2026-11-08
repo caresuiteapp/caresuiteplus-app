@@ -6,17 +6,19 @@ import { employeePortalDesign as c } from './employeePortalDesign';
 
 type Props = {
   label: string;
+  accessibilityLabel?: string;
   icon: keyof typeof Ionicons.glyphMap;
   onPress: () => void;
   primary?: boolean;
   busy?: boolean;
 };
 
-export function EmployeePortalAgendaAction({ label, icon, onPress, primary = false, busy = false }: Props) {
+export function EmployeePortalAgendaAction({ label, accessibilityLabel, icon, onPress, primary = false, busy = false }: Props) {
   const ink = primary ? c.canvas : c.accent;
   return (
     <Pressable
       accessibilityRole="button"
+      accessibilityLabel={accessibilityLabel}
       accessibilityState={{ busy, disabled: busy }}
       disabled={busy}
       onPress={onPress}

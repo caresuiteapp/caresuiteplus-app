@@ -14,13 +14,14 @@ import { employeePortalDesign as c, employeePortalLayout } from './employeePorta
 type AgendaIcon = keyof typeof Ionicons.glyphMap;
 
 export function useEmployeePortalAgendaLayout() {
-  const { width, fontScale } = useHydrationSafeWindowDimensions();
+  const { width, height, fontScale } = useHydrationSafeWindowDimensions();
   const webFontScale = useWebFontScaleValue();
   const { padding, contentWidth } = employeePortalLayout(width);
   const [measuredWidth, setMeasuredWidth] = useState<number>();
   const readableWidth = (measuredWidth ?? contentWidth) / Math.max(1, fontScale, webFontScale);
   return {
     padding, readableWidth, compact: readableWidth < 480, twoColumns: readableWidth >= 850,
+    shortLandscape: width > height && height < 520,
     onLayout: ({ nativeEvent }: LayoutChangeEvent) => setMeasuredWidth(nativeEvent.layout.width),
   };
 }
@@ -59,11 +60,13 @@ function AgendaArtwork({ wide, artwork }: { wide: boolean; artwork: string }) {
   );
 }
 
-export function EmployeePortalAgendaHero({ layout, artwork, kicker, title, subtitle, testID, children }: {
-  layout: AgendaLayout; artwork: string; kicker: string; title: string; subtitle: string; testID?: string; children?: ReactNode;
+export function EmployeePortalAgendaHero({ layout, artwork, kicker, title, subtitle, testID, condensed = false, children }: {
+  layout: AgendaLayout; artwork: string; kicker: string; title: string; subtitle: string; testID?: string;
+  condensed?: boolean; children?: ReactNode;
 }) {
-  const { readableWidth, compact } = layout;
-  const splitHero = readableWidth >= 600;
+  const { readableWidth } = layout;
+  const compact = layout.compact || condensed;
+  const splitHero = readableWidth >= 600 && !condensed;
   return (
     <View style={[styles.hero, splitHero && styles.heroWide, compact && styles.heroCompact]} testID={testID}>
       <LinearGradient colors={['rgba(120,182,217,0.21)', 'rgba(29,58,86,0.48)', 'rgba(43,123,136,0.29)']}

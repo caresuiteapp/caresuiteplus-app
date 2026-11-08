@@ -1,32 +1,23 @@
-import { useMemo } from 'react';
-import {
-  Modal,
-  Platform,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { PortalDocumentDetailHero } from '@/components/portal/PortalDocumentDetailHero';
-import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
-import { portalPremium } from '@/design/tokens/portalPremium';
-import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
+import { InfoBanner } from '@/components/ui/InfoBanner';
+import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { useEmployeePortalClientDocument } from '@/hooks/useEmployeePortalClientDocument';
+import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';
+import { EmployeePortalAgendaAction } from './employee/EmployeePortalAgendaAction';
+import { ClientRecordLoading } from './employee/EmployeePortalClientRecordLayout';
+import { employeePortalDesign as c } from './employee/employeePortalDesign';
 
 type EmployeePortalClientDocumentPreviewSheetProps = {
   clientId: string;
-  documentId: string | null;
+  documentId: string;
   visible: boolean;
   onClose: () => void;
 };
-
-const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
 export function EmployeePortalClientDocumentPreviewSheet({
   clientId,
@@ -35,139 +26,70 @@ export function EmployeePortalClientDocumentPreviewSheet({
   onClose,
 }: EmployeePortalClientDocumentPreviewSheetProps) {
   const insets = useSafeAreaInsets();
-  const text = portalPremium.text;
+  const { width } = useHydrationSafeWindowDimensions();
+  const wide = width >= 700;
   const { data, loading, error, refresh, download, downloadLoading, downloadError } =
     useEmployeePortalClientDocument(clientId, visible ? documentId : null);
-
-  const panelStyle = useMemo(
-    () => ({
-      paddingBottom: webSafeAreaPadding('bottom', insets.bottom + careSpacing.md) as number,
-    }),
-    [insets.bottom],
-  );
-
-  const openExternal = () => {
-    if (!data?.previewHtml && data?.downloadReady) {
-      void download();
-    }
-  };
+  const hasPreview = Boolean(data?.viewReady && data.previewHtml);
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
-      statusBarTranslucent
-      testID="employee-client-document-preview-sheet"
-    >
-      <View style={styles.overlay}>
-        <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Vorschau schließen" />
-        <View
-          style={[
-            styles.sheet,
-            panelStyle,
-            { backgroundColor: portalPremium.surfaceRaised, borderColor: portalPremium.borderStrong },
-          ]}
-        >
-          <View style={styles.handleRow}>
-            <View style={styles.handle} />
-            <Pressable onPress={onClose} style={[styles.closeBtn, webCursor]} accessibilityLabel="Schließen">
-              <Text style={[styles.closeText, { color: text.muted }]}>✕</Text>
-            </Pressable>
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}
+      statusBarTranslucent testID="employee-client-document-preview-sheet">
+      <View style={[styles.overlay, wide && styles.centered]}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessible={false} />
+        <View style={[styles.sheet, wide && styles.wideSheet, {
+          paddingBottom: webSafeAreaPadding('bottom', insets.bottom + 12) as number,
+        }]} accessibilityViewIsModal>
+          <View style={styles.heading}>
+            <Text accessibilityRole="header" aria-level={2} style={styles.headingText}>Dokumentvorschau</Text>
+            <EmployeePortalAgendaAction label="Schließen" icon="close-outline" onPress={onClose} />
           </View>
 
-          {loading && !data ? (
-            <LoadingState message="Dokument wird geladen…" />
-          ) : error && !data ? (
-            <ErrorState title="Dokument" message={error} onRetry={refresh} />
-          ) : data ? (
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-              <PortalDocumentDetailHero document={data} scope="employee" />
-
-              {data.viewReady && data.previewHtml ? (
-                <DocumentHtmlPreview title={data.title} previewHtml={data.previewHtml} />
-              ) : data.downloadReady ? (
-                <View style={styles.fallbackBox}>
-                  <Text style={[styles.fallbackText, { color: text.secondary }]}>
-                    Vorschau als HTML nicht verfügbar — PDF/Datei öffnen oder herunterladen.
+          <ScrollView style={styles.scroll} contentContainerStyle={styles.content} showsVerticalScrollIndicator>
+            {loading && !data ? <ClientRecordLoading message="Dokument wird geladen …" /> : null}
+            {error && !data ? (
+              <InfoBanner variant="error" presentation="inline" onDarkSurface title="Dokument nicht verfügbar"
+                message={error} actionLabel="Erneut versuchen" onAction={() => void refresh()} />
+            ) : null}
+            {!loading && !error && !data ? <Text style={styles.copy}>Das Dokument ist derzeit nicht verfügbar.</Text> : null}
+            {data ? (
+              <>
+                <PortalDocumentDetailHero document={data} scope="employee" />
+                {hasPreview && data.previewHtml ? (
+                  <DocumentHtmlPreview title={data.title} previewHtml={data.previewHtml} />
+                ) : (
+                  <Text style={styles.copy}>
+                    {data.downloadReady ? 'Die Datei kann direkt geöffnet werden.' : 'Dieses Dokument steht derzeit nicht zur Vorschau bereit.'}
                   </Text>
-                  <PremiumButton
-                    title="Datei öffnen"
-                    onPress={() => void download()}
-                    loading={downloadLoading}
-                  />
-                </View>
-              ) : (
-                <Text style={[styles.fallbackText, { color: text.muted }]}>
-                  Dieses Dokument steht derzeit nicht zur Vorschau bereit.
-                </Text>
-              )}
-
-              {downloadError ? (
-                <Text style={styles.errorText}>{downloadError}</Text>
-              ) : null}
-
-              {data.downloadReady ? (
-                <PremiumButton
-                  title="Herunterladen"
-                  variant="secondary"
-                  onPress={() => void download()}
-                  loading={downloadLoading}
-                />
-              ) : null}
-
-              {Platform.OS === 'web' && data.previewHtml ? (
-                <PremiumButton
-                  title="In neuem Tab öffnen"
-                  variant="ghost"
-                  onPress={openExternal}
-                />
-              ) : null}
-            </ScrollView>
-          ) : null}
+                )}
+                {downloadError ? <InfoBanner variant="error" presentation="inline" onDarkSurface message={downloadError} /> : null}
+                {data.downloadReady ? (
+                  <View style={styles.actions}>
+                    <EmployeePortalAgendaAction label={hasPreview ? 'Herunterladen' : 'Datei öffnen'} icon="download-outline"
+                      primary busy={downloadLoading} onPress={() => void download()} />
+                  </View>
+                ) : null}
+              </>
+            ) : null}
+          </ScrollView>
         </View>
       </View>
     </Modal>
   );
 }
 
-const styles = StyleSheet.create({
-  overlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(15,23,42,0.45)',
-  },
-  backdrop: { ...StyleSheet.absoluteFill },
+const styles = StyleSheet.create(withCareSuiteTypography({
+  overlay: { flex: 1, justifyContent: 'flex-end', alignItems: 'center', backgroundColor: 'rgba(8,24,42,.75)' },
+  centered: { justifyContent: 'center', padding: 12 },
   sheet: {
-    maxHeight: '92%',
-    borderTopLeftRadius: 26,
-    borderTopRightRadius: 26,
-    borderWidth: 1,
-    paddingTop: careSpacing.sm,
-    paddingHorizontal: careSpacing.md,
+    width: '100%', maxWidth: 930, maxHeight: '95%', flexShrink: 1, padding: 12, gap: 10,
+    borderTopLeftRadius: 21, borderTopRightRadius: 21, borderWidth: 1, borderColor: c.line, backgroundColor: c.dialog,
   },
-  handleRow: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: careSpacing.sm,
-    minHeight: 28,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: portalPremium.borderStrong,
-  },
-  closeBtn: {
-    position: 'absolute',
-    right: 0,
-    top: 0,
-    padding: careSpacing.xs,
-  },
-  closeText: { ...careTypography.h3, lineHeight: 22 },
-  content: { gap: careSpacing.md, paddingBottom: careSpacing.lg },
-  fallbackBox: { gap: careSpacing.sm },
-  fallbackText: { ...careTypography.body },
-  errorText: { ...careTypography.caption, color: '#DC2626' },
-});
+  wideSheet: { borderRadius: 21 },
+  heading: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 8 },
+  headingText: { flexShrink: 1, color: c.text, fontSize: font(17), lineHeight: font(23), fontWeight: '800' },
+  scroll: { flexGrow: 0, flexShrink: 1, minHeight: 0 },
+  content: { gap: 10, paddingBottom: 4 },
+  copy: { color: c.muted, fontSize: font(13), lineHeight: font(19) },
+  actions: { flexDirection: 'row', flexWrap: 'wrap' },
+}));

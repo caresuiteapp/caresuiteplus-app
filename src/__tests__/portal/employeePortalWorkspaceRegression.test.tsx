@@ -17,7 +17,8 @@ vi.mock('react-native', async () => {
     View, ScrollView, Text: ({ children }: any) => <span>{children}</span>,
     Pressable: ({ children, onPress, accessibilityLabel, accessibilityRole }: any) => <button data-native-role={accessibilityRole} aria-label={accessibilityLabel} onClick={onPress}>{children}</button>,
     TextInput: ({ value, onChangeText, accessibilityLabel }: any) => <input aria-label={accessibilityLabel} value={value} onInput={(event: any) => onChangeText(event.target.value)} />,
-    StyleSheet: { create: (styles: unknown) => styles },
+    StyleSheet: { create: (styles: unknown) => styles, absoluteFill: {} },
+    ActivityIndicator: () => <span>Wird geladen</span>,
     Platform: { OS: 'android', select: (values: any) => values.android ?? values.default },
   };
 });
@@ -25,6 +26,14 @@ vi.mock('expo-router', () => ({ usePathname: () => h.path, useRouter: () => ({ p
 vi.mock('react-native-safe-area-context', () => ({ useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }) }));
 vi.mock('expo-linear-gradient', async () => ({ LinearGradient: (await import('react-native')).View }));
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: () => null }));
+vi.mock('react-native-svg', () => ({
+  default: () => null, Circle: () => null, Defs: () => null, RadialGradient: () => null, Stop: () => null,
+}));
+vi.mock('@/components/portal/employee/EmployeePortalArtwork', () => ({ EmployeePortalArtwork: () => null }));
+vi.mock('@/hooks/useHydrationSafeWindowDimensions', () => ({
+  useHydrationSafeWindowDimensions: () => ({ width: h.width, height: 800, fontScale: 1 }),
+}));
+vi.mock('@/design/web/WebFontScaleProvider', () => ({ useWebFontScaleValue: () => 1 }));
 vi.mock('@/hooks/useDeviceClass', () => ({ useDeviceClass: () => ({ width: h.width, isPhone: h.width < 600 }) }));
 vi.mock('@/hooks/usePlatformLayout', () => ({ usePlatformLayout: () => ({ showBottomTabs: false }) }));
 vi.mock('@/hooks/usePortalActor', () => ({ usePortalActor: () => ({ isReady: h.ready }) }));
@@ -38,6 +47,11 @@ vi.mock('@/components/portal/employee/EmployeePortalToday', () => ({ EmployeePor
 vi.mock('@/components/pflege/PortalCarePanels', () => ({ EmployeeCareToursPanel: () => { h.careTours(); return <section>Meine Pflegetouren</section>; } }));
 vi.mock('@/components/portal/EmployeePortalClientRecordContactActions', () => ({ dialPhoneNumber: h.dial }));
 vi.mock('@/hooks/useEmployeePortalClientRecords', () => ({ useEmployeePortalClientRecords: () => ({ records: h.records, loading: h.loading, error: h.error, refreshError: h.refreshError, refresh: h.refresh }) }));
+vi.mock('@/components/ui/InfoBanner', () => ({
+  InfoBanner: ({ title, message, actionLabel, onAction }: any) => (
+    <section role="alert">{title} {message}{onAction ? <button onClick={onAction}>{actionLabel}</button> : null}</section>
+  ),
+}));
 vi.mock('@/components/ui', () => ({
   PremiumButton: ({ title, onPress }: any) => <button onClick={onPress}>{title}</button>,
   PremiumBadge: ({ label }: any) => <span>{label}</span>,
@@ -112,6 +126,10 @@ describe('employee portal workspace regression', () => {
     await render(<EmployeePortalClientRecordsScreen />);
     await editSearch('helene');
     expect(host.textContent).toContain('Helene Musterfrau'); expect(host.textContent).not.toContain('Friedrich-Wilhelm');
+    await editSearch('0511-000000');
+    expect(host.textContent).toContain('Helene Musterfrau'); expect(host.textContent).not.toContain('Friedrich-Wilhelm');
+    await editSearch('Gartenstraße 24 Hannover');
+    expect(host.textContent).toContain('Helene Musterfrau'); expect(host.textContent).toContain('Friedrich-Wilhelm');
     await editSearch('kein passender name'); expect(host.textContent).toContain('Keine Treffer');
     const clear = host.querySelector<HTMLButtonElement>('[aria-label="Suche löschen"]')!;
     expect(clear.getAttribute('data-native-role')).toBe('button');
