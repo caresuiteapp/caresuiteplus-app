@@ -1,9 +1,12 @@
 import type { LiquidPortalNavigationItem } from '@/liquid-command/navigation/portalCatalog';
 
 export const employeePortalDesign = {
-  canvas: '#0C1E31', header: '#102134', rail: '#0A192A', panel: '#10263B',
-  raised: '#163047', line: '#304B61', text: '#F5F9FF', muted: '#B0C7D9',
-  accent: '#8DDCF4', selected: '#123F59', warning: '#FFD596', danger: '#FFBDCA',
+  canvas: '#102238',
+  header: 'rgba(235,246,255,0.10)', rail: 'rgba(10,24,39,0.24)',
+  panel: 'rgba(235,246,255,0.095)', raised: 'rgba(235,246,255,0.115)',
+  control: 'rgba(10,24,39,0.42)', dialog: '#20394F',
+  line: 'rgba(213,235,252,0.24)', text: '#F5F9FF', muted: '#D9E9F5',
+  accent: '#BCEEFF', selected: 'rgba(83,184,225,0.22)', warning: '#FFE5B8', danger: '#FFE1E9',
 } as const;
 
 export const employeePortalWorkspace = {

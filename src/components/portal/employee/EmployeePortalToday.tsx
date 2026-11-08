@@ -181,14 +181,14 @@ export function EmployeePortalWorkspaceHome({ displayName }: { displayName: stri
 }
 
 const styles = StyleSheet.create(withCareSuiteTypography({
-  root: { width: '100%', minWidth: 0, padding: 16, gap: 18, backgroundColor: c.canvas },
+  root: { width: '100%', minWidth: 0, padding: 16, gap: 18 },
   greeting: { flexDirection: 'row', alignItems: 'center', gap: 12 }, greetingCopy: { flex: 1, minWidth: 0, gap: 7 },
   eyebrow: { color: c.accent, fontSize: font(11), lineHeight: font(17), letterSpacing: 1 }, title: { color: c.text, fontSize: font(28), lineHeight: font(36), fontWeight: '700' }, titlePhone: { fontSize: font(23), lineHeight: font(31) },
   bodyText: { color: c.muted, fontSize: font(13), lineHeight: font(21), flexShrink: 1 }, refreshRow: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginTop: -6 },
-  action: { minHeight: 44, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: c.line, backgroundColor: c.panel, justifyContent: 'center', alignItems: 'center', alignSelf: 'flex-start', maxWidth: '100%' },
+  action: { minHeight: 44, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: c.line, backgroundColor: c.control, justifyContent: 'center', alignItems: 'center', alignSelf: 'flex-start', maxWidth: '100%' },
   actionText: { color: c.accent, fontSize: font(12), lineHeight: font(19), textAlign: 'center', flexShrink: 1 }, primary: { backgroundColor: c.accent, borderColor: c.accent, alignSelf: 'center' }, primaryText: { color: '#082239', fontWeight: '700' },
   notice: { padding: 14, gap: 10, borderWidth: 1, borderColor: c.line, backgroundColor: c.raised, borderRadius: 13 }, warning: { color: c.warning },
-  metrics: { flexDirection: 'row', flexWrap: 'wrap', margin: -5 }, metric: { minHeight: 80, minWidth: 0, padding: 14, gap: 5, backgroundColor: c.raised, borderRadius: 15, height: '100%' }, metricValue: { color: c.text, fontSize: font(24), lineHeight: font(32) }, metricLabel: { color: c.muted, fontSize: font(12), lineHeight: font(18) },
+  metrics: { flexDirection: 'row', flexWrap: 'wrap', margin: -5 }, metric: { minHeight: 80, minWidth: 0, padding: 14, gap: 5, backgroundColor: c.raised, borderRadius: 15, borderWidth: 1, borderColor: c.line, height: '100%' }, metricValue: { color: c.text, fontSize: font(24), lineHeight: font(32) }, metricLabel: { color: c.muted, fontSize: font(12), lineHeight: font(18) },
   focus: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 }, stacked: { flexDirection: 'column' }, day: { flex: 1.5, minWidth: 0 }, side: { flex: 1, minWidth: 0, gap: 14 }, fullWidth: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' },
   panel: { minWidth: 0, borderWidth: 1, borderColor: c.line, borderRadius: 18, padding: 18, gap: 12, backgroundColor: c.panel }, panelTitle: { color: c.text, fontSize: font(17), lineHeight: font(24), fontWeight: '700' },
   empty: { alignItems: 'center', paddingVertical: 12, gap: 12, minWidth: 0 }, emptyTitle: { color: c.text, fontSize: font(15), lineHeight: font(23), textAlign: 'center', fontWeight: '700' }, emptyText: { color: c.muted, fontSize: font(13), lineHeight: font(21), textAlign: 'center', maxWidth: 340 },

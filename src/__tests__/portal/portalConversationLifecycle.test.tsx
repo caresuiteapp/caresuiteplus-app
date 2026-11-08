@@ -14,6 +14,7 @@ import type { OfficeMessage, OfficeMessageThreadDetail } from '@/types/office/me
 
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: () => null }));
 vi.mock('@/components/portal/employee/EmployeePortalArtwork', () => ({ EmployeePortalArtwork: () => null }));
+vi.mock('@/components/portal/employee/EmployeePortalBackdrop', () => ({ EmployeePortalBackdrop: () => null }));
 vi.mock('@/hooks/useEmployeePortalWorkspace', async () => {
   const { employeePortalNavigation } = await import('@/lib/portal/employee/employeePortalNavigation');
   return { useEmployeePortalWorkspace: () => ({ selected: 'assist', available: ['assist'],

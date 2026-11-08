@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from 'react';
-import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import type { LiquidPortalNavigationItem } from '@/liquid-command/navigation/portalCatalog';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
@@ -8,6 +8,7 @@ import { employeePortalWorkspaceLabels } from '@/lib/portal/employee/employeePor
 import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { EmployeePortalArtwork } from './EmployeePortalArtwork';
+import { EmployeePortalBackdrop } from './EmployeePortalBackdrop';
 import { EmployeePortalMenuContext } from './EmployeePortalMenuContext';
 import { useEmployeePortalWorkspaceContext } from './EmployeePortalWorkspaceContext';
 import { employeePortalDesign as c, employeePortalLayout, employeePortalWorkspace, employeeRailIds } from './employeePortalDesign';
@@ -58,7 +59,8 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, ava
   );
 
   return <EmployeePortalMenuContext.Provider value={() => setMenuOpen(true)}><View style={styles.frame} testID="employee-portal-responsive-frame">
-    {!focus ? <View style={[styles.header, { paddingTop: Math.max(insets.top, 12) }, layout.phone && styles.headerPhone]} testID="employee-portal-header">
+    <EmployeePortalBackdrop animated={!focus} />
+    {!focus ? <View style={[styles.header, frostedChrome, { paddingTop: Math.max(insets.top, 12) }, layout.phone && styles.headerPhone]} testID="employee-portal-header">
       <Pressable accessibilityRole="button" accessibilityLabel="CareSuite HealthOS – Heute" onPress={() => open('/portal/employee')} style={styles.brand}>
         <Text style={[styles.wordmark, layout.phone && styles.wordmarkPhone]}>CareSuite <Text style={styles.brandAccent}>HealthOS</Text></Text>
         <Text style={styles.kicker}>MITARBEITENDENPORTAL</Text>
@@ -75,7 +77,7 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, ava
       {stackModule ? moduleTrigger : null}
     </View> : null}
     <View style={styles.body}>
-      <View style={[styles.rail, { width: layout.railWidth }]} testID="employee-portal-symbol-navigation">
+      <View style={[styles.rail, frostedChrome, { width: layout.railWidth }]} testID="employee-portal-symbol-navigation">
         <ScrollView style={styles.railScroll} contentContainerStyle={styles.railContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
           {railItems.map(railAction)}
           <View style={styles.railDivider} />
@@ -134,16 +136,20 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, ava
   </View></EmployeePortalMenuContext.Provider>;
 }
 
+const frostedChrome = Platform.OS === 'web' ? ({
+  backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+} as ViewStyle) : null;
+
 const styles = StyleSheet.create(withCareSuiteTypography({
-  frame: { flex: 1, minWidth: 0, minHeight: 0, backgroundColor: c.canvas },
+  frame: { flex: 1, minWidth: 0, minHeight: 0, position: 'relative', backgroundColor: c.canvas },
   header: { flexShrink: 0, minHeight: 80, paddingHorizontal: 24, paddingBottom: 12, borderBottomWidth: 1, borderColor: c.line, backgroundColor: c.header, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 },
   headerPhone: { minHeight: 72, paddingHorizontal: 10, gap: 8 },
   brand: { minWidth: 0, flexShrink: 1, gap: 4 }, wordmark: { color: c.text, fontSize: font(27), lineHeight: font(34), letterSpacing: -1 }, wordmarkPhone: { fontSize: font(19), lineHeight: font(27) }, brandAccent: { color: c.accent },
   kicker: { color: c.muted, fontSize: font(9), lineHeight: font(14), letterSpacing: 1.2 },
   headerActions: { minWidth: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10, marginLeft: 'auto' },
-  headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: c.panel, borderWidth: 1, borderColor: c.line },
+  headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: c.control, borderWidth: 1, borderColor: c.line },
   identity: { maxWidth: 200, gap: 2, alignItems: 'flex-end' }, identityName: { color: c.text, fontSize: font(13), lineHeight: font(19) }, secondary: { color: c.muted, fontSize: font(12), lineHeight: font(18) },
-  moduleTrigger: { minWidth: 140, maxWidth: '100%', minHeight: 44, flexShrink: 0, paddingVertical: 5, paddingHorizontal: 12, borderWidth: 1, borderColor: c.line, backgroundColor: c.panel, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  moduleTrigger: { minWidth: 140, maxWidth: '100%', minHeight: 44, flexShrink: 0, paddingVertical: 5, paddingHorizontal: 12, borderWidth: 1, borderColor: c.line, backgroundColor: c.control, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
   moduleTriggerPhone: { width: '100%', minWidth: 0 },
   moduleCopy: { flexShrink: 1, minWidth: 0 },
   moduleValue: { color: c.text, fontSize: font(15), lineHeight: font(21), fontWeight: '700' },
@@ -153,12 +159,12 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   railButton: { width: 50, height: 50, flexShrink: 0, borderRadius: 12, borderWidth: 1, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center', position: 'relative' }, railButtonPhone: { width: 44, height: 44, borderRadius: 10 },
   railDivider: { height: 1, width: 34, backgroundColor: c.line, marginVertical: 4 },
   selected: { backgroundColor: c.selected, borderColor: '#3787A8' }, pressed: { opacity: 0.75 },
-  workspace: { flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden', backgroundColor: c.canvas },
+  workspace: { flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' },
   lightWorkspace: { backgroundColor: employeePortalWorkspace.canvas },
   badge: { position: 'absolute', top: 0, right: 0, backgroundColor: '#086B8A', paddingHorizontal: 4, minWidth: 18, borderRadius: 8, alignItems: 'center' }, badgeText: { color: c.text, fontSize: font(10), lineHeight: font(15) },
   footer: { flexShrink: 0, backgroundColor: c.rail },
   menuBackdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 12, backgroundColor: 'rgba(0,10,24,0.78)' },
-  menu: { width: '100%', maxWidth: 560, maxHeight: '100%', flexShrink: 1, borderRadius: 22, borderWidth: 1, borderColor: c.line, backgroundColor: c.panel, overflow: 'hidden' },
+  menu: { width: '100%', maxWidth: 560, maxHeight: '100%', flexShrink: 1, borderRadius: 22, borderWidth: 1, borderColor: c.line, backgroundColor: c.dialog, overflow: 'hidden' },
   menuHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, gap: 12, borderBottomWidth: 1, borderColor: c.line }, menuTitle: { color: c.text, fontSize: font(22), lineHeight: font(29), flexShrink: 1 },
   menuScroll: { flexShrink: 1, minHeight: 0 }, menuContent: { gap: 6, padding: 12 },
   menuItem: { minHeight: 54, padding: 10, borderRadius: 12, borderWidth: 1, borderColor: 'transparent', flexDirection: 'row', alignItems: 'center', gap: 12 }, menuLabel: { flex: 1, minWidth: 0, color: c.text, fontSize: font(15), lineHeight: font(22) },

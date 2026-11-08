@@ -19,6 +19,7 @@ vi.mock('react-native', async importOriginal => {
   };
 });
 vi.mock('@/components/portal/employee/EmployeePortalArtwork', () => ({ EmployeePortalArtwork: () => null }));
+vi.mock('@/components/portal/employee/EmployeePortalBackdrop', () => ({ EmployeePortalBackdrop: () => null }));
 vi.mock('@/components/portal/PortalReadOnlyAvatar', () => ({ PortalReadOnlyAvatar: () => null }));
 vi.mock('@/hooks/usePortalProfileAvatar', () => ({ usePortalProfileAvatarForActor: () => ({}) }));
 vi.mock('@/hooks/useEmployeePortalWorkspace', async () => {

@@ -232,7 +232,7 @@ export function PortalTabScreen({
 }
 
 const styles = StyleSheet.create({
-  employeeHomeViewport: { flex: 1, minWidth: 0, minHeight: 0, width: '100%', backgroundColor: '#0C1E31' },
+  employeeHomeViewport: { flex: 1, minWidth: 0, minHeight: 0, width: '100%' },
   employeeHomeContent: { flexGrow: 1, minWidth: 0, width: '100%' },
   content: { flex: 1, width: '100%' },
   bare: {

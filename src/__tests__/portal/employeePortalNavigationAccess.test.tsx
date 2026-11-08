@@ -24,6 +24,7 @@ vi.mock('react-native', () => ({
   StyleSheet: { create: (styles: unknown) => styles },
 }));
 vi.mock('@/components/portal/employee/EmployeePortalArtwork', () => ({ EmployeePortalArtwork: () => null }));
+vi.mock('@/components/portal/employee/EmployeePortalBackdrop', () => ({ EmployeePortalBackdrop: () => null }));
 vi.mock('@/components/portal/PortalReadOnlyAvatar', () => ({ PortalReadOnlyAvatar: 'Avatar' }));
 vi.mock('@/hooks/usePortalProfileAvatar', () => ({ usePortalProfileAvatarForActor: () => ({ avatarUrl: 'https://example.test/employee.png' }) }));
 vi.mock('@/components/portal/employee/EmployeePortalWorkspaceContext', () => ({
