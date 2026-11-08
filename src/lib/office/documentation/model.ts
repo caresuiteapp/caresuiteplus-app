@@ -50,6 +50,19 @@ export function shiftDocumentationMonth(month: string, delta: number) {
   const date = new Date(Date.UTC(year, part - 1 + delta, 15));
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}`;
 }
+const berlinDateParts = new Intl.DateTimeFormat('de-DE', {
+  timeZone: 'Europe/Berlin', weekday: 'short', day: '2-digit', month: 'short', year: 'numeric',
+  hour: '2-digit', minute: '2-digit', hourCycle: 'h23',
+});
+
+export function documentationDateParts(iso: string) {
+  const date = new Date(iso);
+  if (!Number.isFinite(date.getTime())) return null;
+  const parts = berlinDateParts.formatToParts(date);
+  const get = (type: Intl.DateTimeFormatPartTypes) => parts.find(part => part.type === type)?.value ?? '';
+  return { weekday: get('weekday'), day: get('day'), month: get('month'), year: get('year'), time: `${get('hour')}:${get('minute')}` };
+}
+
 export function documentationDateTime(date: string) {
   return new Date(date).toLocaleString('de-DE', { timeZone: 'Europe/Berlin', dateStyle: 'medium', timeStyle: 'short' });
 }

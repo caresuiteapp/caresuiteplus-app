@@ -31,7 +31,8 @@ export function employeePortalUsesAmbientWorkspace(pathname: string): boolean {
   const path = pathname.replace(/\/+$/, '');
   return path === '/portal/employee'
     || path === '/portal/employee/assignments'
-    || path === '/portal/employee/offene-einsaetze';
+    || path === '/portal/employee/offene-einsaetze'
+    || path === '/portal/employee/dokumentation';
 }
 
 /**

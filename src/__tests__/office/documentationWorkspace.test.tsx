@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentationWorkspace, berlinInputToIso } from '@/components/office/documentation/DocumentationWorkspace.web';
+import { documentationDateParts } from '@/lib/office/documentation/model';
 import type { DocumentationEntry, DocumentationPage } from '@/lib/office/documentation/model';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
@@ -10,6 +11,8 @@ const api=vi.hoisted(()=>({list:vi.fn(),create:vi.fn(),upload:vi.fn()}));
 vi.mock('@/lib/office/documentation/service',()=>({listDocumentation:api.list,createDocumentation:api.create}));
 vi.mock('@/lib/office/documentation/attachments',async(importOriginal)=>({...await importOriginal<object>(),listDocumentationFiles:vi.fn(async()=>({items:[],canUpload:false})),uploadDocumentationFile:api.upload}));
 vi.mock('@/hooks/useUnsavedWebChanges.web',()=>({useUnsavedWebChanges:()=>async()=>true}));
+vi.mock('@/components/portal/employee/EmployeePortalBackdrop',()=>({EmployeePortalBackdrop:()=>null}));
+vi.mock('@/liquid-command/components/DesktopCatalogArtwork',()=>({DesktopCatalogArtwork:()=>null}));
 const actor={tenantId:'11111111-1111-4111-8111-111111111111',userId:'22222222-2222-4222-8222-222222222222'};
 const entry:DocumentationEntry={id:'33333333-3333-4333-8333-333333333333',tenant_id:actor.tenantId,source:'visit',area:'client',client_id:'44444444-4444-4444-8444-444444444444',employee_id:null,category:'care',priority:'normal',title:'Abgeschlossener Einsatz',body:'Gespeicherte Beobachtung',occurred_at:'2026-11-04T17:00:00Z',created_at:'2026-11-04T17:05:00Z',author_name:'Team Test',client_name:'Client Test',employee_name:'',visit_id:'55555555-5555-4555-8555-555555555555'};
 let host:HTMLDivElement,root:Root;
@@ -50,9 +53,13 @@ describe('shared documentation workspace',()=>{
   await click('Speicherbestätigung prüfen');expect(api.create.mock.calls[1]).toEqual(first);expect(host.textContent).toContain('Dokumentation gespeichert');
  });
  it('sends filters to the server and recovers from a load error',async()=>{
-  await render();api.list.mockResolvedValueOnce({ok:false,error:'Verbindung unterbrochen'});await click('Gesundheit');
+  await render();await act(async()=>host.querySelector<HTMLButtonElement>('.cs-doc-filter-toggle')!.click());
+  api.list.mockResolvedValueOnce({ok:false,error:'Verbindung unterbrochen'});await click('Gesundheit');
   expect(api.list.mock.calls.at(-1)?.[1]).toMatchObject({category:'health',offset:0});expect(host.querySelector('[role=alert]')?.textContent).toContain('Verbindung unterbrochen');expect(host.querySelector('.cs-doc-card')).toBeNull();
   await click('Erneut laden');expect(host.querySelector('.cs-doc-card')).toBeTruthy();
+ });
+ it('uses the new Berlin calendar day before midnight UTC',()=>{
+  expect(documentationDateParts('2026-10-31T23:30:00Z')).toMatchObject({day:'01',year:'2026',time:'00:30'});
  });
  it('converts Berlin wall time independently of device zone and rejects nonexistent DST time',()=>{
   expect(berlinInputToIso('2026-11-01T12:00')).toBe('2026-11-01T11:00:00.000Z');
