@@ -14,6 +14,7 @@ import { useClientGreeting } from '@/hooks/useClientGreeting';
 import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { useWebFontScaleValue } from '@/design/web/WebFontScaleProvider';
+import type { LiquidPortalNavigationItem } from '@/liquid-command/navigation/portalCatalog';
 import { EmployeePortalArtwork } from './EmployeePortalArtwork';
 import { useEmployeePortalMenu } from './EmployeePortalMenuContext';
 import { useEmployeePortalWorkspaceContext } from './EmployeePortalWorkspaceContext';
@@ -39,6 +40,30 @@ function Notice({ message, error = false, onRetry }: { message: string; error?: 
     <Text style={[styles.bodyText, error && styles.warning]}>{message}</Text>
     {onRetry ? <Action label="Erneut versuchen" onPress={onRetry} /> : null}
   </View>;
+}
+
+function ArtworkSummary({ id, label, message, size }: { id: string; label: string; message: string; size: number }) {
+  return <View style={styles.artworkSummary}>
+    <Text style={[styles.bodyText, styles.artworkSummaryText]}>{message}</Text>
+    <EmployeePortalArtwork id={id} label={label} size={size} />
+  </View>;
+}
+
+function WorkspaceShortcut({ item, size, tile = false, onPress }: {
+  item: LiquidPortalNavigationItem;
+  size: number;
+  tile?: boolean;
+  onPress: () => void;
+}) {
+  const label = item.id === 'assignments' ? 'Meine Einsätze' : item.label;
+  const title = <Text style={[styles.shortcutLabel, tile && styles.shortcutTileLabel]}>{label}</Text>;
+  const artwork = <EmployeePortalArtwork id={item.id} label={item.label} size={size} />;
+  return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress}
+    style={({ pressed }) => [tile ? styles.shortcutTile : styles.shortcut, pressed && styles.pressed]}>
+    {tile ? title : artwork}
+    {tile ? artwork : title}
+    <Ionicons name="chevron-forward" size={16} color={c.accent} />
+  </Pressable>;
 }
 
 /** The approved Tagesfokus/Kompakt home uses the existing read-only projection. */
@@ -101,24 +126,38 @@ export function EmployeePortalToday({ dashboard, loading, error, displayName, on
               <Text style={styles.assignmentTitle}>{item.title}</Text>
               <Text style={styles.bodyText}>{item.clientName} · {day} · {item.timeRange}</Text>
             </Pressable>;
-          }) : <View style={styles.empty}><EmployeePortalArtwork id="assignments" label="Einsätze" size={112} /><Text style={styles.emptyTitle}>Heute ist nichts eingeplant.</Text><Text style={styles.emptyText}>Sobald Einsätze für Sie hinterlegt sind, erscheinen sie direkt in Ihrer Tagesübersicht.</Text><Action label="Kalender öffnen" onPress={() => navigate('/portal/employee/calendar')} primary /></View>}
+          }) : <View style={styles.empty}><EmployeePortalArtwork id="assignments" label="Einsätze" size={layout.phone ? 112 : 136} /><Text style={styles.emptyTitle}>Heute ist nichts eingeplant.</Text><Text style={styles.emptyText}>Sobald Einsätze für Sie hinterlegt sind, erscheinen sie direkt in Ihrer Tagesübersicht.</Text><Action label="Kalender öffnen" onPress={() => navigate('/portal/employee/calendar')} primary /></View>}
         </Panel>
       </View>
       <View style={[styles.side, !layout.splitFocus && styles.fullWidth]}>
         <Panel title="Dokumentation">
-          {!model.offeneAufgaben.length ? <EmployeePortalArtwork id="documentation" label="Dokumentation" size={43} /> : null}
-          {model.offeneAufgaben.length ? model.offeneAufgaben.filter(task => task.id !== 'task-document-signatures' || !model.openSignatures).map(task => <Pressable key={task.id} accessibilityRole="button" onPress={() => navigate(task.route)} style={styles.task} accessibilityLabel={`${task.label}: ${task.count}`}><Text style={styles.taskText}>{task.label}</Text><Text style={styles.taskCount}>{task.count}</Text></Pressable>) : <Text style={styles.bodyText}>{taskStatusUnknown ? 'Unterschriftenstatus derzeit nicht verfügbar.' : 'Alles erledigt. Es ist keine Dokumentation oder Unterschrift offen.'}</Text>}
+          {model.offeneAufgaben.length ? model.offeneAufgaben.filter(task => task.id !== 'task-document-signatures' || !model.openSignatures).map(task => <Pressable key={task.id} accessibilityRole="button" onPress={() => navigate(task.route)} style={styles.task} accessibilityLabel={`${task.label}: ${task.count}`}><Text style={styles.taskText}>{task.label}</Text><Text style={styles.taskCount}>{task.count}</Text></Pressable>) : <ArtworkSummary id="documentation" label="Dokumentation" size={layout.phone ? 60 : 76}
+            message={taskStatusUnknown ? 'Unterschriftenstatus derzeit nicht verfügbar.' : 'Alles erledigt. Es ist keine Dokumentation oder Unterschrift offen.'} />}
           {model.openSignatures ? <Pressable accessibilityRole="button" testID="healthos-employee-open-signatures" onPress={() => navigate(model.openSignatures?.route)} style={styles.task}><Text style={[styles.taskText, styles.warning]}>{model.openSignatures.label}: {model.openSignatures.value}{model.openSignatures.subValue ? ` · ${model.openSignatures.subValue}` : ''}</Text></Pressable> : null}
           <Action label="Dokumentation öffnen" onPress={() => navigate('/portal/employee/dokumentation')} />
         </Panel>
-        <Panel title="Nachrichten"><EmployeePortalArtwork id="messages" label="Nachrichten" size={43} /><Text style={styles.bodyText}>{messageStatusUnknown ? 'Der aktuelle Nachrichtenstatus ist nicht verfügbar.' : dashboard.messageCount > 0 ? `${dashboard.messageCount} ungelesene Nachrichten warten auf Sie.` : 'Sie sind auf dem neuesten Stand. Keine neuen Nachrichten.'}</Text><Action label="Postfach öffnen" onPress={() => navigate('/portal/employee/messages')} /></Panel>
+        <Panel title="Nachrichten">
+          <ArtworkSummary id="messages" label="Nachrichten" size={layout.phone ? 60 : 76}
+            message={messageStatusUnknown ? 'Der aktuelle Nachrichtenstatus ist nicht verfügbar.' : dashboard.messageCount > 0 ? `${dashboard.messageCount} ungelesene Nachrichten warten auf Sie.` : 'Sie sind auf dem neuesten Stand. Keine neuen Nachrichten.'} />
+          <Action label="Postfach öffnen" onPress={() => navigate('/portal/employee/messages')} />
+        </Panel>
       </View>
     </View>
 
     <View style={styles.sectionHeader}><Text accessibilityRole="header" style={styles.sectionTitle}>Meine Arbeitsbereiche</Text>{openMenu ? <Action label="Alle Bereiche" onPress={openMenu} /> : null}</View>
-    <View style={styles.groups} testID="employee-portal-premium-quick-actions">{groups.map(group => <View key={group.title} style={{ width: layout.groupColumns === 3 ? '33.333333%' : layout.groupColumns === 2 ? '50%' : '100%', padding: 5, minWidth: 0 }}><Panel title={group.title}>{group.items.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={item.id === 'assignments' ? 'Meine Einsätze' : item.label} onPress={() => navigate(item.route)} style={({ pressed }) => [styles.shortcut, pressed && styles.pressed]}>
-      <EmployeePortalArtwork id={item.id} label={item.label} size={layout.phone ? 35 : 43} /><Text style={styles.shortcutLabel}>{item.id === 'assignments' ? 'Meine Einsätze' : item.label}</Text><Ionicons name="chevron-forward" size={15} color={c.accent} />
-    </Pressable>)}</Panel></View>)}</View>
+    <View style={styles.groups} testID="employee-portal-premium-quick-actions">
+      {groups.map(group => {
+        const tiles = layout.shortcutTiles && group.items.length <= 3;
+        return <View key={group.title} style={{ width: layout.groupColumns === 3 ? '33.333333%' : layout.groupColumns === 2 ? '50%' : '100%', padding: 5, minWidth: 0 }}>
+          <Panel title={group.title}>
+            <View style={tiles && styles.shortcutTiles}>
+              {group.items.map(item => <WorkspaceShortcut key={item.id} item={item} tile={tiles}
+                size={tiles ? 92 : layout.shortcutArtworkSize} onPress={() => navigate(item.route)} />)}
+            </View>
+          </Panel>
+        </View>;
+      })}
+    </View>
     <View style={styles.personal}><Text style={styles.bodyText}>Für mich</Text><View style={styles.personalActions}>{personalItems.map(item => <Action key={item.id} label={item.label} onPress={() => navigate(item.route)} />)}</View></View>
     <View style={styles.footer}><Ionicons name="shield-checkmark-outline" color={c.muted} size={15} /><Text style={styles.caption}>Persönlicher Arbeitsbereich</Text></View>
   </View>;
@@ -161,19 +200,13 @@ export function EmployeePortalWorkspaceHome({ displayName }: { displayName: stri
       {!selected && !workspace?.loading && !workspace?.error ? <Notice message="Für Ihr Konto ist derzeit kein Arbeitsmodul verfügbar." /> : null}
       {details && primary ? (
         <Panel title={details.title}>
-          <EmployeePortalArtwork id={primary.id} label={primary.label} size={72} />
-          <Text style={styles.bodyText}>{details.description}</Text>
+          <ArtworkSummary id={primary.id} label={primary.label} message={details.description} size={layout.phone ? 72 : 96} />
           <Action label={`${primary.label} öffnen`} onPress={() => router.push(primary.route as never)} primary />
         </Panel>
       ) : null}
       <Panel title="Für mich">
-        {personal?.map(item => (
-          <Pressable key={item.id} accessibilityRole="button" onPress={() => router.push(item.route as never)} style={styles.shortcut}>
-            <EmployeePortalArtwork id={item.id} label={item.label} size={40} />
-            <Text style={styles.shortcutLabel}>{item.label}</Text>
-            <Ionicons name="chevron-forward" size={15} color={c.accent} />
-          </Pressable>
-        ))}
+        {personal?.map(item => <WorkspaceShortcut key={item.id} item={item}
+          size={layout.shortcutArtworkSize} onPress={() => router.push(item.route as never)} />)}
         {openMenu ? <Action label="Alle Bereiche" onPress={openMenu} /> : null}
       </Panel>
     </View>
@@ -190,11 +223,21 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   notice: { padding: 14, gap: 10, borderWidth: 1, borderColor: c.line, backgroundColor: c.raised, borderRadius: 13 }, warning: { color: c.warning },
   metrics: { flexDirection: 'row', flexWrap: 'wrap', margin: -5 }, metric: { minHeight: 80, minWidth: 0, padding: 14, gap: 5, backgroundColor: c.raised, borderRadius: 15, borderWidth: 1, borderColor: c.line, height: '100%' }, metricValue: { color: c.text, fontSize: font(24), lineHeight: font(32) }, metricLabel: { color: c.muted, fontSize: font(12), lineHeight: font(18) },
   focus: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 }, stacked: { flexDirection: 'column' }, day: { flex: 1.5, minWidth: 0 }, side: { flex: 1, minWidth: 0, gap: 14 }, fullWidth: { flexGrow: 0, flexShrink: 0, flexBasis: 'auto', width: '100%' },
+  artworkSummary: { flexDirection: 'row', alignItems: 'center', gap: 14 }, artworkSummaryText: { flex: 1, minWidth: 0 },
   panel: { minWidth: 0, borderWidth: 1, borderColor: c.line, borderRadius: 18, padding: 18, gap: 12, backgroundColor: c.panel }, panelTitle: { color: c.text, fontSize: font(17), lineHeight: font(24), fontWeight: '700' },
   empty: { alignItems: 'center', paddingVertical: 12, gap: 12, minWidth: 0 }, emptyTitle: { color: c.text, fontSize: font(15), lineHeight: font(23), textAlign: 'center', fontWeight: '700' }, emptyText: { color: c.muted, fontSize: font(13), lineHeight: font(21), textAlign: 'center', maxWidth: 340 },
   assignment: { width: '100%', minWidth: 0, paddingVertical: 15, gap: 7, borderTopWidth: 1, borderTopColor: c.line }, activeAssignment: { borderTopColor: c.accent }, assignmentStatus: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8 }, assignmentAction: { color: c.accent, fontSize: font(12), lineHeight: font(18) }, assignmentTitle: { width: '100%', color: c.text, fontSize: font(16), lineHeight: font(24), fontWeight: '700' },
   task: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 10, minHeight: 44, borderTopWidth: 1, borderColor: c.line, paddingVertical: 9 }, taskText: { flex: 1, minWidth: 0, color: c.text, fontSize: font(13), lineHeight: font(21) }, taskCount: { color: c.accent, fontSize: font(18), lineHeight: font(24) },
   sectionHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }, sectionTitle: { color: c.text, fontSize: font(19), lineHeight: font(27), fontWeight: '700', flexShrink: 1 },
-  groups: { flexDirection: 'row', flexWrap: 'wrap', margin: -5 }, shortcut: { minWidth: 0, minHeight: 66, paddingVertical: 10, borderTopWidth: 1, borderColor: c.line, flexDirection: 'row', alignItems: 'center', gap: 10 }, shortcutLabel: { flex: 1, minWidth: 0, color: c.text, fontSize: font(14), lineHeight: font(22) },
+  groups: { flexDirection: 'row', flexWrap: 'wrap', margin: -5 },
+  shortcut: { minWidth: 0, minHeight: 72, paddingVertical: 8, borderTopWidth: 1, borderColor: c.line, flexDirection: 'row', alignItems: 'center', gap: 12 },
+  shortcutLabel: { flex: 1, minWidth: 0, color: c.text, fontSize: font(14), lineHeight: font(22) },
+  shortcutTiles: { flexDirection: 'row', gap: 8 },
+  shortcutTile: {
+    flex: 1, minWidth: 0, alignItems: 'center', justifyContent: 'space-between', gap: 7,
+    paddingHorizontal: 4, paddingVertical: 10, borderWidth: 1, borderColor: c.line,
+    borderRadius: 13, backgroundColor: c.raised,
+  },
+  shortcutTileLabel: { flex: 0, minHeight: font(44), fontSize: font(13), textAlign: 'center', fontWeight: '600', alignSelf: 'stretch' },
   personal: { gap: 11 }, personalActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 }, footer: { flexDirection: 'row', alignItems: 'center', gap: 7, paddingBottom: 10 }, caption: { color: c.muted, fontSize: font(11), lineHeight: font(17), flexShrink: 1 }, pressed: { opacity: 0.75 }, disabled: { opacity: 0.5 },
 }));

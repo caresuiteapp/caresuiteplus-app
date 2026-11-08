@@ -25,15 +25,19 @@ export const employeePortalWorkspace = {
 /** Use available workspace width, including the always-visible navigation rail. */
 export function employeePortalLayout(width: number, fontScale = 1) {
   const phone = width < 600;
-  const railWidth = phone ? 52 : 72;
+  const railArtworkSize = phone ? 44 : width < 1100 ? 54 : 64;
+  const railButtonSize = railArtworkSize + 10;
+  const railWidth = railButtonSize + 14;
   const padding = phone ? 12 : width < 1000 ? 20 : 28;
   const contentWidth = Math.max(0, width - railWidth - padding * 2);
   const readableWidth = contentWidth / Math.max(1, fontScale);
   return {
-    phone, railWidth, padding, contentWidth,
+    phone, railWidth, railArtworkSize, railButtonSize, padding, contentWidth,
     metricColumns: readableWidth >= 650 ? 4 : readableWidth >= 270 ? 2 : 1,
     splitFocus: readableWidth >= 680,
     groupColumns: readableWidth >= 820 ? 3 : readableWidth >= 550 ? 2 : 1,
+    shortcutTiles: readableWidth >= 1200,
+    shortcutArtworkSize: phone ? 56 : 68,
   };
 }
 

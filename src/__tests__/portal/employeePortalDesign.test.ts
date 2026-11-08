@@ -24,4 +24,17 @@ describe('employee portal responsive navigation', () => {
     expect(employeePortalLayout(1024).splitFocus).toBe(true);
     expect(employeePortalLayout(1440).groupColumns).toBe(3);
   });
+
+  it('keeps enlarged artwork inside the rail and switches wide tiles to rows as available space shrinks', () => {
+    for (const width of [320, 390, 768, 1024, 1440]) {
+      const layout = employeePortalLayout(width);
+      expect(layout.railArtworkSize).toBeGreaterThanOrEqual(44);
+      expect(layout.railArtworkSize).toBeLessThan(layout.railButtonSize);
+      expect(layout.railButtonSize).toBeLessThan(layout.railWidth);
+    }
+    expect(employeePortalLayout(1440).shortcutTiles).toBe(true);
+    expect(employeePortalLayout(1440, 1.25).shortcutTiles).toBe(false);
+    expect(employeePortalLayout(1024).shortcutTiles).toBe(false);
+    expect(employeePortalLayout(390).shortcutTiles).toBe(false);
+  });
 });

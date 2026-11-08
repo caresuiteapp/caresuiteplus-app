@@ -22,7 +22,7 @@ type Props = {
   onNavigate: (route: string) => void; onSignOut: () => Promise<void>;
 };
 
-/** Shared native/Web chrome: one header and a narrow left rail at every width. */
+/** Shared native/Web chrome with a scrollable rail and a fixed menu action. */
 export function EmployeePortalFrame({ children, overlay, width, displayName, avatarUrl, avatarVersion, navigation, activeId, unreadCount, lightWorkspace, keyboardVisible, focus, insets, onNavigate, onSignOut }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [moduleOpen, setModuleOpen] = useState(false);
@@ -41,6 +41,7 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, ava
     </Pressable>
   ) : null;
   const railItems = employeeRailIds.flatMap(id => navigation.filter(item => item.id === id));
+  const railButtonSize = { width: layout.railButtonSize, height: layout.railButtonSize };
   const badge = unreadCount > 99 ? '99+' : String(unreadCount);
   const label = (item: LiquidPortalNavigationItem) => item.id === 'messages' && unreadCount > 0 ? `${item.label}, ${unreadCount} ungelesene Nachrichten` : item.label;
   const open = (route: string) => { setMenuOpen(false); onNavigate(route); };
@@ -52,8 +53,8 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, ava
   const railAction = (item: LiquidPortalNavigationItem) => (
     <Pressable key={item.id} accessibilityRole="tab" accessibilityLabel={label(item)} accessibilityState={{ selected: activeId === item.id }}
       accessibilityHint={item.label} {...(Platform.OS === 'web' ? { title: item.label } : {})}
-      onPress={() => open(item.route)} style={({ pressed }) => [styles.railButton, layout.phone && styles.railButtonPhone, activeId === item.id && styles.selected, pressed && styles.pressed]}>
-      <EmployeePortalArtwork id={item.id} label={item.label} size={layout.phone ? 35 : 40} />
+      onPress={() => open(item.route)} style={({ pressed }) => [styles.railButton, railButtonSize, activeId === item.id && styles.selected, pressed && styles.pressed]}>
+      <EmployeePortalArtwork id={item.id} label={item.label} size={layout.railArtworkSize} />
       {item.id === 'messages' && unreadCount > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{badge}</Text></View> : null}
     </Pressable>
   );
@@ -85,8 +86,8 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, ava
         </ScrollView>
         <Pressable accessibilityRole="button" accessibilityLabel="Weitere Portalbereiche öffnen" accessibilityState={{ expanded: menuOpen }}
           {...(Platform.OS === 'web' ? { title: 'Alle Bereiche' } : {})} onPress={() => setMenuOpen(true)}
-          style={[styles.railButton, layout.phone && styles.railButtonPhone, !railItems.some(item => item.id === activeId) && activeId !== 'leave' && styles.selected]}>
-          <Ionicons name="grid-outline" size={22} color={c.accent} />
+          style={[styles.railButton, { width: layout.railButtonSize, height: 48 }, !railItems.some(item => item.id === activeId) && activeId !== 'leave' && styles.selected]}>
+          <Ionicons name="grid-outline" size={layout.phone ? 24 : 27} color={c.accent} />
         </Pressable>
       </View>
       <View style={[styles.workspace, lightWorkspace && styles.lightWorkspace]} testID="employee-portal-workspace">{children}</View>
@@ -124,7 +125,7 @@ export function EmployeePortalFrame({ children, overlay, width, displayName, ava
           <View style={styles.menuHeader}><Text accessibilityRole="header" style={styles.menuTitle}>Alle Bereiche</Text><Pressable accessibilityRole="button" accessibilityLabel="Menü schließen" onPress={() => setMenuOpen(false)} style={styles.headerButton}><Ionicons name="close" size={24} color={c.text} /></Pressable></View>
           <ScrollView style={styles.menuScroll} contentContainerStyle={styles.menuContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator>
             {navigation.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={label(item)} accessibilityState={{ selected: activeId === item.id }} onPress={() => open(item.route)} style={({ pressed }) => [styles.menuItem, activeId === item.id && styles.selected, pressed && styles.pressed]}>
-              <EmployeePortalArtwork id={item.id} label={item.label} size={40} /><Text style={styles.menuLabel}>{item.label}</Text><Ionicons name="chevron-forward" size={17} color={c.accent} />
+              <EmployeePortalArtwork id={item.id} label={item.label} size={layout.shortcutArtworkSize} /><Text style={styles.menuLabel}>{item.label}</Text><Ionicons name="chevron-forward" size={17} color={c.accent} />
             </Pressable>)}
             <View style={styles.menuTextSize}><Text style={styles.secondary}>Schriftgröße</Text><PortalTextSizeControls appearance="desktop-header" /></View>
             {signOutError ? <Text accessibilityRole="alert" style={styles.error}>{signOutError}</Text> : null}
@@ -155,8 +156,8 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   moduleValue: { color: c.text, fontSize: font(15), lineHeight: font(21), fontWeight: '700' },
   body: { flex: 1, minHeight: 0, minWidth: 0, flexDirection: 'row' },
   rail: { flexShrink: 0, minHeight: 0, paddingVertical: 10, alignItems: 'center', backgroundColor: c.rail, borderRightWidth: 1, borderColor: c.line },
-  railScroll: { flex: 1, width: '100%', minHeight: 0 }, railContent: { alignItems: 'center', gap: 10, paddingBottom: 12, paddingTop: 4 },
-  railButton: { width: 50, height: 50, flexShrink: 0, borderRadius: 12, borderWidth: 1, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center', position: 'relative' }, railButtonPhone: { width: 44, height: 44, borderRadius: 10 },
+  railScroll: { flex: 1, width: '100%', minHeight: 0 }, railContent: { alignItems: 'center', gap: 7, paddingBottom: 12, paddingTop: 4 },
+  railButton: { flexShrink: 0, borderRadius: 14, borderWidth: 1, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center', position: 'relative' },
   railDivider: { height: 1, width: 34, backgroundColor: c.line, marginVertical: 4 },
   selected: { backgroundColor: c.selected, borderColor: '#3787A8' }, pressed: { opacity: 0.75 },
   workspace: { flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' },
