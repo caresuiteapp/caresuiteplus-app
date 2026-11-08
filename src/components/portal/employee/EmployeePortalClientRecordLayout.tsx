@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ReactElement, ReactNode } from 'react';
 import { ActivityIndicator, Platform, Pressable, ScrollView, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
@@ -32,11 +32,13 @@ export function ClientRecordBadge({ label, active = false }: { label: string; ac
   );
 }
 
-export function ClientRecordPanel({ title, icon, children }: { title: string; icon: IconName; children: ReactNode }) {
+export function ClientRecordPanel({ title, icon, children }: { title: string; icon: IconName | ReactElement; children: ReactNode }) {
   return (
     <View style={styles.panel}>
       <View style={styles.panelHeading}>
-        <View style={styles.panelIcon}><Ionicons name={icon} size={18} color={c.accent} accessible={false} /></View>
+        <View style={styles.panelIcon}>
+          {typeof icon === 'string' ? <Ionicons name={icon} size={18} color={c.accent} accessible={false} /> : icon}
+        </View>
         <Text accessibilityRole="header" aria-level={2} style={styles.panelTitle}>{title}</Text>
       </View>
       {children}

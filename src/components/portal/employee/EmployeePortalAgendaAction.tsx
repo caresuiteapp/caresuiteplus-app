@@ -1,3 +1,4 @@
+import type { ReactElement } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
@@ -7,7 +8,7 @@ import { employeePortalDesign as c } from './employeePortalDesign';
 type Props = {
   label: string;
   accessibilityLabel?: string;
-  icon: keyof typeof Ionicons.glyphMap;
+  icon: keyof typeof Ionicons.glyphMap | ReactElement;
   onPress: () => void;
   primary?: boolean;
   busy?: boolean;
@@ -30,7 +31,8 @@ export function EmployeePortalAgendaAction({ label, accessibilityLabel, icon, on
         pressed && styles.pressed,
       ]}
     >
-      {busy ? <ActivityIndicator size="small" color={ink} /> : <Ionicons name={icon} color={ink} size={16} accessible={false} />}
+      {busy ? <ActivityIndicator size="small" color={ink} />
+        : typeof icon === 'string' ? <Ionicons name={icon} color={ink} size={16} accessible={false} /> : icon}
       <Text style={[styles.label, { color: ink }]}>{label}</Text>
     </Pressable>
   );

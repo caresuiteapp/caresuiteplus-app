@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Alert, Linking, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import Ionicons from '@expo/vector-icons/Ionicons';
-import { ClientAnimalAvatar } from '@/components/clients/ClientAnimalAvatar';
 import { InfoBanner } from '@/components/ui/InfoBanner';
 import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
@@ -15,6 +13,7 @@ import { EmployeePortalClientDocumentPreviewSheet } from './EmployeePortalClient
 import { dialPhoneNumber, PhoneActionRow } from './EmployeePortalClientRecordContactActions';
 import { EmployeePortalAgendaAction } from './employee/EmployeePortalAgendaAction';
 import { EmployeePortalAgendaHero, useEmployeePortalAgendaLayout } from './employee/EmployeePortalAgendaLayout';
+import { ClientDossier, ClientDossierArtwork, ClientDossierFacts } from './employee/EmployeePortalClientDossier';
 import {
   ClientRecordBadge, ClientRecordLink, ClientRecordLoading, ClientRecordPanel, ClientRecordViewport, clientRecordTextWrap,
 } from './employee/EmployeePortalClientRecordLayout';
@@ -55,21 +54,15 @@ function ClientRecordHero({ record, address, layout }: { record: EmployeePortalC
   const metricColumns = layout.readableWidth >= 740 ? metrics.length : layout.readableWidth >= 175 ? 2 : 1;
   const metricWidth = `${100 / metricColumns}%` as ViewStyle['width'];
   return (
-    <View style={[styles.hero, layout.compact && styles.heroCompact]}>
-      <LinearGradient colors={['rgba(120,182,217,0.21)', 'rgba(29,58,86,0.48)', 'rgba(43,123,136,0.29)']}
-        locations={[0, 0.51, 1]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill} pointerEvents="none" />
+    <ClientDossier compact={layout.compact} tabAccessory={<ClientRecordBadge label="Nur lesen" />}>
       <View style={[styles.identity, layout.readableWidth < 175 && styles.identityStacked]}>
-        <ClientAnimalAvatar clientId={record.clientId} clientName={record.displayName}
-          size={layout.compact ? 48 : 64} ringColor={c.accent} />
+        <ClientDossierArtwork kind="dossier" size={layout.compact ? 49 : 67} />
         <View style={[styles.identityCopy, layout.readableWidth < 175 && styles.fullIdentity]}>
-          <Text style={styles.kicker}>Klientenakte</Text>
           <Text accessibilityRole="header" aria-level={1} style={[styles.name, layout.compact && styles.nameCompact]}>{record.displayName}</Text>
           {address ? <Text style={styles.body}>{address}</Text> : null}
         </View>
-        {layout.readableWidth >= 490 ? <ClientRecordBadge label="Nur-Lese-Ansicht" /> : null}
       </View>
-      {layout.readableWidth < 490 ? <Text style={styles.label}>Nur-Lese-Ansicht</Text> : null}
+      <ClientDossierFacts record={record} sideBySide={layout.readableWidth >= 475} />
       <View style={styles.metrics}>
         {metrics.map(metric => (
           <View key={metric.label} style={[styles.metricCell, { width: metricWidth }]}>
@@ -80,7 +73,7 @@ function ClientRecordHero({ record, address, layout }: { record: EmployeePortalC
           </View>
         ))}
       </View>
-    </View>
+    </ClientDossier>
   );
 }
 
@@ -101,7 +94,7 @@ function ClientRecordContent({ record, layout, refresh }: {
       <ClientRecordHero record={record} address={address} layout={layout} />
       <View style={[styles.detail, layout.readableWidth >= 675 && styles.split]}>
         <View style={styles.column}>
-          <ClientRecordPanel title="Kontakt & Anfahrt" icon="call-outline">
+          <ClientRecordPanel title="Kontakt & Anfahrt" icon={<ClientDossierArtwork kind="phone" size={23} />}>
             {record.phone ? <PhoneActionRow label="Telefon" value={record.phone} /> : null}
             {record.mobile ? <PhoneActionRow label="Mobil" value={record.mobile} icon="phone-portrait-outline" /> : null}
             {!record.phone && !record.mobile ? <Text style={styles.body}>Keine Telefonnummer hinterlegt.</Text> : null}
@@ -149,9 +142,8 @@ function ClientRecordContent({ record, layout, refresh }: {
             </ClientRecordPanel>
           ) : null}
 
-          {record.dateOfBirth || record.gender || address || record.doorbellName ? (
-            <ClientRecordPanel title="Stammdaten" icon="id-card-outline">
-              <RecordInfo label="Geburtsdatum" value={record.dateOfBirth} />
+          {record.gender || address || record.doorbellName ? (
+            <ClientRecordPanel title="Weitere Stammdaten" icon={<ClientDossierArtwork kind="identity" size={24} />}>
               <RecordInfo label="Geschlecht" value={record.gender} />
               <RecordInfo label="Adresse" value={address} />
               <RecordInfo label="Klingel" value={record.doorbellName} />
@@ -243,13 +235,10 @@ export function EmployeePortalClientRecordDetailScreen({ clientId }: { clientId:
 
 const styles = StyleSheet.create(withCareSuiteTypography({
   toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, minWidth: 0 },
-  hero: { borderRadius: 22, borderWidth: 1, borderColor: c.line, gap: 12, padding: 18, overflow: 'hidden' },
-  heroCompact: { padding: 12, borderRadius: 17 },
-  identity: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, minWidth: 0 },
+  identity: { flexDirection: 'row', alignItems: 'center', gap: 12, minWidth: 0 },
   identityStacked: { flexDirection: 'column' },
   identityCopy: { flex: 1, minWidth: 0, gap: 3 },
   fullIdentity: { flex: undefined, width: '100%' },
-  kicker: { color: c.accent, fontSize: font(10), lineHeight: font(15), textTransform: 'uppercase', letterSpacing: 1, fontWeight: '800' },
   name: { color: c.text, fontSize: font(32), lineHeight: font(38), fontWeight: '800', ...clientRecordTextWrap },
   nameCompact: { fontSize: font(23), lineHeight: font(29) },
   body: { color: c.muted, fontSize: font(13), lineHeight: font(19), ...clientRecordTextWrap },

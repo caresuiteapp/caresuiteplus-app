@@ -3,12 +3,17 @@ const f = vi.hoisted(() => ({ from: vi.fn(), documents: vi.fn() }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({ from: f.from }) }));
 vi.mock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: (_client: unknown, table: string) => f.from(table) }));
 vi.mock('@/lib/portal/portalDocumentsLiveService', () => ({ fetchEmployeePortalClientDocuments: f.documents }));
-import { fetchEmployeePortalClientRecordDetail, fetchEmployeePortalClientRecords } from '@/lib/portal/employeePortalClientRecordsService';
+import {
+  fetchEmployeePortalClientInsuranceNumber,
+  fetchEmployeePortalClientRecordDetail,
+  fetchEmployeePortalClientRecords,
+} from '@/lib/portal/employeePortalClientRecordsService';
 
 type Row = Record<string, unknown>;
 let tables: Record<string, Row[]>;
 let errors: Record<string, unknown>;
 let ranges: { table: string; from: number; to: number }[];
+let selections: { table: string; fields: string }[];
 const id = (value: number) => `00000000-7777-4777-8777-${String(value).padStart(12, '0')}`;
 const tenantId = id(1);
 const employeeId = id(2);
@@ -23,14 +28,18 @@ const visit = (patch: Row = {}): Row => ({
 beforeEach(() => {
   vi.clearAllMocks();
   tables = { clients: [client(clientId)], assist_visits: [], client_contacts: [], client_addresses: [] };
-  errors = {}; ranges = [];
+  errors = {}; ranges = []; selections = [];
   f.documents.mockResolvedValue({ ok: true, data: [] });
   f.from.mockImplementation((table: string) => {
     const predicates: ((row: Row) => boolean)[] = [];
     let from = 0; let to = Infinity;
     const query: Record<string, unknown> = {};
-    query.select = () => query; query.order = () => query;
-    query.eq = (key: string, value: unknown) => { predicates.push((row) => row[key] === value); return query; };
+    query.select = (fields: string) => { selections.push({ table, fields }); return query; };
+    query.order = () => query;
+    query.eq = (key: string, value: unknown) => {
+      if (!key.includes('.')) predicates.push((row) => row[key] === value);
+      return query;
+    };
     query.neq = (key: string, value: unknown) => { predicates.push((row) => row[key] !== value); return query; };
     query.is = (key: string, value: unknown) => { predicates.push((row) => row[key] === value); return query; };
     query.not = (key: string, _operator: string, value: unknown) => { predicates.push((row) => row[key] !== value); return query; };
@@ -44,6 +53,59 @@ beforeEach(() => {
   });
 });
 describe('Employee client directory and detail projections', () => {
+  it('uses the primary care fund and the Berlin birthday in register facts without requesting insurance numbers', async () => {
+    tables.clients = [{
+      ...client(clientId),
+      date_of_birth: '1960-11-09',
+      insurance_name: 'Kostenträger für sonstige Leistungen',
+      primary_insurance: [{ tenant_id: tenantId, client_id: clientId, is_primary: true, care_fund_name: ' Pflegekasse Muster ' }],
+    }];
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-11-08T23:10:00Z'));
+    try {
+      const basic = await fetchEmployeePortalClientRecords(tenantId, employeeId);
+      expect(basic.ok && basic.data[0]).not.toHaveProperty('dateOfBirth');
+      expect(selections[0].fields).not.toContain('date_of_birth');
+      expect(await fetchEmployeePortalClientRecords(tenantId, employeeId, { includeRecordFacts: true })).toMatchObject({
+        ok: true, data: [{ dateOfBirth: '09.11.1960', age: 66, careFundName: 'Pflegekasse Muster', legacyPayerName: null }],
+      });
+      expect(await fetchEmployeePortalClientRecordDetail(tenantId, employeeId, clientId)).toMatchObject({
+        ok: true, data: { dateOfBirth: '09.11.1960', age: 66, careFundName: 'Pflegekasse Muster' },
+      });
+      expect(selections.every(({ fields }) => !fields.includes('insurance_number'))).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('keeps the legacy payer separate and rejects invalid dates and foreign embedded insurance profiles', async () => {
+    tables.clients = [{
+      ...client(clientId),
+      date_of_birth: '2001-02-29',
+      insurance_name: 'Sozialamt Muster',
+      primary_insurance: [{ tenant_id: id(9), client_id: clientId, is_primary: true, care_fund_name: 'Fremde Kasse' }],
+    }];
+    expect(await fetchEmployeePortalClientRecords(tenantId, employeeId, { includeRecordFacts: true })).toMatchObject({
+      ok: true, data: [{ dateOfBirth: null, age: null, careFundName: null, legacyPayerName: 'Sozialamt Muster' }],
+    });
+  });
+
+  it('fetches only the selected active record’s number and falls back to the number in the client record', async () => {
+    tables.clients = [
+      { ...client(clientId), insurance_number: 'TEST-ALT', primary_insurance: [
+        { tenant_id: tenantId, client_id: clientId, is_primary: true, insurance_number: ' TEST-NEU ' },
+      ] },
+      { ...client(id(4)), insurance_number: 'TEST-BESTAND' },
+      { ...client(id(5)), tenant_id: id(9), insurance_number: 'TEST-FREMD' },
+      { ...client(id(6)), status: 'paused', insurance_number: 'TEST-INAKTIV' },
+    ];
+    expect(await fetchEmployeePortalClientInsuranceNumber(tenantId, employeeId, clientId)).toEqual({ ok: true, data: 'TEST-NEU' });
+    expect(await fetchEmployeePortalClientInsuranceNumber(tenantId, employeeId, id(4))).toEqual({ ok: true, data: 'TEST-BESTAND' });
+    expect((await fetchEmployeePortalClientInsuranceNumber(tenantId, employeeId, id(5))).ok).toBe(false);
+    expect((await fetchEmployeePortalClientInsuranceNumber(tenantId, employeeId, id(6))).ok).toBe(false);
+    expect(f.from.mock.calls.every(([table]) => table === 'clients')).toBe(true);
+  });
+
   it('lists and opens active tenant records before the first assignment', async () => {
     tables.clients.push(
       client(id(4)),

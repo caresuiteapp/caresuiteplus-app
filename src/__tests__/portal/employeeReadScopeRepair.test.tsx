@@ -3,17 +3,21 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const f = vi.hoisted(() => ({ actor: {} as Record<string, unknown>, records: vi.fn(), client: vi.fn(), calendar: vi.fn(), dashboard: vi.fn(), detail: vi.fn() }));
+const f = vi.hoisted(() => ({ actor: {} as Record<string, unknown>, records: vi.fn(), client: vi.fn(), insuranceNumber: vi.fn(), calendar: vi.fn(), dashboard: vi.fn(), detail: vi.fn() }));
 vi.mock('react-native', () => ({ Platform: { OS: 'web' }, AppState: { currentState: 'active', addEventListener: () => ({ remove() {} }) } }));
 vi.mock('@/hooks/usePortalActor', () => ({ usePortalActor: () => f.actor }));
 vi.mock('@/hooks/useConnectivity', () => ({ useConnectivity: () => ({ isOffline: false }) }));
 vi.mock('@/hooks/core/useLiveRefresh', () => ({ DEFAULT_LIVE_POLL_MS: 30_000, OPERATIONAL_LIVE_POLL_MS: 5000, useLiveRefresh: () => ({ isLiveConnected: false }) }));
 vi.mock('@/lib/services/queryTimeout', () => ({ withServiceQueryTimeout: (promise: Promise<unknown>) => promise }));
 vi.mock('@/lib/realtime', () => ({ subscribeToEmployeePortalChanges: vi.fn() }));
-vi.mock('@/lib/portal/employeePortalClientRecordsService', () => ({ fetchEmployeePortalClientRecords: f.records, fetchEmployeePortalClientRecordDetail: f.client }));
+vi.mock('@/lib/portal/employeePortalClientRecordsService', () => ({
+  fetchEmployeePortalClientRecords: f.records,
+  fetchEmployeePortalClientRecordDetail: f.client,
+  fetchEmployeePortalClientInsuranceNumber: f.insuranceNumber,
+}));
 vi.mock('@/lib/calendar/calendarEventService', () => ({ buildEmployeePortalCalendarConfig: () => ({}), getEmployeePortalTeamCalendarEvents: f.calendar }));
 vi.mock('@/lib/offline/assignmentCacheService', () => ({ loadDashboardProjectionWithCache: f.dashboard, loadPortalAppointmentDetailWithCache: f.detail }));
-import { useEmployeePortalClientRecordDetail, useEmployeePortalClientRecords } from '@/hooks/useEmployeePortalClientRecords';
+import { useEmployeePortalClientInsuranceNumber, useEmployeePortalClientRecordDetail, useEmployeePortalClientRecords } from '@/hooks/useEmployeePortalClientRecords';
 import { useEmployeePortalCalendarEvents } from '@/hooks/useEmployeePortalCalendarEvents';
 import { useEmployeePortalDashboard } from '@/hooks/useEmployeePortalDashboard';
 import { usePortalAppointmentDetail } from '@/hooks/usePortalAppointmentDetail';
@@ -50,6 +54,21 @@ describe('Mounted employee portal reads', () => {
     await render(<Probe />); expect(host.textContent).toBe('client-1');
     f.actor = { ...f.actor, tenantId: 'tenant-2', actorId: 'profile-2' }; f.records.mockReturnValue(new Promise(() => {}));
     await render(<Probe />); expect(host.textContent).toBe('');
+  });
+  it('discards a pending number lookup when the employee loses the verified live link', async () => {
+    function Probe() {
+      const result = useEmployeePortalClientInsuranceNumber('client-1');
+      return <div>{result.number}</div>;
+    }
+    const flight = deferred<{ ok: true; data: string }>();
+    f.insuranceNumber.mockReturnValue(flight.promise);
+    await render(<Probe />);
+    expect(f.insuranceNumber).toHaveBeenCalledExactlyOnceWith('tenant-1', 'employee-1', 'client-1');
+    f.actor = { ...f.actor, employeeLinkReadOnly: true };
+    await render(<Probe />);
+    await act(async () => flight.resolve({ ok: true, data: 'TEST-OLD' }));
+    expect(host.textContent).toBe('');
+    expect(f.insuranceNumber).toHaveBeenCalledTimes(1);
   });
   it('clears a previous calendar period when a new period is still pending', async () => {
     function Probe({ start }: { start: string }) { const state = useEmployeePortalCalendarEvents(start, '2026-11-01'); return <div>{state.events.map((event) => event.id).join(',')}</div>; }

@@ -7,6 +7,7 @@ const h = vi.hoisted(() => ({
   width: 1280, ready: true, path: '/portal/employee', careTours: vi.fn(), push: vi.fn(), dial: vi.fn(), refresh: vi.fn(),
   loading: false, error: null as string | null, refreshError: null as string | null,
   records: [] as Record<string, unknown>[],
+  insurance: vi.fn(),
 }));
 vi.mock('react-native', async () => {
   const React = await import('react');
@@ -14,7 +15,7 @@ vi.mock('react-native', async () => {
   const View = ({ children, style, testID }: any) => <div data-testid={testID} data-native-style={JSON.stringify(flat(style))}>{children}</div>;
   const ScrollView = ({ children, style, contentContainerStyle, testID }: any) => <div data-testid={testID} data-native-scroll="true" data-native-style={JSON.stringify(flat(style))} data-content-style={JSON.stringify(flat(contentContainerStyle))}>{children}</div>;
   return {
-    View, ScrollView, Text: ({ children }: any) => <span>{children}</span>,
+    View, ScrollView, Text: ({ children }: any) => <span>{children}</span>, Image: () => null,
     Pressable: ({ children, onPress, accessibilityLabel, accessibilityRole }: any) => <button data-native-role={accessibilityRole} aria-label={accessibilityLabel} onClick={onPress}>{children}</button>,
     TextInput: ({ value, onChangeText, accessibilityLabel }: any) => <input aria-label={accessibilityLabel} value={value} onInput={(event: any) => onChangeText(event.target.value)} />,
     StyleSheet: { create: (styles: unknown) => styles, absoluteFill: {} },
@@ -41,12 +42,14 @@ vi.mock('@/components/keyboard/PortalKeyboard', async () => ({ PortalKeyboardScr
 vi.mock('@/components/layout/ScreenShell', () => ({ ScreenShell: ({ children }: any) => <main>{children}</main> }));
 vi.mock('@/components/portal/PortalMobileTabHeader', () => ({ PortalMobileTabHeader: () => null }));
 vi.mock('@/components/portal/PortalPremiumPageHero', () => ({ PortalPremiumPageHero: () => <header>Seitenüberschrift</header> }));
-vi.mock('@/components/clients/ClientAnimalAvatar', () => ({ ClientAnimalAvatar: () => null }));
 vi.mock('@/screens/portal/EmployeePortalDashboardScreen', () => ({ EmployeePortalDashboardScreen: () => <section>Eigene Einsätze und Aufgaben</section> }));
 vi.mock('@/components/portal/employee/EmployeePortalToday', () => ({ EmployeePortalWorkspaceHome: () => <section>Modulübersicht</section> }));
 vi.mock('@/components/pflege/PortalCarePanels', () => ({ EmployeeCareToursPanel: () => { h.careTours(); return <section>Meine Pflegetouren</section>; } }));
 vi.mock('@/components/portal/EmployeePortalClientRecordContactActions', () => ({ dialPhoneNumber: h.dial }));
-vi.mock('@/hooks/useEmployeePortalClientRecords', () => ({ useEmployeePortalClientRecords: () => ({ records: h.records, loading: h.loading, error: h.error, refreshError: h.refreshError, refresh: h.refresh }) }));
+vi.mock('@/hooks/useEmployeePortalClientRecords', () => ({
+  useEmployeePortalClientRecords: () => ({ records: h.records, loading: h.loading, error: h.error, refreshError: h.refreshError, refresh: h.refresh }),
+  useEmployeePortalClientInsuranceNumber: (clientId: string) => h.insurance(clientId),
+}));
 vi.mock('@/components/ui/InfoBanner', () => ({
   InfoBanner: ({ title, message, actionLabel, onAction }: any) => (
     <section role="alert">{title} {message}{onAction ? <button onClick={onAction}>{actionLabel}</button> : null}</section>
@@ -66,7 +69,11 @@ import { EmployeePortalClientRecordsScreen } from '@/components/portal/EmployeeP
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 
 let host: HTMLDivElement, root: Root;
-const item = (clientId: string, displayName: string, phone: string | null = null) => ({ clientId, displayName, city: 'Hannover', street: 'Gartenstraße 24', zip: '30159', careGradeLabel: 'PG 2', phone, mobile: null, hints: null, nextAssignmentAt: '2026-10-26T08:00:00Z', activeAssignmentCount: 1 });
+const item = (clientId: string, displayName: string, phone: string | null = null) => ({
+  clientId, displayName, city: 'Hannover', street: 'Gartenstraße 24', zip: '30159', careGradeLabel: 'PG 2',
+  dateOfBirth: '01.06.1952', age: 74, careFundName: 'Pflegekasse Muster',
+  phone, mobile: null, hints: null, nextAssignmentAt: '2026-10-26T08:00:00Z', activeAssignmentCount: 1,
+});
 const byId = (id: string) => host.querySelector(`[data-testid="${id}"]`)!;
 const nativeStyle = (element: Element) => JSON.parse(element.getAttribute('data-native-style') ?? '{}');
 const render = async (element: React.ReactNode) => { await act(async () => root.render(element)); };
@@ -77,6 +84,7 @@ beforeEach(() => {
   vi.clearAllMocks(); h.width = 1280; h.ready = true; h.path = '/portal/employee'; h.loading = false; h.error = null; h.refreshError = null;
   h.records = [item('one', 'Helene Musterfrau', '0511 000000'), item('two', 'Friedrich-Wilhelm Mustermann-Beispiel')];
   h.refresh.mockResolvedValue(undefined);
+  h.insurance.mockReturnValue({ number: 'TEST-001', loading: false, error: false, retry: vi.fn() });
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
@@ -136,6 +144,21 @@ describe('employee portal workspace regression', () => {
     await act(async () => clear.click());
     expect(host.textContent).toContain('Helene Musterfrau'); expect(host.textContent).toContain('Friedrich-Wilhelm');
     await act(async () => button('Klientenakten aktualisieren').click()); expect(h.refresh).toHaveBeenCalledOnce();
+  });
+  it('displays register facts and only reads the insurance number for the expanded file', async () => {
+    await render(<EmployeePortalClientRecordsScreen />);
+    expect(host.textContent).toContain('01.06.1952');
+    expect(host.textContent).toContain('74 Jahre');
+    expect(host.textContent).toContain('Pflegekasse Muster');
+    expect(h.insurance).not.toHaveBeenCalled();
+    const first = byId('employee-portal-client-card-one');
+    const numberButton = first.querySelector<HTMLButtonElement>('[aria-label^="Versichertennummer"]')!;
+    await act(async () => numberButton.click());
+    expect(h.insurance).toHaveBeenCalledExactlyOnceWith('one');
+    expect(first.textContent).toContain('TEST-001');
+    expect(byId('employee-portal-client-card-two').textContent).not.toContain('TEST-001');
+    await act(async () => numberButton.click());
+    expect(first.textContent).not.toContain('TEST-001');
   });
   it('keeps refresh failure visible while prior records and their open action remain usable', async () => {
     h.refreshError = 'Verbindung unterbrochen'; await render(<EmployeePortalClientRecordsScreen />);

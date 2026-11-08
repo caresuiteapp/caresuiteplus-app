@@ -3,6 +3,7 @@ import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
+import { toTimezoneDateKey } from '@/lib/office/calendarDateUtils';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
@@ -24,6 +25,10 @@ export type EmployeePortalClientRecordListItem = {
   zip: string | null;
   careGrade: string | null;
   careGradeLabel: string | null;
+  dateOfBirth?: string | null;
+  age?: number | null;
+  careFundName?: string | null;
+  legacyPayerName?: string | null;
   phone: string | null;
   mobile: string | null;
   hints: string | null;
@@ -49,7 +54,6 @@ export type EmployeePortalClientRecordDocument = PortalDocumentListItem & {
 };
 
 export type EmployeePortalClientRecordDetail = EmployeePortalClientRecordListItem & {
-  dateOfBirth: string | null;
   gender: string | null;
   houseNumber: string | null;
   floor: string | null;
@@ -79,7 +83,18 @@ export type EmployeePortalClientRecordDetail = EmployeePortalClientRecordListIte
 const CLIENT_LIST_SELECT =
   'id, tenant_id, status, deleted_at, first_name, last_name, street, postal_code, city, care_level, phone, mobile';
 
-const CLIENT_DETAIL_SELECT = `${CLIENT_LIST_SELECT}, date_of_birth, gender, house_number, floor, apartment_number, doorbell_name, visible_notes_for_employee, emergency_notes, allergies, mobility_notes, pets, key_management_notes`;
+const PRIMARY_INSURANCE = 'primary_insurance:client_insurance_profiles!client_insurance_profiles_client_id_fkey';
+const CLIENT_REGISTER_SELECT = `${CLIENT_LIST_SELECT}, date_of_birth, insurance_name, ${PRIMARY_INSURANCE}(tenant_id, client_id, is_primary, care_fund_name)`;
+const CLIENT_DETAIL_SELECT = `${CLIENT_REGISTER_SELECT}, gender, house_number, floor, apartment_number, doorbell_name, visible_notes_for_employee, emergency_notes, allergies, mobility_notes, pets, key_management_notes`;
+const CLIENT_INSURANCE_NUMBER_SELECT = `id, tenant_id, status, deleted_at, insurance_number, ${PRIMARY_INSURANCE}(tenant_id, client_id, is_primary, insurance_number)`;
+
+type InsuranceRow = {
+  tenant_id: string;
+  client_id: string;
+  is_primary: boolean;
+  care_fund_name?: string | null;
+  insurance_number?: string | null;
+};
 
 type ClientRow = {
   id: string;
@@ -95,6 +110,9 @@ type ClientRow = {
   phone: string | null;
   mobile: string | null;
   date_of_birth?: string | null;
+  insurance_name?: string | null;
+  insurance_number?: string | null;
+  primary_insurance?: InsuranceRow[];
   gender?: string | null;
   house_number?: string | null;
   floor?: string | null;
@@ -128,6 +146,29 @@ function resolveCareGrade(row: ClientRow | null): { raw: string | null; label: s
   return { raw, label };
 }
 
+function primaryInsurance(row: ClientRow) {
+  const profiles = row.primary_insurance;
+  const profile = Array.isArray(profiles) && profiles.length === 1 ? profiles[0] : null;
+  return profile?.tenant_id === row.tenant_id && profile.client_id === row.id && profile.is_primary === true ? profile : null;
+}
+
+function recordFacts(row: ClientRow, today: string) {
+  const birth = row.date_of_birth?.trim() ?? '';
+  const birthDate = /^\d{4}-\d{2}-\d{2}$/.test(birth) ? new Date(`${birth}T00:00:00Z`) : null;
+  const validBirth = birthDate && Number.isFinite(birthDate.getTime()) && birthDate.toISOString().slice(0, 10) === birth && birth <= today;
+  const age = validBirth
+    ? Number(today.slice(0, 4)) - Number(birth.slice(0, 4)) - Number(today.slice(5) < birth.slice(5))
+    : null;
+  const careFundName = primaryInsurance(row)?.care_fund_name?.trim() || null;
+  return {
+    dateOfBirth: validBirth ? formatDate(birth) : null,
+    age,
+    careFundName,
+    // Older records may only have a general payer. Keep that label distinct.
+    legacyPayerName: careFundName ? null : row.insurance_name?.trim() || null,
+  };
+}
+
 function mapListItemFromClient(
   clientId: string,
   row: ClientRow | null,
@@ -138,6 +179,7 @@ function mapListItemFromClient(
     nextAt: string | null;
     documentCount?: number;
   },
+  today?: string,
 ): EmployeePortalClientRecordListItem {
   const care = resolveCareGrade(row);
   return sanitizeEmployeePortalPayload({
@@ -148,6 +190,7 @@ function mapListItemFromClient(
     zip: resolvePostalCode(row),
     careGrade: care.raw,
     careGradeLabel: care.label,
+    ...(row && today ? recordFacts(row, today) : {}),
     phone: row?.phone ? String(row.phone) : null,
     mobile: row?.mobile ? String(row.mobile) : null,
     hints: meta.hints,
@@ -211,18 +254,21 @@ async function loadEmployeeClientVisits(
   });
 }
 
-async function loadActiveTenantClients(tenantId: string, clientId?: string): Promise<ServiceResult<Map<string, ClientRow>>> {
+async function loadActiveTenantClients(tenantId: string, select: string, clientId?: string): Promise<ServiceResult<Map<string, ClientRow>>> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
   // Tenant RLS authorizes the directory. Visit rows only enrich the displayed records.
   const result = await readRecordPages<ClientRow>((from, to) => {
     const query = fromUnknownTable(supabase, 'clients')
-      .select(clientId ? CLIENT_DETAIL_SELECT : CLIENT_LIST_SELECT)
+      .select(select)
       .eq('tenant_id', tenantId)
       .eq('status', 'active')
       .is('deleted_at', null);
     if (clientId) query.eq('id', clientId);
+    if (select !== CLIENT_LIST_SELECT) {
+      query.eq('primary_insurance.tenant_id', tenantId).eq('primary_insurance.is_primary', true);
+    }
     return query.order('id', { ascending: true }).range(from, to);
   });
   if (!result.ok) return result;
@@ -241,6 +287,7 @@ async function loadActiveTenantClients(tenantId: string, clientId?: string): Pro
 function aggregateClientRecords(
   visits: VisitClientRow[],
   clientRows: Map<string, ClientRow>,
+  includeRecordFacts = false,
 ): EmployeePortalClientRecordListItem[] {
   const byClient = new Map<
     string,
@@ -289,8 +336,9 @@ function aggregateClientRecords(
     byClient.set(visit.client_id, entry);
   }
 
+  const today = includeRecordFacts ? toTimezoneDateKey(new Date(now)) : undefined;
   const records = [...byClient.values()].map((meta) =>
-    mapListItemFromClient(meta.clientId, clientRows.get(meta.clientId) ?? null, meta),
+    mapListItemFromClient(meta.clientId, clientRows.get(meta.clientId) ?? null, meta, today),
   );
 
   records.sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'));
@@ -300,15 +348,34 @@ function aggregateClientRecords(
 export async function fetchEmployeePortalClientRecords(
   tenantId: string,
   employeeId: string,
+  { includeRecordFacts = false }: { includeRecordFacts?: boolean } = {},
 ): Promise<ServiceResult<EmployeePortalClientRecordListItem[]>> {
   return runService(async () => {
     if (!isEmployeePortalScopeId(tenantId) || !isEmployeePortalScopeId(employeeId)) return { ok: false, error: 'Mitarbeitendenprofil konnte nicht verknüpft werden.' };
     const [clients, visits] = await Promise.all([
-      loadActiveTenantClients(tenantId),
+      loadActiveTenantClients(tenantId, includeRecordFacts ? CLIENT_REGISTER_SELECT : CLIENT_LIST_SELECT),
       loadEmployeeClientVisits(tenantId, employeeId),
     ]);
     if (!clients.ok) return clients;
-    return { ok: true, data: aggregateClientRecords(visits.ok ? visits.data : [], clients.data) };
+    return { ok: true, data: aggregateClientRecords(visits.ok ? visits.data : [], clients.data, includeRecordFacts) };
+  });
+}
+
+export async function fetchEmployeePortalClientInsuranceNumber(
+  tenantId: string,
+  employeeId: string,
+  clientId: string,
+): Promise<ServiceResult<string | null>> {
+  return runService(async () => {
+    if (!isEmployeePortalScopeId(tenantId) || !isEmployeePortalScopeId(employeeId) || !isEmployeePortalScopeId(clientId)) {
+      return { ok: false, error: CLIENT_SCOPE_ERROR };
+    }
+    // The same active-client RLS scope applies as when opening this record.
+    const clients = await loadActiveTenantClients(tenantId, CLIENT_INSURANCE_NUMBER_SELECT, clientId);
+    if (!clients.ok) return clients;
+    const row = clients.data.get(clientId);
+    if (!row) return { ok: false, error: 'Für diese Akte ist keine Versichertennummer verfügbar.' };
+    return { ok: true, data: primaryInsurance(row)?.insurance_number?.trim() || row.insurance_number?.trim() || null };
   });
 }
 
@@ -389,7 +456,7 @@ export async function fetchEmployeePortalClientRecordDetail(
 ): Promise<ServiceResult<EmployeePortalClientRecordDetail | null>> {
   return runService(async () => {
     if (!isEmployeePortalScopeId(tenantId) || !isEmployeePortalScopeId(employeeId) || !isEmployeePortalScopeId(clientId)) return { ok: false, error: CLIENT_SCOPE_ERROR };
-    const clients = await loadActiveTenantClients(tenantId, clientId);
+    const clients = await loadActiveTenantClients(tenantId, CLIENT_DETAIL_SELECT, clientId);
     if (!clients.ok) return clients;
     const row = clients.data.get(clientId);
     if (!row) return { ok: true, data: null };
@@ -409,7 +476,7 @@ export async function fetchEmployeePortalClientRecordDetail(
     // Document visibility also remains enforced by the document service and RLS.
     const documents = ownVisits.length ? await fetchEmployeePortalClientDocuments(tenantId, clientId) : null;
     const portalDocuments = documents?.ok ? mapPortalDocuments(documents.data) : [];
-    const [base] = aggregateClientRecords(ownVisits, clients.data);
+    const [base] = aggregateClientRecords(ownVisits, clients.data, true);
 
     const accessParts = [
       access.ok ? access.data : null,
@@ -422,7 +489,6 @@ export async function fetchEmployeePortalClientRecordDetail(
       data: sanitizeEmployeePortalPayload({
         ...base,
         documentCount: portalDocuments.length,
-        dateOfBirth: row?.date_of_birth ? formatDate(row.date_of_birth) : null,
         gender: row?.gender ? String(row.gender) : null,
         houseNumber: row?.house_number ? String(row.house_number) : null,
         floor: row?.floor ? String(row.floor) : null,

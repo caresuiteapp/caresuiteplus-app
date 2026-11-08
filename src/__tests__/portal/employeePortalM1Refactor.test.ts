@@ -107,7 +107,7 @@ describe('employee portal M.1 refactor', () => {
     expect(detail).toContain('PhoneActionRow');
     expect(detail).toContain('EmployeePortalClientDocumentPreviewSheet');
     expect(detail).toContain('dialPhoneNumber');
-    expect(detail).toContain('Nur-Lese-Ansicht');
+    expect(detail).toContain('label="Nur lesen"');
   });
 
   it('client records service loads extended client fields and portal documents', () => {
