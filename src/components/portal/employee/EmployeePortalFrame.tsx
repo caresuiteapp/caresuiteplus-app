@@ -36,6 +36,7 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
   const webFontScale = useWebFontScaleValue();
   const header = employeePortalHeaderLayout(width, height, Math.max(fontScale ?? 1, webFontScale));
   const moduleWithBrand = header.singleRow || header.groupedLandscape;
+  const balancedHeader = !header.compact;
   const workspace = useEmployeePortalWorkspaceContext();
   const moduleLabel = workspace?.selected ? employeePortalWorkspaceLabels[workspace.selected] : workspace?.loading ? 'Wird geladen…' : 'Persönlicher Bereich';
   const moduleTrigger = workspace ? (
@@ -68,7 +69,8 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
     </Pressable>
   );
   const brand = (
-    <View key="brand" style={[styles.brandGroup, header.phonePortrait && styles.headerRowPhone, header.groupedLandscape && styles.brandLandscape]}>
+    <View key="brand" style={[styles.brandGroup, balancedHeader && styles.headerSide,
+      header.phonePortrait && styles.headerRowPhone, header.groupedLandscape && styles.brandLandscape]}>
       <Pressable accessibilityRole="button" accessibilityLabel="CareSuite HealthOS – Heute" onPress={() => open('/portal/employee')} style={styles.brand}>
         <Text style={[styles.wordmark, header.compact && styles.wordmarkCompact, (header.phonePortrait || header.shortLandscape) && styles.wordmarkPhone]}>CareSuite <Text style={styles.brandAccent}>HealthOS</Text></Text>
         <Text style={styles.kicker}>MITARBEITENDENPORTAL</Text>
@@ -76,16 +78,21 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
       {header.phonePortrait ? headerLogout : moduleWithBrand ? moduleTrigger : null}
     </View>
   );
-  const status = <EmployeePortalHeaderStatus key="status" owner={weatherOwner}
+  const status = <EmployeePortalHeaderStatus key="status" owner={weatherOwner} centered={balancedHeader}
     compact={header.phonePortrait || header.shortLandscape || (header.singleRow && header.compact)} stacked={!header.inlineStatus} />;
   const actions = (
-    <View key="actions" style={[styles.headerActions, header.phonePortrait && styles.headerRowPhone, header.shortLandscape && !moduleWithBrand && styles.headerRowLandscape]}>
+    <View key="actions" style={[styles.headerActions, moduleWithBrand && styles.headerActionsInline, balancedHeader && styles.headerSide, balancedHeader && styles.headerActionsBalanced,
+      header.phonePortrait && styles.headerRowPhone, header.shortLandscape && !moduleWithBrand && styles.headerRowLandscape]}>
       {!moduleWithBrand ? moduleTrigger : null}
       <PortalTextSizeControls compact={header.compact} appearance="desktop-header" />
       {!header.compact ? <Pressable accessibilityRole="button" accessibilityLabel="Hilfe öffnen" onPress={() => open('/portal/employee/help')} style={styles.headerButton}><Ionicons name="help-circle-outline" size={23} color={c.text} /></Pressable> : null}
-      {!header.compact ? <View style={styles.identity}><Text style={styles.identityName}>{displayName}</Text><Text style={styles.secondary}>Mein Arbeitsbereich</Text></View> : null}
-      <Pressable accessibilityRole="button" accessibilityLabel={`Profil von ${displayName} öffnen`} onPress={() => open('/portal/employee/profile')}>
+      <Pressable accessibilityRole="button" accessibilityLabel={`Profil von ${displayName} öffnen`} onPress={() => open('/portal/employee/profile')}
+        style={({ pressed }) => [styles.profileControl, pressed && styles.pressed]}>
         <PortalReadOnlyAvatar name={displayName} avatarUrl={avatarUrl} avatarVersion={avatarVersion} size="md" accentColor={c.accent} />
+        {balancedHeader ? <View style={styles.identity}>
+          <Text numberOfLines={1} style={styles.identityName}>{displayName}</Text>
+          <Text style={styles.secondary}>Mein Profil</Text>
+        </View> : null}
       </Pressable>
       {!header.phonePortrait ? headerLogout : null}
     </View>
@@ -101,7 +108,7 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
 
   return <EmployeePortalMenuContext.Provider value={() => setMenuOpen(true)}><View style={styles.frame} testID="employee-portal-responsive-frame">
     <EmployeePortalBackdrop animated={!focus} />
-    {!focus ? <View style={[styles.header, frostedChrome, { paddingTop: Math.max(insets.top, header.shortLandscape ? 6 : 12) }, header.compact && styles.headerCompact, header.shortLandscape && styles.headerLandscape]} testID="employee-portal-header">
+    {!focus ? <View style={[styles.header, frostedChrome, { paddingTop: Math.max(insets.top, header.shortLandscape ? 6 : 10) }, header.compact && styles.headerCompact, header.shortLandscape && styles.headerLandscape]} testID="employee-portal-header">
       {header.inlineStatus || header.phonePortrait || header.shortLandscape ? [brand, status, actions] : [brand, actions, status]}
       {signOutError && !menuOpen ? <Text accessibilityRole="alert" style={styles.headerError}>{signOutError}</Text> : null}
     </View> : null}
@@ -171,9 +178,10 @@ const frostedChrome = Platform.OS === 'web' ? ({
 
 const styles = StyleSheet.create(withCareSuiteTypography({
   frame: { flex: 1, minWidth: 0, minHeight: 0, position: 'relative', backgroundColor: c.canvas },
-  header: { flexShrink: 0, minHeight: 96, paddingHorizontal: 24, paddingBottom: 12, borderBottomWidth: 1, borderColor: c.line, backgroundColor: c.header, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 },
+  header: { flexShrink: 0, minHeight: 86, paddingHorizontal: 24, paddingBottom: 10, borderBottomWidth: 1, borderColor: c.line, backgroundColor: c.header, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 14 },
   headerCompact: { minHeight: 0, paddingHorizontal: 12, paddingBottom: 9, gap: 8 },
   headerLandscape: { paddingBottom: 6, gap: 6 },
+  headerSide: { flexBasis: 0, flexGrow: 1, flexShrink: 1 },
   brandGroup: { minWidth: 0, maxWidth: '100%', flexShrink: 1, flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 12 },
   brandLandscape: { flexDirection: 'column', flexWrap: 'nowrap', alignItems: 'stretch', gap: 5 },
   headerRowPhone: { flexBasis: '100%', justifyContent: 'space-between', gap: 8 },
@@ -182,9 +190,13 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   wordmarkCompact: { fontSize: font(26), lineHeight: font(32) }, wordmarkPhone: { fontSize: font(21), lineHeight: font(28) }, brandAccent: { color: c.accent },
   kicker: { color: c.muted, fontSize: font(9), lineHeight: font(14), letterSpacing: 1.2 },
   headerActions: { minWidth: 0, maxWidth: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'flex-end', flexWrap: 'wrap', gap: 10, marginLeft: 'auto' },
-  headerButton: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: c.control, borderWidth: 1, borderColor: c.line },
-  identity: { maxWidth: 200, gap: 2, alignItems: 'flex-end' }, identityName: { color: c.text, fontSize: font(14), lineHeight: font(20), textAlign: 'right' }, secondary: { color: c.muted, fontSize: font(12), lineHeight: font(18) },
-  moduleTrigger: { minWidth: 140, maxWidth: '100%', minHeight: 44, flexShrink: 0, paddingVertical: 5, paddingHorizontal: 12, borderWidth: 1, borderColor: c.line, backgroundColor: c.control, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 },
+  headerActionsInline: { marginLeft: 0 },
+  headerActionsBalanced: { flexWrap: 'nowrap' },
+  headerButton: { width: 44, height: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 12, backgroundColor: c.control, borderWidth: 1, borderColor: c.line },
+  profileControl: { minHeight: 44, minWidth: 0, flexShrink: 1, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  identity: { maxWidth: 190, minWidth: 0, flexShrink: 1, gap: 1 },
+  identityName: { color: c.text, fontSize: font(14), lineHeight: font(20) }, secondary: { color: c.muted, fontSize: font(12), lineHeight: font(18) },
+  moduleTrigger: { minWidth: 130, maxWidth: '100%', minHeight: 44, flexShrink: 0, paddingVertical: 5, paddingHorizontal: 12, borderWidth: 1, borderColor: c.line, backgroundColor: c.control, borderRadius: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 12 },
   moduleTriggerCompact: { minWidth: 116, paddingHorizontal: 9, gap: 8 },
   moduleTriggerPhone: { flex: 1 },
   moduleTriggerLandscape: { marginRight: 'auto' },
