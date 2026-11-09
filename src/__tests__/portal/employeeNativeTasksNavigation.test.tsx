@@ -99,7 +99,7 @@ describe('actual native employee shell to tasks receiving workflow', () => {
   it.each([360,1280])('exposes the existing announcement and support destinations in the actual shell at width %s',async width=>{
     h.width=width;await render();
     for(const [label,target] of [['Mitteilungen','/portal/employee/announcements'],['Hilfe','/portal/employee/help']]){
-      await act(async()=>labelled('Weitere Portalbereiche öffnen')!.click());
+      await act(async()=>labelled('Alle Portalbereiche öffnen')!.click());
       const entry=labelled(label);expect(entry).not.toBeNull();await act(async()=>entry!.click());
       expect(h.push).toHaveBeenLastCalledWith(target);
     }
@@ -108,7 +108,7 @@ describe('actual native employee shell to tasks receiving workflow', () => {
 
   it.each([360, 1280])('opens the existing native notes receiver from the actual menu at width %s', async width => {
     h.width = width; await render();
-    await act(async () => labelled('Weitere Portalbereiche öffnen')!.click());
+    await act(async () => labelled('Alle Portalbereiche öffnen')!.click());
     const tasks = labelled('Aufgaben & Notizen'); expect(tasks).not.toBeNull();
     expect(labelled('Beratung & Schulungen')).toBeNull();
     await act(async () => tasks!.click()); expect(h.push).toHaveBeenCalledExactlyOnceWith('/portal/employee/tasks');

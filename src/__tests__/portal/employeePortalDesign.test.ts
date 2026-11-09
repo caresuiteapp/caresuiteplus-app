@@ -20,6 +20,8 @@ describe('employee portal responsive navigation', () => {
     expect(employeePortalLayout(320).metricColumns).toBe(1);
     expect(employeePortalLayout(390).metricColumns).toBe(2);
     expect(employeePortalLayout(390, 1.5).metricColumns).toBe(1);
+    expect(employeePortalLayout(390, 1.5).railButtonSize).toBeGreaterThan(employeePortalLayout(390).railButtonSize);
+    expect(employeePortalLayout(320, 2).railWidth).toBeLessThan(130);
     expect(employeePortalLayout(768).splitFocus).toBe(false);
     expect(employeePortalLayout(1024).splitFocus).toBe(true);
     expect(employeePortalLayout(1440).groupColumns).toBe(3);

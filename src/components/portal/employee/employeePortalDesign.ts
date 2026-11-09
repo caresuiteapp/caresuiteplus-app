@@ -26,7 +26,8 @@ export const employeePortalWorkspace = {
 export function employeePortalLayout(width: number, fontScale = 1) {
   const phone = width < 600;
   const railArtworkSize = phone ? 44 : width < 1100 ? 54 : 64;
-  const railButtonSize = railArtworkSize + 10;
+  const captionWidth = Math.min(Math.ceil(62 * Math.max(1, fontScale)), Math.floor(width / 3), 124);
+  const railButtonSize = Math.max(62, railArtworkSize + 10, captionWidth);
   const railWidth = railButtonSize + 14;
   const padding = phone ? 12 : width < 1000 ? 20 : 28;
   const contentWidth = Math.max(0, width - railWidth - padding * 2);
@@ -69,10 +70,29 @@ export const employeePortalArtwork: Record<string, string> = {
   consultation: '/beratung', profile: '/settings/profile', help: '/support',
 };
 
-export const employeeRailIds = [
-  'home', 'assignments', 'open-assignments', 'documentation', 'clients', 'calendar',
-  'care-tours', 'consultation', 'academy', 'time', 'logbook', 'messages',
-] as const;
+export const employeeRailLabels: Readonly<Record<string, string>> = {
+  home: 'Übersicht',
+  assignments: 'Einsätze',
+  'open-assignments': 'Prüfen',
+  documentation: 'Doku',
+  clients: 'Klienten',
+  calendar: 'Kalender',
+  'care-tours': 'Touren',
+  consultation: 'Beratung',
+  academy: 'Akademie',
+  time: 'Zeitkonto',
+  logbook: 'Fahrten',
+  messages: 'Postfach',
+  tasks: 'Aufgaben',
+  documents: 'Dateien',
+  uploads: 'Uploads',
+  announcements: 'Infos',
+  leave: 'Urlaub',
+  absence: 'Fehlzeit',
+  payroll: 'Gehalt',
+  profile: 'Profil',
+  help: 'Hilfe',
+};
 
 export function employeePortalActiveId(pathname: string, navigation: readonly LiquidPortalNavigationItem[]) {
   const path = pathname.replace(/\/+$/, '').replace(/^\/portal\/employee\/times(?=\/|$)/, '/portal/employee/arbeitszeit')

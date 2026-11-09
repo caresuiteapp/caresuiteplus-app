@@ -3,6 +3,7 @@ vi.mock('@expo/vector-icons/Feather', () => ({ default: () => null }));
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { LiquidPortalRouteLayout } from '@/liquid-command/shell/LiquidPortalRouteLayout';
 import { EmployeeLogbookLifecycleGate } from '@/components/portal/EmployeeLogbookLifecycleGate';
+import { employeePortalNavigation } from '@/lib/portal/employee/employeePortalNavigation';
 
 const state = vi.hoisted(() => ({
   role: 'employee_portal', clientSettings: null as any, path: '/portal/employee', width: 360, bottom: 24,
@@ -134,23 +135,27 @@ describe('portal navigation stays accessible during GPS and execution', () => {
     const navigation = tree.find((node) => node.props.testID === 'employee-portal-symbol-navigation')!;
     expect(navigation).toBeDefined();
     const tabs = nodes(navigation).filter((node) => node.props.accessibilityRole === 'tab');
-    expect(tabs).toHaveLength(10);
-    expect(nodes(navigation).filter(node => node.props.accessibilityRole === 'tab' || node.props.accessibilityRole === 'button')).toHaveLength(11);
+    const routes = employeePortalNavigation(state.selected).map(item => item.route);
+    expect(tabs).toHaveLength(routes.length);
     for (const tab of tabs) tab.props.onPress();
-    expect(state.push).toHaveBeenCalledTimes(tabs.length);
-    expect(nodes(navigation).some((node) => node.props.accessibilityLabel === 'Weitere Portalbereiche öffnen')).toBe(true);
+    expect(state.push.mock.calls.map(([route]) => route).sort()).toEqual(routes.sort());
+    expect(nodes(navigation).some(node => node.props.accessibilityLabel === 'Alle Portalbereiche öffnen')).toBe(true);
   });
-  it('keeps complete accessible names on the narrow rail and retains open assignments', () => {
+  it('puts one readable caption under each icon on the narrow rail and retains full names', () => {
     state.width = 320;
     const tree = shell();
     const navigation = tree.find(node => node.props.testID === 'employee-portal-symbol-navigation')!;
     const tabs = nodes(navigation).filter(node => node.props.accessibilityRole === 'tab');
-    expect(tabs).toHaveLength(10);
+    const captions = tabs.map(tab => nodes(tab).find(node => node.type === 'Text')?.props.children);
+    expect(captions.slice(0, 7)).toEqual(['Übersicht', 'Einsätze', 'Prüfen', 'Doku', 'Klienten', 'Kalender', 'Zeitkonto']);
+    expect(captions).toContain('Dateien');
+    expect(captions).toContain('Hilfe');
     for (const tab of tabs) {
       expect(tab.props.accessibilityLabel.length).toBeGreaterThan(2);
       expect(flatStyle(tab.props.style).width).toBeGreaterThanOrEqual(44);
     }
-    const open = tree.find(node => node.props.accessibilityLabel === 'Offene Einsätze');
+    for (const caption of captions) expect(caption).toMatch(/^\S+$/);
+    const open = tabs.find(node => node.props.accessibilityLabel === 'Prüfen, Offene Einsätze');
     expect(open).toBeDefined(); open!.props.onPress();
     expect(state.push).toHaveBeenCalledWith('/portal/employee/offene-einsaetze');
   });
@@ -163,7 +168,7 @@ describe('portal navigation stays accessible during GPS and execution', () => {
     plan.props.onPress();
     expect(state.push).toHaveBeenCalledWith(kind === 'employee' ? '/portal/employee/assignments' : '/portal/client/appointments');
     if (kind === 'employee') {
-      const logbook = nodes(navigation).find(node => node.props.accessibilityLabel === 'Fahrtenbuch')!;
+      const logbook = nodes(navigation).find(node => node.props.accessibilityLabel === 'Fahrten, Fahrtenbuch')!;
       expect(logbook.props.accessibilityHint).toBe('Fahrtenbuch');
       logbook.props.onPress();
       expect(state.push).toHaveBeenCalledWith('/portal/employee/fahrtenbuch');
@@ -172,11 +177,11 @@ describe('portal navigation stays accessible during GPS and execution', () => {
   it.each([[0, undefined], [1, '1'], [123, '99+']] as const)('keeps compact unread count %s readable and the exact count accessible', (count, badge) => {
     state.unread = count;
     const tree = shell();
-    const label = count > 0 ? `Nachrichten, ${count} ungelesene Nachrichten` : 'Nachrichten';
+    const label = count > 0 ? `Postfach, Nachrichten, ${count} ungelesene Nachrichten` : 'Postfach, Nachrichten';
     const navigation = tree.find(node => node.props.testID === 'employee-portal-symbol-navigation')!;
     const chat = nodes(navigation).find(node => node.props.accessibilityLabel === label)!;
     expect(chat).toBeDefined();
-    expect(nodes(chat).filter(node => node.type === 'Text').map(node => node.props.children)).toEqual(badge ? [badge] : []);
+    expect(nodes(chat).filter(node => node.type === 'Text').map(node => node.props.children)).toEqual(badge ? ['Postfach', badge] : ['Postfach']);
     chat.props.onPress();
     expect(state.push).toHaveBeenCalledWith('/portal/employee/messages');
   });

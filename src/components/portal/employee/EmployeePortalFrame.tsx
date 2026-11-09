@@ -13,7 +13,7 @@ import { EmployeePortalBackdrop } from './EmployeePortalBackdrop';
 import { EmployeePortalHeaderStatus } from './EmployeePortalHeaderStatus';
 import { EmployeePortalMenuContext } from './EmployeePortalMenuContext';
 import { useEmployeePortalWorkspaceContext } from './EmployeePortalWorkspaceContext';
-import { employeePortalDesign as c, employeePortalHeaderLayout, employeePortalLayout, employeePortalWorkspace, employeeRailIds } from './employeePortalDesign';
+import { employeePortalDesign as c, employeePortalHeaderLayout, employeePortalLayout, employeePortalWorkspace, employeeRailLabels } from './employeePortalDesign';
 
 type Props = {
   children: ReactNode; overlay?: ReactNode; width: number; height: number; displayName: string;
@@ -31,10 +31,11 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
   const [signingOut, setSigningOut] = useState(false);
   const [signOutError, setSignOutError] = useState<string | null>(null);
   const signOutInFlight = useRef(false);
-  const layout = employeePortalLayout(width);
   const { fontScale } = useWindowDimensions();
   const webFontScale = useWebFontScaleValue();
-  const header = employeePortalHeaderLayout(width, height, Math.max(fontScale ?? 1, webFontScale));
+  const textScale = Math.max(fontScale ?? 1, webFontScale);
+  const layout = employeePortalLayout(width, textScale);
+  const header = employeePortalHeaderLayout(width, height, textScale);
   const moduleWithBrand = header.singleRow || header.groupedLandscape;
   const balancedHeader = !header.compact;
   const workspace = useEmployeePortalWorkspaceContext();
@@ -48,8 +49,11 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
       <Ionicons name="chevron-down" size={17} color={c.accent} />
     </Pressable>
   ) : null;
-  const railItems = employeeRailIds.flatMap(id => navigation.filter(item => item.id === id));
-  const railButtonSize = { width: layout.railButtonSize, height: layout.railButtonSize };
+  const railItems = [
+    ...Object.keys(employeeRailLabels).flatMap(id => navigation.filter(item => item.id === id)),
+    ...navigation.filter(item => !Object.hasOwn(employeeRailLabels, item.id)),
+  ];
+  const railButtonWidth = { width: layout.railButtonSize };
   const badge = unreadCount > 99 ? '99+' : String(unreadCount);
   const label = (item: LiquidPortalNavigationItem) => item.id === 'messages' && unreadCount > 0 ? `${item.label}, ${unreadCount} ungelesene Nachrichten` : item.label;
   const open = (route: string) => { setMenuOpen(false); onNavigate(route); };
@@ -97,14 +101,20 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
       {!header.phonePortrait ? headerLogout : null}
     </View>
   );
-  const railAction = (item: LiquidPortalNavigationItem) => (
-    <Pressable key={item.id} accessibilityRole="tab" accessibilityLabel={label(item)} accessibilityState={{ selected: activeId === item.id }}
-      accessibilityHint={item.label} {...(Platform.OS === 'web' ? { title: item.label } : {})}
-      onPress={() => open(item.route)} style={({ pressed }) => [styles.railButton, railButtonSize, activeId === item.id && styles.selected, pressed && styles.pressed]}>
-      <EmployeePortalArtwork id={item.id} label={item.label} size={layout.railArtworkSize} />
-      {item.id === 'messages' && unreadCount > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{badge}</Text></View> : null}
-    </Pressable>
-  );
+  const railAction = (item: LiquidPortalNavigationItem) => {
+    const caption = employeeRailLabels[item.id] ?? item.label;
+    const active = activeId === item.id;
+    const accessibleLabel = caption === item.label ? label(item) : `${caption}, ${label(item)}`;
+    return (
+      <Pressable key={item.id} accessibilityRole="tab" accessibilityLabel={accessibleLabel} accessibilityState={{ selected: active }}
+        accessibilityHint={item.label} {...(Platform.OS === 'web' ? { title: item.label } : {})}
+        onPress={() => open(item.route)} style={({ pressed }) => [styles.railButton, railButtonWidth, active && styles.selected, pressed && styles.pressed]}>
+        <EmployeePortalArtwork id={item.id} label={item.label} size={layout.railArtworkSize} />
+        <Text style={[styles.railCaption, active && styles.railCaptionActive]}>{caption}</Text>
+        {item.id === 'messages' && unreadCount > 0 ? <View style={styles.badge}><Text style={styles.badgeText}>{badge}</Text></View> : null}
+      </Pressable>
+    );
+  };
 
   return <EmployeePortalMenuContext.Provider value={() => setMenuOpen(true)}><View style={styles.frame} testID="employee-portal-responsive-frame">
     <EmployeePortalBackdrop animated={!focus} />
@@ -114,16 +124,18 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
     </View> : null}
     <View style={styles.body}>
       <View style={[styles.rail, frostedChrome, { width: layout.railWidth }]} testID="employee-portal-symbol-navigation">
-        <ScrollView style={styles.railScroll} contentContainerStyle={styles.railContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
+        <ScrollView accessibilityRole="tablist" accessibilityLabel="Portalnavigation" style={[styles.railScroll, navigationScrollbar]}
+          contentContainerStyle={styles.railContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
           {railItems.map(railAction)}
-          <View style={styles.railDivider} />
-          {navigation.find(item => item.id === 'leave') ? railAction(navigation.find(item => item.id === 'leave')!) : null}
         </ScrollView>
-        <Pressable accessibilityRole="button" accessibilityLabel="Weitere Portalbereiche öffnen" accessibilityState={{ expanded: menuOpen }}
-          {...(Platform.OS === 'web' ? { title: 'Alle Bereiche' } : {})} onPress={() => setMenuOpen(true)}
-          style={[styles.railButton, { width: layout.railButtonSize, height: 48 }, !railItems.some(item => item.id === activeId) && activeId !== 'leave' && styles.selected]}>
-          <Ionicons name="grid-outline" size={layout.phone ? 24 : 27} color={c.accent} />
-        </Pressable>
+        <View style={styles.railFooter}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Alle Portalbereiche öffnen" accessibilityState={{ expanded: menuOpen }}
+            {...(Platform.OS === 'web' ? { title: 'Alle Bereiche' } : {})} onPress={() => setMenuOpen(true)}
+            style={({ pressed }) => [styles.railButton, railButtonWidth, menuOpen && styles.selected, pressed && styles.pressed]}>
+            <Ionicons name="grid-outline" size={layout.phone ? 24 : 27} color={c.accent} />
+            <Text style={[styles.railCaption, styles.railCaptionActive]}>Alle</Text>
+          </Pressable>
+        </View>
       </View>
       <View style={[styles.workspace, lightWorkspace && styles.lightWorkspace]} testID="employee-portal-workspace">{children}</View>
     </View>
@@ -158,8 +170,8 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
       <View style={[styles.menuBackdrop, { paddingTop: Math.max(insets.top, 12), paddingBottom: Math.max(insets.bottom, 12) }]}>
         <View style={styles.menu} accessibilityViewIsModal testID="employee-portal-all-areas">
           <View style={styles.menuHeader}><Text accessibilityRole="header" style={styles.menuTitle}>Alle Bereiche</Text><Pressable accessibilityRole="button" accessibilityLabel="Menü schließen" onPress={() => setMenuOpen(false)} style={styles.headerButton}><Ionicons name="close" size={24} color={c.text} /></Pressable></View>
-          <ScrollView style={styles.menuScroll} contentContainerStyle={styles.menuContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator>
-            {navigation.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={label(item)} accessibilityState={{ selected: activeId === item.id }} onPress={() => open(item.route)} style={({ pressed }) => [styles.menuItem, activeId === item.id && styles.selected, pressed && styles.pressed]}>
+          <ScrollView style={[styles.menuScroll, navigationScrollbar]} contentContainerStyle={styles.menuContent} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator>
+            {railItems.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={label(item)} accessibilityState={{ selected: activeId === item.id }} onPress={() => open(item.route)} style={({ pressed }) => [styles.menuItem, activeId === item.id && styles.selected, pressed && styles.pressed]}>
               <EmployeePortalArtwork id={item.id} label={item.label} size={layout.shortcutArtworkSize} /><Text style={styles.menuLabel}>{item.label}</Text><Ionicons name="chevron-forward" size={17} color={c.accent} />
             </Pressable>)}
             <View style={styles.menuTextSize}><Text style={styles.secondary}>Schriftgröße</Text><PortalTextSizeControls appearance="desktop-header" /></View>
@@ -174,6 +186,9 @@ export function EmployeePortalFrame({ children, overlay, width, height, displayN
 
 const frostedChrome = Platform.OS === 'web' ? ({
   backdropFilter: 'blur(14px)', WebkitBackdropFilter: 'blur(14px)',
+} as ViewStyle) : null;
+const navigationScrollbar = Platform.OS === 'web' ? ({
+  scrollbarWidth: 'thin', scrollbarColor: 'rgba(188,238,255,0.48) transparent',
 } as ViewStyle) : null;
 const headerControlSurface = { backgroundColor: c.control, borderColor: c.line, borderRadius: 12 } as const;
 
@@ -208,9 +223,11 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   headerError: { flexBasis: '100%', color: c.danger, fontSize: font(13), lineHeight: font(19), textAlign: 'right' },
   body: { flex: 1, minHeight: 0, minWidth: 0, flexDirection: 'row' },
   rail: { flexShrink: 0, minHeight: 0, paddingVertical: 10, alignItems: 'center', backgroundColor: c.rail, borderRightWidth: 1, borderColor: c.line },
-  railScroll: { flex: 1, width: '100%', minHeight: 0 }, railContent: { alignItems: 'center', gap: 7, paddingBottom: 12, paddingTop: 4 },
-  railButton: { flexShrink: 0, borderRadius: 14, borderWidth: 1, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center', position: 'relative' },
-  railDivider: { height: 1, width: 34, backgroundColor: c.line, marginVertical: 4 },
+  railScroll: { flex: 1, width: '100%', minHeight: 0 }, railContent: { alignItems: 'center', gap: 9, paddingBottom: 12, paddingTop: 4 },
+  railButton: { flexShrink: 0, minHeight: 44, paddingVertical: 4, paddingHorizontal: 2, gap: 3, borderRadius: 14, borderWidth: 1, borderColor: 'transparent', alignItems: 'center', justifyContent: 'center', position: 'relative' },
+  railCaption: { maxWidth: '100%', color: c.muted, fontSize: font(11), lineHeight: font(15), fontWeight: '700', textAlign: 'center' },
+  railCaptionActive: { color: c.accent },
+  railFooter: { flexShrink: 0, width: '100%', alignItems: 'center', paddingTop: 5, borderTopWidth: 1, borderColor: c.line },
   selected: { backgroundColor: c.selected, borderColor: '#3787A8' }, pressed: { opacity: 0.75 },
   workspace: { flex: 1, minWidth: 0, minHeight: 0, overflow: 'hidden' },
   lightWorkspace: { backgroundColor: employeePortalWorkspace.canvas },

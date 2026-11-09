@@ -16,9 +16,10 @@ type AgendaIcon = keyof typeof Ionicons.glyphMap;
 export function useEmployeePortalAgendaLayout() {
   const { width, height, fontScale } = useHydrationSafeWindowDimensions();
   const webFontScale = useWebFontScaleValue();
-  const { padding, contentWidth } = employeePortalLayout(width);
+  const textScale = Math.max(1, fontScale, webFontScale);
+  const { padding, contentWidth } = employeePortalLayout(width, textScale);
   const [measuredWidth, setMeasuredWidth] = useState<number>();
-  const readableWidth = (measuredWidth ?? contentWidth) / Math.max(1, fontScale, webFontScale);
+  const readableWidth = (measuredWidth ?? contentWidth) / textScale;
   return {
     padding, readableWidth, compact: readableWidth < 480, twoColumns: readableWidth >= 850,
     shortLandscape: width > height && height < 520,
