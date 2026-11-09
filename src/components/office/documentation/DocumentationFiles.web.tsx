@@ -64,19 +64,45 @@ function FilePreview({ actor, file }: { actor: DocumentationActor; file: Documen
       <a className="cs-doc-btn" href={urls.download} target="_blank" rel="noreferrer">Original herunterladen ↗</a><button type="button" className="cs-doc-btn" disabled={busy} onClick={() => void open()}>Datei erneut laden</button></div>}
   </article>;
 }
-export function DocumentationFiles({ actor, entry, onState }: { actor: DocumentationActor; entry: DocumentationEntry; onState?: (state: { dirty: boolean; busy: boolean }) => void }) {
+export function DocumentationFiles({ actor, entry, onState, onAttachmentTypesLoaded }: {
+  actor: DocumentationActor; entry: DocumentationEntry; onState?: (state: { dirty: boolean; busy: boolean }) => void;
+  onAttachmentTypesLoaded?: (mimeTypes: string[]) => void;
+}) {
   const [items, setItems] = useState<DocumentationFile[]>([]), [files, setFiles] = useState<DocumentationUpload[]>([]);
   const [allowed, setAllowed] = useState(false), [error, setError] = useState(''), [loading, setLoading] = useState(true), [busy, setBusy] = useState(false), [recording, setRecording] = useState(false);
   const alive = useRef(true), locked = useRef(false);
   const pending = useRef(files); pending.current = files;
   useEffect(() => { onState?.({ dirty: files.some(f => !f.done), busy: busy || recording }); }, [files, busy, recording, onState]);
   useEffect(() => () => { for (const f of pending.current.filter(f => !f.done)) void discardDocumentationFile(actor, entry, f).catch(() => {}); }, []);
-  const load = async () => { setLoading(true); setError(''); try { const r = await listDocumentationFiles(actor, entry); if (alive.current) { setItems(r.items); setAllowed(r.canUpload); } } catch { if (alive.current) setError('Anhänge konnten nicht geladen werden. Bitte erneut versuchen.'); } finally { if (alive.current) setLoading(false); } };
+  const load = async () => {
+    setLoading(true); setError('');
+    try {
+      const result = await listDocumentationFiles(actor, entry);
+      if (alive.current) {
+        setItems(result.items);
+        setAllowed(result.canUpload);
+        onAttachmentTypesLoaded?.(result.items.map(file => file.mime_type));
+      }
+    } catch { if (alive.current) setError('Anhänge konnten nicht geladen werden. Bitte erneut versuchen.'); }
+    finally { if (alive.current) setLoading(false); }
+  };
   useEffect(() => { alive.current = true; void load(); return () => { alive.current = false; }; }, [entry.id, entry.source, actor.tenantId, actor.userId]);
   const upload = async () => {
     if (locked.current || recording) return; locked.current = true; setBusy(true); setError('');
-    try { for (const f of files.filter(f => !f.done)) { await uploadDocumentationFile(actor, entry, f); if (!alive.current) return; setFiles(current => current.map(item => item.id === f.id ? { ...item, done: true } : item)); } setFiles([]); await load(); }
-    catch { if (alive.current) setError('Ein Anhang wurde noch nicht gespeichert. Bereits bestätigte Dateien bleiben erhalten. Bitte erneut versuchen.'); }
+    let saved = false;
+    try {
+      for (const file of files.filter(item => !item.done)) {
+        await uploadDocumentationFile(actor, entry, file);
+        if (!alive.current) return;
+        saved = true;
+        setFiles(current => current.map(item => item.id === file.id ? { ...item, done: true } : item));
+      }
+      setFiles([]);
+      await load();
+    } catch {
+      if (saved && alive.current) await load();
+      if (alive.current) setError('Ein Anhang wurde noch nicht gespeichert. Bereits bestätigte Dateien bleiben erhalten. Bitte erneut versuchen.');
+    }
     finally { locked.current = false; if (alive.current) setBusy(false); }
   };
   return <section className="cs-doc-files" aria-label="Dateianhänge"><h3>Anhänge <span>{items.length}</span></h3>{loading && <p role="status">Anhänge werden geladen …</p>}{error && <p role="alert" className="cs-doc-error">{error} <button type="button" className="cs-doc-btn" onClick={() => void load()}>Erneut laden</button></p>}

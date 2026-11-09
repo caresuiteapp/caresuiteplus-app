@@ -38,6 +38,7 @@ export async function listDocumentation(actor: DocumentationActor, filters: Docu
         || !DOCUMENTATION_AREAS.some(a => a.value === item.area) || !DOCUMENTATION_CATEGORIES.some(c => c.value === item.category)
         || !['normal','important','urgent'].includes(String(item.priority))
         || ['title','body','author_name','client_name','employee_name'].some(k => typeof item[k] !== 'string')
+        || (item.attachment_mime_types !== undefined && (!Array.isArray(item.attachment_mime_types) || item.attachment_mime_types.some(mime => typeof mime !== 'string')))
         || !Number.isFinite(Date.parse(String(item.occurred_at))) || !Number.isFinite(Date.parse(String(item.created_at)))
         || ['client_id','employee_id','visit_id'].some(k => item[k] !== null && !isUuid(item[k]))) throw new Error('Ungültiger Eintrag');
     }

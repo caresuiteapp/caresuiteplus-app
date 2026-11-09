@@ -24,6 +24,7 @@ export type DocumentationEntry = {
   id: string; tenant_id: string; source: 'manual' | 'visit'; area: DocumentationArea;
   client_id: string | null; employee_id: string | null; category: DocumentationCategory;
   priority: DocumentationDraft['priority']; title: string; body: string;
+  attachment_mime_types?: string[];
   occurred_at: string; created_at: string; author_name: string;
   client_name: string; employee_name: string; visit_id: string | null;
 };

@@ -142,6 +142,14 @@ export const documentationCss = `
 }
 .cs-doc-list.compact .cs-doc-preview { display:none }
 .cs-doc-list.compact .cs-doc-card { padding:11px; gap:9px }
+.cs-doc-card-attachments {
+  display:flex; flex-wrap:wrap; align-items:center; gap:5px; min-width:0; max-width:100%;
+  color:var(--muted); font-size:calc(11px * var(--app-font-scale,1)); line-height:1.45;
+}
+.cs-doc-card-file-count {
+  padding:2px 7px; border:1px solid var(--line); border-radius:8px; background:var(--control);
+  color:var(--ink); font-weight:700;
+}
 .cs-doc-card-bottom {
   justify-content:space-between; gap:6px 10px; border-top:1px solid var(--line); padding-top:9px;
   color:var(--muted); font-size:calc(11px * var(--app-font-scale,1)); line-height:1.45;

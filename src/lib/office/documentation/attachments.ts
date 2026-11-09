@@ -20,6 +20,24 @@ export function fileKind(mime: string) {
   if (/^audio\//.test(mime)) return 'audio';
   return mime === 'application/pdf' ? 'pdf' : 'file';
 }
+
+const attachmentKindLabels = {
+  image: ['Foto', 'Fotos'],
+  video: ['Video', 'Videos'],
+  pdf: ['PDF', 'PDFs'],
+  audio: ['Audiodatei', 'Audiodateien'],
+  file: ['Datei', 'Dateien'],
+} as const;
+
+export function documentationAttachmentLabels(mimeTypes: readonly string[] = []): string[] {
+  const counts = { image: 0, video: 0, pdf: 0, audio: 0, file: 0 };
+  for (const mime of mimeTypes) counts[fileKind(mime)] += 1;
+  return (Object.keys(counts) as Array<keyof typeof counts>).flatMap(kind => {
+    const count = counts[kind];
+    const [singular, plural] = attachmentKindLabels[kind];
+    return count ? [`${count} ${count === 1 ? singular : plural}`] : [];
+  });
+}
 async function action(actor: DocumentationActor, entry: Target, op: string, payload = {}) {
   if (!isUuid(entry.id) || !['manual', 'visit'].includes(entry.source)) throw new Error('Ungültiger Eintrag');
   return documentationRequest(actor, 'office_documentation_attachments', { p_entry_id: entry.id, p_source: entry.source, p_action: op, p_payload: payload });

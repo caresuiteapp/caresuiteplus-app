@@ -8,11 +8,12 @@ import { DOCUMENTATION_CATEGORIES, documentationDateTime } from '@/lib/office/do
 import { DocumentationFiles } from "./DocumentationFiles.native.tsx";
 import { documentationCss } from "./documentationCss.native.ts";
 import { useUnsavedWebChanges } from "../../../hooks/useUnsavedWebChanges.native.ts";
-export function DocumentationReader({ actor, entry, onClose, onAdd }: {
+export function DocumentationReader({ actor, entry, onClose, onAdd, onAttachmentTypesLoaded }: {
     actor: DocumentationActor;
     entry: DocumentationEntry;
     onClose: () => void;
     onAdd: () => void;
+    onAttachmentTypesLoaded?: (mimeTypes: string[]) => void;
 }) {
     const ref = useRef<HTMLDialogElement>(null), id = useId();
     const [size, setSize] = useState(17);
@@ -42,7 +43,7 @@ export function DocumentationReader({ actor, entry, onClose, onAdd }: {
     return <NativeWorkspaceStyleScope css={[documentationCss, documentationCss]}>{<><NativeStyle>{documentationCss}</NativeStyle><NativeDialog ref={ref} className="cs-doc cs-doc-reader" aria-labelledby={id} onCancel={e => { e.preventDefault(); void close(); }}><NativeHeader className="cs-doc-reader-head"><NativeDiv><NativeP className="cs-doc-eyebrow">Dokumentation · Leseansicht</NativeP><NativeH2 id={id}>{entry.title}</NativeH2></NativeDiv><NativeButton type="button" autoFocus className="cs-doc-btn icon" aria-label="Leseansicht schließen" disabled={fileState.busy} onClick={() => void close()}>×</NativeButton></NativeHeader>
     <NativeDiv className="cs-doc-reader-scroll" tabIndex={0} aria-label="Vollständige Dokumentation"><NativeDiv className="cs-doc-reading-width"><NativeDiv className="cs-doc-reader-meta"><NativeSpan className={`cs-doc-badge cs-doc-category-${category.value}`}>{category.label}</NativeSpan><NativeSpan>{documentationDateTime(entry.occurred_at)}</NativeSpan><NativeSpan>{entry.author_name}</NativeSpan></NativeDiv>
     <NativeP className="cs-doc-reader-person">{entry.client_name || entry.employee_name || 'Verwaltung'}</NativeP><NativeDiv className="cs-doc-copy" style={{ fontSize: size }}>{entry.body}</NativeDiv>
-    <DocumentationFiles key={`${entry.source}:${entry.id}`} actor={actor} entry={entry} onState={setFileState}/><NativeP className="cs-doc-hint">Erfasst am {documentationDateTime(entry.created_at)} · {entry.source === 'visit' ? 'Original aus abgeschlossenem Einsatz' : 'Freier Eintrag'}</NativeP></NativeDiv></NativeDiv>
+    <DocumentationFiles key={`${entry.source}:${entry.id}`} actor={actor} entry={entry} onState={setFileState} onAttachmentTypesLoaded={onAttachmentTypesLoaded}/><NativeP className="cs-doc-hint">Erfasst am {documentationDateTime(entry.created_at)} · {entry.source === 'visit' ? 'Original aus abgeschlossenem Einsatz' : 'Freier Eintrag'}</NativeP></NativeDiv></NativeDiv>
     <NativeFooter className="cs-doc-reader-footer"><NativeDiv className="cs-doc-actions" aria-label="Schriftgröße"><NativeButton type="button" className="cs-doc-btn" aria-label="Schrift verkleinern" disabled={size <= 15} onClick={() => setSize(s => s - 1)}>A−</NativeButton><NativeSpan>{size} px</NativeSpan><NativeButton type="button" className="cs-doc-btn" aria-label="Schrift vergrößern" disabled={size >= 25} onClick={() => setSize(s => s + 1)}>A＋</NativeButton></NativeDiv><NativeDiv className="cs-doc-actions"><NativeButton type="button" className="cs-doc-btn" disabled={fileState.busy} onClick={() => void close()}>Schließen</NativeButton><NativeButton type="button" className="cs-doc-btn primary" disabled={fileState.busy} onClick={() => void add()}>Ergänzung erfassen</NativeButton></NativeDiv></NativeFooter>
   </NativeDialog></>}</NativeWorkspaceStyleScope>;
 }

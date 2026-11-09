@@ -15,6 +15,7 @@ const visitMediaSql = readFileSync('supabase/patches/office_documentation_visit_
 const releaseSql = readFileSync('supabase/patches/office_documentation_release.sql','utf8');
 const employeeAttachmentMigration = readFileSync('supabase/migrations/20261109072535_office_documentation_employee_attachments.sql','utf8');
 const employeeAttachmentRelease = readFileSync('supabase/patches/office_documentation_employee_attachments_release.sql','utf8');
+const attachmentOverviewSql = readFileSync('supabase/migrations/20261109103042_office_documentation_attachment_overview.sql','utf8');
 assert.ok(employeeAttachmentRelease.includes(employeeAttachmentMigration.replace('\nBEGIN;\n','\n').split('\nCOMMIT;')[0]));
 for (const source of [mediaSql,visitMediaSql]) assert.ok(releaseSql.includes(source.replace('\nBEGIN;\n','\n').split('\nCOMMIT;')[0]));
 assert.equal(mediaSql,readFileSync('supabase/migrations/20261106185632_office_documentation_media.sql','utf8'));
@@ -51,6 +52,7 @@ try {
   await db.exec(`CREATE FUNCTION public.portal_employee_assigned_visit_ids(p_tenant uuid) RETURNS SETOF uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $$ SELECT id FROM public.assist_visits WHERE tenant_id=p_tenant AND employee_id=public.resolve_current_employee_id() $$;`);
   await db.exec(releaseSql);
   await db.exec(employeeAttachmentRelease);
+  await db.exec(attachmentOverviewSql);
   await db.query('INSERT INTO public.tenants(id) VALUES($1),($2)',[ids.tenant,ids.foreignTenant]);
   await db.query('INSERT INTO auth.users(id) VALUES($1),($2),($3)',[ids.admin,ids.staff,ids.clientUser]);
   await db.query("INSERT INTO public.roles(id,key,is_admin_role) VALUES($1,'business_admin',true)",[ids.role]);
@@ -150,14 +152,19 @@ try {
   await pass('private attachments verify uploaded originals and resist broad Storage policies and portal access',async()=>{
     const attachmentId=randomUUID(),metadata={id:attachmentId,name:'foto.png',mime:'image/png',size:3};
     const attachments=(op='list',data={},tenant=ids.tenant)=>result('SELECT public.office_documentation_attachments($1,$2,$3,$4,$5::jsonb) AS result',[tenant,id,'manual',op,JSON.stringify(data)]);
+    const overview=async()=>(await list({query:'Freier Bericht'})).items.find(item=>item.id===id);
     await actor();const prepared=await attachments('prepare',metadata);assert.equal(prepared.state,'pending');
     assert.deepEqual(await attachments('prepare',metadata),prepared);assert.equal((await attachments()).items.length,0);
+    assert.deepEqual((await overview()).attachment_mime_types,[]);
     await denied(attachments('complete',{id:attachmentId}),'22023');
     await db.query("INSERT INTO storage.objects(bucket_id,name,owner_id,metadata) VALUES('office-documentation',$1,$2,$3::jsonb)",[prepared.storage_path,ids.admin,JSON.stringify({size:2,mimetype:'image/png'})]);
     await denied(attachments('complete',{id:attachmentId}),'22023');
     await owner("UPDATE storage.objects SET metadata=jsonb_build_object('size',3,'mimetype','image/png') WHERE name=$1",[prepared.storage_path]);
     await actor();assert.equal((await attachments('complete',{id:attachmentId})).state,'ready');assert.equal((await attachments('complete',{id:attachmentId})).state,'ready');
     assert.equal((await attachments()).items.length,1);await denied(attachments('discard',{id:attachmentId}));
+    const entry=await overview();
+    assert.deepEqual(entry.attachment_mime_types,['image/png']);
+    assert.doesNotMatch(JSON.stringify(entry),/foto\.png|storage_path/);
     await denied(db.query('SELECT * FROM care_security.documentation_files'));
     await actor(ids.staff,'employee');const visible=await attachments();assert.equal(visible.canUpload,false);assert.equal(visible.items.length,1);
     assert.equal((await db.query("SELECT count(*)::int as n FROM storage.objects WHERE bucket_id='office-documentation'")).rows[0].n,1);
@@ -175,6 +182,7 @@ try {
     await attachments('discard',{id:pending.id});
     assert.equal((await db.query('DELETE FROM storage.objects WHERE name=$1 RETURNING id',[pending.storage_path])).rows.length,1);
     await denied(attachments('complete',{id:pending.id}),'22023');
+    assert.deepEqual((await overview()).attachment_mime_types,['image/png']);
     assert.equal((await list()).total,53);
   });
   await pass('employees can finish photo, video and PDF uploads for their own free entry only',async()=>{
@@ -197,6 +205,7 @@ try {
     }
     await denied(attachments('list',{},ids.foreignTenant));
     await actor();assert.deepEqual(new Set((await attachments()).items.map(item=>item.mime_type)),new Set(formats.map(([,mime])=>mime)));
+    assert.deepEqual((await list({query:'Team report'})).items[0].attachment_mime_types,formats.map(([,mime])=>mime));
     for(const portal of ['client','family']) {await actor(ids.clientUser,portal);await denied(attachments());}
     await owner('UPDATE public.employee_portal_accounts SET blocked_at=now() WHERE id=$1',[ids.account]);
     await actor(ids.staff,'employee');await denied(attachments());
@@ -219,6 +228,7 @@ try {
     await actor();let listed=await view();assert.equal(listed.items.length,2);assert.ok(listed.items.every(f=>f.storage_bucket==='office-documents'));
     assert.deepEqual(new Set(listed.items.map(f=>f.storage_path)),new Set([path,orphanPath]));
     await actor(ids.staff,'employee');listed=await view();assert.equal(listed.canUpload,false);assert.equal(listed.items.length,2);
+    assert.deepEqual((await list({source:'visit'})).items[0].attachment_mime_types,listed.items.map(item=>item.mime_type));
     await denied(result('SELECT public.office_documentation_attachments($1,$2,$3,$4,$5::jsonb) AS result',[ids.tenant,ids.documentation,'visit','prepare',JSON.stringify({id:randomUUID(),name:'x.pdf',mime:'application/pdf',size:3})]));
     await actor(ids.clientUser,'client');await denied(view());assert.equal((await db.query("SELECT count(*)::int as n FROM storage.objects WHERE bucket_id='office-documents'")).rows[0].n,0);
     await owner("UPDATE public.assist_visits SET canonical_status='cancelled' WHERE id=$1",[ids.visit]);await actor();
@@ -237,6 +247,7 @@ try {
   await pass('Git Bash release transaction can be repeated without changing originals or reapplying schema',async()=>{
     await db.exec('RESET ROLE');const before=(await db.query('SELECT * FROM storage.objects ORDER BY id')).rows;
     await db.exec(releaseSql);await db.exec(employeeAttachmentRelease);
+    await db.exec(attachmentOverviewSql);await db.exec(attachmentOverviewSql);
     assert.deepEqual((await db.query('SELECT * FROM storage.objects ORDER BY id')).rows,before);
     assert.equal((await db.query('SELECT count(*)::int as n FROM supabase_migrations.schema_migrations')).rows[0].n,3);
   });

@@ -8,9 +8,9 @@ import type { DocumentationEntry, DocumentationPage } from '@/lib/office/documen
 import EmployeeDocumentationRoute from '../../../app/portal/employee/dokumentation.web';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
-const api=vi.hoisted(()=>({list:vi.fn(),create:vi.fn(),upload:vi.fn()}));
+const api=vi.hoisted(()=>({list:vi.fn(),create:vi.fn(),upload:vi.fn(),files:vi.fn()}));
 vi.mock('@/lib/office/documentation/service',()=>({listDocumentation:api.list,createDocumentation:api.create}));
-vi.mock('@/lib/office/documentation/attachments',async(importOriginal)=>({...await importOriginal<object>(),listDocumentationFiles:vi.fn(async()=>({items:[],canUpload:false})),uploadDocumentationFile:api.upload}));
+vi.mock('@/lib/office/documentation/attachments',async(importOriginal)=>({...await importOriginal<object>(),listDocumentationFiles:api.files,uploadDocumentationFile:api.upload}));
 vi.mock('@/hooks/useUnsavedWebChanges.web',()=>({useUnsavedWebChanges:()=>async()=>true}));
 vi.mock('@/components/portal/employee/EmployeePortalBackdrop',()=>({EmployeePortalBackdrop:()=>null}));
 vi.mock('@/liquid-command/components/DesktopCatalogArtwork',()=>({DesktopCatalogArtwork:()=>null}));
@@ -23,12 +23,50 @@ const actor={tenantId:'11111111-1111-4111-8111-111111111111',userId:'22222222-22
 const entry:DocumentationEntry={id:'33333333-3333-4333-8333-333333333333',tenant_id:actor.tenantId,source:'visit',area:'client',client_id:'44444444-4444-4444-8444-444444444444',employee_id:null,category:'care',priority:'normal',title:'Abgeschlossener Einsatz',body:'Gespeicherte Beobachtung',occurred_at:'2026-11-04T17:00:00Z',created_at:'2026-11-04T17:05:00Z',author_name:'Team Test',client_name:'Client Test',employee_name:'',visit_id:'55555555-5555-4555-8555-555555555555'};
 let host:HTMLDivElement,root:Root;
 const page:DocumentationPage={items:[entry],total:1,months:['2026-11'],clients:[{id:entry.client_id!,name:entry.client_name}],employees:[]};
-beforeEach(()=>{vi.clearAllMocks();api.list.mockResolvedValue({ok:true,data:structuredClone(page)});api.create.mockResolvedValue({ok:true,data:{id:entry.id}});host=document.createElement('div');document.body.append(host);root=createRoot(host);});
+beforeEach(()=>{vi.clearAllMocks();api.list.mockResolvedValue({ok:true,data:structuredClone(page)});api.create.mockResolvedValue({ok:true,data:{id:entry.id}});api.files.mockReset().mockResolvedValue({items:[],canUpload:false});host=document.createElement('div');document.body.append(host);root=createRoot(host);});
 afterEach(async()=>{await act(async()=>root.unmount());host.remove();});
 const render=async()=>{await act(async()=>root.render(<DocumentationWorkspace actor={actor}/>));};
 const click=async(label:string)=>{const el=[...document.querySelectorAll('button')].find(b=>b.textContent?.trim()===label||b.getAttribute('aria-label')===label);expect(el,label).toBeTruthy();await act(async()=>el!.click());};
 const input=async(label:string,value:string)=>{const el=[...host.querySelectorAll('label')].find(l=>l.childNodes[0]?.textContent?.trim()===label)?.querySelector('input,textarea,select') as HTMLInputElement;expect(el,label).toBeTruthy();await act(async()=>{const proto=el.tagName==='TEXTAREA'?HTMLTextAreaElement.prototype:el.tagName==='SELECT'?HTMLSelectElement.prototype:HTMLInputElement.prototype;Object.getOwnPropertyDescriptor(proto,'value')!.set!.call(el,value);el.dispatchEvent(new Event(el.tagName==='SELECT'?'change':'input',{bubbles:true}));});};
 describe('shared documentation workspace',()=>{
+ it('shows attachment types and quantities before opening either kind of entry, including in compact mode',async()=>{
+  const visit={...entry,attachment_mime_types:['video/mp4','image/jpeg','image/png']};
+  const manual={...entry,source:'manual',visit_id:null,title:'Freier Bericht',attachment_mime_types:['application/pdf','audio/mpeg','text/plain']};
+  const empty={...entry,source:'manual',visit_id:null,id:entry.visit_id,title:'Ohne Dateien',attachment_mime_types:[]};
+  api.list.mockResolvedValue({ok:true,data:{...page,items:[visit,manual,empty],total:3}});
+  await render();
+  const labels=()=>[...host.querySelectorAll('.cs-doc-card-attachments')].map(row=>row.textContent);
+  expect(labels()).toEqual(['Anhänge2 Fotos1 Video','Anhänge1 PDF1 Audiodatei1 Datei','Keine Anhänge']);
+  expect(host.querySelector('.cs-doc-card')?.getAttribute('aria-label')).toContain('2 Fotos, 1 Video');
+  expect(api.files).not.toHaveBeenCalled();
+  await click('Kompakte Ansicht');
+  expect(host.querySelector('.cs-doc-list.compact')).toBeTruthy();
+  expect(labels()).toEqual(['Anhänge2 Fotos1 Video','Anhänge1 PDF1 Audiodatei1 Datei','Keine Anhänge']);
+ });
+ it('refreshes the overview from confirmed files after a partial upload and its retry',async()=>{
+  api.list.mockResolvedValue({ok:true,data:{...page,items:[{...entry,attachment_mime_types:[]}]}});
+  const photo={id:'photo',file_name:'intern.jpg',mime_type:'image/jpeg',size_bytes:3};
+  const pdf={id:'pdf',file_name:'intern.pdf',mime_type:'application/pdf',size_bytes:3};
+  api.files.mockResolvedValueOnce({items:[],canUpload:true})
+    .mockResolvedValueOnce({items:[photo],canUpload:true})
+    .mockResolvedValueOnce({items:[photo,pdf],canUpload:true});
+  await render();
+  await act(async()=>host.querySelector<HTMLButtonElement>('.cs-doc-card')!.click());
+  const picker=document.querySelector<HTMLInputElement>('dialog input[type=file]')!;
+  await act(async()=>{
+    Object.defineProperty(picker,'files',{value:[new File(['jpg'],'intern.jpg',{type:'image/jpeg'}),new File(['pdf'],'intern.pdf',{type:'application/pdf'})],configurable:true});
+    picker.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  api.upload.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined);
+  await click('Anhänge speichern');
+  expect(host.querySelector('.cs-doc-card-attachments')?.textContent).toBe('Anhänge1 Foto');
+  await click('Anhänge speichern');
+  await click('Leseansicht schließen');
+  expect(host.querySelector('.cs-doc-card-attachments')?.textContent).toBe('Anhänge1 Foto1 PDF');
+  expect(host.textContent).not.toContain('intern.jpg');
+  expect(host.textContent).not.toContain('intern.pdf');
+  expect(api.upload).toHaveBeenCalledTimes(3);
+ });
  it('includes its own padding in the workspace width outside the Office surface',async()=>{
   await render();
   expect(getComputedStyle(host.querySelector('.cs-doc-workspace')!).boxSizing).toBe('border-box');

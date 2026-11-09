@@ -7,7 +7,7 @@ import type { DocumentationActor, DocumentationDraft, DocumentationEntry, Docume
 import { createDocumentation, listDocumentation } from '@/lib/office/documentation/service';
 import { DocumentationReader } from './DocumentationReader.web';
 import { DocumentationFilePicker } from './DocumentationFiles.web';
-import { discardDocumentationFile, uploadDocumentationFile } from '@/lib/office/documentation/attachments';
+import { discardDocumentationFile, documentationAttachmentLabels, uploadDocumentationFile } from '@/lib/office/documentation/attachments';
 import { documentationCss } from './documentationCss.web';
 
 const initialFilters = (): DocumentationFilters => ({ month: berlinMonth(), area: '', clientId: '', employeeId: '', category: '', source: '', priority: '', query: '', offset: 0 });
@@ -126,6 +126,14 @@ export function DocumentationWorkspace({ actor, employeeView = false }: { actor:
     } finally { locked.current = false; if (alive.current) setBusy(false); }
   };
   const changeDraft = (patch: Partial<DocumentationDraft>) => { if (!busy && !uncertain && !savedId) setDraft(d => d ? { ...d, ...patch } : d); };
+  const updateAttachmentTypes = (entry: DocumentationEntry, mimeTypes: string[]) => {
+    setPage(current => ({
+      ...current,
+      items: current.items.map(item => item.id === entry.id && item.source === entry.source
+        ? { ...item, attachment_mime_types: mimeTypes }
+        : item),
+    }));
+  };
   const reset = () => { setSearch(''); setSelected(null); setFilters({ ...initialFilters(), month: '' }); };
   const activeFilterCount = [filters.clientId, filters.employeeId, filters.category, filters.source, filters.priority].filter(Boolean).length;
   return (
@@ -262,9 +270,12 @@ export function DocumentationWorkspace({ actor, employeeView = false }: { actor:
                     const person = entry.client_name || entry.employee_name || 'Verwaltung';
                     const date = documentationDateParts(entry.occurred_at);
                     const dateLabel = date ? documentationDateTime(entry.occurred_at) : 'Datum offen';
+                    const attachmentLabels = documentationAttachmentLabels(entry.attachment_mime_types);
+                    const attachmentStatus = attachmentLabels.length ? attachmentLabels.join(', ') : 'Keine Anhänge';
                     return (
                       <button type="button" className={`cs-doc-card cs-doc-category-${category.value}`}
-                        key={`${entry.source}:${entry.id}`} aria-haspopup="dialog" aria-label={`Dokumentation öffnen: ${entry.title}, ${person}, ${dateLabel}`}
+                        key={`${entry.source}:${entry.id}`} aria-haspopup="dialog"
+                        aria-label={`Dokumentation öffnen: ${entry.title}, ${person}, ${dateLabel}${entry.attachment_mime_types ? `, ${attachmentStatus}` : ''}`}
                         aria-expanded={selected?.id === entry.id && selected.source === entry.source} onClick={() => void open(entry)}>
                         <span className="cs-doc-card-main">
                           <span className="cs-doc-date" aria-hidden="true">
@@ -284,6 +295,12 @@ export function DocumentationWorkspace({ actor, employeeView = false }: { actor:
                             </span>
                             <strong className="cs-doc-card-title">{entry.title}</strong>
                             <span className="cs-doc-preview">{entry.body}</span>
+                            {entry.attachment_mime_types && (
+                              <span className="cs-doc-card-attachments">
+                                <span>{attachmentLabels.length ? 'Anhänge' : attachmentStatus}</span>
+                                {attachmentLabels.map(label => <span key={label} className="cs-doc-card-file-count">{label}</span>)}
+                              </span>
+                            )}
                           </span>
                         </span>
                         <span className="cs-doc-card-bottom">
@@ -309,7 +326,8 @@ export function DocumentationWorkspace({ actor, employeeView = false }: { actor:
             </section>
           </div>
 
-          {selected && <DocumentationReader actor={actor} entry={selected} onClose={() => void close()} onAdd={() => void start(selected)} />}
+          {selected && <DocumentationReader actor={actor} entry={selected} onClose={() => void close()} onAdd={() => void start(selected)}
+            onAttachmentTypesLoaded={mimeTypes => updateAttachmentTypes(selected, mimeTypes)} />}
         </div>
       </main>
     </div>

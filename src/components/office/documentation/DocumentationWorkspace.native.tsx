@@ -10,7 +10,7 @@ import type { DocumentationActor, DocumentationDraft, DocumentationEntry, Docume
 import { createDocumentation, listDocumentation } from '@/lib/office/documentation/service';
 import { DocumentationReader } from "./DocumentationReader.native.tsx";
 import { DocumentationFilePicker } from "./DocumentationFiles.native.tsx";
-import { discardDocumentationFile, uploadDocumentationFile } from '@/lib/office/documentation/attachments';
+import { discardDocumentationFile, documentationAttachmentLabels, uploadDocumentationFile } from '@/lib/office/documentation/attachments';
 import { documentationCss } from "./documentationCss.native.ts";
 const initialFilters = (): DocumentationFilters => ({ month: berlinMonth(), area: '', clientId: '', employeeId: '', category: '', source: '', priority: '', query: '', offset: 0 });
 const emptyPage: DocumentationPage = { items: [], total: 0, months: [], clients: [], employees: [] };
@@ -196,6 +196,14 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
     };
     const changeDraft = (patch: Partial<DocumentationDraft>) => { if (!busy && !uncertain && !savedId)
         setDraft(d => d ? { ...d, ...patch } : d); };
+    const updateAttachmentTypes = (entry: DocumentationEntry, mimeTypes: string[]) => {
+        setPage(current => ({
+            ...current,
+            items: current.items.map(item => item.id === entry.id && item.source === entry.source
+                ? { ...item, attachment_mime_types: mimeTypes }
+                : item),
+        }));
+    };
     const reset = () => { setSearch(''); setSelected(null); setFilters({ ...initialFilters(), month: '' }); };
     const activeFilterCount = [filters.clientId, filters.employeeId, filters.category, filters.source, filters.priority].filter(Boolean).length;
     return <NativeWorkspaceStyleScope css={[documentationCss, documentationCss]}>{(<NativeDiv className="cs-doc-viewport">
@@ -319,7 +327,9 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
                 const person = entry.client_name || entry.employee_name || 'Verwaltung';
                 const date = documentationDateParts(entry.occurred_at);
                 const dateLabel = date ? documentationDateTime(entry.occurred_at) : 'Datum offen';
-                return <NativeWorkspaceStyleScope key={`${entry.source}:${entry.id}`} css={[documentationCss]}>{(<NativeButton type="button" className={`cs-doc-card cs-doc-category-${category.value}`} key={`${entry.source}:${entry.id}`} aria-haspopup="dialog" aria-label={`Dokumentation öffnen: ${entry.title}, ${person}, ${dateLabel}`} aria-expanded={selected?.id === entry.id && selected.source === entry.source} onClick={() => void open(entry)}>
+                const attachmentLabels = documentationAttachmentLabels(entry.attachment_mime_types);
+                const attachmentStatus = attachmentLabels.length ? attachmentLabels.join(', ') : 'Keine Anhänge';
+                return <NativeWorkspaceStyleScope key={`${entry.source}:${entry.id}`} css={[documentationCss]}>{(<NativeButton type="button" className={`cs-doc-card cs-doc-category-${category.value}`} key={`${entry.source}:${entry.id}`} aria-haspopup="dialog" aria-label={`Dokumentation öffnen: ${entry.title}, ${person}, ${dateLabel}${entry.attachment_mime_types ? `, ${attachmentStatus}` : ''}`} aria-expanded={selected?.id === entry.id && selected.source === entry.source} onClick={() => void open(entry)}>
                         <NativeSpan className="cs-doc-card-main">
                           <NativeSpan className="cs-doc-date" aria-hidden="true">
                             {date ? <>
@@ -336,6 +346,10 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
                             </NativeSpan>
                             <NativeStrong className="cs-doc-card-title">{entry.title}</NativeStrong>
                             <NativeSpan className="cs-doc-preview">{entry.body}</NativeSpan>
+                            {entry.attachment_mime_types && (<NativeSpan className="cs-doc-card-attachments">
+                                <NativeSpan>{attachmentLabels.length ? 'Anhänge' : attachmentStatus}</NativeSpan>
+                                {attachmentLabels.map(label => <NativeSpan key={label} className="cs-doc-card-file-count">{label}</NativeSpan>)}
+                              </NativeSpan>)}
                           </NativeSpan>
                         </NativeSpan>
                         <NativeSpan className="cs-doc-card-bottom">
@@ -357,7 +371,7 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
             </NativeSection>
           </NativeDiv>
 
-          {selected && <DocumentationReader actor={actor} entry={selected} onClose={() => void close()} onAdd={() => void start(selected)}/>}
+          {selected && <DocumentationReader actor={actor} entry={selected} onClose={() => void close()} onAdd={() => void start(selected)} onAttachmentTypesLoaded={mimeTypes => updateAttachmentTypes(selected, mimeTypes)}/>}
         </NativeDiv>
       </NativeMain>
     </NativeDiv>)}</NativeWorkspaceStyleScope>;
