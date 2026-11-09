@@ -4,6 +4,8 @@ import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { auroraGlass, darkGlassSurfaceText, surfaceContrastText } from '@/design/tokens/auroraGlass';
 import { spacing, typography } from '@/theme';
 import { COMMUNICATION_CONSENT_HINTS } from '@/features/communication/communication.constants';
+import { employeePortalDesign as employeeInk } from '@/components/portal/employee/employeePortalDesign';
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 
 type ChatComposerProps = {
   text: string;
@@ -27,6 +29,7 @@ type ChatComposerProps = {
   onSelectionChange?: (selection: { start: number; end: number }) => void;
   /** Helle Schrift auf dunklem Chat-Eingabebereich. */
   onDarkSurface?: boolean;
+  appearance?: 'employee';
 };
 
 export function ChatComposer({
@@ -50,12 +53,14 @@ export function ChatComposer({
   selection,
   onSelectionChange,
   onDarkSurface = false,
+  appearance,
 }: ChatComposerProps) {
   const { c } = useCareLightPalette();
   const [composerWidth, setComposerWidth] = useState(0);
   const isCompact = composerWidth > 0 && composerWidth < 620;
   const isWide = composerWidth >= 680;
   const canSend = Boolean(text.trim()) || canSendWithAttachments;
+  const employee = appearance === 'employee';
   const ink = onDarkSurface ? darkGlassSurfaceText : surfaceContrastText(false);
 
   const styles = useMemo(
@@ -67,8 +72,8 @@ export function ChatComposer({
           paddingTop: 5,
           paddingBottom: 7,
           borderTopWidth: 1,
-          borderTopColor: onDarkSurface ? auroraGlass.border : c.border,
-          backgroundColor: onDarkSurface ? auroraGlass.card : c.surfaceAlt,
+          borderTopColor: employee ? employeeInk.line : onDarkSurface ? auroraGlass.border : c.border,
+          backgroundColor: employee ? employeeInk.canvas : onDarkSurface ? auroraGlass.card : c.surfaceAlt,
           flexShrink: 0,
         },
         hint: { ...typography.caption, color: onDarkSurface ? ink.secondary : c.muted, flexShrink: 1 },
@@ -87,14 +92,14 @@ export function ChatComposer({
           borderRadius: 18,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: onDarkSurface ? auroraGlass.chip : c.surface,
+          backgroundColor: employee ? employeeInk.control : onDarkSurface ? auroraGlass.chip : c.surface,
           borderWidth: 1,
-          borderColor: onDarkSurface ? auroraGlass.border : c.border,
+          borderColor: employee ? employeeInk.line : onDarkSurface ? auroraGlass.border : c.border,
         },
         toolButtonActive: { backgroundColor: `${c.violet}16`, borderColor: c.violet },
         toolText: { ...typography.caption, color: onDarkSurface ? ink.primary : c.text, fontWeight: '700' },
         inputShell: {
-          minHeight: isCompact ? 62 : 82,
+          minHeight: isCompact || employee ? 60 : 82,
           maxHeight: 132,
           flexDirection: 'row',
           alignItems: 'flex-end',
@@ -104,8 +109,8 @@ export function ChatComposer({
           paddingVertical: 6,
           borderRadius: 18,
           borderWidth: 1,
-          borderColor: isInternalNote ? c.warning : c.border,
-          backgroundColor: onDarkSurface ? auroraGlass.input : c.surface,
+          borderColor: isInternalNote ? c.warning : employee ? employeeInk.line : c.border,
+          backgroundColor: employee ? employeeInk.control : onDarkSurface ? auroraGlass.input : c.surface,
           shadowColor: c.shadow,
           shadowOpacity: 0.08,
           shadowRadius: 16,
@@ -114,13 +119,13 @@ export function ChatComposer({
         input: {
           flex: 1,
           minWidth: 0,
-          minHeight: isCompact ? 46 : 66,
+          minHeight: isCompact || employee ? 46 : 66,
           maxHeight: 116,
           paddingTop: 8,
           paddingBottom: 6,
-          color: onDarkSurface ? ink.primary : c.text,
-          fontSize: 16,
-          lineHeight: 22,
+          color: employee ? employeeInk.text : onDarkSurface ? ink.primary : c.text,
+          fontSize: employee ? font(14) : 16,
+          lineHeight: employee ? font(21) : 22,
           textAlignVertical: 'top',
           overflow: 'scroll',
         },
@@ -132,12 +137,12 @@ export function ChatComposer({
           borderRadius: 20,
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: c.violet,
+          backgroundColor: employee ? employeeInk.accent : c.violet,
         },
         sendButtonDisabled: { opacity: 0.4 },
-        sendText: { ...typography.body, color: '#FFFFFF', fontWeight: '800' },
+        sendText: { ...typography.body, color: employee ? employeeInk.canvas : '#FFFFFF', fontWeight: '800' },
       }),
-    [c, ink, isCompact, isInternalNote, isWide, onDarkSurface],
+    [c, employee, ink, isCompact, isInternalNote, isWide, onDarkSurface],
   );
 
   return (
@@ -190,7 +195,7 @@ export function ChatComposer({
           value={text}
           onChangeText={onChangeText}
           placeholder={isInternalNote ? 'Interne Notiz schreiben…' : 'Nachricht schreiben…'}
-          placeholderTextColor={onDarkSurface ? ink.muted : c.muted}
+          placeholderTextColor={employee ? employeeInk.muted : onDarkSurface ? ink.muted : c.muted}
           multiline
           editable={!disabled}
           selection={selection}
@@ -206,7 +211,7 @@ export function ChatComposer({
           accessibilityLabel="Nachricht senden"
         >
           {sending ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color={employee ? employeeInk.canvas : '#FFFFFF'} />
           ) : (
             <Text style={styles.sendText}>{isWide ? 'Senden  ↑' : '↑'}</Text>
           )}

@@ -8,7 +8,11 @@ import {
   StyleSheet,
   Text,
   View,
+  Pressable,
+  type NativeScrollEvent,
+  type NativeSyntheticEvent,
 } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ChatBubble } from '@/components/communication/ChatBubble';
 import { MessageAttachmentList } from '@/components/office/messageattachmentlist';
@@ -41,14 +45,30 @@ import type { PendingMessageAttachment } from '@/lib/office/messageattachmentval
 import type { OfficeMessage } from '@/types/office/messaging';
 import { getPortalStatusLabel } from '@/lib/office/portalofficemessageservice';
 import { toUserFacingSendError } from '@/lib/office/voicemessageutils';
+import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
+import { EmployeePortalAgendaAction, agendaFocusRing } from './employee/EmployeePortalAgendaAction';
+import { EmployeePortalAgendaStatus } from './employee/EmployeePortalAgendaCard';
+import { ClientRecordLoading, clientRecordTextWrap } from './employee/EmployeePortalClientRecordLayout';
+import { employeePortalDesign as employeeInk } from './employee/employeePortalDesign';
 
 type PortalOfficeThreadProps = {
   threadId: string | null;
   onNewThreadStarted?: (newThreadId: string) => void;
   onThreadTitleResolved?: (title: string) => void;
-  variant?: 'default' | 'glass';
+  variant?: 'default' | 'glass' | 'employee';
   hideHeader?: boolean;
+  onBack?: () => void;
+  allowReply?: boolean;
+  active?: boolean;
 };
+
+const threadDate = new Intl.DateTimeFormat('de-DE', { day: 'numeric', month: 'long', year: 'numeric' });
+
+function messageDay(iso: string) {
+  const date = new Date(iso);
+  return Number.isFinite(date.getTime()) ? threadDate.format(date) : null;
+}
 
 export function PortalOfficeThread(props: PortalOfficeThreadProps) {
   const { tenantId, actorId, roleKey, clientId, employeeId, familyAccess } = usePortalActor();
@@ -64,6 +84,9 @@ function PortalOfficeThreadContent({
   onThreadTitleResolved,
   variant = 'default',
   hideHeader = false,
+  onBack,
+  allowReply = true,
+  active = true,
 }: PortalOfficeThreadProps) {
   const { c } = useCareLightPalette();
   const { typography, isLight } = useLegacyTheme();
@@ -73,6 +96,7 @@ function PortalOfficeThreadContent({
   const { footerInFlow } = usePortalViewport();
   const scrollRef = useRef<ScrollView>(null);
   const isGlass = variant === 'glass';
+  const employee = variant === 'employee';
   const { surfaces, onDarkSurface, ink } = useMessagingGlassSurface(isGlass);
   const [draft, setDraft] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
@@ -82,10 +106,13 @@ function PortalOfficeThreadContent({
   const restartLock = useRef(false);
   const sendLock = useRef(false);
   const mounted = useRef(true);
+  const followsLatest = useRef(true);
+  const [showLatest, setShowLatest] = useState(false);
   const [appActive, setAppActive] = useState(AppState.currentState === 'active');
   const screenFocused = useIsFocused();
-  const { detail, loading, error, sending, canSend = true, sendMessage, startNewChat, refresh, markAsRead, actorClientId, actorEmployeeId } =
+  const { detail, loading, error, refreshing, sending, canSend = true, sendMessage, startNewChat, refresh, markAsRead, actorClientId, actorEmployeeId } =
     usePortalOfficeThreadDetail(threadId);
+  const mayReply = canSend && allowReply;
 
   const markedReadBatchRef = useRef<string | null>(null);
   const unreadOfficeMessages = detail?.messages
@@ -103,7 +130,7 @@ function PortalOfficeThreadContent({
   }, []);
 
   useEffect(() => {
-    if (!appActive || !screenFocused || !threadId || !unreadOfficeMessages || markedReadBatchRef.current === unreadOfficeMessages) return;
+    if (!active || !appActive || !screenFocused || !threadId || !unreadOfficeMessages || markedReadBatchRef.current === unreadOfficeMessages) return;
     const batch = unreadOfficeMessages;
     markedReadBatchRef.current = batch;
     const allowRetry = () => {
@@ -112,7 +139,7 @@ function PortalOfficeThreadContent({
     void markAsRead().then((result) => {
       if (!result.ok) allowRetry();
     }).catch(allowRetry);
-  }, [appActive, screenFocused, threadId, detail, unreadOfficeMessages, markAsRead]);
+  }, [active, appActive, screenFocused, threadId, detail, unreadOfficeMessages, markAsRead]);
 
   useEffect(() => {
     if (!detail) return;
@@ -120,12 +147,12 @@ function PortalOfficeThreadContent({
   }, [detail, onThreadTitleResolved]);
 
   useEffect(() => {
-    if (!detail?.messages.length) return;
+    if (!detail?.messages.length || (employee && (!active || !followsLatest.current))) return;
     const timer = setTimeout(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
+      if (!employee || followsLatest.current) scrollRef.current?.scrollToEnd({ animated: !employee });
     }, 80);
     return () => clearTimeout(timer);
-  }, [detail?.messages.length, detail?.id]);
+  }, [active, detail?.messages.length, detail?.id, employee]);
 
   const composerBottomInset = footerInFlow ? spacing.xs : webSafeAreaPadding(
     'bottom',
@@ -174,6 +201,47 @@ function PortalOfficeThreadContent({
       }),
     [c, composerBottomInset, ink, isGlass, surfaces.border, surfaces.chip, typography],
   );
+
+  const employeeGroup = detail ? isEmployeeGroupChatThread(detail) : false;
+  const employeeHeader = employee ? (
+    <View style={employeeStyles.header}>
+      {onBack ? <Pressable accessibilityRole="button" accessibilityLabel="Zurück zur Liste" testID="messenger-back-to-list"
+        onPress={onBack} style={({ pressed, focused }: { pressed: boolean; focused?: boolean }) => [
+          employeeStyles.headerButton, focused && agendaFocusRing, pressed && employeeStyles.pressed,
+        ]}>
+        <Ionicons name="arrow-back-outline" size={21} color={employeeInk.accent} accessible={false} />
+      </Pressable> : null}
+      <View style={employeeStyles.headerCopy}>
+        <Text style={employeeStyles.kicker}>{employeeGroup ? 'TEAMCHAT' : 'VERWALTUNG'}</Text>
+        <Text accessibilityRole="header" aria-level={2} numberOfLines={2} style={employeeStyles.title}>
+          {detail?.subject?.trim() || 'Gespräch'}
+        </Text>
+        {detail ? <View style={employeeStyles.labels}>
+          <EmployeePortalAgendaStatus label={getPortalStatusLabel(detail.status)}
+            tone={detail.isClosed ? 'muted' : detail.status === 'waiting_for_reply' || detail.status === 'waiting' ? 'orange' : 'cyan'} />
+          {detail.categoryLabel ? <Text style={employeeStyles.small}>{detail.categoryLabel}</Text> : null}
+          {employeeGroup && detail.memberCount ? <Text style={employeeStyles.small}>{detail.memberCount} Mitglieder</Text> : null}
+        </View> : null}
+      </View>
+    </View>
+  ) : null;
+
+  if (employee && !detail) {
+    return (
+      <View style={styles.root}>
+        {employeeHeader}
+        <View style={employeeStyles.empty}>
+          {loading ? <ClientRecordLoading message="Gespräch wird geladen…" /> : (
+            <>
+              <Text style={employeeStyles.title}>{error ? 'Gespräch nicht verfügbar' : 'Gespräch nicht gefunden'}</Text>
+              <Text style={employeeStyles.small}>{error ?? 'Öffnen Sie ein Gespräch aus dem Postfach.'}</Text>
+              {error ? <EmployeePortalAgendaAction label="Erneut laden" icon="refresh-outline" busy={refreshing} onPress={() => void refresh()} /> : null}
+            </>
+          )}
+        </View>
+      </View>
+    );
+  }
 
   if (!threadId) {
     return (
@@ -231,7 +299,7 @@ function PortalOfficeThreadContent({
   }
 
   const handleSend = async () => {
-    if (sendLock.current) return;
+    if (sendLock.current || !mayReply) return;
     sendLock.current = true;
     const sentDraft = draft;
     const sentAttachments = pendingAttachments;
@@ -243,7 +311,9 @@ function PortalOfficeThreadContent({
         const sentIds = new Set(sentAttachments.map((attachment) => attachment.id));
         setPendingAttachments((current) => current.filter((attachment) => !sentIds.has(attachment.id)));
         setAttachmentError(null);
-        scrollRef.current?.scrollToEnd({ animated: true });
+        followsLatest.current = true;
+        setShowLatest(false);
+        scrollRef.current?.scrollToEnd({ animated: !employee });
       } else {
         setAttachmentError(toUserFacingSendError(result.error));
       }
@@ -255,7 +325,7 @@ function PortalOfficeThreadContent({
   };
 
   const handleStartNewChat = async () => {
-    if (restartLock.current) return;
+    if (restartLock.current || !mayReply) return;
     restartLock.current = true;
     setRestarting(true);
     setRestartError(null);
@@ -282,7 +352,14 @@ function PortalOfficeThreadContent({
   const isGroup = isEmployeeGroupChatThread(detail);
   const headerTitle = resolveOfficeThreadParticipantName(detail);
   const headerSubtitle = resolveOfficeThreadHeaderSubtitle(detail, getPortalStatusLabel(detail.status));
-  const showStatusCard = !hideHeader;
+  const showStatusCard = !employee && !hideHeader;
+  const trackScroll = ({ nativeEvent }: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { contentOffset, contentSize, layoutMeasurement } = nativeEvent;
+    const nearBottom = contentSize.height - contentOffset.y - layoutMeasurement.height < 85;
+    if (nearBottom === followsLatest.current) return;
+    followsLatest.current = nearBottom;
+    setShowLatest(!nearBottom);
+  };
 
   return (
     <KeyboardAvoidingView
@@ -292,7 +369,8 @@ function PortalOfficeThreadContent({
       keyboardVerticalOffset={Platform.OS === 'ios' ? 72 : 0}
     >
       <View style={officeMessengerColumnStyles.columnRoot}>
-        {!hideHeader ? (
+        {employeeHeader}
+        {!employee && !hideHeader ? (
           <View style={styles.header}>
             <Text style={styles.title}>{headerTitle}</Text>
             <Text style={styles.meta}>{headerSubtitle}</Text>
@@ -304,21 +382,34 @@ function PortalOfficeThreadContent({
         <ScrollView
           ref={scrollRef}
           style={officeMessengerColumnStyles.scrollRegion}
-          contentContainerStyle={styles.messagesContent}
+          contentContainerStyle={[styles.messagesContent, employee && employeeStyles.timeline]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
-          onContentSizeChange={() => scrollRef.current?.scrollToEnd({ animated: false })}
+          onScroll={employee ? trackScroll : undefined}
+          scrollEventThrottle={employee ? 32 : undefined}
+          onContentSizeChange={() => {
+            if (!employee || (active && followsLatest.current)) scrollRef.current?.scrollToEnd({ animated: false });
+          }}
         >
-          {detail.messages.map((message) => {
+          {employee && detail.messages.length === 0 ? <Text style={employeeStyles.noMessages}>Dieses Gespräch enthält noch keine Nachrichten.</Text> : null}
+          {detail.messages.map((message, index) => {
             const isVoiceOnly = message.body === '🎤 Sprachnachricht';
             const isOwn = isOwnMessage(message);
+            const day = employee ? messageDay(message.sentAt) : null;
+            const dayStarts = day && (index === 0 || day !== messageDay(detail.messages[index - 1]!.sentAt));
             return (
               <View key={message.id}>
+                {dayStarts ? <View style={employeeStyles.dayDivider}>
+                  <View style={employeeStyles.dayLine} />
+                  <Text style={employeeStyles.dayLabel}>{day}</Text>
+                  <View style={employeeStyles.dayLine} />
+                </View> : null}
                 {!isVoiceOnly ? (
                   <ChatBubble
                     message={mapOfficeMessageToChatBubble(message)}
                     isOwn={isOwn}
                     showStatus={isOwn}
+                    appearance={employee ? 'employee' : undefined}
                   />
                 ) : null}
                 <MessageAttachmentList
@@ -330,22 +421,32 @@ function PortalOfficeThreadContent({
                   sentAt={message.sentAt}
                   showStatus={isOwn}
                   messageStatus={message.status === 'read' ? 'read' : 'sent'}
+                  onDarkSurface={employee}
                 />
               </View>
             );
           })}
         </ScrollView>
 
+        {employee && showLatest ? <View style={employeeStyles.jump}>
+          <EmployeePortalAgendaAction label="Neueste Nachrichten" icon="arrow-down-outline" onPress={() => {
+            followsLatest.current = true;
+            setShowLatest(false);
+            scrollRef.current?.scrollToEnd({ animated: false });
+          }} />
+        </View> : null}
+
         {detail.isClosed ? (
-          <View style={styles.closedBanner}>
-            <Text style={styles.closedText}>
+          <View style={[styles.closedBanner, employee && employeeStyles.closed]}>
+            <Text style={employee ? employeeStyles.small : styles.closedText}>
               {isGroup
                 ? 'Dieser Gruppen-Chat ist abgeschlossen und schreibgeschützt.'
                 : 'Dieser Chat ist abgeschlossen und schreibgeschützt. Bei erneutem Kontakt schreiben Sie der Verwaltung erneut.'}
             </Text>
-            {restartError ? <Text accessibilityRole="alert" style={styles.sendErrorText}>{restartError}</Text> : null}
-            {!isGroup && canSend ? (
-              useLightUi ? (
+            {restartError ? <Text accessibilityRole="alert" style={employee ? employeeStyles.error : styles.sendErrorText}>{restartError}</Text> : null}
+            {!isGroup && mayReply ? (
+              employee ? <EmployeePortalAgendaAction label="Verwaltung anschreiben" icon="create-outline" primary
+                busy={restarting} onPress={() => void handleStartNewChat()} /> : useLightUi ? (
                 <CareLightButton title="Verwaltung anschreiben" loading={restarting} onPress={() => void handleStartNewChat()} />
               ) : (
                 <PremiumButton title="Verwaltung anschreiben" loading={restarting} onPress={() => void handleStartNewChat()} />
@@ -356,28 +457,34 @@ function PortalOfficeThreadContent({
           <>
             {attachmentError ? (
               <View style={styles.sendErrorWrap}>
-                <Text style={styles.sendErrorText}>{attachmentError}</Text>
-                {useLightUi ? (
+                <Text accessibilityRole="alert" style={employee ? employeeStyles.error : styles.sendErrorText}>{attachmentError}</Text>
+                {employee ? <EmployeePortalAgendaAction label="Erneut senden" icon="refresh-outline" busy={sending}
+                  onPress={() => void handleSend()} /> : useLightUi ? (
                   <CareLightButton title="Erneut senden" variant="secondary" disabled={sending} onPress={() => void handleSend()} />
                 ) : (
                   <PremiumButton title="Erneut senden" size="sm" disabled={sending} onPress={() => void handleSend()} />
                 )}
               </View>
             ) : null}
-            <View style={styles.composerWrap}>
-                {!canSend ? <Text style={styles.meta}>Dieser Angehörigenzugang erlaubt das Lesen von Nachrichten. Das Senden ist nicht freigegeben.</Text> : null}
+            <View style={[styles.composerWrap, employee && employeeStyles.composer]}>
+              {employee && !mayReply ? <Text style={employeeStyles.readOnly}>Antworten sind für dieses Konto derzeit nicht freigegeben.</Text> : (
+                <>
+                {!mayReply ? <Text style={styles.meta}>Dieser Angehörigenzugang erlaubt das Lesen von Nachrichten. Das Senden ist nicht freigegeben.</Text> : null}
                 <OfficeMessageComposer
                 text={draft}
                 onChangeText={setDraft}
                 onSend={handleSend}
                 sending={sending}
-                disabled={sending || !canSend}
-                onDarkSurface={onDarkSurface}
+                disabled={sending || !mayReply}
+                onDarkSurface={employee || onDarkSurface}
+                appearance={employee ? 'employee' : undefined}
                 pendingAttachments={pendingAttachments}
                 onPendingAttachmentsChange={setPendingAttachments}
                 attachmentError={attachmentError}
                 onAttachmentError={setAttachmentError}
               />
+                </>
+              )}
             </View>
           </>
         )}
@@ -385,3 +492,27 @@ function PortalOfficeThreadContent({
     </KeyboardAvoidingView>
   );
 }
+
+const employeeStyles = StyleSheet.create(withCareSuiteTypography({
+  header: { flexShrink: 0, minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', gap: 10,
+    padding: 11, backgroundColor: employeeInk.control, borderBottomWidth: 1, borderBottomColor: employeeInk.line },
+  headerButton: { width: 44, height: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: employeeInk.raised, borderWidth: 1, borderColor: employeeInk.line, borderRadius: 11 },
+  pressed: { opacity: 0.76 },
+  headerCopy: { flex: 1, minWidth: 0, gap: 4 },
+  kicker: { color: employeeInk.accent, letterSpacing: 1.1, fontSize: font(10), lineHeight: font(15), fontWeight: '700' },
+  title: { color: employeeInk.text, fontSize: font(20), lineHeight: font(26), fontWeight: '700', ...clientRecordTextWrap },
+  labels: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7 },
+  small: { color: employeeInk.muted, fontSize: font(13), lineHeight: font(19), ...clientRecordTextWrap },
+  empty: { flex: 1, minHeight: 0, justifyContent: 'center', alignItems: 'flex-start', gap: 10, padding: 16 },
+  timeline: { width: '100%', maxWidth: 880, alignSelf: 'center' },
+  dayDivider: { marginHorizontal: 12, marginVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  dayLine: { flex: 1, height: 1, backgroundColor: employeeInk.line },
+  dayLabel: { color: employeeInk.muted, flexShrink: 1, textAlign: 'center', fontSize: font(11), lineHeight: font(16) },
+  noMessages: { color: employeeInk.muted, padding: 15, fontSize: font(13), lineHeight: font(19) },
+  jump: { alignSelf: 'center', paddingVertical: 4 },
+  closed: { margin: 10, padding: 11, backgroundColor: employeeInk.control, borderRadius: 12, borderWidth: 1, borderColor: employeeInk.line },
+  error: { color: employeeInk.danger, fontSize: font(12), lineHeight: font(18), ...clientRecordTextWrap },
+  composer: { backgroundColor: employeeInk.canvas },
+  readOnly: { color: employeeInk.muted, padding: 11, fontSize: font(13), lineHeight: font(19) },
+}));

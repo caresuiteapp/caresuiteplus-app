@@ -23,6 +23,7 @@ import { VoiceMessageAttachmentPlayer } from '@/components/office/voicemessageat
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { MessageStatusTicks } from '@/components/communication/MessageStatusTicks';
+import { employeePortalDesign as employeeInk } from '@/components/portal/employee/employeePortalDesign';
 
 type AttachmentUrlState = {
   url: string | null;
@@ -47,6 +48,7 @@ type MessageAttachmentListProps = {
   sentAt?: string | null;
   showStatus?: boolean;
   messageStatus?: 'sent' | 'delivered' | 'read' | 'deleted';
+  onDarkSurface?: boolean;
 };
 
 function resolveAttachmentRoleKey(
@@ -79,6 +81,7 @@ export function MessageAttachmentList({
   sentAt,
   showStatus = false,
   messageStatus = 'sent',
+  onDarkSurface = false,
 }: MessageAttachmentListProps) {
   const { c } = useCareLightPalette();
   const { colors, typography } = useLegacyTheme();
@@ -113,13 +116,13 @@ export function MessageAttachmentList({
           gap: spacing.sm,
         },
         bubbleOwn: {
-          backgroundColor: colors.orange,
+          backgroundColor: onDarkSurface ? employeeInk.messageOwn : colors.orange,
           borderBottomRightRadius: radius.sm,
         },
         bubbleOther: {
-          backgroundColor: colors.bgElevated,
+          backgroundColor: onDarkSurface ? employeeInk.messageOther : colors.bgElevated,
           borderWidth: 1,
-          borderColor: colors.borderCyan,
+          borderColor: onDarkSurface ? employeeInk.line : colors.borderCyan,
           borderBottomLeftRadius: radius.sm,
         },
         inlineRoot: {
@@ -129,19 +132,19 @@ export function MessageAttachmentList({
           paddingHorizontal: attachmentOnly ? 0 : spacing.md,
           paddingBottom: attachmentOnly ? 0 : spacing.sm,
         },
-        sender: { ...typography.caption, color: colors.cyan, marginBottom: spacing.xs },
+        sender: { ...typography.caption, color: onDarkSurface ? employeeInk.accent : colors.cyan, marginBottom: spacing.xs },
         meta: {
           flexDirection: 'row',
           alignItems: 'center',
           gap: spacing.xs,
           marginTop: spacing.xs,
         },
-        time: { ...typography.caption, color: colors.textMuted },
+        time: { ...typography.caption, color: onDarkSurface ? employeeInk.muted : colors.textMuted },
         item: {
           borderRadius: radius.md,
           borderWidth: 1,
-          borderColor: c.border,
-          backgroundColor: `${c.violet}08`,
+          borderColor: onDarkSurface ? employeeInk.line : c.border,
+          backgroundColor: onDarkSurface ? employeeInk.control : `${c.violet}08`,
           overflow: 'hidden',
         },
         fileRow: {
@@ -150,8 +153,8 @@ export function MessageAttachmentList({
           gap: spacing.sm,
           padding: spacing.sm,
         },
-        name: { ...typography.caption, color: c.text, flex: 1, fontWeight: '600' },
-        metaText: { ...typography.caption, color: c.muted },
+        name: { ...typography.caption, color: onDarkSurface ? employeeInk.text : c.text, flex: 1, fontWeight: '600' },
+        metaText: { ...typography.caption, color: onDarkSurface ? employeeInk.muted : c.muted },
         thumb: {
           width: Math.min(240, screenWidth * 0.55),
           height: 160,
@@ -168,7 +171,7 @@ export function MessageAttachmentList({
           padding: spacing.sm,
           gap: spacing.xs,
         },
-        errorText: { ...typography.caption, color: '#c0392b' },
+        errorText: { ...typography.caption, color: onDarkSurface ? employeeInk.danger : '#c0392b' },
         listLoading: {
           padding: spacing.sm,
           alignItems: 'center',
@@ -184,7 +187,7 @@ export function MessageAttachmentList({
         },
         pdfHint: { ...typography.body, color: c.muted, textAlign: 'center' },
       }),
-    [attachmentOnly, c, colors, isOwn, screenWidth, typography],
+    [attachmentOnly, c, colors, isOwn, onDarkSurface, screenWidth, typography],
   );
 
   useEffect(() => {

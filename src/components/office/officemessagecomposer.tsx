@@ -21,6 +21,7 @@ type OfficeMessageComposerProps = {
   isInternalNote?: boolean;
   onToggleInternalNote?: () => void;
   onDarkSurface?: boolean;
+  appearance?: 'employee';
   pendingAttachments: PendingMessageAttachment[];
   onPendingAttachmentsChange: (attachments: PendingMessageAttachment[]) => void;
   attachmentError?: string | null;
@@ -38,6 +39,7 @@ export function OfficeMessageComposer({
   isInternalNote = false,
   onToggleInternalNote,
   onDarkSurface = false,
+  appearance,
   pendingAttachments,
   onPendingAttachmentsChange,
   attachmentError,
@@ -115,6 +117,7 @@ export function OfficeMessageComposer({
         isInternalNote={isInternalNote}
         onToggleInternalNote={onToggleInternalNote}
         onDarkSurface={onDarkSurface}
+        appearance={appearance}
         canSendWithAttachments={pendingAttachments.length > 0}
         selection={selection}
         onSelectionChange={setSelection}

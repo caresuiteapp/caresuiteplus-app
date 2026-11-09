@@ -2,9 +2,8 @@ import { useEffect } from 'react';
 import { BackHandler, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useIsFocused, useLocalSearchParams, useRouter } from 'expo-router';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
-import { EmployeePortalPageHeader } from '@/components/portal/employee/EmployeePortalPageHeader';
-import { employeePortalLayout } from '@/components/portal/employee/employeePortalDesign';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { EmployeePortalMessenger } from '@/components/portal/employee/EmployeePortalMessenger';
+import { employeePortalDesign } from '@/components/portal/employee/employeePortalDesign';
 import { PortalOfficeMessenger } from '@/components/portal/portalofficemessenger';
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
 import { LockedActionBanner } from '@/components/permissions';
@@ -76,9 +75,8 @@ export function ClientPortalOfficeMessagesScreen() {
 
 export function EmployeePortalOfficeMessagesScreen() {
   const { can, check } = usePermissions();
-  const { width, isPhone } = useDeviceClass();
   const { compose } = useLocalSearchParams<{ compose?: string }>();
-  const { active: messengerFocusActive, closeThread } = usePortalMessengerFocus();
+  const { closeThread } = usePortalMessengerFocus();
   useEffect(() => () => closeThread(), [closeThread]);
   if (!can('portal.employee.messages.view')) {
     return (
@@ -91,21 +89,8 @@ export function EmployeePortalOfficeMessagesScreen() {
   }
 
   return (
-    <PortalTabScreen
-      title="Nachrichten"
-      subtitle="Direkt, sicher und immer aktuell mit Verwaltung und Team verbunden."
-      hideHeaderOnPhone
-      scroll={false}
-    >
-      <View style={[styles.employeeMessages, !messengerFocusActive && { padding: employeePortalLayout(width).padding }]}>
-        {!messengerFocusActive ? <EmployeePortalPageHeader
-          title="Nachrichten"
-          subtitle="Gespräche mit der Verwaltung und dem Team"
-          compact={isPhone}
-        />
-        : null}
-        <PortalOfficeMessenger audience="employee" variant="glass" initialComposeOpen={compose === '1' || compose === 'true'} />
-      </View>
+    <PortalTabScreen title="Nachrichten" contentOwnsHero scroll={false}>
+      <EmployeePortalMessenger initialComposeOpen={compose === '1' || compose === 'true'} canCompose={can('portal.employee.messages.reply')} />
     </PortalTabScreen>
   );
 }
@@ -172,7 +157,6 @@ export function EmployeePortalOfficeConversationScreen() {
   const { can, check } = usePermissions();
   const { setActive: setMessengerFocusActive } = usePortalMessengerFocus();
   const { useMasterDetail } = usePlatformLayout();
-  const { c } = useCareLightPalette();
   const screenFocused = useIsFocused();
   const showMobileChrome = !useMasterDetail && !!resolvedId;
   useDirectConversationBack('employee', screenFocused && showMobileChrome);
@@ -194,24 +178,13 @@ export function EmployeePortalOfficeConversationScreen() {
   }
 
   return (
-    <PortalTabScreen title="Chat" hideHeaderOnPhone scroll={false}>
-      <View style={styles.thread} testID={showMobileChrome ? 'messenger-mobile-thread' : undefined}>
-        {showMobileChrome ? (
-          <View style={conversationChromeStyles.bar}>
-            <Pressable
-              onPress={() => router.replace('/portal/employee/messages' as never)}
-              style={conversationChromeStyles.backBtn}
-              accessibilityRole="button"
-              accessibilityLabel="Zurück zur Liste"
-              testID="messenger-back-to-list"
-            >
-              <Text style={[conversationChromeStyles.backLabel, { color: c.violet }]}>← Liste</Text>
-            </Pressable>
-          </View>
-        ) : null}
+    <PortalTabScreen title="Chat" contentOwnsHero scroll={false}>
+      <View style={styles.employeeThread} testID={showMobileChrome ? 'messenger-mobile-thread' : undefined}>
         <PortalOfficeThread
           threadId={resolvedId}
-          hideHeader={showMobileChrome}
+          variant="employee"
+          allowReply={can('portal.employee.messages.reply')}
+          onBack={() => router.replace('/portal/employee/messages' as never)}
           onNewThreadStarted={(newThreadId) =>
             router.replace(`/portal/employee/messages/${newThreadId}` as never)}
         />
@@ -231,12 +204,16 @@ const styles = StyleSheet.create({
   clientMessagesFocus: {
     gap: 0,
   },
-  employeeMessages: {
+  employeeThread: {
     flex: 1,
+    minWidth: 0,
     minHeight: 0,
-    width: '100%',
-    alignSelf: 'stretch',
-    gap: careSpacing.sm,
+    margin: careSpacing.sm,
+    borderWidth: 1,
+    borderColor: employeePortalDesign.line,
+    borderRadius: 16,
+    backgroundColor: employeePortalDesign.panel,
+    overflow: 'hidden',
   },
   thread: { flex: 1, minHeight: 0, paddingHorizontal: careSpacing.md },
 });

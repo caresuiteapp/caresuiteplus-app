@@ -13,6 +13,11 @@ import { PortalMessengerFocusProvider, usePortalMessengerFocus } from '@/lib/por
 import type { OfficeMessage, OfficeMessageThreadDetail } from '@/types/office/messaging';
 
 vi.mock('@expo/vector-icons/Ionicons', () => ({ default: () => null }));
+vi.mock('@expo/vector-icons/Feather', () => ({ default: () => null }));
+vi.mock('expo-linear-gradient', () => ({ LinearGradient: () => null }));
+vi.mock('react-native-svg', () => ({
+  default: () => null, Circle: () => null, Defs: () => null, RadialGradient: () => null, Stop: () => null,
+}));
 vi.mock('@/components/portal/employee/EmployeePortalArtwork', () => ({ EmployeePortalArtwork: () => null }));
 vi.mock('@/components/portal/employee/EmployeePortalBackdrop', () => ({ EmployeePortalBackdrop: () => null }));
 vi.mock('@/hooks/useEmployeePortalWorkspace', async () => {
@@ -39,7 +44,7 @@ vi.mock('react-native', async () => {
   const Button = ({ children, onPress, disabled, testID, accessibilityLabel }: any) =>
     <button data-testid={testID} aria-label={accessibilityLabel} disabled={disabled} onClick={onPress}>{children}</button>;
   return {
-    View: Box, Text: Box, Pressable: Button,
+    View: Box, Text: Box, Pressable: Button, ActivityIndicator: Box,
     ScrollView: forwardRef(({ children }: any, ref: any) => {
       useImperativeHandle(ref, () => ({ scrollToEnd() {} }));
       return <div>{children}</div>;
@@ -311,6 +316,14 @@ describe('portal conversation lifecycle on a mounted React tree', () => {
     expect(h.read).not.toHaveBeenCalled();
     h.focused = true;
     await render(<PortalOfficeThread threadId="a" />);
+    expect(h.read).toHaveBeenCalledTimes(1);
+  });
+
+  it('waits to mark a reply read while the employee is composing a different conversation', async () => {
+    h.details.set('a', detail('a', [message('arrived-during-compose')]));
+    await render(<PortalOfficeThread threadId="a" variant="employee" active={false} />);
+    expect(h.read).not.toHaveBeenCalled();
+    await render(<PortalOfficeThread threadId="a" variant="employee" />);
     expect(h.read).toHaveBeenCalledTimes(1);
   });
 

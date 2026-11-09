@@ -1,22 +1,26 @@
 import { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type TextStyle } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { colors, radius, spacing, typography } from '@/theme';
 import type { CommunicationMessage } from '@/features/communication/communication.types';
 import { MessageStatusTicks } from './MessageStatusTicks';
+import { employeePortalDesign } from '@/components/portal/employee/employeePortalDesign';
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 
 type ChatBubbleProps = {
   message: CommunicationMessage;
   isOwn: boolean;
   showStatus?: boolean;
+  appearance?: 'employee';
 };
 
-export function ChatBubble({ message, isOwn, showStatus = true }: ChatBubbleProps) {
+export function ChatBubble({ message, isOwn, showStatus = true, appearance }: ChatBubbleProps) {
   const { c } = useCareLightPalette();
   const { typography: adaptiveTypography } = useLegacyTheme();
   const [copied, setCopied] = useState(false);
+  const employee = appearance === 'employee';
   const isSystem = message.contentType === 'system';
   const isDeleted = message.status === 'deleted' || !!message.deletedAt;
   const body = isDeleted
@@ -69,20 +73,22 @@ export function ChatBubble({ message, isOwn, showStatus = true }: ChatBubbleProp
           styles.bubble,
           isOwn ? adaptiveStyles.bubbleOwn : adaptiveStyles.bubbleOther,
           message.isInternalNote && styles.bubbleInternal,
+          employee && employeeStyles.bubble,
+          employee && (isOwn ? employeeStyles.own : employeeStyles.other),
         ]}
       >
-        <Text style={adaptiveStyles.sender}>{isOwn ? 'Sie' : message.senderDisplayName}</Text>
-        <Text selectable style={adaptiveStyles.body} testID={`message-body-${message.id}`}>
+        <Text style={[adaptiveStyles.sender, employee && employeeStyles.sender]}>{isOwn ? 'Sie' : message.senderDisplayName}</Text>
+        <Text selectable style={[adaptiveStyles.body, employee && employeeStyles.body]} testID={`message-body-${message.id}`}>
           {body}
         </Text>
         <View style={styles.meta} testID={`message-meta-${message.id}`}>
-          <Text style={adaptiveStyles.muted}>
+          <Text style={[adaptiveStyles.muted, employee && employeeStyles.muted]}>
             {new Date(message.sentAt ?? message.createdAt).toLocaleTimeString('de-DE', {
               hour: '2-digit',
               minute: '2-digit',
             })}
           </Text>
-          {message.editedAt ? <Text style={[adaptiveStyles.muted, styles.edited]}>bearbeitet</Text> : null}
+          {message.editedAt ? <Text style={[adaptiveStyles.muted, employee && employeeStyles.muted, styles.edited]}>bearbeitet</Text> : null}
           {showStatus && isOwn ? <MessageStatusTicks status={message.status} /> : null}
           {!isDeleted && body ? (
             <Pressable
@@ -93,7 +99,7 @@ export function ChatBubble({ message, isOwn, showStatus = true }: ChatBubbleProp
               accessibilityLabel="Nachricht kopieren"
               testID={`copy-message-${message.id}`}
             >
-              <Text style={adaptiveStyles.copyText}>{copied ? '✓ Kopiert' : 'Kopieren'}</Text>
+              <Text style={[adaptiveStyles.copyText, employee && employeeStyles.sender]}>{copied ? '✓ Kopiert' : 'Kopieren'}</Text>
             </Pressable>
           ) : null}
         </View>
@@ -141,4 +147,14 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: radius.capsule,
   },
+});
+
+const textWrap = Platform.OS === 'web' ? { overflowWrap: 'anywhere' } as TextStyle : undefined;
+const employeeStyles = StyleSheet.create({
+  bubble: { minWidth: 0, maxWidth: '88%', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 9, shadowOpacity: 0 },
+  own: { backgroundColor: employeePortalDesign.messageOwn, borderColor: '#497785', borderBottomRightRadius: 5 },
+  other: { backgroundColor: employeePortalDesign.messageOther, borderColor: employeePortalDesign.line, borderBottomLeftRadius: 5 },
+  sender: { color: employeePortalDesign.accent, fontSize: font(11), lineHeight: font(17), ...textWrap },
+  body: { color: employeePortalDesign.text, fontSize: font(14), lineHeight: font(21), ...textWrap },
+  muted: { color: employeePortalDesign.muted, fontSize: font(11), lineHeight: font(17) },
 });

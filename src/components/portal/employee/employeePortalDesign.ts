@@ -7,6 +7,7 @@ export const employeePortalDesign = {
   control: 'rgba(10,24,39,0.42)', dialog: '#20394F',
   line: 'rgba(213,235,252,0.24)', text: '#F5F9FF', muted: '#D9E9F5',
   accent: '#BCEEFF', selected: 'rgba(83,184,225,0.22)', warning: '#FFE5B8', danger: '#FFE1E9',
+  messageOwn: '#234F60', messageOther: '#1B354B',
 } as const;
 
 export const employeePortalWorkspace = {

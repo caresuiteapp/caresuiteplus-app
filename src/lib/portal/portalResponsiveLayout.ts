@@ -35,6 +35,7 @@ export function employeePortalUsesAmbientWorkspace(pathname: string): boolean {
     || path === '/portal/employee/dokumentation'
     || path === '/portal/employee/arbeitszeit'
     || path === '/portal/employee/calendar'
+    || /^\/portal\/employee\/messages(?:\/[^/]+)?$/.test(path)
     || /^\/portal\/employee\/clients(?:\/[^/]+)?$/.test(path);
 }
 

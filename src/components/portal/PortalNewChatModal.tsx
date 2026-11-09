@@ -1,6 +1,6 @@
 import { PortalKeyboardAvoidingView as KeyboardAvoidingView } from '@/components/keyboard/PortalKeyboard';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { BackHandler, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { BackHandler, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumInput } from '@/components/ui';
 import {
@@ -26,12 +26,19 @@ import { PORTAL_EMERGENCY_DISCLAIMER } from '@/lib/office/messagecategoryconstan
 import { portalAudienceForRole } from '@/lib/portal/portalAudience';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
+import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
+import { employeePortalDesign as employeeInk } from './employee/employeePortalDesign';
+
+const employeeFocusRing = Platform.OS === 'web'
+  ? ({ outlineColor: employeeInk.accent, outlineStyle: 'solid', outlineWidth: 2, outlineOffset: 2 } as ViewStyle)
+  : null;
 
 type PortalNewChatModalProps = {
   visible: boolean;
   audience: PortalOfficeAudience;
-  variant?: 'default' | 'glass';
-  presentation?: 'modal' | 'screen';
+  variant?: 'default' | 'glass' | 'employee';
+  presentation?: 'modal' | 'screen' | 'dialog';
   onClose: () => void;
   onCreated: (threadId: string) => void;
   initialSubject?: string;
@@ -41,6 +48,7 @@ type PortalNewChatModalProps = {
 export function PortalNewChatModal({
   visible,
   audience,
+  variant = 'default',
   presentation = 'modal',
   onClose,
   onCreated,
@@ -48,6 +56,8 @@ export function PortalNewChatModal({
   initialMessage: initialMessageTemplate = '',
 }: PortalNewChatModalProps) {
   const { c } = useCareLightPalette();
+  const employee = variant === 'employee';
+  const dialog = presentation === 'dialog';
   const insets = useSafeAreaInsets();
   const { typography } = useLegacyTheme();
   const { portalSession } = useAuth();
@@ -93,11 +103,13 @@ export function PortalNewChatModal({
           paddingVertical: spacing.xs,
           borderRadius: radius.capsule,
           borderWidth: 1,
-          borderColor: c.border,
+          borderColor: employee ? employeeInk.line : c.border,
+          minHeight: employee ? 44 : undefined,
+          justifyContent: 'center',
         },
-        chipActive: { backgroundColor: `${c.violet}22`, borderColor: c.violet },
-        chipText: { ...typography.caption, color: c.muted },
-        chipTextActive: { color: c.violet, fontWeight: '700' },
+        chipActive: { backgroundColor: employee ? employeeInk.selected : `${c.violet}22`, borderColor: employee ? employeeInk.accent : c.violet },
+        chipText: { ...typography.caption, color: employee ? employeeInk.muted : c.muted },
+        chipTextActive: { color: employee ? employeeInk.accent : c.violet, fontWeight: '700' },
         error: { ...typography.caption, color: c.danger },
         warning: { ...typography.caption, color: c.muted },
         fallbackChip: {
@@ -110,7 +122,7 @@ export function PortalNewChatModal({
           backgroundColor: `${c.violet}12`,
         },
       }),
-    [c, typography],
+    [c, employee, typography],
   );
 
   useEffect(() => {
@@ -304,36 +316,43 @@ export function PortalNewChatModal({
 
   const content = (
     <KeyboardAvoidingView
-      style={chatStyles.root}
+      style={[chatStyles.root, employee && employeeChat.root]}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       testID="portal-new-chat-screen"
     >
-      <View style={chatStyles.header}>
+      <View style={[chatStyles.header, employee && employeeChat.header, dialog && employeeChat.dialogHeader]}>
         <Pressable onPress={closeComposer} disabled={submitting} accessibilityRole="button"
-          accessibilityLabel="Zurück zu Nachrichten" style={chatStyles.back}>
-          <Text style={chatStyles.backText}>← Zurück</Text>
+          accessibilityLabel={dialog ? 'Nachrichtenfenster schließen' : 'Zurück zu Nachrichten'}
+          style={({ pressed, focused }: { pressed: boolean; focused?: boolean }) => [
+            chatStyles.back, employee && employeeChat.back, employee && focused && employeeFocusRing, pressed && employeeChat.pressed,
+          ]}>
+          <Text style={[chatStyles.backText, employee && employeeChat.actionText]}>{dialog ? 'Schließen' : '← Zurück'}</Text>
         </Pressable>
         <View style={chatStyles.recipient}>
-          <Text style={chatStyles.title}>Verwaltung</Text>
-          <Text style={chatStyles.subtitle}>Neues Gespräch</Text>
+          <Text accessibilityRole="header" aria-level={1} style={[chatStyles.title, employee && employeeChat.title]}>{employee ? 'Neue Nachricht' : 'Verwaltung'}</Text>
+          <Text style={[chatStyles.subtitle, employee && employeeChat.copy]}>{employee ? 'An die Verwaltung' : 'Neues Gespräch'}</Text>
         </View>
       </View>
-      <ScrollView style={chatStyles.conversation} contentContainerStyle={chatStyles.conversationContent}
+      <ScrollView style={chatStyles.conversation} contentContainerStyle={[chatStyles.conversationContent, employee && employeeChat.content]}
         keyboardShouldPersistTaps="handled">
-        <View style={chatStyles.introduction}>
-          <Text style={chatStyles.introductionTitle}>Wie können wir Ihnen helfen?</Text>
-          <Text style={chatStyles.introductionText}>
-            Schreiben Sie Ihre Nachricht an die Verwaltung. Antworten erscheinen hier im Chat.
+        <View style={[chatStyles.introduction, employee && employeeChat.introduction]}>
+          {employee ? <Text style={employeeChat.kicker}>NEUES GESPRÄCH</Text> : null}
+          <Text style={[chatStyles.introductionTitle, employee && employeeChat.introductionTitle]}>{employee ? 'Worum geht es?' : 'Wie können wir Ihnen helfen?'}</Text>
+          <Text style={[chatStyles.introductionText, employee && employeeChat.copy]}>
+            {employee ? 'Ein Betreff oder Thema hilft der Verwaltung, Ihre Nachricht zuzuordnen.'
+              : 'Schreiben Sie Ihre Nachricht an die Verwaltung. Antworten erscheinen hier im Chat.'}
           </Text>
         </View>
-        {initialSubject ? <Text style={chatStyles.context}>{initialSubject}</Text> : null}
+        {initialSubject ? <Text style={[chatStyles.context, employee && employeeChat.copy]}>{initialSubject}</Text> : null}
         <Pressable accessibilityRole="button" accessibilityState={{ expanded: showDetails }}
           onPress={() => setShowDetails((value) => !value)} style={chatStyles.detailsButton}>
-          <Text style={chatStyles.backText}>{showDetails ? 'Thema ausblenden' : 'Thema hinzufügen (optional)'}</Text>
+          <Text style={[chatStyles.backText, employee && employeeChat.actionText]}>
+            {showDetails ? 'Thema ausblenden' : employee ? 'Betreff und Thema hinzufügen' : 'Thema hinzufügen (optional)'}
+          </Text>
         </Pressable>
         {showDetails ? (
           <View style={chatStyles.details}>
-            <PremiumInput label="Betreff (optional)" value={subject} onChangeText={setSubject} />
+            <PremiumInput label="Betreff (optional)" value={subject} onChangeText={setSubject} onDarkSurface={employee} />
             <View style={styles.chips}>
               {categories.map((category) => (
                 <Pressable key={category.id} accessibilityRole="button"
@@ -344,17 +363,17 @@ export function PortalNewChatModal({
                 </Pressable>
               ))}
               {!categoriesLoading && categories.length === 0 ? (
-                <Text style={chatStyles.subtitle}>Allgemeines Anliegen</Text>
+                <Text style={[chatStyles.subtitle, employee && employeeChat.copy]}>Allgemeines Anliegen</Text>
               ) : null}
             </View>
-            {categoriesLoading ? <Text style={chatStyles.subtitle}>Themen werden geladen…</Text> : null}
-            {categoryWarning ? <Text style={chatStyles.subtitle}>{categoryWarning}</Text> : null}
+            {categoriesLoading ? <Text style={[chatStyles.subtitle, employee && employeeChat.copy]}>Themen werden geladen…</Text> : null}
+            {categoryWarning ? <Text style={[chatStyles.subtitle, employee && employeeChat.copy]}>{categoryWarning}</Text> : null}
           </View>
         ) : null}
-        <Text style={chatStyles.disclaimer}>{PORTAL_EMERGENCY_DISCLAIMER}</Text>
+        <Text style={[chatStyles.disclaimer, employee && employeeChat.disclaimer]}>{PORTAL_EMERGENCY_DISCLAIMER}</Text>
       </ScrollView>
-      <View style={chatStyles.composer}>
-        {error || !familySendingAllowed ? <Text accessibilityRole="alert" style={chatStyles.error}>{error ?? 'Nachrichten senden ist für diesen Angehörigenzugang nicht freigegeben.'}</Text> : null}
+      <View style={[chatStyles.composer, employee && employeeChat.composer]}>
+        {error || !familySendingAllowed ? <Text accessibilityRole="alert" style={[chatStyles.error, employee && employeeChat.error]}>{error ?? 'Nachrichten senden ist für diesen Angehörigenzugang nicht freigegeben.'}</Text> : null}
         <TextInput
           accessibilityLabel="Ihre Nachricht an die Verwaltung"
           testID="portal-new-chat-message"
@@ -363,15 +382,18 @@ export function PortalNewChatModal({
           editable={!submitting && familySendingAllowed}
           multiline
           placeholder="Nachricht schreiben…"
-          placeholderTextColor="#5B7187"
+          placeholderTextColor={employee ? employeeInk.muted : '#5B7187'}
           textAlignVertical="top"
-          style={chatStyles.input}
+          style={[chatStyles.input, employee && employeeChat.input]}
         />
         <Pressable accessibilityRole="button" accessibilityLabel="Nachricht senden"
           accessibilityState={{ disabled: !canSend, busy: submitting }}
-          disabled={!canSend} onPress={handleCreate} style={[chatStyles.send, submitting && chatStyles.sending]}
+          disabled={!canSend} onPress={handleCreate} style={({ pressed, focused }: { pressed: boolean; focused?: boolean }) => [
+            chatStyles.send, employee && employeeChat.send, employee && focused && employeeFocusRing,
+            (pressed || submitting) && chatStyles.sending,
+          ]}
           testID="portal-new-chat-send">
-          <Text style={chatStyles.sendText}>{submitting ? 'Wird gesendet…' : 'Nachricht senden'}</Text>
+          <Text style={[chatStyles.sendText, employee && employeeChat.sendText]}>{submitting ? 'Wird gesendet…' : 'Nachricht senden'}</Text>
         </Pressable>
       </View>
     </KeyboardAvoidingView>
@@ -379,6 +401,16 @@ export function PortalNewChatModal({
 
   if (!visible) return null;
   if (presentation === 'screen') return content;
+  if (dialog) {
+    return (
+      <Modal visible transparent animationType="fade" presentationStyle="overFullScreen"
+        accessibilityLabel="Neue Nachricht" onRequestClose={closeComposer}>
+        <View style={[employeeChat.backdrop, { paddingTop: Math.max(16, insets.top), paddingBottom: Math.max(16, insets.bottom) }]}>
+          <View style={employeeChat.dialogCard} accessibilityViewIsModal>{content}</View>
+        </View>
+      </Modal>
+    );
+  }
   // Assignment compose uses one bounded native screen, without nested modal scroll sheets.
   return (
     <Modal visible animationType="slide" onRequestClose={closeComposer} presentationStyle="fullScreen">
@@ -415,3 +447,26 @@ const chatStyles = StyleSheet.create({
   sendText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
   error: { color: '#A12832', fontSize: 14, lineHeight: 20 },
 });
+
+const employeeChat = StyleSheet.create(withCareSuiteTypography({
+  root: { backgroundColor: employeeInk.panel, borderWidth: 1, borderColor: employeeInk.line, borderRadius: 17, overflow: 'hidden' },
+  backdrop: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(5,15,27,0.72)', paddingHorizontal: 18 },
+  dialogCard: { width: '100%', maxWidth: 650, height: '85%', maxHeight: 650, borderRadius: 17, backgroundColor: employeeInk.dialog },
+  header: { backgroundColor: employeeInk.control, borderBottomColor: employeeInk.line, padding: 10, gap: 10, alignItems: 'flex-start' },
+  dialogHeader: { flexDirection: 'row-reverse', alignItems: 'center' },
+  back: { borderRadius: 10, borderWidth: 1, borderColor: employeeInk.line, backgroundColor: employeeInk.raised, minHeight: 44 },
+  pressed: { opacity: 0.76 },
+  actionText: { color: employeeInk.accent, fontSize: font(13), lineHeight: font(19) },
+  title: { color: employeeInk.text, fontSize: font(20), lineHeight: font(25), fontWeight: '700' },
+  copy: { color: employeeInk.muted, fontSize: font(13), lineHeight: font(19) },
+  content: { width: '100%', maxWidth: 740, alignSelf: 'center', padding: 12, gap: 10 },
+  introduction: { borderWidth: 1, borderColor: employeeInk.line, borderRadius: 13, padding: 13, backgroundColor: employeeInk.raised, gap: 5 },
+  introductionTitle: { color: employeeInk.text, fontSize: font(18), lineHeight: font(24), fontWeight: '700' },
+  kicker: { color: employeeInk.accent, fontSize: font(10), lineHeight: font(15), fontWeight: '700', letterSpacing: 1.1 },
+  disclaimer: { color: employeeInk.warning, fontSize: font(12), lineHeight: font(18) },
+  composer: { width: '100%', maxWidth: 740, alignSelf: 'center', backgroundColor: employeeInk.canvas, borderTopColor: employeeInk.line },
+  input: { color: employeeInk.text, backgroundColor: employeeInk.control, borderColor: employeeInk.line, fontSize: font(15), lineHeight: font(22) },
+  send: { backgroundColor: employeeInk.accent, minHeight: 44, borderRadius: 11 },
+  sendText: { color: employeeInk.canvas, fontSize: font(14), lineHeight: font(20), fontWeight: '700' },
+  error: { color: employeeInk.danger },
+}));
