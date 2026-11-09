@@ -7,11 +7,15 @@ import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 type EmployeePortalDashboardScreenProps = {
   showSuccess?: boolean;
   onRefresh?: () => void;
+  motivation?: string | null;
+  onRefreshMotivation?: () => void;
 };
 
 export function EmployeePortalDashboardScreen({
   showSuccess,
   onRefresh,
+  motivation,
+  onRefreshMotivation,
 }: EmployeePortalDashboardScreenProps) {
   const { displayName } = usePortalActor();
   const { dashboard, loading, error, refreshWithResult, refreshing, refreshError, fromCache, cachedAt } = useEmployeePortalDashboard();
@@ -19,9 +23,10 @@ export function EmployeePortalDashboardScreen({
   const refreshInbox = inbox.refreshWithResult;
 
   const handleRefresh = useCallback(async () => {
+    onRefreshMotivation?.();
     const results = await Promise.all([refreshWithResult(), refreshInbox()]);
     if (results.every(Boolean)) onRefresh?.();
-  }, [refreshWithResult, refreshInbox, onRefresh]);
+  }, [refreshWithResult, refreshInbox, onRefresh, onRefreshMotivation]);
 
   return (
     <HealthOSEmployeePortalTodayView
@@ -33,6 +38,7 @@ export function EmployeePortalDashboardScreen({
       loading={loading}
       error={error}
       displayName={displayName ?? 'Mitarbeiter:in'}
+      motivation={motivation}
       onRefresh={() => void handleRefresh()}
       fromCache={fromCache}
       cachedAt={cachedAt}

@@ -6,7 +6,6 @@ import { HealthOSStatusBadge } from '@/components/healthos/HealthOSStatusBadge';
 import { resolveHealthOSStatusDisplay } from '@/components/healthos/status/healthosStatusMapping';
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
 import { buildEmployeePortalTodayModel } from '@/lib/portal/employee/employeePortalTodayModel';
-import { employeePortalDailyNote } from '@/lib/portal/employee/employeePortalDailyNote';
 import { employeePortalNavigation } from '@/lib/portal/employee/employeePortalNavigation';
 import { employeePortalWorkspaceLabels, type EmployeePortalWorkspace } from '@/lib/portal/employee/employeePortalWorkspaces';
 import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
@@ -24,7 +23,7 @@ import { employeePortalDesign as c, employeePortalGroups, employeePortalHeaderLa
 export type EmployeePortalTodayProps = {
   dashboard: EmployeePortalDashboardProjection | null; loading: boolean; error: string | null;
   displayName: string; onRefresh: () => void; fromCache?: boolean; cachedAt?: string | null;
-  refreshing?: boolean; refreshError?: string | null; showSuccess?: boolean;
+  refreshing?: boolean; refreshError?: string | null; showSuccess?: boolean; motivation?: string | null;
 };
 
 function Action({ label, onPress, primary = false, disabled = false }: { label: string; onPress: () => void; primary?: boolean; disabled?: boolean }) {
@@ -43,13 +42,12 @@ function Notice({ message, error = false, onRetry }: { message: string; error?: 
   </View>;
 }
 
-function EmployeeWelcome({ displayName, section, phone, shortLandscape, action }: {
-  displayName: string; section: string; phone: boolean; shortLandscape: boolean; action?: ReactNode;
+function EmployeeWelcome({ displayName, section, phone, shortLandscape, motivation, action }: {
+  displayName: string; section: string; phone: boolean; shortLandscape: boolean; motivation?: string | null; action?: ReactNode;
 }) {
   const now = useLocalMinute();
   const greeting = now ? getTimeOfDayGreeting(now) : HYDRATION_SAFE_GREETING;
   const firstName = displayName.trim().split(/\s+/)[0];
-  const note = now ? employeePortalDailyNote(now) : null;
   return (
     <View style={[styles.greeting, shortLandscape && styles.greetingLandscape, phone && styles.greetingPhone]} testID="employee-portal-premium-home-hero">
       <View style={styles.greetingCopy}>
@@ -57,12 +55,12 @@ function EmployeeWelcome({ displayName, section, phone, shortLandscape, action }
         <Text accessibilityRole="header" style={[styles.title, shortLandscape && styles.titleLandscape, phone && styles.titlePhone]}>
           {firstName ? `${greeting}, ${firstName}.` : `${greeting}.`}
         </Text>
-        {note ? <View style={styles.dailyNote} testID="employee-portal-daily-note">
-          <View style={styles.dailyIcon}><Ionicons name={note.kind === 'joke' ? 'happy-outline' : 'sparkles-outline'} size={20} color={c.accent} /></View>
-          <View style={styles.dailyCopy}>
-            <Text style={styles.dailyLabel}>{note.kind === 'joke' ? 'Witz des Tages' : 'Tagesimpuls'}</Text>
-            <Text style={styles.dailyText}>{note.text}</Text>
+        {motivation ? <View style={styles.motivation} testID="employee-portal-motivation" accessibilityLiveRegion="polite">
+          <View style={styles.motivationHeader}>
+            <View style={styles.motivationIcon}><Ionicons name="heart-outline" size={16} color={c.accent} /></View>
+            <Text style={styles.motivationLabel}>Motivation</Text>
           </View>
+          <Text style={styles.motivationText}>{motivation}</Text>
         </View> : null}
       </View>
       {action}
@@ -95,7 +93,7 @@ function WorkspaceShortcut({ item, size, tile = false, onPress }: {
 }
 
 /** The approved Tagesfokus/Kompakt home uses the existing read-only projection. */
-export function EmployeePortalToday({ dashboard, loading, error, displayName, onRefresh, fromCache = false, cachedAt, refreshing = false, refreshError, showSuccess }: EmployeePortalTodayProps) {
+export function EmployeePortalToday({ dashboard, loading, error, displayName, onRefresh, fromCache = false, cachedAt, refreshing = false, refreshError, showSuccess, motivation }: EmployeePortalTodayProps) {
   const router = useRouter();
   const { width, height } = useHydrationSafeWindowDimensions();
   const { fontScale } = useWindowDimensions();
@@ -115,7 +113,7 @@ export function EmployeePortalToday({ dashboard, loading, error, displayName, on
   const personalItems = navigation.filter(item => ['leave', 'absence', 'profile'].includes(item.id));
 
   return <View style={[styles.root, { padding: layout.padding }]} testID="healthos-employee-portal-today">
-    <EmployeeWelcome displayName={displayName} section="Mein Arbeitstag" phone={layout.phone} shortLandscape={shortLandscape}
+    <EmployeeWelcome displayName={displayName} section="Mein Arbeitstag" phone={layout.phone} shortLandscape={shortLandscape} motivation={motivation}
       action={<Action label={refreshing ? 'Wird aktualisiert…' : 'Aktualisieren'} onPress={onRefresh} disabled={refreshing} />} />
     {(refreshError || error) ? <Notice message={refreshError || error!} error onRetry={onRefresh} /> : null}
     {showSuccess && !refreshError ? <Notice message="Übersicht aktualisiert." /> : null}
@@ -190,7 +188,9 @@ const workspaceDetails: Record<Exclude<EmployeePortalWorkspace, 'assist'>, { tit
   office: { title: 'Meine Unterlagen', description: 'Öffnen Sie Ihre persönlichen Dokumente und Unterlagen zur Unterschrift.', item: 'documents' },
 };
 
-export function EmployeePortalWorkspaceHome({ displayName }: { displayName: string }) {
+export function EmployeePortalWorkspaceHome({ displayName, motivation, onRefreshMotivation }: {
+  displayName: string; motivation?: string | null; onRefreshMotivation?: () => void;
+}) {
   const workspace = useEmployeePortalWorkspaceContext();
   const openMenu = useEmployeePortalMenu();
   const router = useRouter();
@@ -206,9 +206,9 @@ export function EmployeePortalWorkspaceHome({ displayName }: { displayName: stri
   return (
     <View style={[styles.root, { padding: layout.padding }]} testID="employee-portal-workspace-home">
       <EmployeeWelcome displayName={displayName} section={selected ? employeePortalWorkspaceLabels[selected] : 'Persönlicher Bereich'}
-        phone={layout.phone} shortLandscape={shortLandscape} />
+        phone={layout.phone} shortLandscape={shortLandscape} motivation={motivation} />
       {workspace?.loading ? <Notice message="Ihre Modulfreigaben werden geprüft…" /> : null}
-      {workspace?.error ? <Notice message={workspace.error} error onRetry={workspace.retry} /> : null}
+      {workspace?.error ? <Notice message={workspace.error} error onRetry={() => { onRefreshMotivation?.(); workspace.retry(); }} /> : null}
       {!selected && !workspace?.loading && !workspace?.error ? <Notice message="Für Ihr Konto ist derzeit kein Arbeitsmodul verfügbar." /> : null}
       {details && primary ? (
         <Panel title={details.title}>
@@ -238,11 +238,11 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   title: { color: c.text, fontSize: font(40), lineHeight: font(48), fontWeight: '700' },
   titleLandscape: { fontSize: font(32), lineHeight: font(38) },
   titlePhone: { fontSize: font(28), lineHeight: font(35) },
-  dailyNote: { flexDirection: 'row', alignItems: 'flex-start', alignSelf: 'flex-start', gap: 10, padding: 10, marginTop: 5, maxWidth: 760, backgroundColor: c.control, borderRadius: 13 },
-  dailyIcon: { width: 34, height: 34, alignItems: 'center', justifyContent: 'center', borderRadius: 10, backgroundColor: c.selected },
-  dailyCopy: { flexShrink: 1, minWidth: 0, gap: 2 },
-  dailyLabel: { color: c.accent, fontSize: font(12), lineHeight: font(17), fontWeight: '700' },
-  dailyText: { color: c.text, fontSize: font(15), lineHeight: font(22) },
+  motivation: { alignSelf: 'flex-start', flexShrink: 1, minWidth: 0, gap: 5, padding: 10, marginTop: 5, maxWidth: 760, backgroundColor: c.control, borderRadius: 13 },
+  motivationHeader: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  motivationIcon: { width: 26, height: 26, flexShrink: 0, alignItems: 'center', justifyContent: 'center', borderRadius: 8, backgroundColor: c.selected },
+  motivationLabel: { color: c.accent, fontSize: font(12), lineHeight: font(17), fontWeight: '700' },
+  motivationText: { color: c.text, fontSize: font(15), lineHeight: font(22) },
   bodyText: { color: c.muted, fontSize: font(13), lineHeight: font(21), flexShrink: 1 },
   action: { minHeight: 44, paddingVertical: 9, paddingHorizontal: 12, borderRadius: 10, borderWidth: 1, borderColor: c.line, backgroundColor: c.control, justifyContent: 'center', alignItems: 'center', alignSelf: 'flex-start', maxWidth: '100%' },
   actionText: { color: c.accent, fontSize: font(12), lineHeight: font(19), textAlign: 'center', flexShrink: 1 }, primary: { backgroundColor: c.accent, borderColor: c.accent, alignSelf: 'center' }, primaryText: { color: '#082239', fontWeight: '700' },
