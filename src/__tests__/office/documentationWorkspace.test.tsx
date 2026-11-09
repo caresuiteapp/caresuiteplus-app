@@ -1,10 +1,11 @@
 // @vitest-environment happy-dom
-import { act } from 'react';
+import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DocumentationWorkspace, berlinInputToIso } from '@/components/office/documentation/DocumentationWorkspace.web';
 import { documentationDateParts } from '@/lib/office/documentation/model';
 import type { DocumentationEntry, DocumentationPage } from '@/lib/office/documentation/model';
+import EmployeeDocumentationRoute from '../../../app/portal/employee/dokumentation.web';
 
 Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
 const api=vi.hoisted(()=>({list:vi.fn(),create:vi.fn(),upload:vi.fn()}));
@@ -13,6 +14,11 @@ vi.mock('@/lib/office/documentation/attachments',async(importOriginal)=>({...awa
 vi.mock('@/hooks/useUnsavedWebChanges.web',()=>({useUnsavedWebChanges:()=>async()=>true}));
 vi.mock('@/components/portal/employee/EmployeePortalBackdrop',()=>({EmployeePortalBackdrop:()=>null}));
 vi.mock('@/liquid-command/components/DesktopCatalogArtwork',()=>({DesktopCatalogArtwork:()=>null}));
+vi.mock('@/components/layout/ScreenShell.web',()=>({ScreenShell:({children}:{children:ReactNode})=>children}));
+vi.mock('@/screens/portal/PortalTabScreen',()=>({PortalTabScreen:({children}:{children:ReactNode})=>children}));
+vi.mock('@/lib/auth/context',()=>({useAuth:()=>({user:{id:actor.userId},portalSession:null})}));
+vi.mock('@/hooks/useTenantId',()=>({useServiceTenantId:()=>actor.tenantId}));
+vi.mock('@/hooks/usePermissions',()=>({usePermissions:()=>({roleKey:'employee_portal',can:()=>false})}));
 const actor={tenantId:'11111111-1111-4111-8111-111111111111',userId:'22222222-2222-4222-8222-222222222222'};
 const entry:DocumentationEntry={id:'33333333-3333-4333-8333-333333333333',tenant_id:actor.tenantId,source:'visit',area:'client',client_id:'44444444-4444-4444-8444-444444444444',employee_id:null,category:'care',priority:'normal',title:'Abgeschlossener Einsatz',body:'Gespeicherte Beobachtung',occurred_at:'2026-11-04T17:00:00Z',created_at:'2026-11-04T17:05:00Z',author_name:'Team Test',client_name:'Client Test',employee_name:'',visit_id:'55555555-5555-4555-8555-555555555555'};
 let host:HTMLDivElement,root:Root;
@@ -49,6 +55,29 @@ describe('shared documentation workspace',()=>{
   api.upload.mockRejectedValueOnce(new Error('offline')).mockResolvedValueOnce(undefined);
   await click('Eintrag speichern');expect(api.create).toHaveBeenCalledOnce();expect(host.textContent).toContain('Der Text ist gespeichert');
   await click('Fehlende Anhänge speichern');expect(api.create).toHaveBeenCalledOnce();expect(api.upload).toHaveBeenCalledTimes(2);expect(api.upload.mock.calls[0][2].id).toBe(api.upload.mock.calls[1][2].id);
+ });
+ it('opens the employee composer as a dialog and saves photos, videos and PDFs with retry',async()=>{
+  await act(async()=>root.render(<EmployeeDocumentationRoute/>));
+  await click('＋ Neuer Eintrag');
+  const dialog=host.querySelector<HTMLDialogElement>('dialog.cs-doc-editor[open]')!;
+  expect(dialog).toBeTruthy();expect(host.querySelector('.cs-doc-layout.has-panel')).toBeNull();
+  const picker=dialog.querySelector<HTMLInputElement>('input[type=file]')!;
+  expect(picker.accept.split(',')).toEqual(expect.arrayContaining(['image/jpeg','video/mp4','application/pdf']));
+  expect(dialog.textContent).not.toContain('Sprachnotiz aufnehmen');
+  const choose=async(...files:File[])=>act(async()=>{
+    Object.defineProperty(picker,'files',{value:files,configurable:true});picker.dispatchEvent(new Event('change',{bubbles:true}));
+  });
+  await choose(new File(['audio'],'ton.mp3',{type:'audio/mpeg'}));
+  expect(dialog.querySelector('[role=alert]')?.textContent).toContain('nur Fotos, Videos oder PDFs');
+  await choose(new File(['photo'],'foto.jpg',{type:'image/jpeg'}),new File(['video'],'einsatz.mp4',{type:'video/mp4'}),new File(['PDF'],'bericht.pdf'));
+  expect(dialog.querySelectorAll('.cs-doc-pending li')).toHaveLength(3);
+  await input('Titel *','Freier Eintrag mit Anhängen');await input('Dokumentation *','Beobachtung erfasst.');
+  api.upload.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('offline')).mockResolvedValue(undefined);
+  await click('Eintrag speichern');expect(dialog.querySelector('[role=alert]')?.textContent).toContain('Der Text ist gespeichert');
+  await click('Fehlende Anhänge speichern');expect(api.create).toHaveBeenCalledOnce();
+  expect(api.upload.mock.calls.map(call=>call[2].file.name)).toEqual(['foto.jpg','einsatz.mp4','einsatz.mp4','bericht.pdf']);
+  expect(api.upload.mock.calls[1][2].id).toBe(api.upload.mock.calls[2][2].id);
+  expect(host.querySelector('dialog')).toBeNull();
  });
  it('keeps content and request identity frozen when a save receipt is uncertain',async()=>{
   await render();await click('＋ Neuer Eintrag');await input('Titel *','Teamabsprache');await input('Dokumentation *','Rückmeldung dokumentiert');

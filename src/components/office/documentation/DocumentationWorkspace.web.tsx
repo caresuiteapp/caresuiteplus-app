@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { EmployeePortalBackdrop } from '@/components/portal/employee/EmployeePortalBackdrop';
 import { DesktopCatalogArtwork } from '@/liquid-command/components/DesktopCatalogArtwork';
 import { useUnsavedWebChanges } from '@/hooks/useUnsavedWebChanges.web';
@@ -31,6 +31,23 @@ export function berlinInputToIso(value: string): string {
   }
   const iso = new Date(result).toISOString();
   return dateInput(iso) === value ? iso : '';
+}
+
+function DocumentationComposer({ modal, busy, onClose, children }: { modal: boolean; busy: boolean; onClose: () => void; children: ReactNode }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const titleId = useId();
+  useEffect(() => {
+    const dialog = ref.current;
+    if (!dialog) return;
+    dialog.showModal();
+    return () => { if (dialog.open) dialog.close(); };
+  }, [modal]);
+  const header = <header className="cs-doc-panel-head"><div><p className="cs-doc-eyebrow">Jederzeit dokumentieren</p><h2 id={titleId}>Neuer Eintrag</h2></div>
+    <button type="button" className="cs-doc-btn icon" aria-label="Editor schließen" autoFocus={modal} disabled={busy} onClick={onClose}>×</button></header>;
+  return modal
+    ? <dialog ref={ref} className="cs-doc cs-doc-editor" aria-labelledby={titleId} aria-busy={busy}
+        onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}>{header}{children}</dialog>
+    : <aside className="cs-doc-panel" aria-label="Neuen Eintrag erfassen">{header}{children}</aside>;
 }
 
 export function DocumentationWorkspace({ actor, employeeView = false }: { actor: DocumentationActor; employeeView?: boolean }) {
@@ -123,7 +140,7 @@ export function DocumentationWorkspace({ actor, employeeView = false }: { actor:
               <h1>Dokumentation</h1>
               <p className="cs-doc-intro">Abgeschlossene Einsätze und freie Einträge für das Team.</p>
               <div className="cs-doc-actions">
-                <button type="button" className="cs-doc-btn primary" disabled={busy} onClick={() => void start()}>
+                <button type="button" className="cs-doc-btn primary" aria-haspopup={employeeView ? 'dialog' : undefined} disabled={busy} onClick={() => void start()}>
                   <span aria-hidden="true">＋</span> Neuer Eintrag
                 </button>
                 <button type="button" className="cs-doc-btn cs-doc-refresh" aria-label="Aktualisieren" disabled={loading} onClick={() => void refresh()}>
@@ -193,25 +210,29 @@ export function DocumentationWorkspace({ actor, employeeView = false }: { actor:
           </div>
 
           {error && <div role="alert" className="cs-doc-error">{error} <button type="button" className="cs-doc-btn" onClick={() => void refresh()}>Erneut laden</button></div>}
-          <div className={`cs-doc-layout${draft ? ' has-panel' : ''}`}>
-            {draft && <aside className="cs-doc-panel" aria-label="Neuen Eintrag erfassen"><div className="cs-doc-panel-head"><div><p className="cs-doc-eyebrow">Jederzeit dokumentieren</p><h2>Neuer Eintrag</h2></div><button type="button" className="cs-doc-btn icon" aria-label="Editor schließen" disabled={busy} onClick={() => void close()}>×</button></div>
+          <div className={`cs-doc-layout${draft && !employeeView ? ' has-panel' : ''}`}>
+            {draft && <DocumentationComposer modal={employeeView} busy={busy || recording} onClose={() => void close()}>
               <form className="cs-doc-panel-body" onSubmit={e => { e.preventDefault(); void save(); }}>
-                <p className="cs-doc-hint">Dieser Eintrag ist für das gesamte Team Ihres Unternehmens sichtbar. Vertrauliche Personalakten bleiben in der Personalverwaltung.</p>
                 {saveError && <div role="alert" className="cs-doc-error">{saveError}</div>}
-                <fieldset disabled={busy || uncertain || Boolean(savedId)} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}><div className="cs-doc-form-grid">
-                  <label>Bereich<select value={draft.area} onChange={e => changeDraft({ area: e.target.value as DocumentationDraft['area'] })}>{DOCUMENTATION_AREAS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}</select></label>
-                  <label>Kategorie<select value={draft.category} onChange={e => changeDraft({ category: e.target.value as DocumentationDraft['category'] })}>{DOCUMENTATION_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select></label>
-                  <label>Klient{draft.area === 'client' ? ' *' : ' (optional)'}<select value={draft.clientId} required={draft.area === 'client'} onChange={e => changeDraft({ clientId: e.target.value })}><option value="">Bitte auswählen</option>{page.clients.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
-                  <label>Mitarbeitende{draft.area === 'employee' ? ' *' : ' (optional)'}<select value={draft.employeeId} required={draft.area === 'employee'} onChange={e => changeDraft({ employeeId: e.target.value })}><option value="">Bitte auswählen</option>{page.employees.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
-                  <label>Dringlichkeit<select value={draft.priority} onChange={e => changeDraft({ priority: e.target.value as DocumentationDraft['priority'] })}><option value="normal">Normal</option><option value="important">Wichtig</option><option value="urgent">Dringend</option></select></label>
-                  <label className="cs-doc-full">Zeitpunkt (Berlin)<input type="datetime-local" required value={dateInput(draft.occurredAt)} onChange={e => changeDraft({ occurredAt: berlinInputToIso(e.target.value) })} /></label>
-                  <label className="cs-doc-full">Titel *<input required autoFocus maxLength={180} value={draft.title} placeholder="Was möchten Sie festhalten?" onChange={e => changeDraft({ title: e.target.value })} /></label>
-                  <label className="cs-doc-full">Dokumentation *<textarea required maxLength={20000} value={draft.body} placeholder="Beobachtungen, Gespräche, Absprachen oder wichtige Veränderungen …" onChange={e => changeDraft({ body: e.target.value })} /></label>
-                </div></fieldset>
-                {actor.canUpload && <DocumentationFilePicker files={files} disabled={busy || uncertain} onRecording={setRecording} onChange={next => { if (savedId) for (const f of files.filter(f => !f.done && !next.some(n => n.id === f.id))) void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => {}); setFiles(next); }} />}
-                <p className="cs-doc-hint">Verfasser und Erfassungszeit werden automatisch gespeichert. Gespeicherte Inhalte bleiben erhalten; Korrekturen werden als Ergänzung dokumentiert.</p>
-                <div className="cs-doc-actions"><button type="submit" className="cs-doc-btn primary" disabled={busy || recording}>{busy ? 'Wird gespeichert …' : uncertain ? 'Speicherbestätigung prüfen' : savedId ? 'Fehlende Anhänge speichern' : 'Eintrag speichern'}</button><button type="button" className="cs-doc-btn" disabled={busy} onClick={() => void close()}>Abbrechen</button></div>
-              </form></aside>}
+                <div className="cs-doc-form-content">
+                  <p className="cs-doc-hint">Dieser Eintrag ist für das gesamte Team Ihres Unternehmens sichtbar. Vertrauliche Personalakten bleiben in der Personalverwaltung.</p>
+                  <fieldset disabled={busy || uncertain || Boolean(savedId)} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}><div className="cs-doc-form-grid">
+                    <label>Bereich<select value={draft.area} onChange={e => changeDraft({ area: e.target.value as DocumentationDraft['area'] })}>{DOCUMENTATION_AREAS.map(a => <option key={a.value} value={a.value}>{a.label}</option>)}</select></label>
+                    <label>Kategorie<select value={draft.category} onChange={e => changeDraft({ category: e.target.value as DocumentationDraft['category'] })}>{DOCUMENTATION_CATEGORIES.map(c => <option key={c.value} value={c.value}>{c.label}</option>)}</select></label>
+                    <label>Dringlichkeit<select value={draft.priority} onChange={e => changeDraft({ priority: e.target.value as DocumentationDraft['priority'] })}><option value="normal">Normal</option><option value="important">Wichtig</option><option value="urgent">Dringend</option></select></label>
+                    <label>Klient{draft.area === 'client' ? ' *' : ' (optional)'}<select value={draft.clientId} required={draft.area === 'client'} onChange={e => changeDraft({ clientId: e.target.value })}><option value="">Bitte auswählen</option>{page.clients.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
+                    <label>Mitarbeitende{draft.area === 'employee' ? ' *' : ' (optional)'}<select value={draft.employeeId} required={draft.area === 'employee'} onChange={e => changeDraft({ employeeId: e.target.value })}><option value="">Bitte auswählen</option>{page.employees.map(o => <option key={o.id} value={o.id}>{o.name}</option>)}</select></label>
+                    <label>Zeitpunkt (Berlin)<input type="datetime-local" required value={dateInput(draft.occurredAt)} onChange={e => changeDraft({ occurredAt: berlinInputToIso(e.target.value) })} /></label>
+                    <label className="cs-doc-full">Titel *<input required autoFocus={!employeeView} maxLength={180} value={draft.title} placeholder="Was möchten Sie festhalten?" onChange={e => changeDraft({ title: e.target.value })} /></label>
+                    <label className="cs-doc-full">Dokumentation *<textarea required maxLength={20000} value={draft.body} placeholder="Beobachtungen, Gespräche, Absprachen oder wichtige Veränderungen …" onChange={e => changeDraft({ body: e.target.value })} /></label>
+                  </div></fieldset>
+                  {actor.canUpload && <DocumentationFilePicker files={files} disabled={busy || uncertain} mediaOnly={actor.mediaOnly} onRecording={setRecording}
+                    onChange={next => { if (savedId) for (const f of files.filter(f => !f.done && !next.some(n => n.id === f.id))) void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => {}); setFiles(next); }} />}
+                  <p className="cs-doc-hint">Verfasser und Erfassungszeit werden automatisch gespeichert. Korrekturen können als Ergänzung erfasst werden.</p>
+                </div>
+                <footer className="cs-doc-actions cs-doc-editor-actions"><button type="button" className="cs-doc-btn" disabled={busy || recording} onClick={() => void close()}>Abbrechen</button><button type="submit" className="cs-doc-btn primary" disabled={busy || recording}>{busy ? 'Wird gespeichert …' : uncertain ? 'Speicherbestätigung prüfen' : savedId ? 'Fehlende Anhänge speichern' : 'Eintrag speichern'}</button></footer>
+              </form>
+            </DocumentationComposer>}
 
             <section className="cs-doc-list-pane" aria-label="Dokumentationsverlauf" aria-busy={loading}>
               <div className="cs-doc-summary">

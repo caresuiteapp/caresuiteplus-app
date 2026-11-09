@@ -1,7 +1,7 @@
 // Generated native presentation from src/components/office/documentation/DocumentationWorkspace.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeDiv,NativeStyle,NativeMain,NativeHeader,NativeP,NativeH1,NativeButton,NativeSpan,NativeLabel,NativeSelect,NativeOption,NativeInput,NativeSection,NativeAside,NativeH2,NativeForm,NativeFieldset,NativeTextarea,NativeStrong,NativeH3,NativeNav,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeHeader,NativeDiv,NativeP,NativeH2,NativeButton,NativeDialog,NativeAside,NativeStyle,NativeMain,NativeH1,NativeSpan,NativeLabel,NativeSelect,NativeOption,NativeInput,NativeSection,NativeForm,NativeFieldset,NativeTextarea,NativeFooter,NativeStrong,NativeH3,NativeNav,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
-import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'react';
 import { EmployeePortalBackdrop } from '@/components/portal/employee/EmployeePortalBackdrop';
 import { DesktopCatalogArtwork } from "../../../liquid-command/components/DesktopCatalogArtwork.tsx";
 import { useUnsavedWebChanges } from "../../../hooks/useUnsavedWebChanges.native.ts";
@@ -38,6 +38,29 @@ export function berlinInputToIso(value: string): string {
     }
     const iso = new Date(result).toISOString();
     return dateInput(iso) === value ? iso : '';
+}
+function DocumentationComposer({ modal, busy, onClose, children }: {
+    modal: boolean;
+    busy: boolean;
+    onClose: () => void;
+    children: ReactNode;
+}) {
+    const ref = useRef<HTMLDialogElement>(null);
+    const titleId = useId();
+    useEffect(() => {
+        const dialog = ref.current;
+        if (!dialog)
+            return;
+        dialog.showModal();
+        return () => { if (dialog.open)
+            dialog.close(); };
+    }, [modal]);
+    const header = <NativeHeader className="cs-doc-panel-head"><NativeDiv><NativeP className="cs-doc-eyebrow">Jederzeit dokumentieren</NativeP><NativeH2 id={titleId}>Neuer Eintrag</NativeH2></NativeDiv>
+    <NativeButton type="button" className="cs-doc-btn icon" aria-label="Editor schließen" autoFocus={modal} disabled={busy} onClick={onClose}>×</NativeButton></NativeHeader>;
+    return modal
+        ? <NativeDialog ref={ref} className="cs-doc cs-doc-editor" aria-labelledby={titleId} aria-busy={busy} onCancel={event => { event.preventDefault(); if (!busy)
+            onClose(); }}>{header}{children}</NativeDialog>
+        : <NativeAside className="cs-doc-panel" aria-label="Neuen Eintrag erfassen">{header}{children}</NativeAside>;
 }
 export function DocumentationWorkspace({ actor, employeeView = false }: {
     actor: DocumentationActor;
@@ -186,7 +209,7 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
               <NativeH1>Dokumentation</NativeH1>
               <NativeP className="cs-doc-intro">Abgeschlossene Einsätze und freie Einträge für das Team.</NativeP>
               <NativeDiv className="cs-doc-actions">
-                <NativeButton type="button" className="cs-doc-btn primary" disabled={busy} onClick={() => void start()}>
+                <NativeButton type="button" className="cs-doc-btn primary" aria-haspopup={employeeView ? 'dialog' : undefined} disabled={busy} onClick={() => void start()}>
                   <NativeSpan aria-hidden="true">＋</NativeSpan> Neuer Eintrag
                 </NativeButton>
                 <NativeButton type="button" className="cs-doc-btn cs-doc-refresh" aria-label="Aktualisieren" disabled={loading} onClick={() => void refresh()}>
@@ -248,27 +271,30 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
           </NativeDiv>
 
           {error && <NativeDiv role="alert" className="cs-doc-error">{error} <NativeButton type="button" className="cs-doc-btn" onClick={() => void refresh()}>Erneut laden</NativeButton></NativeDiv>}
-          <NativeDiv className={`cs-doc-layout${draft ? ' has-panel' : ''}`}>
-            {draft && <NativeAside className="cs-doc-panel" aria-label="Neuen Eintrag erfassen"><NativeDiv className="cs-doc-panel-head"><NativeDiv><NativeP className="cs-doc-eyebrow">Jederzeit dokumentieren</NativeP><NativeH2>Neuer Eintrag</NativeH2></NativeDiv><NativeButton type="button" className="cs-doc-btn icon" aria-label="Editor schließen" disabled={busy} onClick={() => void close()}>×</NativeButton></NativeDiv>
+          <NativeDiv className={`cs-doc-layout${draft && !employeeView ? ' has-panel' : ''}`}>
+            {draft && <DocumentationComposer modal={employeeView} busy={busy || recording} onClose={() => void close()}>
               <NativeForm className="cs-doc-panel-body" onSubmit={e => { e.preventDefault(); void save(); }}>
-                <NativeP className="cs-doc-hint">Dieser Eintrag ist für das gesamte Team Ihres Unternehmens sichtbar. Vertrauliche Personalakten bleiben in der Personalverwaltung.</NativeP>
                 {saveError && <NativeDiv role="alert" className="cs-doc-error">{saveError}</NativeDiv>}
-                <NativeFieldset disabled={busy || uncertain || Boolean(savedId)} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}><NativeDiv className="cs-doc-form-grid">
-                  <NativeLabel>Bereich<NativeSelect value={draft.area} onChange={e => changeDraft({ area: e.target.value as DocumentationDraft['area'] })}>{DOCUMENTATION_AREAS.map(a => <NativeOption key={a.value} value={a.value}>{a.label}</NativeOption>)}</NativeSelect></NativeLabel>
-                  <NativeLabel>Kategorie<NativeSelect value={draft.category} onChange={e => changeDraft({ category: e.target.value as DocumentationDraft['category'] })}>{DOCUMENTATION_CATEGORIES.map(c => <NativeOption key={c.value} value={c.value}>{c.label}</NativeOption>)}</NativeSelect></NativeLabel>
-                  <NativeLabel>Klient{draft.area === 'client' ? ' *' : ' (optional)'}<NativeSelect value={draft.clientId} required={draft.area === 'client'} onChange={e => changeDraft({ clientId: e.target.value })}><NativeOption value="">Bitte auswählen</NativeOption>{page.clients.map(o => <NativeOption key={o.id} value={o.id}>{o.name}</NativeOption>)}</NativeSelect></NativeLabel>
-                  <NativeLabel>Mitarbeitende{draft.area === 'employee' ? ' *' : ' (optional)'}<NativeSelect value={draft.employeeId} required={draft.area === 'employee'} onChange={e => changeDraft({ employeeId: e.target.value })}><NativeOption value="">Bitte auswählen</NativeOption>{page.employees.map(o => <NativeOption key={o.id} value={o.id}>{o.name}</NativeOption>)}</NativeSelect></NativeLabel>
-                  <NativeLabel>Dringlichkeit<NativeSelect value={draft.priority} onChange={e => changeDraft({ priority: e.target.value as DocumentationDraft['priority'] })}><NativeOption value="normal">Normal</NativeOption><NativeOption value="important">Wichtig</NativeOption><NativeOption value="urgent">Dringend</NativeOption></NativeSelect></NativeLabel>
-                  <NativeLabel className="cs-doc-full">Zeitpunkt (Berlin)<NativeInput type="datetime-local" required value={dateInput(draft.occurredAt)} onChange={e => changeDraft({ occurredAt: berlinInputToIso(e.target.value) })}/></NativeLabel>
-                  <NativeLabel className="cs-doc-full">Titel *<NativeInput required autoFocus maxLength={180} value={draft.title} placeholder="Was möchten Sie festhalten?" onChange={e => changeDraft({ title: e.target.value })}/></NativeLabel>
-                  <NativeLabel className="cs-doc-full">Dokumentation *<NativeTextarea required maxLength={20000} value={draft.body} placeholder="Beobachtungen, Gespräche, Absprachen oder wichtige Veränderungen …" onChange={e => changeDraft({ body: e.target.value })}/></NativeLabel>
-                </NativeDiv></NativeFieldset>
-                {actor.canUpload && <DocumentationFilePicker files={files} disabled={busy || uncertain} onRecording={setRecording} onChange={next => { if (savedId)
-            for (const f of files.filter(f => !f.done && !next.some(n => n.id === f.id)))
-                void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => { }); setFiles(next); }}/>}
-                <NativeP className="cs-doc-hint">Verfasser und Erfassungszeit werden automatisch gespeichert. Gespeicherte Inhalte bleiben erhalten; Korrekturen werden als Ergänzung dokumentiert.</NativeP>
-                <NativeDiv className="cs-doc-actions"><NativeButton type="submit" className="cs-doc-btn primary" disabled={busy || recording}>{busy ? 'Wird gespeichert …' : uncertain ? 'Speicherbestätigung prüfen' : savedId ? 'Fehlende Anhänge speichern' : 'Eintrag speichern'}</NativeButton><NativeButton type="button" className="cs-doc-btn" disabled={busy} onClick={() => void close()}>Abbrechen</NativeButton></NativeDiv>
-              </NativeForm></NativeAside>}
+                <NativeDiv className="cs-doc-form-content">
+                  <NativeP className="cs-doc-hint">Dieser Eintrag ist für das gesamte Team Ihres Unternehmens sichtbar. Vertrauliche Personalakten bleiben in der Personalverwaltung.</NativeP>
+                  <NativeFieldset disabled={busy || uncertain || Boolean(savedId)} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}><NativeDiv className="cs-doc-form-grid">
+                    <NativeLabel>Bereich<NativeSelect value={draft.area} onChange={e => changeDraft({ area: e.target.value as DocumentationDraft['area'] })}>{DOCUMENTATION_AREAS.map(a => <NativeOption key={a.value} value={a.value}>{a.label}</NativeOption>)}</NativeSelect></NativeLabel>
+                    <NativeLabel>Kategorie<NativeSelect value={draft.category} onChange={e => changeDraft({ category: e.target.value as DocumentationDraft['category'] })}>{DOCUMENTATION_CATEGORIES.map(c => <NativeOption key={c.value} value={c.value}>{c.label}</NativeOption>)}</NativeSelect></NativeLabel>
+                    <NativeLabel>Dringlichkeit<NativeSelect value={draft.priority} onChange={e => changeDraft({ priority: e.target.value as DocumentationDraft['priority'] })}><NativeOption value="normal">Normal</NativeOption><NativeOption value="important">Wichtig</NativeOption><NativeOption value="urgent">Dringend</NativeOption></NativeSelect></NativeLabel>
+                    <NativeLabel>Klient{draft.area === 'client' ? ' *' : ' (optional)'}<NativeSelect value={draft.clientId} required={draft.area === 'client'} onChange={e => changeDraft({ clientId: e.target.value })}><NativeOption value="">Bitte auswählen</NativeOption>{page.clients.map(o => <NativeOption key={o.id} value={o.id}>{o.name}</NativeOption>)}</NativeSelect></NativeLabel>
+                    <NativeLabel>Mitarbeitende{draft.area === 'employee' ? ' *' : ' (optional)'}<NativeSelect value={draft.employeeId} required={draft.area === 'employee'} onChange={e => changeDraft({ employeeId: e.target.value })}><NativeOption value="">Bitte auswählen</NativeOption>{page.employees.map(o => <NativeOption key={o.id} value={o.id}>{o.name}</NativeOption>)}</NativeSelect></NativeLabel>
+                    <NativeLabel>Zeitpunkt (Berlin)<NativeInput type="datetime-local" required value={dateInput(draft.occurredAt)} onChange={e => changeDraft({ occurredAt: berlinInputToIso(e.target.value) })}/></NativeLabel>
+                    <NativeLabel className="cs-doc-full">Titel *<NativeInput required autoFocus={!employeeView} maxLength={180} value={draft.title} placeholder="Was möchten Sie festhalten?" onChange={e => changeDraft({ title: e.target.value })}/></NativeLabel>
+                    <NativeLabel className="cs-doc-full">Dokumentation *<NativeTextarea required maxLength={20000} value={draft.body} placeholder="Beobachtungen, Gespräche, Absprachen oder wichtige Veränderungen …" onChange={e => changeDraft({ body: e.target.value })}/></NativeLabel>
+                  </NativeDiv></NativeFieldset>
+                  {actor.canUpload && <DocumentationFilePicker files={files} disabled={busy || uncertain} mediaOnly={actor.mediaOnly} onRecording={setRecording} onChange={next => { if (savedId)
+                for (const f of files.filter(f => !f.done && !next.some(n => n.id === f.id)))
+                    void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => { }); setFiles(next); }}/>}
+                  <NativeP className="cs-doc-hint">Verfasser und Erfassungszeit werden automatisch gespeichert. Korrekturen können als Ergänzung erfasst werden.</NativeP>
+                </NativeDiv>
+                <NativeFooter className="cs-doc-actions cs-doc-editor-actions"><NativeButton type="button" className="cs-doc-btn" disabled={busy || recording} onClick={() => void close()}>Abbrechen</NativeButton><NativeButton type="submit" className="cs-doc-btn primary" disabled={busy || recording}>{busy ? 'Wird gespeichert …' : uncertain ? 'Speicherbestätigung prüfen' : savedId ? 'Fehlende Anhänge speichern' : 'Eintrag speichern'}</NativeButton></NativeFooter>
+              </NativeForm>
+            </DocumentationComposer>}
 
             <NativeSection className="cs-doc-list-pane" aria-label="Dokumentationsverlauf" aria-busy={loading}>
               <NativeDiv className="cs-doc-summary">

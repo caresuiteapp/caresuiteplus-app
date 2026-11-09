@@ -13,4 +13,11 @@ describe('documentation persistence contract',()=>{
  it('rejects a foreign tenant receipt and keeps the write uncertain',async()=>{api.rpc.mockResolvedValue({data:{id,tenant_id:id,created_at:'2026-11-05T10:00:00Z'}});expect(await createDocumentation(actor,id,draft())).toMatchObject({ok:false,uncertain:true});});
  it('only confirms a matching durable create receipt',async()=>{api.rpc.mockResolvedValue({data:{id,tenant_id:actor.tenantId,created_at:'2026-11-05T10:00:00Z'}});expect(await createDocumentation(actor,id,draft())).toEqual({ok:true,data:{id}});expect(api.rpc.mock.calls[0]).toEqual(['office_documentation_create',expect.objectContaining({p_id:id,p_tenant_id:actor.tenantId})]);});
  it('rejects incomplete server pages rather than exposing partial or malformed content',async()=>{api.rpc.mockResolvedValue({data:{items:[],total:0,months:['invalid'],clients:[],employees:[]}});expect((await listDocumentation(actor,filters)).ok).toBe(false);});
+ it('sorts the surname-first labels using German alphabetical order for both selectors',async()=>{
+  const people=[{id:actor.userId,name:'Zimmer, Anna'},{id:actor.tenantId,name:'Ähren, Lilli'},{id,name:'Reinhardt, Kevin'}];
+  api.rpc.mockResolvedValue({data:{items:[],total:0,months:[],clients:people,employees:people}});
+  const result=await listDocumentation(actor,filters);expect(result.ok).toBe(true);
+  if(!result.ok)return;
+  for(const options of [result.data.clients,result.data.employees])expect(options.map(person=>person.name)).toEqual(['Ähren, Lilli','Reinhardt, Kevin','Zimmer, Anna']);
+ });
 });

@@ -13,6 +13,9 @@ const registeredClientsSql = readFileSync('supabase/patches/office_documentation
 const mediaSql = readFileSync('supabase/patches/office_documentation_media.sql','utf8');
 const visitMediaSql = readFileSync('supabase/patches/office_documentation_visit_media.sql','utf8');
 const releaseSql = readFileSync('supabase/patches/office_documentation_release.sql','utf8');
+const employeeAttachmentMigration = readFileSync('supabase/migrations/20261109072535_office_documentation_employee_attachments.sql','utf8');
+const employeeAttachmentRelease = readFileSync('supabase/patches/office_documentation_employee_attachments_release.sql','utf8');
+assert.ok(employeeAttachmentRelease.includes(employeeAttachmentMigration.replace('\nBEGIN;\n','\n').split('\nCOMMIT;')[0]));
 for (const source of [mediaSql,visitMediaSql]) assert.ok(releaseSql.includes(source.replace('\nBEGIN;\n','\n').split('\nCOMMIT;')[0]));
 assert.equal(mediaSql,readFileSync('supabase/migrations/20261106185632_office_documentation_media.sql','utf8'));
 assert.equal(visitMediaSql,readFileSync('supabase/migrations/20261106191229_office_documentation_visit_media.sql','utf8'));
@@ -47,6 +50,7 @@ try {
   await db.exec('CREATE SCHEMA supabase_migrations;CREATE TABLE supabase_migrations.schema_migrations(version text PRIMARY KEY,name text,statements text[]);');
   await db.exec(`CREATE FUNCTION public.portal_employee_assigned_visit_ids(p_tenant uuid) RETURNS SETOF uuid LANGUAGE sql STABLE SECURITY DEFINER SET search_path=pg_catalog AS $$ SELECT id FROM public.assist_visits WHERE tenant_id=p_tenant AND employee_id=public.resolve_current_employee_id() $$;`);
   await db.exec(releaseSql);
+  await db.exec(employeeAttachmentRelease);
   await db.query('INSERT INTO public.tenants(id) VALUES($1),($2)',[ids.tenant,ids.foreignTenant]);
   await db.query('INSERT INTO auth.users(id) VALUES($1),($2),($3)',[ids.admin,ids.staff,ids.clientUser]);
   await db.query("INSERT INTO public.roles(id,key,is_admin_role) VALUES($1,'business_admin',true)",[ids.role]);
@@ -54,7 +58,7 @@ try {
   await db.query("INSERT INTO public.employees(id,tenant_id,first_name,last_name) VALUES($1,$2,'Team','Test'),($3,$4,'Foreign','Staff')",[ids.employee,ids.tenant,ids.foreignEmployee,ids.foreignTenant]);
   await db.query("INSERT INTO public.clients(id,tenant_id,first_name,last_name) VALUES($1,$2,'Client','Test'),($3,$4,'Foreign','Client')",[ids.client,ids.tenant,ids.foreignClient,ids.foreignTenant]);
   await db.query('INSERT INTO public.employee_portal_accounts(id,tenant_id,employee_id,auth_user_id) VALUES($1,$2,$3,$4)',[ids.account,ids.tenant,ids.employee,ids.staff]);
-  await actor(); let receipt;const id=randomUUID();
+  await actor(); let receipt,employeeEntryId;const id=randomUUID();
   await pass('free entry persists without any assignment and retries exactly once',async()=>{
     receipt=await create(payload(),id);assert.equal(receipt.id,id);assert.equal((await list()).total,1);
     assert.deepEqual(await create(payload(),id),receipt);assert.equal((await list()).total,1);
@@ -95,6 +99,15 @@ try {
     await owner("UPDATE public.clients SET status='active' WHERE id=$1",[ids.client]);
     await actor();assert.ok((await list()).clients.some(c=>c.id===ids.client));assert.deepEqual(await create(payload(),id),receipt);
   });
+  await pass('both person selectors use the actual surname and keep compound given names',async()=>{
+    const earlierClient=randomUUID(),earlierEmployee=randomUUID();
+    await owner("INSERT INTO public.clients(id,tenant_id,first_name,last_name) VALUES($1,$2,'Mara Louise','Adler')",[earlierClient,ids.tenant]);
+    await owner("INSERT INTO public.employees(id,tenant_id,first_name,last_name) VALUES($1,$2,'Kevin','Reinhardt')",[earlierEmployee,ids.tenant]);
+    await actor(ids.staff,'employee');const choices=await list();
+    assert.deepEqual(choices.clients.map(c=>c.name),['Adler, Mara Louise','Test, Client']);
+    assert.deepEqual(choices.employees.map(e=>e.name),['Reinhardt, Kevin','Test, Team']);
+    await actor();
+  });
   await pass('month boundaries use Berlin summer time and search treats wildcards literally',async()=>{
     assert.equal((await list({month:'2026-04'})).total,1);assert.equal((await list({month:'2026-03'})).total,0);
     assert.equal((await list({query:'BEOBACHTUNG'})).total,1);assert.equal((await list({query:'%'})).total,0);
@@ -104,6 +117,7 @@ try {
   await pass('active staff can read the common feed and document without an Office profile',async()=>{
     await actor(ids.staff,'employee');assert.equal((await list()).items[0].id,id);
     const entry=await create(payload({area:'administration',clientId:'',employeeId:'',title:'Team report'}));
+    employeeEntryId=entry.id;
     assert.equal((await list()).items.find(i=>i.id===entry.id).author_name,'Team Test');
     await denied(db.query('SELECT * FROM care_security.office_documentation_entries'));
     await denied(db.query('DELETE FROM care_security.office_documentation_entries'));
@@ -163,6 +177,32 @@ try {
     await denied(attachments('complete',{id:pending.id}),'22023');
     assert.equal((await list()).total,53);
   });
+  await pass('employees can finish photo, video and PDF uploads for their own free entry only',async()=>{
+    const attachments=(op='list',data={},tenant=ids.tenant)=>result('SELECT public.office_documentation_attachments($1,$2,$3,$4,$5::jsonb) AS result',[tenant,employeeEntryId,'manual',op,JSON.stringify(data)]);
+    await actor(ids.staff,'employee');assert.equal((await attachments()).canUpload,true);
+    for(const mime of ['audio/mpeg','text/html','image/svg+xml','application/msword']) {
+      await denied(attachments('prepare',{id:randomUUID(),name:'file',mime,size:3}),'22023');
+    }
+    const formats=[['photo.heic','image/heic'],['video.mov','video/quicktime'],['report.pdf','application/pdf']];
+    for(const [name,mime] of formats) {
+      const file={id:randomUUID(),name,mime,size:3};
+      const prepared=await attachments('prepare',file);
+      assert.equal(prepared.storage_path,ids.tenant+'/manual/'+employeeEntryId+'/'+file.id);
+      assert.deepEqual(await attachments('prepare',file),prepared);
+      await denied(attachments('complete',{id:file.id}),'22023');
+      await db.query("INSERT INTO storage.objects(bucket_id,name,owner_id,metadata) VALUES('office-documentation',$1,$2,$3::jsonb)",[prepared.storage_path,ids.staff,JSON.stringify({size:3,mimetype:mime})]);
+      assert.equal((await attachments('complete',{id:file.id})).state,'ready');
+      assert.equal((await attachments('complete',{id:file.id})).state,'ready');
+      await denied(attachments('discard',{id:file.id}));
+    }
+    await denied(attachments('list',{},ids.foreignTenant));
+    await actor();assert.deepEqual(new Set((await attachments()).items.map(item=>item.mime_type)),new Set(formats.map(([,mime])=>mime)));
+    for(const portal of ['client','family']) {await actor(ids.clientUser,portal);await denied(attachments());}
+    await owner('UPDATE public.employee_portal_accounts SET blocked_at=now() WHERE id=$1',[ids.account]);
+    await actor(ids.staff,'employee');await denied(attachments());
+    await owner('UPDATE public.employee_portal_accounts SET blocked_at=NULL WHERE id=$1',[ids.account]);
+    await actor();
+  });
   await pass('employee photo/video originals flow into completed documentation without metadata copies or portal leaks',async()=>{
     const mediaId=randomUUID(),imageId=randomUUID(),folder=`tenant/${ids.tenant}/assist/visits/${ids.visit}/attachments/`,path=folder+mediaId+'.mp4';
     const view=()=>result('SELECT public.office_documentation_attachments($1,$2,$3) AS result',[ids.tenant,ids.documentation,'visit']);
@@ -196,8 +236,9 @@ try {
   });
   await pass('Git Bash release transaction can be repeated without changing originals or reapplying schema',async()=>{
     await db.exec('RESET ROLE');const before=(await db.query('SELECT * FROM storage.objects ORDER BY id')).rows;
-    await db.exec(releaseSql);assert.deepEqual((await db.query('SELECT * FROM storage.objects ORDER BY id')).rows,before);
-    assert.equal((await db.query('SELECT count(*)::int as n FROM supabase_migrations.schema_migrations')).rows[0].n,2);
+    await db.exec(releaseSql);await db.exec(employeeAttachmentRelease);
+    assert.deepEqual((await db.query('SELECT * FROM storage.objects ORDER BY id')).rows,before);
+    assert.equal((await db.query('SELECT count(*)::int as n FROM supabase_migrations.schema_migrations')).rows[0].n,3);
   });
   console.log(`[office-documentation-db] ${checks} scenario groups passed.`);
 } finally {await db.close();}

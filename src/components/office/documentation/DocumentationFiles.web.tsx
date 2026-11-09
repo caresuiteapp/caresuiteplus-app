@@ -1,10 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
 import type { DocumentationActor, DocumentationEntry, DocumentationFile, DocumentationUpload } from '@/lib/office/documentation/model';
 import { newDocumentationId } from '@/lib/office/documentation/model';
-import { DOCUMENTATION_FILE_LIMIT, discardDocumentationFile, documentationFileUrl, fileKind, fileSize, listDocumentationFiles, uploadDocumentationFile } from '@/lib/office/documentation/attachments';
+import { DOCUMENTATION_FILE_LIMIT, EMPLOYEE_DOCUMENTATION_FILE_ACCEPT, discardDocumentationFile, documentationFileUrl, employeeDocumentationFileMime, fileKind, fileSize, listDocumentationFiles, uploadDocumentationFile } from '@/lib/office/documentation/attachments';
 import { useVoiceMessage } from '@/hooks/office/useDocumentationVoice';
 
-export function DocumentationFilePicker({ files, onChange, disabled = false, onRecording }: { files: DocumentationUpload[]; onChange: (files: DocumentationUpload[]) => void; disabled?: boolean; onRecording?: (active: boolean) => void }) {
+export function DocumentationFilePicker({ files, onChange, disabled = false, mediaOnly = false, onRecording }: {
+  files: DocumentationUpload[]; onChange: (files: DocumentationUpload[]) => void;
+  disabled?: boolean; mediaOnly?: boolean; onRecording?: (active: boolean) => void;
+}) {
   const [error, setError] = useState('');
   const voice = useVoiceMessage();
   const [voiceBusy, setVoiceBusy] = useState(false);
@@ -15,6 +18,7 @@ export function DocumentationFilePicker({ files, onChange, disabled = false, onR
     if (disabled) return;
     if (files.length + incoming.length > 10) { setError('Bis zu zehn Anhänge pro Eintrag.'); return; }
     if (incoming.some(f => f.size < 1 || f.size > DOCUMENTATION_FILE_LIMIT || f.name.length > 240 || /[\x00-\x1f/\\]/.test(f.name))) { setError('Bitte gültige, nicht leere Dateien bis jeweils 50 MB auswählen.'); return; }
+    if (mediaOnly && incoming.some(file => !employeeDocumentationFileMime(file))) { setError('Bitte nur Fotos, Videos oder PDFs auswählen.'); return; }
     setError(''); onChange([...files, ...incoming.map(file => ({ id: newDocumentationId(), file }))]);
   };
   const recording = async () => {
@@ -29,10 +33,15 @@ export function DocumentationFilePicker({ files, onChange, disabled = false, onR
       } else { const r = await voice.start(); if (!r.ok && alive.current) setError(r.error); }
     } finally { if (alive.current) setVoiceBusy(false); }
   };
-  return <section className="cs-doc-uploads" aria-label="Anhänge hinzufügen"><div className="cs-doc-upload-heading"><strong>Dateien & Sprachnotizen</strong><span>Bis zu 10 Dateien · je 50 MB</span></div>
-    <label className="cs-doc-dropzone">Fotos, Videos, PDFs oder andere Dateien<input type="file" multiple disabled={disabled || voice.isRecording} aria-label="Dateien auswählen" onChange={e => { add(Array.from(e.target.files ?? [])); e.target.value = ''; }} /></label>
-    <div className="cs-doc-actions"><button type="button" className={`cs-doc-btn${voice.isRecording ? ' recording' : ''}`} disabled={disabled || voiceBusy || (!voice.isSupported && !voice.isRecording) || files.length >= 10} onClick={() => void recording()}>{voice.isRecording ? `■ Aufnahme beenden · ${voice.durationSeconds} s` : '● Sprachnotiz aufnehmen'}</button>{voice.isRecording && <button type="button" className="cs-doc-btn" onClick={() => voice.cancel()}>Aufnahme verwerfen</button>}</div>
-    {!voice.isSupported && <p className="cs-doc-hint">{voice.unsupportedMessage} Audiodateien können Sie auch als Datei anhängen.</p>}
+  return <section className="cs-doc-uploads" aria-label="Anhänge hinzufügen"><div className="cs-doc-upload-heading"><strong>{mediaOnly ? 'Anhänge hinzufügen' : 'Dateien & Sprachnotizen'}</strong><span>Bis zu 10 Dateien · je 50 MB</span></div>
+    <label className="cs-doc-dropzone">{mediaOnly ? 'Fotos, Videos und PDFs' : 'Fotos, Videos, PDFs oder andere Dateien'}
+      <input type="file" multiple accept={mediaOnly ? EMPLOYEE_DOCUMENTATION_FILE_ACCEPT : undefined} disabled={disabled || voice.isRecording}
+        aria-label="Dateien auswählen" onChange={e => { add(Array.from(e.target.files ?? [])); e.target.value = ''; }} />
+    </label>
+    {!mediaOnly && <>
+      <div className="cs-doc-actions"><button type="button" className={`cs-doc-btn${voice.isRecording ? ' recording' : ''}`} disabled={disabled || voiceBusy || (!voice.isSupported && !voice.isRecording) || files.length >= 10} onClick={() => void recording()}>{voice.isRecording ? `■ Aufnahme beenden · ${voice.durationSeconds} s` : '● Sprachnotiz aufnehmen'}</button>{voice.isRecording && <button type="button" className="cs-doc-btn" onClick={() => voice.cancel()}>Aufnahme verwerfen</button>}</div>
+      {!voice.isSupported && <p className="cs-doc-hint">{voice.unsupportedMessage} Audiodateien können Sie auch als Datei anhängen.</p>}
+    </>}
     {(error || voice.error) && <p role="alert" className="cs-doc-error">{error || voice.error}</p>}
     {files.length > 0 && <ul className="cs-doc-pending">{files.map(f => <li key={f.id}><span className="cs-doc-file-icon">{f.done ? '✓' : fileKind(f.file.type) === 'audio' ? 'AUDIO' : f.file.name.split('.').pop()?.slice(0, 5).toUpperCase() || 'DATEI'}</span><span><strong>{f.file.name}</strong><small>{fileSize(f.file.size)}{f.done ? ' · gespeichert' : ''}</small></span>{!f.done && <button type="button" className="cs-doc-btn icon" disabled={disabled || voice.isRecording} aria-label={`${f.file.name} entfernen`} onClick={() => onChange(files.filter(x => x.id !== f.id))}>×</button>}</li>)}</ul>}
   </section>;
@@ -72,7 +81,7 @@ export function DocumentationFiles({ actor, entry, onState }: { actor: Documenta
   };
   return <section className="cs-doc-files" aria-label="Dateianhänge"><h3>Anhänge <span>{items.length}</span></h3>{loading && <p role="status">Anhänge werden geladen …</p>}{error && <p role="alert" className="cs-doc-error">{error} <button type="button" className="cs-doc-btn" onClick={() => void load()}>Erneut laden</button></p>}
     {items.map(file => <FilePreview key={file.id} actor={actor} file={file} />)}
-    {allowed && items.filter(f => f.storage_bucket !== 'office-documents').length < 10 && <><DocumentationFilePicker files={files} disabled={busy} onChange={next => { for (const f of files.filter(f => !f.done && !next.some(n => n.id === f.id))) void discardDocumentationFile(actor, entry, f).catch(() => {}); setFiles(next); }} onRecording={setRecording} />{files.length > 0 && <button type="button" className="cs-doc-btn primary" disabled={busy || recording} onClick={() => void upload()}>{busy ? 'Anhänge werden gespeichert …' : 'Anhänge speichern'}</button>}</>}
+    {allowed && items.filter(f => f.storage_bucket !== 'office-documents').length < 10 && <><DocumentationFilePicker files={files} disabled={busy} mediaOnly={actor.mediaOnly} onChange={next => { for (const f of files.filter(f => !f.done && !next.some(n => n.id === f.id))) void discardDocumentationFile(actor, entry, f).catch(() => {}); setFiles(next); }} onRecording={setRecording} />{files.length > 0 && <button type="button" className="cs-doc-btn primary" disabled={busy || recording} onClick={() => void upload()}>{busy ? 'Anhänge werden gespeichert …' : 'Anhänge speichern'}</button>}</>}
     {!loading && !error && !items.length && !allowed && <p className="cs-doc-hint">Zu diesem Eintrag sind keine Anhänge hinterlegt.</p>}
   </section>;
 }

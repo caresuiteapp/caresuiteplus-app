@@ -102,7 +102,7 @@ export const documentationCss = `
   display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px;
 }
 .cs-doc-summary-copy { display:flex; align-items:baseline; flex-wrap:wrap; gap:5px 10px; min-width:0 }
-.cs-doc-summary h2,.cs-doc-panel h2 { color:var(--ink); font-size:calc(18px * var(--app-font-scale,1)); line-height:1.3; font-weight:800 }
+.cs-doc-summary h2,.cs-doc-panel h2,.cs-doc-editor h2 { color:var(--ink); font-size:calc(18px * var(--app-font-scale,1)); line-height:1.3; font-weight:800 }
 .cs-doc-summary p { color:var(--muted); font-size:calc(12px * var(--app-font-scale,1)); line-height:1.45 }
 .cs-doc-summary strong { color:var(--accent); font-weight:800; font-variant-numeric:tabular-nums }
 .cs-doc-list { display:grid; grid-template-columns:minmax(0,1fr); gap:12px; min-width:0 }
@@ -167,6 +167,7 @@ export const documentationCss = `
 }
 .cs-doc-panel-head > div,.cs-doc-reader-head > div { flex:1; min-width:0 }
 .cs-doc-panel-body { padding:15px; display:flex; flex-direction:column; gap:12px; min-width:0 }
+.cs-doc-form-content { display:flex; flex-direction:column; gap:12px; min-width:0 }
 .cs-doc-full { grid-column:1 / -1 }
 .cs-doc-uploads,.cs-doc-file {
   border:1px solid var(--line); border-radius:13px; background:var(--panel); padding:12px; min-width:0;
@@ -213,11 +214,39 @@ export const documentationCss = `
 .cs-doc-reader-footer { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; flex:none; padding:11px 16px; border-top:1px solid var(--line); background:#213a51 }
 .cs-doc-reader-footer span { color:var(--muted); font-size:calc(12px * var(--app-font-scale,1)) }
 
+.cs-doc.cs-doc-editor {
+  width:min(1060px,calc(100vw - 40px)); height:min(850px,calc(100dvh - 40px)); max-width:none; max-height:none;
+  margin:auto; padding:0; border:1px solid var(--line); border-radius:22px; overflow:hidden;
+  background:#182d43; box-shadow:0 24px 80px rgba(4,12,24,.55); container-type:inline-size;
+}
+.cs-doc-editor[open] { display:flex; flex-direction:column }
+.cs-doc-editor::backdrop { background:rgba(8,24,42,.76); backdrop-filter:blur(6px) }
+.cs-doc-editor .cs-doc-panel-head { flex:none; align-items:center; padding:16px 22px }
+.cs-doc-editor h2 { margin-top:3px; font-size:calc(23px * var(--app-font-scale,1)) }
+.cs-doc-editor .cs-doc-panel-body { flex:1 1 auto; min-height:0; padding:0; gap:0 }
+.cs-doc-editor .cs-doc-panel-body > .cs-doc-error { flex:none; margin:10px 22px 0 }
+.cs-doc-editor .cs-doc-form-content {
+  flex:1 1 auto; min-height:0; gap:10px; padding:14px 22px 18px; overflow-y:auto; overflow-x:hidden;
+  overscroll-behavior-y:contain; scrollbar-width:thin; scrollbar-color:rgba(188,238,255,.38) transparent;
+}
+.cs-doc-editor textarea { min-height:clamp(190px,26dvh,320px); font-size:calc(15px * var(--app-font-scale,1)); line-height:1.6 }
+.cs-doc-editor .cs-doc-editor-actions {
+  flex:none; justify-content:flex-end; padding:10px 22px; border-top:1px solid var(--line); background:#213a51;
+}
+
+@container (min-width:340px) {
+  .cs-doc-editor .cs-doc-form-grid { grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr) }
+}
 @container (min-width:580px) {
-  .cs-doc-filters,.cs-doc-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .cs-doc-filters,.cs-doc-form-grid,.cs-doc-editor .cs-doc-form-grid { grid-template-columns:repeat(2,minmax(0,1fr)) }
+  .cs-doc-editor .cs-doc-dropzone { flex-direction:row; align-items:center; justify-content:space-between; gap:12px; padding:6px 10px }
+  .cs-doc-editor .cs-doc-dropzone input { width:auto; padding:0 }
 }
 @container (min-width:650px) {
   .cs-doc-hero-art { display:flex }
+}
+@container (min-width:760px) {
+  .cs-doc-editor .cs-doc-form-grid { grid-template-columns:repeat(3,minmax(0,1fr)) }
 }
 @container (min-width:850px) {
   .cs-doc-list { grid-template-columns:repeat(2,minmax(0,1fr)) }
@@ -274,5 +303,18 @@ export const documentationCss = `
   .cs-doc-reading-width { padding:15px 12px 23px }
   .cs-doc-reader-footer { padding:8px }
   .cs-doc-reader-footer .cs-doc-btn { padding:6px 8px }
+}
+@media (max-width:680px), (orientation:landscape) and (max-height:500px) {
+  .cs-doc.cs-doc-editor { width:min(1060px,calc(100vw - 12px)); height:calc(100dvh - 12px); border-radius:17px }
+  .cs-doc-editor .cs-doc-panel-head,.cs-doc-editor .cs-doc-editor-actions { padding:10px 12px }
+  .cs-doc-editor .cs-doc-form-content { padding:12px }
+  .cs-doc-editor .cs-doc-panel-body > .cs-doc-error { margin:8px 12px 0 }
+}
+@media (orientation:landscape) and (max-height:500px) and (min-width:760px) {
+  .cs-doc-editor .cs-doc-form-grid { grid-template-columns:minmax(0,.85fr) minmax(0,1.05fr) repeat(2,minmax(0,1fr)) }
+  .cs-doc-editor .cs-doc-full { grid-column:3 / -1 }
+  .cs-doc-editor .cs-doc-full:nth-last-child(2) { grid-row:1 }
+  .cs-doc-editor .cs-doc-full:last-child { grid-row:2 / 4 }
+  .cs-doc-editor textarea { min-height:140px }
 }
 `;

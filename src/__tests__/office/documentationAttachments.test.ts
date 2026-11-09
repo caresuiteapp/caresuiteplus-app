@@ -43,6 +43,13 @@ describe('private documentation attachments',()=>{
  it('never renders active SVG or HTML as inline media',()=>{
   expect(fileKind('image/svg+xml')).toBe('file');expect(fileKind('text/html')).toBe('file');expect(fileKind('application/pdf')).toBe('pdf');expect(fileKind('audio/webm')).toBe('audio');
  });
+ it('normalizes a PDF without a reported MIME type and rejects other employee files before requesting storage',async()=>{
+  const employee={...actor,mediaOnly:true};
+  await expect(uploadDocumentationFile(employee,entry,{...upload,file:{...upload.file,name:'voice.mp3',type:'audio/mpeg'}})).rejects.toThrow('PDF-Datei');
+  expect(api.rpc).not.toHaveBeenCalled();
+  await uploadDocumentationFile(employee,entry,{...upload,file:{...upload.file,name:'bericht.pdf',type:''}});
+  expect(api.upload).toHaveBeenCalledWith(path,expect.any(ArrayBuffer),expect.objectContaining({contentType:'application/pdf'}));
+ });
  it('reads original visit photos from their own bucket and rejects another visit folder',async()=>{
   const visit='55555555-5555-4555-8555-555555555555';const target={...entry,source:'visit' as const,visit_id:visit};
   const original={...file,storage_bucket:'office-documents' as const,storage_path:`tenant/${actor.tenantId}/assist/visits/${visit}/attachments/original.jpg`};

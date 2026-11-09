@@ -1,9 +1,11 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isUuid } from '@/lib/validation/uuid';
 import { DOCUMENTATION_AREAS, DOCUMENTATION_CATEGORIES, validateDocumentation } from './model';
-import type { DocumentationActor, DocumentationDraft, DocumentationFilters, DocumentationPage, DocumentationResult } from './model';
+import type { DocumentationActor, DocumentationDraft, DocumentationFilters, DocumentationOption, DocumentationPage, DocumentationResult } from './model';
 
 type Row = Record<string, unknown>;
+const nameOrder = new Intl.Collator('de-DE', { sensitivity: 'base' });
+const sortPeople = (people: DocumentationOption[]) => [...people].sort((a, b) => nameOrder.compare(a.name, b.name) || a.id.localeCompare(b.id));
 function row(value: unknown): Row { return value !== null && typeof value === 'object' ? value as Row : {}; }
 function failure(error: unknown, write = false): DocumentationResult<never> {
   const code = String(row(error).code ?? '');
@@ -40,7 +42,8 @@ export async function listDocumentation(actor: DocumentationActor, filters: Docu
         || ['client_id','employee_id','visit_id'].some(k => item[k] !== null && !isUuid(item[k]))) throw new Error('Ungültiger Eintrag');
     }
     for (const value of [...data.clients, ...data.employees]) if (!isUuid(row(value).id) || typeof row(value).name !== 'string') throw new Error('Ungültige Zuordnung');
-    return { ok: true, data: data as unknown as DocumentationPage };
+    const page = data as unknown as DocumentationPage;
+    return { ok: true, data: { ...page, clients: sortPeople(page.clients), employees: sortPeople(page.employees) } };
   } catch (error) { return failure(error); }
 }
 export async function createDocumentation(actor: DocumentationActor, id: string, draft: DocumentationDraft): Promise<DocumentationResult<{ id: string }>> {

@@ -1,15 +1,22 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isUuid } from '@/lib/validation/uuid';
+import { EMPLOYEE_PORTAL_ALLOWED_IMAGE_MIME_TYPES, EMPLOYEE_PORTAL_ALLOWED_VIDEO_MIME_TYPES, inferEmployeePortalMimeType } from '@/lib/portal/employeePortalMediaValidation';
 import { documentationRequest } from './service';
 import type { DocumentationActor, DocumentationEntry, DocumentationFile, DocumentationUpload } from './model';
 
 export const DOCUMENTATION_FILE_LIMIT = 50 * 1024 * 1024;
 export const DOCUMENTATION_BUCKET = 'office-documentation';
+const employeeMimeTypes = new Set([...EMPLOYEE_PORTAL_ALLOWED_IMAGE_MIME_TYPES, ...EMPLOYEE_PORTAL_ALLOWED_VIDEO_MIME_TYPES, 'application/pdf']);
+export const EMPLOYEE_DOCUMENTATION_FILE_ACCEPT = [...employeeMimeTypes].join(',');
+export function employeeDocumentationFileMime(file: Pick<DocumentationUpload['file'], 'name' | 'type'>) {
+  const mime = inferEmployeePortalMimeType({ fileName: file.name, reportedMimeType: file.type });
+  return employeeMimeTypes.has(mime) ? mime : null;
+}
 type Target = Pick<DocumentationEntry, 'id' | 'source'> & { visit_id?: string | null };
 export const fileSize = (n: number) => n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 1024))} KB` : `${(n / 1024 / 1024).toLocaleString('de-DE', { maximumFractionDigits: 1 })} MB`;
 export function fileKind(mime: string) {
-  if (/^image\/(jpeg|png|webp|gif|bmp|avif)$/.test(mime)) return 'image';
-  if (/^video\/(mp4|webm|ogg|quicktime)$/.test(mime)) return 'video';
+  if (EMPLOYEE_PORTAL_ALLOWED_IMAGE_MIME_TYPES.has(mime) || mime === 'image/bmp') return 'image';
+  if (EMPLOYEE_PORTAL_ALLOWED_VIDEO_MIME_TYPES.has(mime) || mime === 'video/ogg') return 'video';
   if (/^audio\//.test(mime)) return 'audio';
   return mime === 'application/pdf' ? 'pdf' : 'file';
 }
@@ -29,7 +36,8 @@ export async function listDocumentationFiles(actor: DocumentationActor, entry: T
 export async function uploadDocumentationFile(actor: DocumentationActor, entry: Target, upload: DocumentationUpload) {
   const { file } = upload;
   if (!isUuid(upload.id) || file.size < 1 || file.size > DOCUMENTATION_FILE_LIMIT || file.name.length > 240 || /[\x00-\x1f/\\]/.test(file.name)) throw new Error('Bitte eine Datei bis 50 MB mit gültigem Dateinamen auswählen.');
-  const mime = file.type.split(';')[0].toLowerCase().trim() || 'application/octet-stream';
+  const mime = actor.mediaOnly ? employeeDocumentationFileMime(file) : file.type.split(';')[0].toLowerCase().trim() || 'application/octet-stream';
+  if (!mime) throw new Error('Bitte ein Foto, ein Video oder eine PDF-Datei auswählen.');
   const p = await action(actor, entry, 'prepare', { id: upload.id, name: file.name, mime, size: file.size });
   const expected = `${actor.tenantId}/${entry.source}/${entry.id}/${upload.id}`;
   if (p.id !== upload.id || p.storage_path !== expected || !['pending', 'ready'].includes(String(p.state))) throw new Error('Die Dateizuordnung konnte nicht bestätigt werden.');

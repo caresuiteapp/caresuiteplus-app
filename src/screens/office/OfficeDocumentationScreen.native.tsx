@@ -16,7 +16,7 @@ export function OfficeDocumentationScreen({ employeeView = false }: {
     const { roleKey, can } = usePermissions();
     const allowed = tenantId && user?.id && (roleKey === 'employee_portal' || (!isPortalOnlyRole(roleKey) && can('office.access')));
     const scope = JSON.stringify([tenantId, user?.id, roleKey, portalSession?.accountId]);
-    const content = allowed ? <DocumentationWorkspace key={scope} employeeView={employeeView} actor={{ tenantId, userId: user!.id, canUpload: !employeeView && !isPortalOnlyRole(roleKey) }}/>
+    const content = allowed ? <DocumentationWorkspace key={scope} employeeView={employeeView} actor={{ tenantId, userId: user!.id, canUpload: true, mediaOnly: employeeView || roleKey === 'employee_portal' }}/>
         : <NativeSection role="status" style={{ padding: 28, color: employeeView ? employeePortalDesign.text : '#234457' }}><NativeH1>Dokumentation</NativeH1><NativeP>Bitte mit einem aktiven Teamzugang anmelden, um die gemeinsame Dokumentation zu öffnen.</NativeP></NativeSection>;
     if (employeeView)
         return <PortalTabScreen title="Dokumentation" scroll={false} contentOwnsHero>{content}</PortalTabScreen>;

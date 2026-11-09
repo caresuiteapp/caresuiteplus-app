@@ -36,7 +36,7 @@ export type DocumentationPage = {
   items: DocumentationEntry[]; total: number; months: string[];
   clients: DocumentationOption[]; employees: DocumentationOption[];
 };
-export type DocumentationActor = { tenantId: string; userId: string; canUpload?: boolean };
+export type DocumentationActor = { tenantId: string; userId: string; canUpload?: boolean; mediaOnly?: boolean };
 export type DocumentationFile = { id: string; file_name: string; mime_type: string; size_bytes: number; storage_path: string; storage_bucket?: 'office-documentation' | 'office-documents'; created_at: string };
 export type DocumentationUpload = { id: string; file: { name: string; type: string; size: number; arrayBuffer(): Promise<ArrayBuffer> }; done?: boolean };
 export type DocumentationResult<T> = { ok: true; data: T } | { ok: false; error: string; uncertain?: boolean };
