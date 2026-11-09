@@ -70,4 +70,17 @@ describe('Team calendar navigation and periods', () => {
   it('keeps month boundaries at the first day when the anchor is the 31st', () => {
     expect(employeePortalCalendarPeriod(new Date(2026, 0, 31, 19), 'month')).toEqual({ start: new Date(2026, 0, 1), end: new Date(2026, 1, 1) });
   });
+  it('retains an ongoing all-day absence without extending it beyond its last calendar day', () => {
+    const absence = event({ type: 'abwesenheit', allDay: true, start: '2026-11-02T00:00:00.000Z', end: '2026-11-21T23:59:59.999Z' });
+    const week = employeePortalCalendarPeriod(new Date(2026, 10, 9), 'agenda');
+    const nextDay = employeePortalCalendarPeriod(new Date(2026, 10, 22), 'day');
+    expect(employeePortalCalendarEventOverlaps(absence, week.start, week.end)).toBe(true);
+    expect(employeePortalCalendarEventOverlaps(absence, nextDay.start, nextDay.end)).toBe(false);
+  });
+  it('excludes a timed entry ending exactly at midnight from the following day', () => {
+    const { start, end } = employeePortalCalendarPeriod(new Date(2026, 10, 9), 'day');
+    const previous = new Date(start.getTime() - 30 * 60_000).toISOString();
+    expect(employeePortalCalendarEventOverlaps(event({ start: previous, end: start.toISOString() }), start, end)).toBe(false);
+    expect(employeePortalCalendarEventOverlaps(event({ start: start.toISOString(), end: start.toISOString() }), start, end)).toBe(true);
+  });
 });

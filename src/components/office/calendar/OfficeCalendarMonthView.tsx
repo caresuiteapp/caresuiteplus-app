@@ -26,10 +26,12 @@ import {
 } from '@/components/calendar/OfficeAssignmentProfileCalendarPlanner';
 
 type OfficeCalendarMonthViewProps = {
+  appearance?: 'employee';
   anchor: Date;
   events: CalendarEvent[];
   weekStartDay: WeekStartDay;
   maxCollapsedEvents: number;
+  onSelectDate?: (date: Date) => void;
   onEventPress?: (event: CalendarEvent) => void;
   selectedAssignmentProfileId?: string | null;
   onAssignmentProfileDrop?: AssignmentProfileDropHandler;
@@ -41,6 +43,7 @@ export function OfficeCalendarMonthView({
   events,
   weekStartDay,
   maxCollapsedEvents,
+  onSelectDate,
   onEventPress,
   selectedAssignmentProfileId,
   onAssignmentProfileDrop,
@@ -98,10 +101,10 @@ export function OfficeCalendarMonthView({
                     }
                   : selectedAssignmentProfileId && onAssignmentProfileDrop
                   ? () => onAssignmentProfileDrop(selectedAssignmentProfileId, date)
-                  : undefined
+                  : onSelectDate ? () => onSelectDate(date) : undefined
               }
               disabled={dateSelection?.disabled}
-              accessibilityRole={dateSelection ? 'button' : undefined}
+              accessibilityRole={dateSelection || onSelectDate ? 'button' : undefined}
               accessibilityLabel={dateSelection ? `${date.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}, ${selected ? 'für das Einsatzprofil ausgewählt' : 'für das Einsatzprofil auswählen'}` : undefined}
               accessibilityState={dateSelection ? { selected, disabled: dateSelection.disabled } : undefined}
               accessibilityHint={dateSelection ? 'Ein Klick ändert die Auswahl. Ein Doppelklick wählt nur diesen Tag.' : undefined}

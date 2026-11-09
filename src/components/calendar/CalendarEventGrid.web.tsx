@@ -10,6 +10,7 @@ import { startOfMonth } from '@/lib/office/calendarDateUtils';
 import type { AssignmentProfileDropHandler } from './OfficeAssignmentProfileCalendarPlanner';
 
 type CalendarEventGridProps = {
+  appearance?: 'employee';
   rangeStart?: Date;
   rangeEnd?: Date;
   onSelectDate?: (date: Date) => void;
@@ -28,6 +29,7 @@ type CalendarEventGridProps = {
 };
 
 export function CalendarEventGrid({
+  appearance,
   rangeStart,
   rangeEnd,
   onSelectDate,
@@ -47,6 +49,7 @@ export function CalendarEventGrid({
   if (viewMode === 'day') {
     return (
       <OfficeCalendarDayView
+        appearance={appearance}
         anchor={anchor}
         events={events}
         dayViewStartHour={dayViewStartHour}
@@ -60,6 +63,7 @@ export function CalendarEventGrid({
   if (viewMode === 'week') {
     return (
       <OfficeCalendarWeekView
+        appearance={appearance}
         anchor={anchor}
         events={events}
         weekStartDay={weekStartDay}
@@ -75,6 +79,7 @@ export function CalendarEventGrid({
   if (viewMode === 'month') {
     return (
       <OfficeCalendarMonthView
+        appearance={appearance}
         onSelectDate={onSelectDate}
         planabilityByDay={planabilityByDay}
         anchor={anchor}
@@ -91,6 +96,7 @@ export function CalendarEventGrid({
   if (viewMode === 'year') {
     return (
       <OfficeCalendarYearView
+        appearance={appearance}
         weekStartDay={weekStartDay}
         anchor={anchor}
         events={events}

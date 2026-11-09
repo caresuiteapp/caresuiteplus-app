@@ -16,6 +16,7 @@ import {
 } from '@/lib/office/calendarDateUtils';
 
 type OfficeCalendarYearViewProps = {
+  appearance?: 'employee';
   anchor: Date;
   events: CalendarEvent[];
   onSelectMonth: (monthIndex: number) => void;

@@ -8,8 +8,8 @@ import type { AssignmentProfileDropHandler } from '@/components/calendar/OfficeA
 import { CalendarViewStyles } from '@/components/calendar/CalendarViewStyles.web';
 import { OfficeCalendarEventChip } from './OfficeCalendarEventChip.web';
 
-type Props = { anchor: Date; events: CalendarEvent[]; weekStartDay: WeekStartDay; maxCollapsedEvents: number; onEventPress?: (event: CalendarEvent) => void; selectedAssignmentProfileId?: string | null; onAssignmentProfileDrop?: AssignmentProfileDropHandler; planabilityByDay?: Record<string, DayPlanability>; onSelectDate?: (date: Date) => void };
-export function OfficeCalendarMonthView({ anchor, events, weekStartDay, maxCollapsedEvents, onEventPress, selectedAssignmentProfileId, onAssignmentProfileDrop, planabilityByDay, onSelectDate }: Props) {
+type Props = { appearance?: 'employee'; anchor: Date; events: CalendarEvent[]; weekStartDay: WeekStartDay; maxCollapsedEvents: number; onEventPress?: (event: CalendarEvent) => void; selectedAssignmentProfileId?: string | null; onAssignmentProfileDrop?: AssignmentProfileDropHandler; planabilityByDay?: Record<string, DayPlanability>; onSelectDate?: (date: Date) => void };
+export function OfficeCalendarMonthView({ appearance, anchor, events, weekStartDay, maxCollapsedEvents, onEventPress, selectedAssignmentProfileId, onAssignmentProfileDrop, planabilityByDay, onSelectDate }: Props) {
   const selection = useAssignmentProfileDateSelection();
   const [expandedDays, setExpandedDays] = useState<Set<string>>(() => new Set());
   const days = useMemo(() => getMonthGridDays(anchor, weekStartDay), [anchor, weekStartDay]);
@@ -18,7 +18,7 @@ export function OfficeCalendarMonthView({ anchor, events, weekStartDay, maxColla
   const toggleDay = (key: string) => setExpandedDays((previous) => { const next = new Set(previous); if (next.has(key)) next.delete(key); else next.add(key); return next; });
   const today = new Date();
   const selectable = Boolean(selection || (selectedAssignmentProfileId && onAssignmentProfileDrop) || onSelectDate);
-  return <section className="cs-calendar-view" aria-label="Monatskalender">
+  return <section className="cs-calendar-view" data-appearance={appearance} aria-label="Monatskalender">
     <CalendarViewStyles />
     <div className="cs-calendar-surface">
       <header className="cs-calendar-view-heading"><h2>{formatMonthYear(anchor)}</h2><p>{events.length} {events.length === 1 ? 'Eintrag' : 'Einträge'} im angezeigten Zeitraum</p></header>

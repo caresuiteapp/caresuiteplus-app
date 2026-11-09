@@ -25,6 +25,7 @@ import {
 import { resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
 
 type OfficeCalendarWeekViewProps = {
+  appearance?: 'employee';
   anchor: Date;
   events: CalendarEvent[];
   weekStartDay: WeekStartDay;

@@ -7,16 +7,17 @@ import { buildCalendarMonthStats } from '@/lib/calendar/calendarWebViewModel';
 import { isSameDay, orderedWeekdayLabels } from '@/lib/office/calendarDateUtils';
 import { CalendarViewStyles } from "../../calendar/CalendarViewStyles.native.tsx";
 type Props = {
+    appearance?: 'employee';
     weekStartDay?: WeekStartDay;
     anchor: Date;
     events: CalendarEvent[];
     onSelectMonth: (monthIndex: number) => void;
 };
-export function OfficeCalendarYearView({ anchor, events, onSelectMonth, weekStartDay = 1 }: Props) {
+export function OfficeCalendarYearView({ appearance, anchor, events, onSelectMonth, weekStartDay = 1 }: Props) {
     const year = anchor.getFullYear();
     const months = useMemo(() => Array.from({ length: 12 }, (_, index) => buildCalendarMonthStats(events, year, index)), [events, year]);
     const today = new Date();
-    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarViewStyles"]]}>{<NativeSection className="cs-calendar-view" aria-label="Jahreskalender"><CalendarViewStyles /><NativeDiv className="cs-calendar-surface">
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarViewStyles"]]}>{<NativeSection className="cs-calendar-view" data-appearance={appearance} aria-label="Jahreskalender"><CalendarViewStyles /><NativeDiv className="cs-calendar-surface">
     <NativeHeader className="cs-calendar-view-heading"><NativeH2>Jahresübersicht {year}</NativeH2><NativeP>Blau: Einträge · Goldene Linie: Abwesenheit</NativeP></NativeHeader>
     <NativeDiv className="cs-calendar-year-grid">{months.map(({ totalEvents, absenceDays, days }, monthIndex) => {
             const monthLabel = new Date(year, monthIndex, 1).toLocaleDateString('de-DE', { month: 'long' });

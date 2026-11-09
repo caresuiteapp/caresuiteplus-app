@@ -3,12 +3,12 @@ import type { CalendarEvent, WeekStartDay } from '@/types/modules/calendarEvent'
 import { buildCalendarMonthStats } from '@/lib/calendar/calendarWebViewModel';
 import { isSameDay, orderedWeekdayLabels } from '@/lib/office/calendarDateUtils';
 import { CalendarViewStyles } from '@/components/calendar/CalendarViewStyles.web';
-type Props = { weekStartDay?: WeekStartDay; anchor: Date; events: CalendarEvent[]; onSelectMonth: (monthIndex: number) => void };
-export function OfficeCalendarYearView({ anchor, events, onSelectMonth, weekStartDay = 1 }: Props) {
+type Props = { appearance?: 'employee'; weekStartDay?: WeekStartDay; anchor: Date; events: CalendarEvent[]; onSelectMonth: (monthIndex: number) => void };
+export function OfficeCalendarYearView({ appearance, anchor, events, onSelectMonth, weekStartDay = 1 }: Props) {
   const year = anchor.getFullYear();
   const months = useMemo(() => Array.from({ length: 12 }, (_, index) => buildCalendarMonthStats(events, year, index)), [events, year]);
   const today = new Date();
-  return <section className="cs-calendar-view" aria-label="Jahreskalender"><CalendarViewStyles /><div className="cs-calendar-surface">
+  return <section className="cs-calendar-view" data-appearance={appearance} aria-label="Jahreskalender"><CalendarViewStyles /><div className="cs-calendar-surface">
     <header className="cs-calendar-view-heading"><h2>Jahresübersicht {year}</h2><p>Blau: Einträge · Goldene Linie: Abwesenheit</p></header>
     <div className="cs-calendar-year-grid">{months.map(({ totalEvents, absenceDays, days }, monthIndex) => {
       const monthLabel = new Date(year, monthIndex, 1).toLocaleDateString('de-DE', { month: 'long' });

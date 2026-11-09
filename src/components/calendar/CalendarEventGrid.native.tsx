@@ -10,6 +10,7 @@ import { OfficeCalendarYearView } from "../office/calendar/OfficeCalendarYearVie
 import { startOfMonth } from '@/lib/office/calendarDateUtils';
 import type { AssignmentProfileDropHandler } from "./OfficeAssignmentProfileCalendarPlanner.native.tsx";
 type CalendarEventGridProps = {
+    appearance?: 'employee';
     rangeStart?: Date;
     rangeEnd?: Date;
     onSelectDate?: (date: Date) => void;
@@ -26,18 +27,18 @@ type CalendarEventGridProps = {
     onAssignmentProfileDrop?: AssignmentProfileDropHandler;
     planabilityByDay?: Record<string, import('@/lib/calendar/employeeMonthPlanning').DayPlanability>;
 };
-export function CalendarEventGrid({ rangeStart, rangeEnd, onSelectDate, viewMode, anchor, events, weekStartDay, maxCollapsedEvents, dayViewStartHour, weekFullDay, onEventPress, onSelectMonth, selectedAssignmentProfileId, onAssignmentProfileDrop, planabilityByDay, }: CalendarEventGridProps) {
+export function CalendarEventGrid({ appearance, rangeStart, rangeEnd, onSelectDate, viewMode, anchor, events, weekStartDay, maxCollapsedEvents, dayViewStartHour, weekFullDay, onEventPress, onSelectMonth, selectedAssignmentProfileId, onAssignmentProfileDrop, planabilityByDay, }: CalendarEventGridProps) {
     if (viewMode === 'day') {
-        return (<OfficeCalendarDayView anchor={anchor} events={events} dayViewStartHour={dayViewStartHour} onEventPress={onEventPress} selectedAssignmentProfileId={selectedAssignmentProfileId} onAssignmentProfileDrop={onAssignmentProfileDrop}/>);
+        return (<OfficeCalendarDayView appearance={appearance} anchor={anchor} events={events} dayViewStartHour={dayViewStartHour} onEventPress={onEventPress} selectedAssignmentProfileId={selectedAssignmentProfileId} onAssignmentProfileDrop={onAssignmentProfileDrop}/>);
     }
     if (viewMode === 'week') {
-        return (<OfficeCalendarWeekView anchor={anchor} events={events} weekStartDay={weekStartDay} weekFullDay={weekFullDay} dayViewStartHour={dayViewStartHour} onEventPress={onEventPress} selectedAssignmentProfileId={selectedAssignmentProfileId} onAssignmentProfileDrop={onAssignmentProfileDrop}/>);
+        return (<OfficeCalendarWeekView appearance={appearance} anchor={anchor} events={events} weekStartDay={weekStartDay} weekFullDay={weekFullDay} dayViewStartHour={dayViewStartHour} onEventPress={onEventPress} selectedAssignmentProfileId={selectedAssignmentProfileId} onAssignmentProfileDrop={onAssignmentProfileDrop}/>);
     }
     if (viewMode === 'month') {
-        return (<OfficeCalendarMonthView onSelectDate={onSelectDate} planabilityByDay={planabilityByDay} anchor={anchor} events={events} weekStartDay={weekStartDay} maxCollapsedEvents={maxCollapsedEvents} onEventPress={onEventPress} selectedAssignmentProfileId={selectedAssignmentProfileId} onAssignmentProfileDrop={onAssignmentProfileDrop}/>);
+        return (<OfficeCalendarMonthView appearance={appearance} onSelectDate={onSelectDate} planabilityByDay={planabilityByDay} anchor={anchor} events={events} weekStartDay={weekStartDay} maxCollapsedEvents={maxCollapsedEvents} onEventPress={onEventPress} selectedAssignmentProfileId={selectedAssignmentProfileId} onAssignmentProfileDrop={onAssignmentProfileDrop}/>);
     }
     if (viewMode === 'year') {
-        return (<OfficeCalendarYearView weekStartDay={weekStartDay} anchor={anchor} events={events} onSelectMonth={(monthIndex) => {
+        return (<OfficeCalendarYearView appearance={appearance} weekStartDay={weekStartDay} anchor={anchor} events={events} onSelectMonth={(monthIndex) => {
                 onSelectMonth?.(monthIndex);
             }}/>);
     }

@@ -298,7 +298,7 @@
     {
       "web": "src/components/calendar/CalendarViewStyles.web.tsx",
       "native": "src/components/calendar/CalendarViewStyles.native.tsx",
-      "sourceHash": "5c3acfaa7d9ea1ed9c6caaf25b493132dea6503132ed17cf04b2cd3adf13d16b",
+      "sourceHash": "d74e2347d0644eb36b9ea09243f4e395fd0a84473216b2c66d02919e7559f784",
       "environment": []
     },
     {
@@ -370,37 +370,37 @@
     {
       "web": "src/components/calendar/CalendarTimeGrid.web.tsx",
       "native": "src/components/calendar/CalendarTimeGrid.native.tsx",
-      "sourceHash": "d09d55d26bc89efc64e418577aa74c0219e56a3e9f479288b2caa555ca85103b",
+      "sourceHash": "c9d3f733bc01654b59a4d9deabeec64c881890fa1583fb83108751b238b9e119",
       "environment": []
     },
     {
       "web": "src/components/office/calendar/OfficeCalendarDayView.web.tsx",
       "native": "src/components/office/calendar/OfficeCalendarDayView.native.tsx",
-      "sourceHash": "a48c9007e3852caf9ae31171e6b6c8ee92845df06810148a5c0bc5ae2e3230a9",
+      "sourceHash": "f2f55aae4e8f4d54b99d7453c1b430a44cd841b1cad4e69c03f6207939f24120",
       "environment": []
     },
     {
       "web": "src/components/office/calendar/OfficeCalendarMonthView.web.tsx",
       "native": "src/components/office/calendar/OfficeCalendarMonthView.native.tsx",
-      "sourceHash": "971622a0fe661da2ff227b090a746a7405d9f48484da5e07beb0d20e5ee9f614",
+      "sourceHash": "957b42d9ced8d2a7f78e5097dc35c9bd09cc36e633f528a1d7d5516811d38fda",
       "environment": []
     },
     {
       "web": "src/components/office/calendar/OfficeCalendarWeekView.web.tsx",
       "native": "src/components/office/calendar/OfficeCalendarWeekView.native.tsx",
-      "sourceHash": "4f7e2bebef289c835cf1becf9dc09b826fe78072fe611e31379578f1699b705d",
+      "sourceHash": "aee39668b4b7d28e2dc0f7572862cab47703a24e454f5d0d419baa9752f71ff9",
       "environment": []
     },
     {
       "web": "src/components/office/calendar/OfficeCalendarYearView.web.tsx",
       "native": "src/components/office/calendar/OfficeCalendarYearView.native.tsx",
-      "sourceHash": "77fcba424ca8a1d8fde99ac3438498b02a0996abbb782b4e8964ff58367b5417",
+      "sourceHash": "3013938c5f18838d0c3a456617af709be8735ffbfac337a0dee7e7ac43604446",
       "environment": []
     },
     {
       "web": "src/components/calendar/CalendarEventGrid.web.tsx",
       "native": "src/components/calendar/CalendarEventGrid.native.tsx",
-      "sourceHash": "63d0230548c30bc1129f5a0fb6799275b48c9785091161c3af58105df071408a",
+      "sourceHash": "c14a9c6e9f65bc530195f271e9f54608eed01dbce76ae9d5b56ae21a427b4e46",
       "environment": []
     },
     {

@@ -1,5 +1,6 @@
 import type { CalendarEvent, CalendarViewMode } from '@/types/modules/calendarEvent';
-import { addDays, addMonths, startOfWeek } from '@/lib/office/calendarDateUtils';
+import { addDays, addMonths, startOfWeek, toDateKey } from '@/lib/office/calendarDateUtils';
+import { calendarEventDateKey } from '@/lib/calendar/calendarWebViewModel';
 
 /** Half-open local period, shared by the query and the visible agenda. */
 export function employeePortalCalendarPeriod(anchor: Date, view: CalendarViewMode) {
@@ -17,10 +18,16 @@ export function employeePortalCalendarPeriod(anchor: Date, view: CalendarViewMod
 }
 
 export function employeePortalCalendarEventOverlaps(event: CalendarEvent, start: Date, end: Date) {
+  if (event.allDay) {
+    // All-day records use inclusive calendar dates, independent of UTC offsets.
+    const firstDay = calendarEventDateKey(event);
+    const lastDay = calendarEventDateKey({ ...event, start: event.end });
+    return Boolean(firstDay && lastDay && firstDay <= lastDay && firstDay < toDateKey(end) && lastDay >= toDateKey(start));
+  }
   const startsAt = new Date(event.start).getTime();
   const endsAt = new Date(event.end).getTime();
-  return Number.isFinite(startsAt) && Number.isFinite(endsAt)
-    && startsAt < end.getTime() && endsAt >= start.getTime();
+  return Number.isFinite(startsAt) && Number.isFinite(endsAt) && endsAt >= startsAt
+    && startsAt < end.getTime() && (endsAt === startsAt ? endsAt >= start.getTime() : endsAt > start.getTime());
 }
 
 /** Team events remain readable; only own assignments have an operational detail. */

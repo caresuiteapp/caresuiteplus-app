@@ -24,6 +24,7 @@ vi.mock('@/lib/platform/nativeFileDelivery.native',()=>({shareNativeExistingFile
 
 import {CalendarToolbar} from '@/components/calendar/CalendarToolbar.native';
 import {CalendarAgendaList} from '@/components/calendar/CalendarAgendaList.native';
+import {OfficeCalendarMonthView} from '@/components/office/calendar/OfficeCalendarMonthView.native';
 import type {CalendarEvent,CalendarViewMode} from '@/types/modules/calendarEvent';
 
 const event:CalendarEvent={id:'visit-fixture',title:'Alltagsbegleitung',type:'einsatz',sourceType:'assignment',sourceId:'assignment-fixture',start:'2026-10-26T09:00:00+01:00',end:'2026-10-26T11:00:00+01:00',color:'#176ad2',status:'confirmed',clientName:'Alex Beispiel',employeeName:'Mara Muster',employeeId:'employee-fixture',serviceTitle:'Unterstützung im Alltag'};
@@ -68,5 +69,17 @@ describe('actual native calendar components used in both portals',()=>{
     await render(<Calendar/>);const action=[...host.querySelectorAll<HTMLButtonElement>('button')].find(node=>node.getAttribute('aria-label')?.includes('Alex Beispiel'))!;
     await act(async()=>action.click());expect(host.querySelector('output')!.textContent).toBe(event.id);
     await act(async()=>button('Monat').click());expect(button('Monat').getAttribute('aria-pressed')).toBe('true');expect(host.querySelector('output')!.textContent).toBe(event.id);
+  });
+  it('uses the employee calendar palette only when the native grid requests it', async () => {
+    const props = {
+      anchor: new Date(2026, 9, 26), events: [event], weekStartDay: 1 as const, maxCollapsedEvents: 3,
+    };
+    const surfaces = () => [...host.querySelectorAll<HTMLElement>('[data-native-host="view"]')]
+      .map(node => hosts.styles.get(node)?.backgroundColor);
+    await render(<OfficeCalendarMonthView {...props} appearance="employee" />);
+    expect(surfaces()).toContain('#172e43');
+    expect(surfaces()).toContain('#152c41');
+    await render(<OfficeCalendarMonthView {...props} />);
+    expect(surfaces()).not.toContain('#172e43');
   });
 });

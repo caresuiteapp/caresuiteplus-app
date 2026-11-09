@@ -77,9 +77,9 @@ describe('employee portal responsive visual gate', () => {
   });
 
   it('allows vertical page swipes from the wide month calendar', () => {
-    const calendar = read('src/components/portal/EmployeePortalCalendarScreen.tsx');
-    expect(calendar).toContain("touchAction: 'pan-x pan-y'");
-    expect(calendar).not.toContain("touchAction: 'pan-x',");
+    const calendar = read('src/components/calendar/CalendarViewStyles.web.tsx');
+    expect(calendar).toContain('touch-action:pan-x pan-y');
+    expect(calendar).not.toContain('touch-action:pan-x;');
   });
 
   it('uses a realistic confirmation budget for proof-backed finalization', () => {
@@ -224,9 +224,11 @@ describe('employee portal responsive visual gate', () => {
 
   it('keeps vertical page gestures outside the wide web calendar scroller', () => {
     const calendar = read('src/components/portal/EmployeePortalCalendarScreen.tsx');
-    expect(calendar).toContain("needsWideCanvas && Platform.OS === 'web'");
-    expect(calendar).toContain("overflowY: 'visible'");
-    expect(calendar).toContain("touchAction: 'pan-x pan-y'");
+    expect(calendar).toContain('CalendarEventGrid appearance="employee"');
+    expect(calendar).not.toContain('horizontalViewport');
+    expect(read('src/components/calendar/CalendarViewStyles.web.tsx')).toMatch(
+      /\[data-appearance=employee\] \.cs-calendar-scroll\{[^}]*overscroll-behavior-y:auto/,
+    );
   });
 
   it('keeps both mobile welcome heroes in intrinsic document flow', () => {

@@ -5,6 +5,7 @@ import { formatDayHeader } from '@/lib/office/calendarDateUtils';
 import type { AssignmentProfileDropHandler } from "../../calendar/OfficeAssignmentProfileCalendarPlanner.native.tsx";
 import { CalendarTimeGrid } from "../../calendar/CalendarTimeGrid.native.tsx";
 type Props = {
+    appearance?: 'employee';
     anchor: Date;
     events: CalendarEvent[];
     dayViewStartHour: number;

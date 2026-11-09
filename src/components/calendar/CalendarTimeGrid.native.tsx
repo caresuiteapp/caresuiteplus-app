@@ -10,6 +10,7 @@ import type { AssignmentProfileDropHandler } from "./OfficeAssignmentProfileCale
 import { CalendarViewStyles } from "./CalendarViewStyles.native.tsx";
 import { OfficeCalendarEventChip } from "../office/calendar/OfficeCalendarEventChip.native.tsx";
 type Props = {
+    appearance?: 'employee';
     title: string;
     days: Date[];
     events: CalendarEvent[];
@@ -21,7 +22,7 @@ type Props = {
     onAssignmentProfileDrop?: AssignmentProfileDropHandler;
 };
 const HOUR_HEIGHT = 76;
-export function CalendarTimeGrid({ title, days, events, startHour, endHour, scrollHour, onEventPress, selectedAssignmentProfileId, onAssignmentProfileDrop }: Props) {
+export function CalendarTimeGrid({ appearance, title, days, events, startHour, endHour, scrollHour, onEventPress, selectedAssignmentProfileId, onAssignmentProfileDrop }: Props) {
     const selection = useAssignmentProfileDateSelection();
     const scrollRef = useRef<HTMLDivElement>(null);
     const dateKey = days.map(toDateKey).join(',');
@@ -39,8 +40,11 @@ export function CalendarTimeGrid({ title, days, events, startHour, endHour, scro
     const today = new Date();
     // Give concurrent entries real lanes instead of shrinking their text into
     // unreadable strips. Only the calendar itself scrolls in a narrow workspace.
-    const columnWidths = data.map(({ timed }) => Math.max(days.length === 1 ? 276 : 148, ...timed.map(({ columnCount }) => columnCount * 104)));
-    const gridStyle = { gridTemplateColumns: `64px ${columnWidths.map((width) => `minmax(${width}px, 1fr)`).join(' ')}` };
+    const narrowDay = appearance === 'employee' && days.length === 1;
+    const gutterWidth = narrowDay ? 48 : 64;
+    const minimumDayWidth = narrowDay ? 146 : days.length === 1 ? 276 : 148;
+    const columnWidths = data.map(({ timed }) => Math.max(minimumDayWidth, ...timed.map(({ columnCount }) => columnCount * 104)));
+    const gridStyle = { gridTemplateColumns: `${gutterWidth}px ${columnWidths.map((width) => `minmax(${width}px, 1fr)`).join(' ')}` };
     const outside = data.flatMap(({ day, outside: items }) => items.map((event) => ({ day, event })));
     const dateLabel = (day: Date) => day.toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const select = (day: Date, clickCount: number, time?: string) => {
@@ -49,13 +53,13 @@ export function CalendarTimeGrid({ title, days, events, startHour, endHour, scro
         else if (!selection && selectedAssignmentProfileId)
             onAssignmentProfileDrop?.(selectedAssignmentProfileId, day, time);
     };
-    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarViewStyles"]]}>{<NativeSection className="cs-calendar-view" aria-label={days.length === 1 ? 'Tageskalender' : 'Wochenkalender'}>
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarViewStyles"]]}>{<NativeSection className="cs-calendar-view" data-appearance={appearance} aria-label={days.length === 1 ? 'Tageskalender' : 'Wochenkalender'}>
     <CalendarViewStyles />
     <NativeDiv className="cs-calendar-surface">
       <NativeHeader className="cs-calendar-view-heading"><NativeH2>{title}</NativeH2><NativeP>{String(startHour).padStart(2, '0')}:00–{String(endHour).padStart(2, '0')}:00 Uhr</NativeP></NativeHeader>
       {days.length > 1 && <NativeP className="cs-calendar-scroll-hint">Für alle Wochentage seitlich scrollen. Gleichzeitige Einträge stehen nebeneinander.</NativeP>}
       <NativeDiv className="cs-calendar-scroll" tabIndex={0} role="region" aria-label="Zeitkalender, scrollbar">
-        <NativeDiv className="cs-calendar-timeline" data-day={days.length === 1} style={{ minWidth: 80 + columnWidths.reduce((sum, width) => sum + width, 0) }}>
+        <NativeDiv className="cs-calendar-timeline" data-day={days.length === 1} style={{ minWidth: gutterWidth + 16 + columnWidths.reduce((sum, width) => sum + width, 0) }}>
           <NativeDiv className="cs-calendar-time-header" style={gridStyle}><NativeDiv className="cs-calendar-time-heading" aria-hidden="true"/>{days.map((day) => {
             const selected = selection?.selectedDateKeys.includes(toDateKey(day)) ?? false;
             const content = <><NativeSpan>{day.toLocaleDateString('de-DE', { weekday: 'short', month: 'short' })}</NativeSpan><NativeStrong>{day.getDate()}{selected ? ' ✓' : ''}</NativeStrong></>;

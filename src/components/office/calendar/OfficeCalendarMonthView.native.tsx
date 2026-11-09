@@ -11,6 +11,7 @@ import type { AssignmentProfileDropHandler } from "../../calendar/OfficeAssignme
 import { CalendarViewStyles } from "../../calendar/CalendarViewStyles.native.tsx";
 import { OfficeCalendarEventChip } from "./OfficeCalendarEventChip.native.tsx";
 type Props = {
+    appearance?: 'employee';
     anchor: Date;
     events: CalendarEvent[];
     weekStartDay: WeekStartDay;
@@ -21,7 +22,7 @@ type Props = {
     planabilityByDay?: Record<string, DayPlanability>;
     onSelectDate?: (date: Date) => void;
 };
-export function OfficeCalendarMonthView({ anchor, events, weekStartDay, maxCollapsedEvents, onEventPress, selectedAssignmentProfileId, onAssignmentProfileDrop, planabilityByDay, onSelectDate }: Props) {
+export function OfficeCalendarMonthView({ appearance, anchor, events, weekStartDay, maxCollapsedEvents, onEventPress, selectedAssignmentProfileId, onAssignmentProfileDrop, planabilityByDay, onSelectDate }: Props) {
     const selection = useAssignmentProfileDateSelection();
     const [expandedDays, setExpandedDays] = useState<Set<string>>(() => new Set());
     const days = useMemo(() => getMonthGridDays(anchor, weekStartDay), [anchor, weekStartDay]);
@@ -33,7 +34,7 @@ export function OfficeCalendarMonthView({ anchor, events, weekStartDay, maxColla
         next.add(key); return next; });
     const today = new Date();
     const selectable = Boolean(selection || (selectedAssignmentProfileId && onAssignmentProfileDrop) || onSelectDate);
-    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarViewStyles"]]}>{<NativeSection className="cs-calendar-view" aria-label="Monatskalender">
+    return <NativeWorkspaceStyleScope css={[...__nativeWorkspaceImportedStyles0["CalendarViewStyles"]]}>{<NativeSection className="cs-calendar-view" data-appearance={appearance} aria-label="Monatskalender">
     <CalendarViewStyles />
     <NativeDiv className="cs-calendar-surface">
       <NativeHeader className="cs-calendar-view-heading"><NativeH2>{formatMonthYear(anchor)}</NativeH2><NativeP>{events.length} {events.length === 1 ? 'Eintrag' : 'Einträge'} im angezeigten Zeitraum</NativeP></NativeHeader>

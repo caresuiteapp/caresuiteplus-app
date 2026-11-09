@@ -51,5 +51,39 @@ const css = `
 @media(hover:hover){.cs-calendar-view button.cs-calendar-event:hover,.cs-calendar-view a.cs-calendar-event:hover{background:var(--event-hover);border-color:var(--event-accent);box-shadow:0 4px 12px #265b9820;transform:translateY(-1px)}.cs-calendar-month-tile:hover{transform:translateY(-2px);border-color:#8eb7e4;box-shadow:0 8px 20px #265b9818}.cs-calendar-day-select:hover,.cs-calendar-time-slot:not(:disabled):hover{background:#176ad209}.cs-calendar-more:hover{background:#dfeeff}}
 @container(min-width:1100px){.cs-calendar-scroll-hint{display:none}}@container(max-width:520px){.cs-calendar-view-heading{padding:14px}.cs-calendar-year-grid{padding:12px;gap:10px}.cs-calendar-agenda-row{grid-template-columns:minmax(0,1fr);gap:4px}.cs-calendar-agenda-time{padding:0 2px}.cs-calendar-agenda-end{display:inline;margin-left:8px}}
 @media(prefers-reduced-motion:reduce){.cs-calendar-view *{transition:none!important;scroll-behavior:auto!important;animation:none!important}}
+
+.cs-calendar-view[data-appearance=employee]{--cv-border:#38566d;--cv-muted:#c1d7e8;--cv-ink:#f2f8ff;--cv-accent:#bceeff}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-surface{background:#172e43;box-shadow:none;border-radius:17px}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-scroll{touch-action:pan-x pan-y;scrollbar-color:#7598ad #14283a;overscroll-behavior-y:auto}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-time-scroll{scrollbar-color:#7598ad #14283a}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-scroll-hint,
+.cs-calendar-view[data-appearance=employee] .cs-calendar-weekday,
+.cs-calendar-view[data-appearance=employee] .cs-calendar-time-heading{background:#203c53}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-day,
+.cs-calendar-view[data-appearance=employee] .cs-calendar-time-day,
+.cs-calendar-view[data-appearance=employee] .cs-calendar-allday-cell{background:#152c41}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-day[data-weekend=true],
+.cs-calendar-view[data-appearance=employee] .cs-calendar-time-gutter{background:#14273a}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-day[data-outside=true]{background:#122438}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-day[data-today=true],
+.cs-calendar-view[data-appearance=employee] .cs-calendar-time-day[data-today=true],
+.cs-calendar-view[data-appearance=employee] .cs-calendar-time-heading[data-today=true]{background:#264b65;color:#d5f5ff}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-day[data-today=true] .cs-calendar-day-number{background:#bceeff;color:#102238}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-day-count,
+.cs-calendar-view[data-appearance=employee] .cs-calendar-mini-weekday,
+.cs-calendar-view[data-appearance=employee] .cs-calendar-hour-label{color:#b3c9dc}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-time-slot,
+.cs-calendar-view[data-appearance=employee] .cs-calendar-hour-label{border-bottom-color:#294459}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-time-slot:after{border-top-color:#233e53}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-time-overflow{background:#203c53}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-time-overflow summary,
+.cs-calendar-view[data-appearance=employee] .cs-calendar-time-edge{color:#d8eaf7}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-month-tile{background:#203b52;color:#f2f8ff;box-shadow:none}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-month-tile[data-current=true]{background:#294c65;border-color:#87c9e4}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-mini-day{background:#172e43;color:#d6e7f4}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-mini-day[data-busy=true]{background:#40759d;color:#fff}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-mini-day[data-absence=true]{box-shadow:inset 0 -3px #f5c782}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-mini-day[data-today=true]{background:#bceeff;color:#102238}
+.cs-calendar-view[data-appearance=employee] .cs-calendar-more{background:#25465f;border-color:#50758d;color:#bceeff!important}
 `;
 export function CalendarViewStyles() { return <style>{css}</style>; }

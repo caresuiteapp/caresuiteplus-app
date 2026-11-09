@@ -24,6 +24,7 @@ import {
 import { resolveAssignmentCalendarVisual } from '@/lib/calendar/assignmentCalendarStatus';
 
 type OfficeCalendarDayViewProps = {
+  appearance?: 'employee';
   anchor: Date;
   events: CalendarEvent[];
   dayViewStartHour: number;
