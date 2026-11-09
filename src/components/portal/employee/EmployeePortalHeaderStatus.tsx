@@ -12,7 +12,7 @@ const timeFormat = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '
 const dateFormat = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
 const compactDateFormat = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-function EmployeePortalWeather({ owner, compact }: { owner: string; compact: boolean }) {
+function EmployeePortalWeather({ owner, compact, belowClock }: { owner: string; compact: boolean; belowClock: boolean }) {
   const weather = useEmployeePortalWeather(owner);
   const [locationOpen, setLocationOpen] = useState(false);
   const loading = weather.status === 'loading';
@@ -20,14 +20,14 @@ function EmployeePortalWeather({ owner, compact }: { owner: string; compact: boo
   const locationAction = weather.status === 'idle' ? 'Wetterort wählen' : 'Wetterort ändern';
   const location = weather.place?.name ?? (compact ? 'Standort' : 'Aktueller Standort');
   return (
-    <View style={[styles.weather, compact && styles.weatherCompact]} testID="employee-portal-weather">
+    <View style={[styles.weather, compact && styles.weatherCompact, belowClock && styles.weatherBelowClock]} testID="employee-portal-weather">
       <Pressable accessibilityRole="button" accessibilityLabel={weather.status === 'idle' ? locationAction : [summary, weather.message, locationAction].filter(Boolean).join('. ')}
         accessibilityState={{ expanded: locationOpen }} onPress={() => setLocationOpen(true)}
         style={({ pressed }) => [styles.weatherChoice, pressed && styles.pressed]}>
         <Text style={styles.weatherTitle}>
           {weather.data ? <><Text style={styles.weatherGlyph}>{weather.data.glyph}</Text>{`  ${summary}`}</> : 'Wetter'}
         </Text>
-        {weather.data ? <Text style={styles.detail} numberOfLines={1}>{location}</Text> :
+        {weather.data ? <Text style={styles.detail} numberOfLines={compact ? 2 : 1}>{location}</Text> :
           weather.status !== 'idle' ? <Text style={styles.detail} accessibilityLiveRegion="polite">{weather.message}</Text> : null}
         <View style={styles.weatherMeta}>
           <Text style={styles.weatherLink}>{weather.status === 'idle' ? 'Ort wählen' : 'Ort ändern'}</Text>
@@ -49,14 +49,17 @@ function EmployeePortalWeather({ owner, compact }: { owner: string; compact: boo
   );
 }
 
-export function EmployeePortalHeaderStatus({ owner, compact, stacked, centered }: { owner: string | null; compact: boolean; stacked: boolean; centered: boolean }) {
+export function EmployeePortalHeaderStatus({ owner, compact, stacked, centered, weatherBelowClock }: {
+  owner: string | null; compact: boolean; stacked: boolean; centered: boolean; weatherBelowClock: boolean;
+}) {
   const now = useLocalMinute();
   const time = now ? timeFormat.format(now) : '–:–';
   const date = now ? (compact ? compactDateFormat : dateFormat).format(now) : 'Datum';
   return (
-    <View style={[styles.status, compact && styles.statusCompact, stacked && styles.statusStacked, centered && styles.statusCentered]}
+    <View style={[styles.status, compact && styles.statusCompact, stacked && styles.statusStacked, centered && styles.statusCentered,
+      weatherBelowClock && styles.statusVertical]}
       testID="employee-portal-header-status">
-      <View style={[styles.clockGroup, compact && styles.clockGroupCompact]}>
+      <View style={[styles.clockGroup, compact && styles.clockGroupCompact, weatherBelowClock && styles.clockGroupCentered]}>
         <View style={styles.neoPocket}>
           <CareSuiteImage source={neoHeaderArtwork} resizeMode="contain" accessible={false}
             style={compact ? styles.neoCompact : styles.neo} testID="employee-portal-neo" />
@@ -66,7 +69,7 @@ export function EmployeePortalHeaderStatus({ owner, compact, stacked, centered }
           <Text style={styles.detail}>{date}</Text>
         </View>
       </View>
-      {owner ? <EmployeePortalWeather key={owner} owner={owner} compact={compact} /> : null}
+      {owner ? <EmployeePortalWeather key={owner} owner={owner} compact={compact} belowClock={weatherBelowClock} /> : null}
     </View>
   );
 }
@@ -80,17 +83,20 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   statusStacked: { flexBasis: '100%', justifyContent: 'center' },
   statusCentered: { flexShrink: 0 },
   statusCompact: { gap: 8, paddingHorizontal: 8 },
+  statusVertical: { flexDirection: 'column', alignItems: 'stretch', gap: 4 },
   clockGroup: { flexDirection: 'row', alignItems: 'center', flexShrink: 0, gap: 11 },
   clockGroupCompact: { gap: 7 },
+  clockGroupCentered: { justifyContent: 'center' },
   neoPocket: { alignItems: 'center', justifyContent: 'center', borderRadius: 14, backgroundColor: 'rgba(154,225,249,0.08)' },
   neo: { width: 60, height: 64 },
-  neoCompact: { width: 44, height: 50 },
+  neoCompact: { width: 38, height: 42 },
   clock: { flexShrink: 0, gap: 1 },
   time: { color: c.text, fontSize: font(32), lineHeight: font(35), fontWeight: '700', fontVariant: ['tabular-nums'] },
   timeCompact: { fontSize: font(24), lineHeight: font(29) },
   detail: { color: c.muted, fontSize: font(12), lineHeight: font(16) },
-  weather: { flexBasis: 225, flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 1, borderColor: c.line },
+  weather: { flexBasis: 225, flexGrow: 1, flexShrink: 1, minWidth: 0, maxWidth: 400, flexDirection: 'row', alignItems: 'center', borderLeftWidth: 1, borderColor: c.line },
   weatherCompact: { flexBasis: 188 },
+  weatherBelowClock: { flexBasis: 'auto', maxWidth: '100%', borderLeftWidth: 0, borderTopWidth: 1, paddingTop: 4 },
   weatherChoice: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center', paddingVertical: 3, paddingLeft: 10, gap: 1 },
   weatherTitle: { color: c.text, fontSize: font(14), lineHeight: font(19), fontWeight: '700' },
   weatherGlyph: { color: c.accent },

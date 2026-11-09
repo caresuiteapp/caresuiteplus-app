@@ -36,7 +36,7 @@ const lightBands = [
   },
 ] as const;
 
-/** Continuous light bands sit behind the translucent chrome and scroll area. */
+/** Continuous light bands sit behind the portal workspace. */
 export function EmployeePortalBackdrop({ animated }: { animated: boolean }) {
   const reducedMotion = usePrefersReducedMotion();
   const [progress] = useState(() => new Animated.Value(0));

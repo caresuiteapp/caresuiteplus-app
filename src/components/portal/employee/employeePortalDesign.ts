@@ -2,7 +2,8 @@ import type { LiquidPortalNavigationItem } from '@/liquid-command/navigation/por
 
 export const employeePortalDesign = {
   canvas: '#102238',
-  header: 'rgba(235,246,255,0.10)', rail: 'rgba(10,24,39,0.24)',
+  // Keep the chrome readable when the browser reduces visual effects.
+  header: '#1D384F', rail: '#152B40',
   panel: 'rgba(235,246,255,0.095)', raised: 'rgba(235,246,255,0.115)',
   control: 'rgba(10,24,39,0.42)', dialog: '#20394F',
   line: 'rgba(213,235,252,0.24)', text: '#F5F9FF', muted: '#D9E9F5',
@@ -29,7 +30,7 @@ export function employeePortalLayout(width: number, fontScale = 1) {
   const railArtworkSize = phone ? 44 : width < 1100 ? 54 : 64;
   const captionWidth = Math.min(Math.ceil(62 * Math.max(1, fontScale)), Math.floor(width / 3), 124);
   const railButtonSize = Math.max(62, railArtworkSize + 10, captionWidth);
-  const railWidth = railButtonSize + 14;
+  const railWidth = railButtonSize + (phone ? 8 : 14);
   const padding = phone ? 12 : width < 1000 ? 20 : 28;
   const contentWidth = Math.max(0, width - railWidth - padding * 2);
   const readableWidth = contentWidth / Math.max(1, fontScale);
