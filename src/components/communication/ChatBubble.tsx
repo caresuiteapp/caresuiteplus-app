@@ -1,12 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type TextStyle } from 'react-native';
 import * as Clipboard from 'expo-clipboard';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { colors, radius, spacing, typography } from '@/theme';
 import type { CommunicationMessage } from '@/features/communication/communication.types';
 import { MessageStatusTicks } from './MessageStatusTicks';
 import { employeePortalDesign } from '@/components/portal/employee/employeePortalDesign';
+import { agendaFocusRing } from '@/components/portal/employee/EmployeePortalAgendaAction';
+import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 
 type ChatBubbleProps = {
@@ -60,7 +63,7 @@ export function ChatBubble({ message, isOwn, showStatus = true, appearance }: Ch
   if (isSystem) {
     return (
       <View style={styles.systemWrap}>
-        <Text selectable style={styles.systemText}>{body}</Text>
+        <Text selectable style={[styles.systemText, employee && employeeStyles.systemText]}>{body}</Text>
       </View>
     );
   }
@@ -81,7 +84,7 @@ export function ChatBubble({ message, isOwn, showStatus = true, appearance }: Ch
         <Text selectable style={[adaptiveStyles.body, employee && employeeStyles.body]} testID={`message-body-${message.id}`}>
           {body}
         </Text>
-        <View style={styles.meta} testID={`message-meta-${message.id}`}>
+        <View style={[styles.meta, employee && employeeStyles.meta]} testID={`message-meta-${message.id}`}>
           <Text style={[adaptiveStyles.muted, employee && employeeStyles.muted]}>
             {new Date(message.sentAt ?? message.createdAt).toLocaleTimeString('de-DE', {
               hour: '2-digit',
@@ -89,17 +92,27 @@ export function ChatBubble({ message, isOwn, showStatus = true, appearance }: Ch
             })}
           </Text>
           {message.editedAt ? <Text style={[adaptiveStyles.muted, employee && employeeStyles.muted, styles.edited]}>bearbeitet</Text> : null}
-          {showStatus && isOwn ? <MessageStatusTicks status={message.status} /> : null}
+          {showStatus && isOwn ? <MessageStatusTicks status={message.status} appearance={appearance} /> : null}
           {!isDeleted && body ? (
             <Pressable
               onPress={() => void copyMessage()}
-              hitSlop={8}
-              style={styles.copyButton}
+              hitSlop={employee ? 4 : 8}
+              style={({ focused, hovered, pressed }: { focused?: boolean; hovered?: boolean; pressed: boolean }) => [
+                styles.copyButton,
+                employee && employeeStyles.copy,
+                employee && (hovered || pressed) && employeeStyles.copyActive,
+                employee && focused && agendaFocusRing,
+              ]}
               accessibilityRole="button"
               accessibilityLabel="Nachricht kopieren"
               testID={`copy-message-${message.id}`}
             >
-              <Text style={[adaptiveStyles.copyText, employee && employeeStyles.sender]}>{copied ? '✓ Kopiert' : 'Kopieren'}</Text>
+              {employee ? (
+                <Ionicons name={copied ? 'checkmark' : 'copy-outline'} size={15} color={employeePortalDesign.accent} accessible={false} />
+              ) : null}
+              <Text style={[adaptiveStyles.copyText, employee && employeeStyles.copyText]}>
+                {copied ? employee ? 'Kopiert' : '✓ Kopiert' : 'Kopieren'}
+              </Text>
             </Pressable>
           ) : null}
         </View>
@@ -150,11 +163,19 @@ const styles = StyleSheet.create({
 });
 
 const textWrap = Platform.OS === 'web' ? { overflowWrap: 'anywhere' } as TextStyle : undefined;
-const employeeStyles = StyleSheet.create({
-  bubble: { minWidth: 0, maxWidth: '88%', borderRadius: 16, paddingHorizontal: 12, paddingVertical: 9, shadowOpacity: 0 },
+const employeeStyles = StyleSheet.create(withCareSuiteTypography({
+  bubble: { minWidth: 0, maxWidth: '88%', borderRadius: 16, paddingHorizontal: 14, paddingVertical: 10, gap: 3, shadowOpacity: 0 },
   own: { backgroundColor: employeePortalDesign.messageOwn, borderColor: '#497785', borderBottomRightRadius: 5 },
   other: { backgroundColor: employeePortalDesign.messageOther, borderColor: employeePortalDesign.line, borderBottomLeftRadius: 5 },
-  sender: { color: employeePortalDesign.accent, fontSize: font(11), lineHeight: font(17), ...textWrap },
-  body: { color: employeePortalDesign.text, fontSize: font(14), lineHeight: font(21), ...textWrap },
-  muted: { color: employeePortalDesign.muted, fontSize: font(11), lineHeight: font(17) },
-});
+  sender: { color: employeePortalDesign.accent, fontSize: font(13), lineHeight: font(18), ...textWrap },
+  body: { color: employeePortalDesign.text, fontSize: font(16), lineHeight: font(24), ...textWrap },
+  muted: { color: employeePortalDesign.muted, fontSize: font(12), lineHeight: font(18) },
+  meta: { marginTop: 2, gap: 7 },
+  copy: { flexDirection: 'row', alignItems: 'center', minHeight: 30, gap: 5, borderRadius: 7 },
+  copyActive: { backgroundColor: employeePortalDesign.selected },
+  copyText: { color: employeePortalDesign.accent, fontSize: font(12), lineHeight: font(18) },
+  systemText: {
+    color: employeePortalDesign.muted, backgroundColor: employeePortalDesign.control,
+    fontSize: font(13), lineHeight: font(19), maxWidth: '88%', ...textWrap,
+  },
+}));

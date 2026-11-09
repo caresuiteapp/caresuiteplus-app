@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, Linking, Platform, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
 import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -24,6 +25,8 @@ import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { MessageStatusTicks } from '@/components/communication/MessageStatusTicks';
 import { employeePortalDesign as employeeInk } from '@/components/portal/employee/employeePortalDesign';
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
+import { employeeMessageAttachmentIcon } from './employeeMessageAttachmentIcon';
 
 type AttachmentUrlState = {
   url: string | null;
@@ -97,6 +100,7 @@ export function MessageAttachmentList({
   const loadingAttachmentIdsRef = useRef<Set<string>>(new Set());
   const urlByIdRef = useRef<Record<string, AttachmentUrlState>>({});
   const roleKey = resolveAttachmentRoleKey(profile?.roleKey, portalSession?.roleKey);
+  const attachmentAccent = onDarkSurface ? employeeInk.accent : c.violet;
 
   urlByIdRef.current = urlById;
 
@@ -127,19 +131,21 @@ export function MessageAttachmentList({
         },
         inlineRoot: {
           gap: spacing.xs,
-          maxWidth: '82%',
+          maxWidth: onDarkSurface ? '88%' : '82%',
           alignSelf: isOwn ? 'flex-end' : 'flex-start',
           paddingHorizontal: attachmentOnly ? 0 : spacing.md,
           paddingBottom: attachmentOnly ? 0 : spacing.sm,
         },
-        sender: { ...typography.caption, color: onDarkSurface ? employeeInk.accent : colors.cyan, marginBottom: spacing.xs },
+        sender: { ...typography.caption, color: onDarkSurface ? employeeInk.accent : colors.cyan, marginBottom: spacing.xs,
+          ...(onDarkSurface ? { fontSize: font(13), lineHeight: font(18), fontWeight: '700' } : null) },
         meta: {
           flexDirection: 'row',
           alignItems: 'center',
           gap: spacing.xs,
           marginTop: spacing.xs,
         },
-        time: { ...typography.caption, color: onDarkSurface ? employeeInk.muted : colors.textMuted },
+        time: { ...typography.caption, color: onDarkSurface ? employeeInk.muted : colors.textMuted,
+          ...(onDarkSurface ? { fontSize: font(12), lineHeight: font(18) } : null) },
         item: {
           borderRadius: radius.md,
           borderWidth: 1,
@@ -153,8 +159,12 @@ export function MessageAttachmentList({
           gap: spacing.sm,
           padding: spacing.sm,
         },
-        name: { ...typography.caption, color: onDarkSurface ? employeeInk.text : c.text, flex: 1, fontWeight: '600' },
-        metaText: { ...typography.caption, color: onDarkSurface ? employeeInk.muted : c.muted },
+        fileCopy: { flex: 1, minWidth: 0, gap: 3 },
+        compactName: { flex: 0 },
+        name: { ...typography.caption, color: onDarkSurface ? employeeInk.text : c.text, flex: 1, minWidth: 0, fontWeight: '600',
+          ...(onDarkSurface ? { fontSize: font(14), lineHeight: font(20) } : null) },
+        metaText: { ...typography.caption, color: onDarkSurface ? employeeInk.muted : c.muted,
+          ...(onDarkSurface ? { fontSize: font(12), lineHeight: font(18) } : null) },
         thumb: {
           width: Math.min(240, screenWidth * 0.55),
           height: 160,
@@ -335,7 +345,7 @@ export function MessageAttachmentList({
     return (
       <View style={styles.rowWrap}>
         <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther, styles.listLoading]}>
-          <ActivityIndicator size="small" color={c.violet} accessibilityLabel="Anhänge werden geladen" />
+          <ActivityIndicator size="small" color={attachmentAccent} accessibilityLabel="Anhänge werden geladen" />
         </View>
       </View>
     );
@@ -384,7 +394,7 @@ export function MessageAttachmentList({
                 })}
               </Text>
             ) : null}
-            {showStatus && isOwn ? <MessageStatusTicks status={messageStatus} /> : null}
+            {showStatus && isOwn ? <MessageStatusTicks status={messageStatus} appearance={onDarkSurface ? 'employee' : undefined} /> : null}
           </View>
         </View>
       </View>
@@ -400,7 +410,7 @@ export function MessageAttachmentList({
       if (voiceLoading) {
         return (
           <View key={attachment.id} style={[styles.item, styles.thumbLoading]}>
-            <ActivityIndicator size="small" color={c.violet} />
+            <ActivityIndicator size="small" color={attachmentAccent} />
             <Text style={styles.metaText}>Sprachnachricht wird geladen…</Text>
           </View>
         );
@@ -427,6 +437,7 @@ export function MessageAttachmentList({
             url={urlState.url}
             fileName={attachment.fileName}
             onRetry={() => void loadUrl(attachment, true)}
+            onDarkSurface={onDarkSurface}
           />
         </View>
       );
@@ -437,7 +448,7 @@ export function MessageAttachmentList({
       if (imageLoading) {
         return (
           <View key={attachment.id} style={[styles.item, styles.thumbLoading]}>
-            <ActivityIndicator size="small" color={c.violet} />
+            <ActivityIndicator size="small" color={attachmentAccent} />
             <Text style={styles.metaText}>Vorschau wird geladen…</Text>
           </View>
         );
@@ -489,14 +500,24 @@ export function MessageAttachmentList({
         accessibilityLabel={accessibilityLabel}
       >
         <View style={styles.fileRow}>
-          <Text style={styles.name}>
-            {attachmentIcon(attachment.mimeType)} {attachment.fileName}
-          </Text>
-          <Text style={styles.metaText}>{formatSize(attachment.fileSizeBytes)}</Text>
+          {onDarkSurface ? (
+            <>
+              <Ionicons name={employeeMessageAttachmentIcon(attachment.mimeType)} color={attachmentAccent} size={21} accessible={false} />
+              <View style={styles.fileCopy}>
+                <Text style={[styles.name, styles.compactName]} numberOfLines={2}>{attachment.fileName}</Text>
+                <Text style={styles.metaText}>{formatSize(attachment.fileSizeBytes)}</Text>
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={styles.name}>{attachmentIcon(attachment.mimeType)} {attachment.fileName}</Text>
+              <Text style={styles.metaText}>{formatSize(attachment.fileSizeBytes)}</Text>
+            </>
+          )}
         </View>
         {urlState?.loading ? (
           <View style={styles.thumbLoading}>
-            <ActivityIndicator size="small" color={c.violet} />
+            <ActivityIndicator size="small" color={attachmentAccent} />
           </View>
         ) : null}
         {urlState?.error ? (
@@ -580,7 +601,7 @@ export function MessageAttachmentList({
                   })}
                 </Text>
               ) : null}
-              {showStatus && isOwn ? <MessageStatusTicks status={messageStatus} /> : null}
+              {showStatus && isOwn ? <MessageStatusTicks status={messageStatus} appearance={onDarkSurface ? 'employee' : undefined} /> : null}
             </View>
           </View>
         </View>

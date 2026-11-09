@@ -51,6 +51,7 @@ vi.mock('react-native', async () => {
     }),
     Modal: ({ children, visible }: any) => visible ? <div>{children}</div> : null,
     Platform: { OS: 'android' },
+    useWindowDimensions: () => ({ width: 390, height: 844 }),
     Keyboard: { isVisible: () => false, addListener: () => ({ remove() {} }) },
     StyleSheet: { create: (styles: unknown) => styles },
     AppState: {

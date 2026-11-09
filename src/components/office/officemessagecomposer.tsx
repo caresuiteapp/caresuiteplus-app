@@ -2,8 +2,10 @@ import { useCallback, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ChatComposer } from '@/components/communication/ChatComposer';
 import { CareEmojiPicker, CareEmojiPickerButton } from '@/components/office/careemojipicker';
-import { OfficeMessageAttachmentPicker } from '@/components/office/officemessageattachmentpicker';
+import { OfficeMessageAttachmentPicker, employeeChatToolbarStyle } from '@/components/office/officemessageattachmentpicker';
 import { OfficeVoiceRecordingBar } from '@/components/office/officevoicerecordingbar';
+import { EmployeePortalAgendaAction } from '@/components/portal/employee/EmployeePortalAgendaAction';
+import { employeePortalDesign as employeeInk } from '@/components/portal/employee/employeePortalDesign';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useOfficeVoiceRecording } from '@/hooks/office/useofficevoicerecording';
 import { insertTextAtSelection } from '@/lib/communication/composerutils';
@@ -51,6 +53,8 @@ export function OfficeMessageComposer({
   const [selection, setSelection] = useState({ start: text.length, end: text.length });
   const [stoppingVoice, setStoppingVoice] = useState(false);
   const voice = useOfficeVoiceRecording();
+  const employee = appearance === 'employee';
+  const toolsDisabled = disabled || voice.isRecording || stoppingVoice || sending;
 
   const handleEmojiSelect = useCallback(
     (emoji: string) => {
@@ -98,11 +102,20 @@ export function OfficeMessageComposer({
       onCancel={handleVoiceCancel}
       stopping={stoppingVoice}
       onDarkSurface={onDarkSurface}
+      appearance={appearance}
     />
   ) : voice.error ? (
     <View style={styles.errorWrap}>
-      <Text style={[typography.caption, { color: '#c0392b' }]}>{voice.error}</Text>
+      <Text accessibilityRole="alert" style={[typography.caption, { color: employee ? employeeInk.danger : '#c0392b' }]}>{voice.error}</Text>
     </View>
+  ) : null;
+  const employeeTools = employee ? (
+    <>
+      <EmployeePortalAgendaAction iconOnly icon="happy-outline" label="Emoji-Auswahl öffnen"
+        onPress={() => setEmojiPickerVisible(true)} disabled={toolsDisabled} />
+      <EmployeePortalAgendaAction iconOnly icon="mic-outline" label="Sprachnachricht aufnehmen"
+        onPress={() => void handleVoicePress()} disabled={toolsDisabled || !voice.isSupported} />
+    </>
   ) : null;
 
   return (
@@ -112,7 +125,7 @@ export function OfficeMessageComposer({
         onChangeText={onChangeText}
         onSend={onSend}
         sending={sending}
-        disabled={disabled || voice.isRecording}
+        disabled={disabled || voice.isRecording || (employee && stoppingVoice)}
         showInternalToggle={showInternalToggle}
         isInternalNote={isInternalNote}
         onToggleInternalNote={onToggleInternalNote}
@@ -123,26 +136,30 @@ export function OfficeMessageComposer({
         onSelectionChange={setSelection}
         onVoicePress={() => void handleVoicePress()}
         voiceDisabled={!voice.isSupported || voice.isRecording}
-        emojiPickerButton={
+        emojiPickerButton={employee ? null : (
           <CareEmojiPickerButton
             onPress={() => setEmojiPickerVisible(true)}
             disabled={disabled || voice.isRecording}
             onDarkSurface={onDarkSurface}
           />
-        }
+        )}
         composerAccessory={composerAccessory}
         attachmentPicker={
           showAttachmentPicker ? (
-            <OfficeMessageAttachmentPicker
-              attachments={pendingAttachments}
-              onChange={onPendingAttachmentsChange}
-              disabled={sending || voice.isRecording}
-              error={attachmentError}
-              onError={onAttachmentError}
-              onDarkSurface={onDarkSurface}
-              compact
-            />
-          ) : null
+            <View style={employee && voice.isRecording ? styles.hiddenTools : undefined}>
+              <OfficeMessageAttachmentPicker
+                attachments={pendingAttachments}
+                onChange={onPendingAttachmentsChange}
+                disabled={employee ? toolsDisabled : sending || voice.isRecording}
+                error={attachmentError}
+                onError={onAttachmentError}
+                onDarkSurface={onDarkSurface}
+                appearance={appearance}
+                trailingActions={employeeTools}
+                compact
+              />
+            </View>
+          ) : employee && !voice.isRecording ? <View style={employeeChatToolbarStyle}>{employeeTools}</View> : null
         }
       />
       <CareEmojiPicker
@@ -162,4 +179,5 @@ function createAttachmentId(): string {
 
 const styles = StyleSheet.create({
   errorWrap: { paddingHorizontal: spacing.xs },
+  hiddenTools: { display: 'none' },
 });

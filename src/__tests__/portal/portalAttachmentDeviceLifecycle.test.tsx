@@ -11,12 +11,13 @@ const h = vi.hoisted(() => ({
 }));
 vi.mock('react-native', () => {
   const Box = ({ children }: any) => <div>{children}</div>;
-  return { View: Box, Text: Box, Pressable: ({ children, onPress, disabled, accessibilityLabel }: any) =>
+  return { View: Box, Text: Box, ScrollView: Box, Pressable: ({ children, onPress, disabled, accessibilityLabel }: any) =>
     <button aria-label={accessibilityLabel} onClick={onPress} disabled={disabled}>{children}</button>,
     ActivityIndicator: () => <span>Loading</span>, useWindowDimensions: () => ({ width: 390 }),
     Linking: { openURL: h.openURL, openSettings: vi.fn().mockResolvedValue(undefined) },
     Platform: { OS: 'android' }, StyleSheet: { create: (styles: any) => styles } };
 });
+vi.mock('@expo/vector-icons/Ionicons', () => ({ default: ({ name }: { name: string }) => <span data-icon={name} /> }));
 vi.mock('@/components/auth/AccountSecurityCenter', () => ({ AccountSecurityCenter: () => <section aria-label="Kontosicherheit" /> }));
 vi.mock('expo-router', () => ({ useLocalSearchParams: () => ({}) }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: null, portalSession: { roleKey: 'employee_portal', accountId: 'account-a' } }) }));
@@ -47,10 +48,10 @@ const press = async (label: string) => {
   const button = [...host.querySelectorAll('button')].find((item) => item.getAttribute('aria-label') === label || item.textContent === label);
   expect(button, label).toBeDefined(); await act(async () => button!.click());
 };
-function PickerProbe() {
+function PickerProbe({ appearance }: { appearance?: 'employee' }) {
   const [attachments, setAttachments] = useState<any[]>([{ id: 'existing', fileName: 'Alt.pdf', mimeType: 'application/pdf', fileSizeBytes: 2 }]);
   h.attachments = attachments;
-  return <OfficeMessageAttachmentPicker compact attachments={attachments} onChange={setAttachments} onError={h.error} />;
+  return <OfficeMessageAttachmentPicker compact appearance={appearance} attachments={attachments} onChange={setAttachments} onError={h.error} />;
 }
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true; vi.clearAllMocks();
@@ -64,11 +65,11 @@ beforeEach(() => {
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 describe('portal attachment and device controls', () => {
-  it('does not reopen a parallel picker or restore an attachment removed during file reading', async () => {
+  it.each([undefined, 'employee'] as const)('handles parallel picks and removal during file reading (%s)', async (appearance) => {
     const bytes = deferred<Uint8Array>(); h.bytes.mockReturnValueOnce(bytes.promise);
-    await render(<PickerProbe />); await press('Anhang hinzufügen'); await press('Kamera öffnen');
+    await render(<PickerProbe appearance={appearance} />); await press('Anhang hinzufügen'); await press('Kamera öffnen');
     expect(h.document).toHaveBeenCalledTimes(1); expect(h.camera).not.toHaveBeenCalled();
-    await press('Entfernen'); expect(h.attachments).toEqual([]);
+    await press(appearance === 'employee' ? 'Alt.pdf entfernen' : 'Entfernen'); expect(h.attachments).toEqual([]);
     await act(async () => bytes.resolve(new Uint8Array([1, 2, 3])));
     expect(h.attachments).toHaveLength(1); expect(h.attachments[0]).toMatchObject({ fileName: 'Neu.pdf', fileSizeBytes: 3 });
     expect(h.release).toHaveBeenCalledWith('blob:file');

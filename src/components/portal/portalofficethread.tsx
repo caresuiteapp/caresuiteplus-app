@@ -9,8 +9,10 @@ import {
   Text,
   View,
   Pressable,
+  useWindowDimensions,
   type NativeScrollEvent,
   type NativeSyntheticEvent,
+  type ViewStyle,
 } from 'react-native';
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -90,6 +92,7 @@ function PortalOfficeThreadContent({
 }: PortalOfficeThreadProps) {
   const { c } = useCareLightPalette();
   const { typography, isLight } = useLegacyTheme();
+  const { width, height } = useWindowDimensions();
   const useLightGlass = useLightLiquidGlassShell();
   const useLightUi = useLightGlass || isLight;
   const insets = useSafeAreaInsets();
@@ -97,10 +100,12 @@ function PortalOfficeThreadContent({
   const scrollRef = useRef<ScrollView>(null);
   const isGlass = variant === 'glass';
   const employee = variant === 'employee';
+  const compactEmployeeHeader = employee && height <= 500 && width >= 600;
   const { surfaces, onDarkSurface, ink } = useMessagingGlassSurface(isGlass);
   const [draft, setDraft] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
+  const [sendError, setSendError] = useState<string | null>(null);
   const [restartError, setRestartError] = useState<string | null>(null);
   const [restarting, setRestarting] = useState(false);
   const restartLock = useRef(false);
@@ -204,18 +209,20 @@ function PortalOfficeThreadContent({
 
   const employeeGroup = detail ? isEmployeeGroupChatThread(detail) : false;
   const employeeHeader = employee ? (
-    <View style={employeeStyles.header}>
+    <View style={[employeeStyles.header, compactEmployeeHeader && employeeStyles.compactHeader]}>
       {onBack ? <Pressable accessibilityRole="button" accessibilityLabel="Zurück zur Liste" testID="messenger-back-to-list"
         onPress={onBack} style={({ pressed, focused }: { pressed: boolean; focused?: boolean }) => [
           employeeStyles.headerButton, focused && agendaFocusRing, pressed && employeeStyles.pressed,
         ]}>
         <Ionicons name="arrow-back-outline" size={21} color={employeeInk.accent} accessible={false} />
       </Pressable> : null}
-      <View style={employeeStyles.headerCopy}>
-        <Text style={employeeStyles.kicker}>{employeeGroup ? 'TEAMCHAT' : 'VERWALTUNG'}</Text>
-        <Text accessibilityRole="header" aria-level={2} numberOfLines={2} style={employeeStyles.title}>
-          {detail?.subject?.trim() || 'Gespräch'}
-        </Text>
+      <View style={[employeeStyles.headerCopy, compactEmployeeHeader && employeeStyles.compactHeaderCopy]}>
+        <View style={[employeeStyles.headerText, compactEmployeeHeader && employeeStyles.compactHeaderText]}>
+          <Text style={employeeStyles.kicker}>{employeeGroup ? 'TEAMCHAT' : 'VERWALTUNG'}</Text>
+          <Text accessibilityRole="header" aria-level={2} numberOfLines={compactEmployeeHeader ? 2 : 3} style={employeeStyles.title}>
+            {detail?.subject?.trim() || 'Gespräch'}
+          </Text>
+        </View>
         {detail ? <View style={employeeStyles.labels}>
           <EmployeePortalAgendaStatus label={getPortalStatusLabel(detail.status)}
             tone={detail.isClosed ? 'muted' : detail.status === 'waiting_for_reply' || detail.status === 'waiting' ? 'orange' : 'cyan'} />
@@ -301,6 +308,7 @@ function PortalOfficeThreadContent({
   const handleSend = async () => {
     if (sendLock.current || !mayReply) return;
     sendLock.current = true;
+    setSendError(null);
     const sentDraft = draft;
     const sentAttachments = pendingAttachments;
     try {
@@ -315,10 +323,10 @@ function PortalOfficeThreadContent({
         setShowLatest(false);
         scrollRef.current?.scrollToEnd({ animated: !employee });
       } else {
-        setAttachmentError(toUserFacingSendError(result.error));
+        setSendError(toUserFacingSendError(result.error));
       }
     } catch {
-      if (mounted.current) setAttachmentError(toUserFacingSendError());
+      if (mounted.current) setSendError(toUserFacingSendError());
     } finally {
       sendLock.current = false;
     }
@@ -381,7 +389,7 @@ function PortalOfficeThreadContent({
 
         <ScrollView
           ref={scrollRef}
-          style={officeMessengerColumnStyles.scrollRegion}
+          style={[officeMessengerColumnStyles.scrollRegion, employee && employeeHistoryScrollbar]}
           contentContainerStyle={[styles.messagesContent, employee && employeeStyles.timeline]}
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
@@ -455,9 +463,9 @@ function PortalOfficeThreadContent({
           </View>
         ) : (
           <>
-            {attachmentError ? (
+            {sendError ? (
               <View style={styles.sendErrorWrap}>
-                <Text accessibilityRole="alert" style={employee ? employeeStyles.error : styles.sendErrorText}>{attachmentError}</Text>
+                <Text accessibilityRole="alert" style={employee ? employeeStyles.error : styles.sendErrorText}>{sendError}</Text>
                 {employee ? <EmployeePortalAgendaAction label="Erneut senden" icon="refresh-outline" busy={sending}
                   onPress={() => void handleSend()} /> : useLightUi ? (
                   <CareLightButton title="Erneut senden" variant="secondary" disabled={sending} onPress={() => void handleSend()} />
@@ -493,22 +501,30 @@ function PortalOfficeThreadContent({
   );
 }
 
+const employeeHistoryScrollbar = Platform.OS === 'web' ? ({
+  scrollbarWidth: 'thin', scrollbarColor: 'rgba(188,238,255,0.48) transparent', overscrollBehaviorY: 'contain',
+} as ViewStyle) : null;
+
 const employeeStyles = StyleSheet.create(withCareSuiteTypography({
   header: { flexShrink: 0, minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', gap: 10,
     padding: 11, backgroundColor: employeeInk.control, borderBottomWidth: 1, borderBottomColor: employeeInk.line },
+  compactHeader: { alignItems: 'center', paddingVertical: 7 },
   headerButton: { width: 44, height: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center',
     backgroundColor: employeeInk.raised, borderWidth: 1, borderColor: employeeInk.line, borderRadius: 11 },
   pressed: { opacity: 0.76 },
   headerCopy: { flex: 1, minWidth: 0, gap: 4 },
+  compactHeaderCopy: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  headerText: { minWidth: 0, gap: 4 },
+  compactHeaderText: { flexGrow: 1, flexBasis: '48%', maxWidth: '100%', gap: 1 },
   kicker: { color: employeeInk.accent, letterSpacing: 1.1, fontSize: font(10), lineHeight: font(15), fontWeight: '700' },
   title: { color: employeeInk.text, fontSize: font(20), lineHeight: font(26), fontWeight: '700', ...clientRecordTextWrap },
-  labels: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 7 },
+  labels: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', maxWidth: '100%', gap: 7 },
   small: { color: employeeInk.muted, fontSize: font(13), lineHeight: font(19), ...clientRecordTextWrap },
   empty: { flex: 1, minHeight: 0, justifyContent: 'center', alignItems: 'flex-start', gap: 10, padding: 16 },
   timeline: { width: '100%', maxWidth: 880, alignSelf: 'center' },
   dayDivider: { marginHorizontal: 12, marginVertical: 8, flexDirection: 'row', alignItems: 'center', gap: 8 },
   dayLine: { flex: 1, height: 1, backgroundColor: employeeInk.line },
-  dayLabel: { color: employeeInk.muted, flexShrink: 1, textAlign: 'center', fontSize: font(11), lineHeight: font(16) },
+  dayLabel: { color: employeeInk.muted, flexShrink: 1, textAlign: 'center', fontSize: font(12), lineHeight: font(18) },
   noMessages: { color: employeeInk.muted, padding: 15, fontSize: font(13), lineHeight: font(19) },
   jump: { alignSelf: 'center', paddingVertical: 4 },
   closed: { margin: 10, padding: 11, backgroundColor: employeeInk.control, borderRadius: 12, borderWidth: 1, borderColor: employeeInk.line },

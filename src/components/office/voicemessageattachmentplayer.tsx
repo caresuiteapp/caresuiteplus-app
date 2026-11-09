@@ -21,6 +21,8 @@ import {
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { EmployeePortalAgendaAction } from '@/components/portal/employee/EmployeePortalAgendaAction';
+import { employeePortalDesign as employeeInk } from '@/components/portal/employee/employeePortalDesign';
 
 import {
 
@@ -43,6 +45,7 @@ type VoiceMessageAttachmentPlayerProps = {
   fileName: string;
 
   onRetry?: () => void;
+  onDarkSurface?: boolean;
 
 };
 
@@ -71,12 +74,15 @@ export function VoiceMessageAttachmentPlayer({
   fileName,
 
   onRetry,
+  onDarkSurface = false,
 
 }: VoiceMessageAttachmentPlayerProps) {
 
   const { c } = useCareLightPalette();
 
   const { typography } = useLegacyTheme();
+  const playerAccent = onDarkSurface ? employeeInk.accent : c.violet;
+  const playerMuted = onDarkSurface ? employeeInk.muted : c.muted;
 
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
@@ -132,7 +138,7 @@ export function VoiceMessageAttachmentPlayer({
 
           borderRadius: radius.capsule,
 
-          backgroundColor: `${c.muted}33`,
+          backgroundColor: onDarkSurface ? employeeInk.line : `${c.muted}33`,
 
           overflow: 'hidden',
 
@@ -142,23 +148,23 @@ export function VoiceMessageAttachmentPlayer({
 
           height: '100%',
 
-          backgroundColor: c.violet,
+          backgroundColor: playerAccent,
 
         },
 
-        time: { ...typography.caption, color: c.muted, minWidth: 72, textAlign: 'right' },
+        time: { ...typography.caption, color: playerMuted, minWidth: 72, textAlign: 'right' },
 
-        label: { ...typography.caption, color: c.muted },
+        label: { ...typography.caption, color: playerMuted },
 
-        error: { ...typography.caption, color: '#c0392b' },
+        error: { ...typography.caption, color: onDarkSurface ? employeeInk.danger : '#c0392b' },
 
-        retry: { ...typography.caption, color: c.violet, fontWeight: '700' },
+        retry: { ...typography.caption, color: playerAccent, fontWeight: '700' },
 
-        nativeLink: { ...typography.caption, color: c.violet, fontWeight: '600' },
+        nativeLink: { ...typography.caption, color: playerAccent, fontWeight: '600' },
 
       }),
 
-    [c, typography],
+    [c, onDarkSurface, playerAccent, playerMuted, typography],
 
   );
 
@@ -350,7 +356,10 @@ export function VoiceMessageAttachmentPlayer({
 
       <View style={styles.root}>
 
-        <Pressable
+        {onDarkSurface ? (
+          <EmployeePortalAgendaAction label="Sprachnachricht abspielen" icon="play-outline"
+            onPress={() => void togglePlayback()} accessibilityLabel={`Sprachnachricht abspielen: ${fileName}`} />
+        ) : <Pressable
 
           onPress={() => void togglePlayback()}
 
@@ -362,7 +371,7 @@ export function VoiceMessageAttachmentPlayer({
 
           <Text style={styles.nativeLink}>Sprachnachricht abspielen</Text>
 
-        </Pressable>
+        </Pressable>}
 
       </View>
 
@@ -404,7 +413,11 @@ export function VoiceMessageAttachmentPlayer({
 
       <View style={styles.row}>
 
-        <Pressable
+        {onDarkSurface ? (
+          <EmployeePortalAgendaAction iconOnly icon={playing ? 'pause-outline' : 'play-outline'}
+            label={playing ? 'Sprachnachricht pausieren' : 'Sprachnachricht abspielen'}
+            onPress={() => void togglePlayback()} busy={!ready && !playing} />
+        ) : <Pressable
 
           style={styles.playButton}
 
@@ -428,7 +441,7 @@ export function VoiceMessageAttachmentPlayer({
 
           )}
 
-        </Pressable>
+        </Pressable>}
 
         <View style={styles.track}>
 

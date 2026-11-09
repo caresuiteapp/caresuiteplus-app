@@ -4,6 +4,10 @@ import { PremiumButton } from '@/components/ui';
 import { darkGlassSurfaceText, surfaceContrastText, auroraGlass } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
+import { EmployeePortalAgendaAction } from '@/components/portal/employee/EmployeePortalAgendaAction';
+import { employeePortalDesign as employeeInk } from '@/components/portal/employee/employeePortalDesign';
 import { spacing, radius } from '@/theme';
 
 type OfficeVoiceRecordingBarProps = {
@@ -12,6 +16,7 @@ type OfficeVoiceRecordingBarProps = {
   onCancel: () => void;
   stopping?: boolean;
   onDarkSurface?: boolean;
+  appearance?: 'employee';
 };
 
 function formatDuration(seconds: number): string {
@@ -26,6 +31,7 @@ export function OfficeVoiceRecordingBar({
   onCancel,
   stopping = false,
   onDarkSurface = false,
+  appearance,
 }: OfficeVoiceRecordingBarProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
@@ -61,6 +67,25 @@ export function OfficeVoiceRecordingBar({
     [c, ink, onDarkSurface, typography],
   );
 
+  if (appearance === 'employee') {
+    const duration = formatDuration(durationSeconds);
+    return (
+      <View style={employeeStyles.recording}>
+        <View style={employeeStyles.recordingInfo} accessibilityRole="alert">
+          <View style={employeeStyles.dot} accessibilityElementsHidden />
+          <Text style={employeeStyles.label}>Aufnahme läuft</Text>
+          <Text style={employeeStyles.timer} accessibilityLabel={`Dauer ${duration}`}>{duration}</Text>
+        </View>
+        <View style={employeeStyles.recordingActions}>
+          <EmployeePortalAgendaAction label="Stoppen" icon="stop-outline" primary busy={stopping}
+            onPress={onStop} accessibilityLabel="Aufnahme stoppen und als Anhang hinzufügen" />
+          <EmployeePortalAgendaAction label="Abbrechen" icon="close-outline" disabled={stopping}
+            onPress={onCancel} accessibilityLabel="Aufnahme abbrechen" />
+        </View>
+      </View>
+    );
+  }
+
   return (
     <View style={styles.wrap} accessibilityRole="alert" accessibilityLabel="Sprachaufnahme läuft">
       <View style={styles.pulse} accessibilityElementsHidden />
@@ -88,3 +113,16 @@ export function OfficeVoiceRecordingBar({
     </View>
   );
 }
+
+const employeeStyles = StyleSheet.create(withCareSuiteTypography({
+  recording: {
+    flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between',
+    gap: 8, padding: 8, borderRadius: 12, borderWidth: 1, borderColor: employeeInk.line,
+    backgroundColor: employeeInk.control,
+  },
+  recordingInfo: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 8 },
+  recordingActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7 },
+  dot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#FF8E9A' },
+  label: { color: employeeInk.text, fontSize: font(14), lineHeight: font(20), fontWeight: '700' },
+  timer: { color: employeeInk.muted, fontSize: font(14), lineHeight: font(20), fontVariant: ['tabular-nums'] },
+}));

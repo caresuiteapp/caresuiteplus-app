@@ -3,6 +3,7 @@ import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { surfaceContrastText } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { EmployeePortalAgendaAction } from '@/components/portal/employee/EmployeePortalAgendaAction';
 import {
   createVoicePreviewUrl,
   revokeBlobPlaybackUrl,
@@ -13,6 +14,7 @@ import { spacing, radius } from '@/theme';
 type VoicePendingPreviewProps = {
   attachment: PendingMessageAttachment;
   onDarkSurface?: boolean;
+  appearance?: 'employee';
 };
 
 function formatDuration(seconds: number): string {
@@ -21,7 +23,7 @@ function formatDuration(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, '0')}`;
 }
 
-export function VoicePendingPreview({ attachment, onDarkSurface = false }: VoicePendingPreviewProps) {
+export function VoicePendingPreview({ attachment, onDarkSurface = false, appearance }: VoicePendingPreviewProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
   const ink = surfaceContrastText(onDarkSurface);
@@ -121,6 +123,14 @@ export function VoicePendingPreview({ attachment, onDarkSurface = false }: Voice
       <View style={styles.wrap}>
         <Text style={styles.label}>Vorschau: {attachment.fileName}</Text>
       </View>
+    );
+  }
+
+  if (appearance === 'employee') {
+    return (
+      <EmployeePortalAgendaAction iconOnly icon={playing ? 'pause-outline' : 'play-outline'}
+        label={playing ? 'Vorschau pausieren' : 'Sprachnachricht-Vorschau abspielen'}
+        onPress={() => void togglePlayback()} disabled={!ready} />
     );
   }
 
