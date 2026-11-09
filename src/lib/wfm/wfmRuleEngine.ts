@@ -280,7 +280,8 @@ export async function evaluateAndStoreArbzgForToday(
   let events: WfmTimeEvent[] = [];
   if (sessionResult.data) {
     const eventsResult = await fetchSessionEvents(tenantId, sessionResult.data.id);
-    if (eventsResult.ok) events = eventsResult.data;
+    if (!eventsResult.ok) return eventsResult;
+    events = eventsResult.data;
   }
 
   const previousDayEndedAt = await fetchPreviousDayEnd(

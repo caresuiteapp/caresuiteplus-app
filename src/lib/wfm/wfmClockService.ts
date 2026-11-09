@@ -119,14 +119,14 @@ export async function getWfmTodayStatus(
   const totals = session
     ? deriveWfmTimelineTotals(events, { session })
     : { grossMinutes: 0, pauseMinutes: 0, netMinutes: 0, blockCount: 0 };
-  const liveSession = session
+  const liveSession = session && isWfmSessionActive(session)
     ? {
         ...session,
         grossMinutes: totals.grossMinutes,
         pauseMinutes: totals.pauseMinutes,
         netMinutes: totals.netMinutes,
       }
-    : null;
+    : session;
 
   return {
     ok: true,

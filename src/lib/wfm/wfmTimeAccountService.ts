@@ -10,6 +10,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import {
   fetchSessionForDate,
   fetchSessionEvents,
+  listEmployeeSessionsBeforeDate,
   todayWorkDate,
   resolveEmployeeIdForUser,
 } from './wfmWorkSessionRepository';
@@ -98,6 +99,15 @@ export async function getWfmTimeAccountForMonth(
     return computed;
   }
 
+  const stored = await findStoredTimeAccount(tenantId, employeeId, year, month);
+  if (!stored.ok) return stored;
+  return stored.data ? { ok: true, data: stored.data } : aggregateWfmTimeAccount(tenantId, employeeId, year, month);
+}
+
+async function findStoredTimeAccount(
+  tenantId: string, employeeId: string, year: number, month: number,
+): Promise<ServiceResult<WfmTimeAccount | null>> {
+  if (getServiceMode() !== 'supabase') return { ok: true, data: null };
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
@@ -110,14 +120,83 @@ export async function getWfmTimeAccountForMonth(
     .maybeSingle();
 
   if (error) {
-    if (isSupabaseMissingTableError(error)) {
-      return aggregateWfmTimeAccount(tenantId, employeeId, year, month);
-    }
+    if (isSupabaseMissingTableError(error)) return { ok: true, data: null };
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
-  if (data) return { ok: true, data: mapRow(data as AccountRow) };
-  return aggregateWfmTimeAccount(tenantId, employeeId, year, month);
+  return { ok: true, data: data ? mapRow(data as AccountRow) : null };
+}
+
+export type WfmEmployeeTimeAccountOverview = {
+  monthActualMinutes: number;
+  monthPauseMinutes: number;
+  monthTargetMinutes: number | null;
+  todayTargetMinutes: number | null;
+  monthBalanceMinutes: number | null;
+  priorOpenBlocks: boolean;
+  closedMonth: boolean;
+  scheduleError: string | null;
+};
+
+/** In an open month the caller adds today's live session to the earlier days. */
+export async function getWfmEmployeeTimeAccountOverview(
+  tenantId: string,
+  userId: string,
+  actorRoleKey: RoleKey | null,
+  workDate: string,
+  options?: { employeeId?: string | null },
+): Promise<ServiceResult<WfmEmployeeTimeAccountOverview>> {
+  const denied = enforcePermission(actorRoleKey, 'time.tracking.own.view');
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  const employeeResult = await resolveEmployeeIdForUser(tenantId, userId, options?.employeeId);
+  if (!employeeResult.ok) return employeeResult;
+
+  const employeeId = employeeResult.data;
+  const [year, month] = workDate.split('-').map(Number);
+  const monthStart = `${workDate.slice(0, 7)}-01`;
+  const monthEnd = `${workDate.slice(0, 7)}-${new Date(Date.UTC(year, month, 0)).getUTCDate()}`;
+  const [stored, schedule] = await Promise.all([
+    findStoredTimeAccount(tenantId, employeeId, year, month),
+    findContractWorkDays(tenantId, employeeId),
+  ]);
+  if (!stored.ok) return stored;
+
+  const closedMonth = stored.data?.isClosed === true;
+  let monthActualMinutes = 0;
+  let monthPauseMinutes = 0;
+  let priorOpenBlocks = false;
+  if (closedMonth && stored.data) {
+    monthActualMinutes = stored.data.actualMinutes;
+    monthPauseMinutes = stored.data.pauseMinutes;
+  } else if (workDate > monthStart) {
+    const sessions = await listEmployeeSessionsBeforeDate(tenantId, employeeId, monthStart, workDate);
+    if (!sessions.ok) return sessions;
+    for (const session of sessions.data) {
+      if (session.isOnline && !session.endedAt) priorOpenBlocks = true;
+      monthActualMinutes += session.netMinutes ?? session.grossMinutes;
+      monthPauseMinutes += session.pauseMinutes;
+    }
+  }
+
+  const workDays = schedule.ok ? schedule.data : null;
+  // The payroll sync may create an open row with zero as its default target.
+  // Only an explicit schedule or a closed account makes that zero authoritative.
+  const storedTarget = stored.data?.targetMinutes ?? null;
+  const monthTargetMinutes = closedMonth ? storedTarget : workDays
+    ? calculateContractTargetMinutesForRange(workDays, monthStart, monthEnd)
+    : storedTarget != null && storedTarget > 0 ? storedTarget : null;
+  return {
+    ok: true,
+    data: {
+      monthActualMinutes, monthPauseMinutes, monthTargetMinutes, closedMonth, priorOpenBlocks,
+      todayTargetMinutes: workDays ? calculateContractTargetMinutesForRange(workDays, workDate, workDate) : null,
+      monthBalanceMinutes: closedMonth && stored.data
+        ? stored.data.overtimeMinutes - stored.data.undertimeMinutes : null,
+      scheduleError: schedule.ok ? null : schedule.error,
+    },
+  };
 }
 
 async function aggregateWfmTimeAccount(
@@ -211,6 +290,14 @@ async function readSessionTotals(tenantId: string, session: WfmWorkSession): Pro
 
 async function loadContractWorkDays(tenantId: string, employeeId: string): Promise<ServiceResult<Record<string, unknown>>> {
   if (getServiceMode() !== 'supabase') return { ok: true, data: {} };
+  const schedule = await findContractWorkDays(tenantId, employeeId);
+  if (!schedule.ok) return schedule;
+  return schedule.data ? { ok: true, data: schedule.data }
+    : { ok: false, error: 'Die vertragliche Sollzeit ist noch nicht hinterlegt oder nicht freigegeben. Bitte die Verwaltung kontaktieren.' };
+}
+
+async function findContractWorkDays(tenantId: string, employeeId: string): Promise<ServiceResult<Record<string, unknown> | null>> {
+  if (getServiceMode() !== 'supabase') return { ok: true, data: null };
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
   const { data, error } = await fromUnknownTable(supabase, 'employee_contract_settings')
@@ -218,7 +305,7 @@ async function loadContractWorkDays(tenantId: string, employeeId: string): Promi
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
   const schedule = (data as { work_days?: unknown } | null)?.work_days;
   if (!schedule || typeof schedule !== 'object' || Array.isArray(schedule)) {
-    return { ok: false, error: 'Die vertragliche Sollzeit ist noch nicht hinterlegt oder nicht freigegeben. Bitte die Verwaltung kontaktieren.' };
+    return { ok: true, data: null };
   }
   return { ok: true, data: schedule as Record<string, unknown> };
 }

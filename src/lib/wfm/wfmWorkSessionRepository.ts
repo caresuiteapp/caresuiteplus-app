@@ -154,6 +154,32 @@ export async function fetchTodaySession(
   return fetchSessionForDate(tenantId, employeeId, todayWorkDate());
 }
 
+export async function listEmployeeSessionsBeforeDate(
+  tenantId: string,
+  employeeId: string,
+  fromDate: string,
+  beforeDate: string,
+): Promise<ServiceResult<WfmWorkSession[]>> {
+  if (getServiceMode() !== 'supabase') {
+    return { ok: true, data: [...demoSessions.values()].filter(session =>
+      session.tenantId === tenantId && session.employeeId === employeeId
+      && session.workDate >= fromDate && session.workDate < beforeDate,
+    ) };
+  }
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await fromUnknownTable(supabase, SESSIONS_TABLE)
+    .select('id, tenant_id, employee_id, user_id, work_date, status, work_mode, display_status, started_at, ended_at, last_event_at, gross_minutes, net_minutes, pause_minutes, is_online')
+    .eq('tenant_id', tenantId)
+    .eq('employee_id', employeeId)
+    .gte('work_date', fromDate)
+    .lt('work_date', beforeDate);
+
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  return { ok: true, data: (data as SessionRow[]).map(mapSessionRow) };
+}
+
 export async function fetchSessionEvents(
   tenantId: string,
   sessionId: string,

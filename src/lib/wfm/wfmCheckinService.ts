@@ -9,14 +9,10 @@ import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supaba
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import {
   fetchTodaySession,
-  insertTimeEvent,
-  insertWorkSession,
   resolveEmployeeIdForUser,
-  todayWorkDate,
-  updateWorkSession,
   updateWorkSessionLocation,
 } from './wfmWorkSessionRepository';
-import { getWfmTodayStatus, isWfmSessionActive } from './wfmClockService';
+import { isWfmSessionActive, wfmClockIn, wfmClockOut } from './wfmClockService';
 
 const TOKEN_TABLE = 'workforce_checkin_tokens';
 const TOKEN_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
@@ -285,70 +281,15 @@ export async function wfmOfficeCheckInByToken(
     }
   }
 
-  const employeeResult = await resolveEmployeeIdForUser(tenantId, userId, options?.employeeId);
-  if (!employeeResult.ok) return employeeResult;
-  const employeeId = employeeResult.data;
-
-  const existingResult = await fetchTodaySession(tenantId, employeeId);
-  if (!existingResult.ok) return existingResult;
-  if (existingResult.data && isWfmSessionActive(existingResult.data)) {
-    return { ok: false, error: 'Es läuft bereits ein Arbeitstag. Bitte zuerst abschließen.' };
-  }
-
-  const now = new Date().toISOString();
-  const workDate = todayWorkDate();
-  const existing = existingResult.data;
-  const sessionId = existing?.id ?? newUuid();
-
-  if (existing) {
-    const updateResult = await updateWorkSession(existing.id, {
-      status: 'office',
-      workMode: 'office',
-      displayStatus: 'buero',
-      startedAt: now,
-      endedAt: null,
-      lastEventAt: now,
-      isOnline: true,
-    });
-    if (!updateResult.ok) return updateResult;
-    await updateWorkSessionLocation(existing.id, token.locationLabel);
-  } else {
-    const sessionInsert = await insertWorkSession({
-      id: sessionId,
-      tenantId,
-      employeeId,
-      userId,
-      workDate,
-      status: 'office',
-      workMode: 'office',
-      displayStatus: 'buero',
-      startedAt: now,
-      endedAt: null,
-      lastEventAt: now,
-      isOnline: true,
-    });
-    if (!sessionInsert.ok) return sessionInsert;
-    await updateWorkSessionLocation(sessionId, token.locationLabel);
-  }
-
-  const eventInsert = await insertTimeEvent({
-    id: newUuid(),
-    tenantId,
-    employeeId,
-    userId,
-    eventType: 'office_check_in',
-    workMode: 'office',
-    source: 'office',
-    sessionId,
-    note: `Büro-Check-in: ${token.locationLabel} (${token.tokenCode})`,
-    occurredAt: now,
-  });
-  if (!eventInsert.ok) return eventInsert;
-
-  return getWfmTodayStatus(tenantId, userId, actorRoleKey, {
-    employeeId,
+  const result = await wfmClockIn(tenantId, userId, actorRoleKey, 'buero', {
+    employeeId: options?.employeeId,
     source: 'office',
   });
+  if (result.ok && result.data.session) {
+    // The booking is already committed. The display label is optional.
+    void updateWorkSessionLocation(result.data.session.id, token.locationLabel).catch(() => undefined);
+  }
+  return result;
 }
 
 export async function wfmOfficeCheckOut(
@@ -370,36 +311,7 @@ export async function wfmOfficeCheckOut(
     return { ok: false, error: 'Kein aktiver Büro-Check-in zum Abschließen.' };
   }
 
-  const now = new Date().toISOString();
-  const startedAt = session.startedAt ? Date.parse(session.startedAt) : Date.parse(now);
-  const grossMinutes = Math.max(0, Math.round((Date.parse(now) - startedAt) / 60000));
-
-  const updateResult = await updateWorkSession(session.id, {
-    status: 'ended',
-    displayStatus: 'feierabend',
-    endedAt: now,
-    lastEventAt: now,
-    isOnline: false,
-    grossMinutes,
-    netMinutes: Math.max(0, grossMinutes - session.pauseMinutes),
-  });
-  if (!updateResult.ok) return updateResult;
-
-  const eventResult = await insertTimeEvent({
-    id: newUuid(),
-    tenantId,
-    employeeId: employeeResult.data,
-    userId,
-    eventType: 'office_check_out',
-    workMode: 'office',
-    source: 'office',
-    sessionId: session.id,
-    note: 'Büro-Check-out',
-    occurredAt: now,
-  });
-  if (!eventResult.ok) return eventResult;
-
-  return getWfmTodayStatus(tenantId, userId, actorRoleKey, {
+  return wfmClockOut(tenantId, userId, actorRoleKey, {
     employeeId: employeeResult.data,
     source: 'office',
   });

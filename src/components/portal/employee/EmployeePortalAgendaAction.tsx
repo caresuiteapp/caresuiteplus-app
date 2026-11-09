@@ -12,16 +12,17 @@ type Props = {
   onPress: () => void;
   primary?: boolean;
   busy?: boolean;
+  disabled?: boolean;
 };
 
-export function EmployeePortalAgendaAction({ label, accessibilityLabel, icon, onPress, primary = false, busy = false }: Props) {
+export function EmployeePortalAgendaAction({ label, accessibilityLabel, icon, onPress, primary = false, busy = false, disabled = false }: Props) {
   const ink = primary ? c.canvas : c.accent;
   return (
     <Pressable
       accessibilityRole="button"
       accessibilityLabel={accessibilityLabel}
-      accessibilityState={{ busy, disabled: busy }}
-      disabled={busy}
+      accessibilityState={{ busy, disabled: busy || disabled }}
+      disabled={busy || disabled}
       onPress={onPress}
       style={({ pressed, focused, hovered }: { pressed: boolean; focused?: boolean; hovered?: boolean }) => [
         styles.action,
@@ -29,6 +30,7 @@ export function EmployeePortalAgendaAction({ label, accessibilityLabel, icon, on
         hovered && !primary && styles.hovered,
         focused && styles.focused,
         pressed && styles.pressed,
+        disabled && !busy && styles.disabled,
       ]}
     >
       {busy ? <ActivityIndicator size="small" color={ink} />
@@ -53,4 +55,5 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   hovered: { backgroundColor: c.selected, borderColor: c.accent },
   focused: { borderColor: c.accent, ...agendaFocusRing },
   pressed: { opacity: 0.8 },
+  disabled: { opacity: 0.55 },
 }));

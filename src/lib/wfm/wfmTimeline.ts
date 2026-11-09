@@ -68,7 +68,7 @@ export function deriveWfmTimelineTotals(
       continue;
     }
 
-    if (event.eventType === 'clock_out' && blockStart != null) {
+    if ((event.eventType === 'clock_out' || event.eventType === 'office_check_out') && blockStart != null) {
       if (pauseStart != null) {
         pauseMinutes += elapsedMinutes(pauseStart, occurredAt);
         pauseStart = null;
