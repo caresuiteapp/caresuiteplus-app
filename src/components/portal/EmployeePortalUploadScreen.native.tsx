@@ -2,6 +2,7 @@
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
 import { webScaledFontMetric as font } from '@/design/web/webFontSize';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useLocalSearchParams } from 'expo-router';
 import { Linking, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { useUnsavedWebChanges } from "../../hooks/useUnsavedWebChanges.native.ts";
 import { careSpacing } from '@/design/tokens/spacing';
@@ -24,12 +25,16 @@ function formatCategoryLabel(value: string): string {
 }
 export function EmployeePortalUploadScreen() {
     const text = portalText;
+    const { nachweis } = useLocalSearchParams<{
+        nachweis?: string;
+    }>();
+    const academyProof = nachweis === 'anfoevo-nrw';
     const { tenantId, employeeId } = usePortalActor();
     const { uploads, loading, error, refresh } = useEmployeePortalUploads();
     const { records: clients, loading: clientsLoading, error: clientsError, refresh: refreshClients } = useEmployeePortalClientRecords();
     const [uploadContext, setUploadContext] = useState<EmployeePortalUploadContext>('mitarbeiter');
     const [clientId, setClientId] = useState<string | null>(null);
-    const [category, setCategory] = useState<string>('sonstiges');
+    const [category, setCategory] = useState<string>(academyProof ? 'nachweis' : 'sonstiges');
     const [comment, setComment] = useState('');
     const [pickedFile, setPickedFile] = useState<EmployeePortalPickedMedia | null>(null);
     const [picking, setPicking] = useState(false);
@@ -55,6 +60,10 @@ export function EmployeePortalUploadScreen() {
         setSubmitSuccess(false);
         return () => { epoch.current += 1; releaseEmployeePortalMediaUri(selected.current?.uri); selected.current = null; };
     }, [tenantId, employeeId]);
+    useEffect(() => {
+        if (academyProof)
+            setCategory('nachweis');
+    }, [academyProof]);
     const filteredClients = clients.filter(client => client.displayName.toLocaleLowerCase('de-DE').includes(clientSearch.trim().toLocaleLowerCase('de-DE')));
     const categories = useMemo(() => (uploadContext === 'mitarbeiter' ? EMPLOYEE_SELF_UPLOAD_CATEGORIES : EMPLOYEE_CLIENT_UPLOAD_CATEGORIES), [uploadContext]);
     const acceptPickerResult = useCallback((result: EmployeePortalMediaPickerResult) => {
@@ -130,7 +139,7 @@ export function EmployeePortalUploadScreen() {
             }
             const result = await uploadEmployeePortalDocument({ tenantId, employeeId, uploadContext,
                 clientId: uploadContext === 'klient' ? clientId : null, fileName: pickedFile.fileName,
-                mimeType: pickedFile.mimeType, sizeBytes: bytes.length, bytes, category, message: comment.trim() || null });
+                mimeType: pickedFile.mimeType, sizeBytes: bytes.length, bytes, category, message: comment.trim() || (academyProof && uploadContext === 'mitarbeiter' && category === 'nachweis' ? 'Praxisnachweis · Schulung Nordrhein-Westfalen (AnFöVO)' : null) });
             if (epoch.current !== generation)
                 return;
             if (!result.ok) {
@@ -160,7 +169,7 @@ export function EmployeePortalUploadScreen() {
                 setSubmitting(false);
             }
         }
-    }, [tenantId, employeeId, pickedFile, canSubmit, uploadContext, clientId, category, comment, refresh]);
+    }, [tenantId, employeeId, pickedFile, canSubmit, uploadContext, clientId, category, comment, academyProof, refresh]);
     return (<ScrollView contentContainerStyle={styles.container} showsVerticalScrollIndicator>
       <View style={styles.infoCard}>
       <Text style={[styles.hint, { color: text.muted }]}>

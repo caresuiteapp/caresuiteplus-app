@@ -95,13 +95,30 @@ function participant(value: unknown): boolean {
   return object(value) && string(value.id) && audience(value.kind) && string(value.name)
     && string(value.contextLabel) && typeof value.portalReady === 'boolean';
 }
+const practiceKind = (value: unknown) => value === 'first_aid' || value === 'presence';
+function nrwExam(value: unknown, view: AcademyView): boolean {
+  return object(value) && ['learning', 'ready', 'failed', 'passed'].includes(value.state as string)
+    && Number.isInteger(value.attemptLimit) && (value.attemptLimit as number) > 0
+    && object(value.draftAnswers) && Object.values(value.draftAnswers).every(string)
+    && (view === 'learner' || Object.keys(value.draftAnswers).length === 0)
+    && Array.isArray(value.mistakes) && (view === 'office' || value.mistakes.length === 0)
+    && value.mistakes.every(mistake => object(mistake) && Number.isInteger(mistake.attempt)
+      && string(mistake.question) && string(mistake.answer))
+    && (value.practice === null || (object(value.practice) && practiceKind(value.practice.kind) && string(value.practice.date)));
+}
+function qualification(value: unknown): boolean {
+  return object(value) && value.template === 'klarblatt' && finite(value.examScore)
+    && value.examScore >= 75 && value.examScore <= 100 && string(value.completedAt)
+    && practiceKind(value.practiceKind) && string(value.practiceDate) && nullableString(value.personnelNumber);
+}
 function validWorkspace(value: unknown, view: AcademyView): value is AcademyWorkspace {
   if (!object(value) || value.schemaVersion !== 1 || !object(value.viewer)
     || value.viewer.mode !== view || !string(value.viewer.name)
     || !(value.viewer.audience === null || audience(value.viewer.audience))
     || !object(value.capabilities) || !['manageCourses', 'assign', 'review', 'learn']
       .every(key => typeof (value.capabilities as Record<string, unknown>)[key] === 'boolean')) return false;
-  return (value.templates === undefined || (Array.isArray(value.templates)
+  return (value.nrwCourseId === undefined || (view === 'office' && string(value.nrwCourseId)))
+    && (value.templates === undefined || (Array.isArray(value.templates)
     && ((view === 'office' && value.capabilities.manageCourses === true) || value.templates.length === 0)
     && value.templates.every(template => object(template) && string(template.id)
       && Number.isInteger(template.revision) && (template.revision as number) > 0
@@ -122,6 +139,7 @@ function validWorkspace(value: unknown, view: AcademyView): value is AcademyWork
         && string(change.note) && string(change.changedAt))))
       && ['assigned', 'in_progress', 'submitted', 'completed', 'returned', 'cancelled'].includes(enrollment.state as string)
       && participant(enrollment.participant) && content(enrollment.content)
+      && (enrollment.nrwExam === undefined || nrwExam(enrollment.nrwExam, view))
       && Array.isArray(enrollment.completedLessonIds) && enrollment.completedLessonIds.every(string)
       && Array.isArray(enrollment.attempts) && enrollment.attempts.every(attempt => object(attempt)
         && string(attempt.lessonId) && finite(attempt.attempt) && finite(attempt.score)
@@ -129,6 +147,7 @@ function validWorkspace(value: unknown, view: AcademyView): value is AcademyWork
     && Array.isArray(value.certificates) && value.certificates.every(certificate => object(certificate)
       && ['id', 'enrollmentId', 'number', 'courseTitle', 'participantName', 'issuedAt', 'issuerName', 'organizationName'].every(key => string(certificate[key]))
       && ['validUntil', 'revokedAt', 'revokedReason'].every(key => nullableString(certificate[key]))
+      && (certificate.qualification === undefined || qualification(certificate.qualification))
       && audience(certificate.audience) && finite(certificate.versionNumber) && finite(certificate.estimatedMinutes));
 }
 
@@ -181,5 +200,9 @@ export function applyAcademyMutationReceipt(workspace: AcademyWorkspace, command
       ? { dueDate: command.data.dueDate } : {}),
     ...(command.action === 'renew_enrollment' && result.createdEnrollmentId
       ? { nextEnrollmentId: result.createdEnrollmentId } : {}),
+    ...(command.action === 'save_nrw_exam_answer' && !result.replayed && enrollment.nrwExam
+      && string(command.data.questionId) && string(command.data.optionId)
+      ? { nrwExam: { ...enrollment.nrwExam, draftAnswers: { ...enrollment.nrwExam.draftAnswers, [command.data.questionId]: command.data.optionId } } }
+      : {}),
   }) };
 }

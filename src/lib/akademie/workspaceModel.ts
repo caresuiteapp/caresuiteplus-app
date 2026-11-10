@@ -1,7 +1,7 @@
 /** Contract shared by the academy Web workspace and its authorised RPCs. */
 export type AcademyAudience = 'employee' | 'client' | 'family';
 export type AcademyView = 'office' | 'learner';
-export type AcademySection = 'overview' | 'courses' | 'templates' | 'assignments' | 'planning' | 'reports' | 'reviews' | 'certificates' | 'library';
+export type AcademySection = 'overview' | 'nrw' | 'courses' | 'templates' | 'assignments' | 'planning' | 'reports' | 'reviews' | 'certificates' | 'library';
 export type AcademyLessonKind = 'text' | 'video' | 'document' | 'quiz';
 export type AcademyQuestion = {
   id: string;
@@ -92,6 +92,13 @@ export type AcademyEnrollment = {
   previousEnrollmentId?: string | null;
   nextEnrollmentId?: string | null;
   dateChanges?: AcademyDateChange[];
+  nrwExam?: {
+    state: 'learning' | 'ready' | 'failed' | 'passed';
+    attemptLimit: number;
+    draftAnswers: Record<string, string>;
+    mistakes: { attempt: number; question: string; answer: string }[];
+    practice: { kind: 'first_aid' | 'presence'; date: string } | null;
+  };
 };
 export type AcademyCertificate = {
   id: string;
@@ -108,6 +115,14 @@ export type AcademyCertificate = {
   organizationName: string;
   versionNumber: number;
   estimatedMinutes: number;
+  qualification?: {
+    template: 'klarblatt';
+    examScore: number;
+    completedAt: string;
+    practiceKind: 'first_aid' | 'presence';
+    practiceDate: string;
+    personnelNumber: string | null;
+  };
 };
 export type AcademyWorkspace = {
   schemaVersion: 1;
@@ -119,11 +134,13 @@ export type AcademyWorkspace = {
   certificates: AcademyCertificate[];
   /** Authoring-only content, including answer keys. Never returned to learners. */
   templates?: AcademyReusableTemplate[];
+  nrwCourseId?: string;
 };
 export type AcademyAction = 'save_course' | 'publish_course' | 'archive_course' | 'assign'
   | 'start_enrollment' | 'complete_lesson' | 'submit_quiz' | 'submit_enrollment'
   | 'review_enrollment' | 'cancel_enrollment' | 'revoke_certificate'
-  | 'change_due_date' | 'renew_enrollment' | 'save_template' | 'archive_template' | 'restore_template';
+  | 'change_due_date' | 'renew_enrollment' | 'save_template' | 'archive_template' | 'restore_template'
+  | 'install_nrw_course' | 'save_nrw_exam_answer' | 'unlock_nrw_exam' | 'record_nrw_practice';
 export type AcademyCommand = {
   action: AcademyAction;
   requestId: string;

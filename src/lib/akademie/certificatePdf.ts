@@ -15,8 +15,13 @@ export async function createAcademyCertificatePdf(certificate: AcademyCertificat
     import('jspdf/dist/jspdf.es.min.js'), import('@/lib/documents/centuryGothicPdf'),
   ]);
   const { jsPDF } = module as unknown as typeof import('jspdf');
-  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+  const pdf = new jsPDF({ orientation: certificate.qualification ? 'landscape' : 'portrait', unit: 'mm', format: 'a4' });
   font.registerCareSuitePdfFont(pdf);
+  if (certificate.qualification?.template === 'klarblatt') {
+    const { renderKlarblattPdf } = await import('./klarblattPdf');
+    renderKlarblattPdf(pdf, { ...certificate, qualification: certificate.qualification }, displayDate);
+    return pdf;
+  }
   const text = font.createCareSuitePdfText(pdf);
   const ink = '#12363D';
   const muted = '#526C72';
@@ -83,5 +88,5 @@ export async function createAcademyCertificatePdf(certificate: AcademyCertificat
 export async function downloadAcademyCertificate(certificate: AcademyCertificate): Promise<void> {
   const pdf = await createAcademyCertificatePdf(certificate);
   const safeNumber = certificate.number.replace(/[^A-Za-z0-9_-]/g, '-').slice(0, 80);
-  pdf.save(`Teilnahmenachweis-${safeNumber || certificate.id}.pdf`);
+  pdf.save(`${certificate.qualification ? 'Zertifikat' : 'Teilnahmenachweis'}-${safeNumber || certificate.id}.pdf`);
 }

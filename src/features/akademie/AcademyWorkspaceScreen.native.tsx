@@ -34,7 +34,7 @@ type Props = {
     initialCertificateId?: string;
     createInitially?: boolean;
 };
-const sectionKeys = new Set<AcademySection>(['overview', 'courses', 'templates', 'assignments', 'planning', 'reports', 'reviews', 'certificates', 'library']);
+const sectionKeys = new Set<AcademySection>(['overview', 'nrw', 'courses', 'templates', 'assignments', 'planning', 'reports', 'reviews', 'certificates', 'library']);
 function first(value?: string | string[]) { return Array.isArray(value) ? value[0] : value; }
 export function AcademyWorkspaceScreen({ view = 'office', ...props }: Props) {
     const auth = useAuth();
@@ -157,6 +157,10 @@ function ConnectedAcademy({ tenantId, scope, portalSession, authLoading, view, i
             if (!mounted.current)
                 return null;
             setWorkspace((current) => current ? applyAcademyMutationReceipt(current, command, result) : current);
+            if (command.action === 'save_nrw_exam_answer' && !result.replayed) {
+                setNotice(null);
+                return result;
+            }
             refreshRequiredRef.current = true;
             setRefreshRequired(true);
             setNotice(result.replayed ? 'Der bereits gespeicherte Vorgang wurde bestätigt.' : 'Gespeichert und bestätigt.');

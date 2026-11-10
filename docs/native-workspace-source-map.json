@@ -3945,7 +3945,7 @@
     {
       "web": "src/components/portal/EmployeePortalUploadScreen.web.tsx",
       "native": "src/components/portal/EmployeePortalUploadScreen.native.tsx",
-      "sourceHash": "e3fe925bf1e1ed5ac919da361b9dd2742a9ccf44b0d36da12d03a517e9e225ba",
+      "sourceHash": "cfc5803dbc51c804bc7a05b158a281924e8689e79fcbb823398a92ec184c516e",
       "environment": []
     },
     {
@@ -4459,7 +4459,7 @@
     {
       "web": "src/features/akademie/AcademyLearningPlayer.web.tsx",
       "native": "src/features/akademie/AcademyLearningPlayer.native.tsx",
-      "sourceHash": "be18bb584ca2cbee9cc4c3b458a2c66b943f1e283ce848809c71b7a244fc2888",
+      "sourceHash": "17a5645a4971b5492d0cbefe0384ce53ecebcc7cb5e724192b410cbcca5373c6",
       "environment": []
     },
     {
@@ -4481,9 +4481,15 @@
       "environment": []
     },
     {
+      "web": "src/features/akademie/NrwAcademyCourse.web.tsx",
+      "native": "src/features/akademie/NrwAcademyCourse.native.tsx",
+      "sourceHash": "df2f359baecea04f4b7d80b79bc7053d2efd3f5643f5f85e8fce6a0b1f882a40",
+      "environment": []
+    },
+    {
       "web": "src/features/akademie/AcademyWorkspace.web.tsx",
       "native": "src/features/akademie/AcademyWorkspace.native.tsx",
-      "sourceHash": "a20017826f0199f7e8aab56408e705ef43107d1332cd4e79643287b4c6bffef0",
+      "sourceHash": "4e2d9c0a6dca9193a68098ad8195139633ffa476a23313e45caa002f4eccd0f6",
       "environment": [
         "crypto"
       ]
@@ -4491,7 +4497,7 @@
     {
       "web": "src/features/akademie/AcademyWorkspaceScreen.web.tsx",
       "native": "src/features/akademie/AcademyWorkspaceScreen.native.tsx",
-      "sourceHash": "42df44e5bf7548e6821f9b0049f00a9a52b6dd2f89d9c60b73287f877c9ebd2b",
+      "sourceHash": "c05eaba1ea9fa29e49d061fe0932f1341a4b0156a097bb2bb9a548357ea24ad4",
       "environment": [
         "window",
         "structuredClone",
