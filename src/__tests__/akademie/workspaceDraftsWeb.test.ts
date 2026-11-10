@@ -22,6 +22,18 @@ describe('academy pending command isolation', () => {
     expect(getPendingAcademyCommand('tenant:user:account:learner')!.data.answers).toEqual({ question: 'option-a' });
   });
 
+  it('keeps concurrent windows of one account isolated without discarding their requests', () => {
+    activateAcademyDraftScope('office', 'same-account');
+    rememberPendingAcademyCommand('office', command());
+    activateAcademyDraftScope('learner', 'same-account');
+    expect(rememberPendingAcademyCommand('learner', { ...command(), requestId: 'second' })).toBe(true);
+    expect(getPendingAcademyCommand('office')).toEqual(command());
+    clearPendingAcademyCommand('office');
+    expect(getPendingAcademyCommand('learner')?.requestId).toBe('second');
+    activateAcademyDraftScope('other-office', 'other-account');
+    expect(getPendingAcademyCommand('learner')).toBeNull();
+  });
+
   it('clears pending data on account switch and refuses stale completions or restores', () => {
     activateAcademyDraftScope('account-a');
     rememberPendingAcademyCommand('account-a', command());

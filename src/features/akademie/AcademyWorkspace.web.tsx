@@ -14,6 +14,7 @@ import { AcademyPlanning } from './AcademyPlanning.web';
 import { AcademyReports } from './AcademyReports.web';
 import { academyStyles } from './academyStyles';
 import { NrwAcademyCourse } from './NrwAcademyCourse.web';
+import { AcademyDialog } from './AcademyDialog.web';
 import { nrwModuleImage } from '@/lib/akademie/nrwCourse';
 
 export type AcademyWorkspaceViewProps = {
@@ -22,6 +23,7 @@ export type AcademyWorkspaceViewProps = {
   busy: boolean;
   error: string | null;
   notice: string | null;
+  recovery?: ReactNode;
   view: AcademyView;
   initialSection?: AcademySection;
   initialAudience?: AcademyAudience;
@@ -71,7 +73,7 @@ function EnrollmentCard({ enrollment, busy, onOpen }: { enrollment: AcademyEnrol
   </article>;
 }
 
-export function AcademyWorkspaceView({ workspace, loading, busy, error, notice, view, initialSection = 'overview', initialAudience, initialMandatoryOnly = false, initialCourseId, initialEnrollmentId, createInitially = false, onCommand, onReload, onDownloadCertificate }: AcademyWorkspaceViewProps) {
+export function AcademyWorkspaceView({ workspace, loading, busy, error, notice, recovery, view, initialSection = 'overview', initialAudience, initialMandatoryOnly = false, initialCourseId, initialEnrollmentId, createInitially = false, onCommand, onReload, onDownloadCertificate }: AcademyWorkspaceViewProps) {
   const [section, setSection] = useState<AcademySection>(initialSection);
   const [audience, setAudience] = useState<AcademyAudience | 'all'>(initialAudience ?? 'all');
   const [search, setSearch] = useState('');
@@ -108,6 +110,9 @@ export function AcademyWorkspaceView({ workspace, loading, busy, error, notice, 
   const selectedCourse = courses.find(course => course.id === selectedCourseId) ?? null;
   const selectedEnrollment = enrollments.find(enrollment => enrollment.id === selectedEnrollmentId) ?? (!isOffice && initialCourseId && !courseRouteDismissed ? enrollments.find(enrollment => enrollment.courseId === initialCourseId) : null) ?? null;
   const assignCourse = courses.find(course => course.id === assignCourseId) ?? null;
+  const nrwCourseId = workspace?.nrwCourseId;
+  const showNrw = isOffice && !!nrwCourseId && (section === 'nrw' || (section === 'courses' && selectedCourse?.id === nrwCourseId));
+  const nrwAssignment = Boolean(assignCourse && assignCourse.id === nrwCourseId);
   const reviewEnrollment = enrollments.find(enrollment => enrollment.id === reviewId) ?? null;
   const archiveCourse = courses.find(course => course.id === archiveId) ?? null;
   const cancelEnrollment = enrollments.find(enrollment => enrollment.id === cancelId) ?? null;
@@ -121,12 +126,14 @@ export function AcademyWorkspaceView({ workspace, loading, busy, error, notice, 
   const reportCertificates = certificates.filter(certificate => reportEnrollmentIds.has(certificate.enrollmentId));
   const reportCourses = courses.filter(course => (audience === 'all' || course.content.audiences.includes(audience)) && (!mandatoryOnly || course.content.mandatory) && normalized(`${course.content.title} ${course.content.summary} ${course.content.category}`).includes(query));
   const reviews = reportEnrollments.filter(enrollment => !enrollment.nrwExam && enrollment.state === 'submitted' && (resolvedReviews[enrollment.id] === undefined || enrollment.revision > resolvedReviews[enrollment.id]!));
-  const filteredCourses = courses.filter(course => course.id !== workspace?.nrwCourseId && (audience === 'all' || course.content.audiences.includes(audience)) && (!mandatoryOnly || course.content.mandatory) && (courseStatus === 'all' || course.status === courseStatus) && normalized(`${course.content.title} ${course.content.summary} ${course.content.category}`).includes(query));
+  const filteredCourses = courses.filter(course => (audience === 'all' || course.content.audiences.includes(audience)) && (!mandatoryOnly || course.content.mandatory) && (courseStatus === 'all' || course.status === courseStatus) && normalized(`${course.content.title} ${course.content.summary} ${course.content.category}`).includes(query));
   const filteredEnrollments = scopedEnrollments.filter(enrollment => (!isOffice || !selectedEnrollmentId || enrollment.id === selectedEnrollmentId) && (enrollmentStatus === 'all' || (enrollmentStatus === 'overdue' ? isAcademyOverdue(enrollment) : enrollment.state === enrollmentStatus)) && normalized(`${enrollment.content.title} ${enrollment.participant.name} ${enrollment.participant.contextLabel}`).includes(query));
   const filteredCertificates = certificates.filter(certificate => (!selectedEnrollmentId || certificate.enrollmentId === selectedEnrollmentId) && (audience === 'all' || certificate.audience === audience) && (!mandatoryOnly || enrollmentById.get(certificate.enrollmentId)?.content.mandatory) && normalized(`${certificate.courseTitle} ${certificate.participantName} ${certificate.number}`).includes(query));
   const availableTargets = (workspace?.participants ?? []).filter(participant => assignCourse?.content.audiences.includes(participant.kind) && (audience === 'all' || participant.kind === audience) && normalized(`${participant.name} ${participant.contextLabel}`).includes(normalized(targetSearch)));
   const courseTargets = (workspace?.participants ?? []).filter(participant => assignCourse?.content.audiences.includes(participant.kind));
-  const readyTargets = availableTargets.filter(participant => participant.portalReady);
+  const alreadyAssigned = new Set(nrwAssignment ? enrollments.filter(item => item.versionId === assignCourse?.publishedVersionId)
+    .map(item => personKey(item.participant)) : []);
+  const readyTargets = availableTargets.filter(participant => participant.portalReady && !alreadyAssigned.has(personKey(participant)));
   const materials = isOffice
     ? courses.filter(course => course.status === 'published' && (!mandatoryOnly || course.content.mandatory) && (audience === 'all' || course.content.audiences.includes(audience))).flatMap(course => course.content.lessons.filter(lesson => lesson.kind !== 'quiz').map(lesson => ({ lesson, courseTitle: course.content.title, key: `${course.id}:${lesson.id}` })))
     : enrollments.filter(enrollment => enrollment.state !== 'cancelled' && (!mandatoryOnly || enrollment.content.mandatory)).flatMap(enrollment => enrollment.content.lessons.filter(lesson => lesson.kind !== 'quiz').map(lesson => ({ lesson, courseTitle: enrollment.content.title, key: `${enrollment.versionId}:${lesson.id}` })));
@@ -145,13 +152,22 @@ export function AcademyWorkspaceView({ workspace, loading, busy, error, notice, 
   const copyCourse = (course: AcademyCourse) => create({ ...course.content, title: `${course.content.title} – Kopie`.slice(0, 250) });
   const editTemplate = (template: AcademyReusableTemplate) => { setEditor({ id: template.id, mode: 'template', course: null, content: template.content, template }); setSection('templates'); };
   const createTemplate = () => { setEditor({ id: crypto.randomUUID(), mode: 'template', course: null, content: createAcademyTemplate('blank'), template: null }); setSection('templates'); };
-  const beginAssign = (course: AcademyCourse) => { if (course.id === workspace?.nrwCourseId) setAudience('employee'); setAssignCourseId(course.id); setSelectedTargets([]); setTargetSearch(''); setDueDate(''); setSection('assignments'); setSelectedCourseId(null); };
+  const beginAssign = (course: AcademyCourse) => {
+    if (course.id === nrwCourseId) setAudience('employee');
+    setSection(course.id === nrwCourseId ? 'nrw' : 'assignments');
+    setAssignCourseId(course.id);
+    setSelectedTargets([]);
+    setTargetSearch('');
+    setDueDate('');
+    setSelectedCourseId(null);
+  };
+  const closeAssignment = () => { setAssignCourseId(null); setSelectedTargets([]); };
   const assign = async () => {
-    if (!assignCourse || assignCourse.status !== 'published') return;
-    const targets = courseTargets.filter(participant => participant.portalReady && selectedTargets.includes(personKey(participant))).map(participant => ({ kind: participant.kind, id: participant.id }));
+    if (!assignCourse?.publishedVersionId || assignCourse.status !== 'published') return;
+    const targets = courseTargets.filter(participant => participant.portalReady && !alreadyAssigned.has(personKey(participant))
+      && selectedTargets.includes(personKey(participant))).map(participant => ({ kind: participant.kind, id: participant.id }));
     if (!targets.length) return;
-    const result = await onCommand('assign', { targets, dueDate: dueDate || null }, assignCourse);
-    if (result) { setAssignCourseId(null); setSelectedTargets([]); }
+    if (await onCommand('assign', { targets, dueDate: dueDate || null }, assignCourse)) closeAssignment();
   };
   const review = async (decision: 'approve' | 'return') => {
     if (!reviewEnrollment) return;
@@ -184,29 +200,68 @@ export function AcademyWorkspaceView({ workspace, loading, busy, error, notice, 
 
   const courseDetail = selectedCourse && selectedCourse.id !== workspace?.nrwCourseId && <section className="ac-panel" aria-label="Kursdetails"><div className="ac-panel-header"><div><p className="ac-eyebrow">KURSDETAILS</p><h2 className="ac-section-title">{selectedCourse.content.title}</h2><p>{selectedCourse.content.summary}</p></div><button type="button" className="ac-button subtle" disabled={busy} onClick={() => setSelectedCourseId(null)}>Details schließen</button></div><div className="ac-badges"><span className="ac-status" data-tone={selectedCourse.status === 'published' ? 'good' : 'neutral'}>{courseLabels[selectedCourse.status]}</span><span className="ac-muted">{selectedCourse.versionNumber > 0 ? `Zuletzt veröffentlichte Fassung: ${selectedCourse.versionNumber}` : 'Noch keine veröffentlichte Fassung'}</span></div><ol className="ac-list">{selectedCourse.content.lessons.map(lesson => <li className="ac-list-row" key={lesson.id}><div className="ac-list-main"><strong>{lesson.title || 'Unbenannte Lektion'}</strong><span className="ac-muted">{lesson.kind === 'quiz' ? `Wissenscheck · ${lesson.questions?.length ?? 0} Fragen` : lesson.kind === 'text' ? 'Lesetext' : lesson.kind === 'video' ? 'Video' : 'Dokument'}</span></div></li>)}</ol><div className="ac-card-actions">{capabilities?.manageCourses && selectedCourse.status !== 'archived' && <><button type="button" className="ac-button" disabled={busy} onClick={() => edit(selectedCourse)}>Kurs bearbeiten</button><button type="button" className="ac-button danger" disabled={busy} onClick={() => setArchiveId(selectedCourse.id)}>Archivieren</button></>}{capabilities?.manageCourses && <button type="button" className="ac-button" disabled={busy} onClick={() => copyCourse(selectedCourse)}>Als neuen Kurs kopieren</button>}{capabilities?.assign && selectedCourse.status === 'published' && <button type="button" className="ac-button primary" disabled={busy} onClick={() => beginAssign(selectedCourse)}>Personen zuweisen</button>}</div>{selectedCourse.status === 'draft' && <p className="ac-muted">Vor neuen Zuweisungen muss der aktuelle Entwurf veröffentlicht werden. Bestehende Teilnahmen behalten ihre bisherige Fassung.</p>}</section>;
 
-  return <div className="academy-workspace" aria-busy={loading || busy}>
-    <style>{academyStyles}</style>
-    <header className="ac-header"><div className="ac-brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 7c4-1 8 0 12 3 4-3 8-4 12-3v18c-4-1-8 0-12 3-4-3-8-4-12-3V7Z" /><path d="M16 10v18M8 12l4 1.5M8 17l4 1.5M20 13.5l4-1.5M20 18.5l4-1.5" /></svg></div><div className="ac-header-copy"><p className="ac-eyebrow">CARESUITE+ AKADEMIE</p><h1>{isOffice ? 'Wissen weitergeben. Lernen begleiten.' : 'Ihr nächster Lernschritt.'}</h1><p>{isOffice ? 'Kurse gestalten, Schulungen zuweisen und Abschlüsse gemeinsam verfolgen.' : 'Ihre Schulungen, gespeicherten Lernschritte und persönlichen Nachweise an einem Ort.'}</p></div><div className="ac-header-actions"><button type="button" className="ac-button subtle" disabled={busy || loading || Boolean(editor)} onClick={onReload}>Aktualisieren</button>{isOffice && capabilities?.manageCourses && <button type="button" className="ac-button primary" disabled={busy || Boolean(editor)} onClick={() => go('templates')}>+ Kurs anlegen</button>}</div></header>
-    <nav className="ac-tabs" aria-label={isOffice ? 'Akademiebereiche' : 'Mein Lernbereich'}>{(isOffice ? officeSections.filter(item => (item.key !== 'templates' || capabilities?.manageCourses) && (item.key !== 'nrw' || workspace?.nrwCourseId)) : learnerSections).map(item => <button type="button" className="ac-tab" aria-current={(section === item.key || (!isOffice && !['certificates', 'library', 'planning'].includes(section) && item.key === 'overview')) ? 'page' : undefined} key={item.key} disabled={busy || Boolean(editor)} onClick={() => go(item.key)}>{item.label}{item.key === 'reviews' && reviews.length > 0 && !error ? ` (${reviews.length})` : ''}</button>)}</nav>
+  const feedback = (recovery || error || notice || downloadError) && <>
+    {recovery}
     {error && <div className="ac-message" data-tone="error" role="alert"><strong>Der Vorgang konnte nicht vollständig abgeschlossen werden.</strong><p>{error}</p>{workspace && <p>Die angezeigten Einträge entsprechen dem zuletzt geladenen Stand.</p>}</div>}
     {notice && <div className="ac-message" data-tone="success" role="status">{notice}</div>}
     {downloadError && <div className="ac-message" data-tone="error" role="alert">{downloadError}</div>}
+  </>;
+  const assignmentFields = assignCourse && capabilities?.assign && <fieldset className="ac-assignment-fields" disabled={busy}>
+    <div className="ac-inline-fields">
+      <label className="ac-field ac-search">Person suchen<input className="ac-input" type="search" value={targetSearch} onChange={event => setTargetSearch(event.target.value)} /></label>
+      <label className="ac-field">Abschluss bis<input className="ac-input" type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} /></label>
+    </div>
+    <div className="ac-card-actions">
+      <button type="button" className="ac-button subtle small" disabled={!readyTargets.length} onClick={() => setSelectedTargets(previous => [...new Set([...previous, ...readyTargets.map(personKey)])].slice(0, 200))}>Sichtbare Personen auswählen</button>
+      <button type="button" className="ac-button subtle small" disabled={!selectedTargets.length} onClick={() => setSelectedTargets([])}>Auswahl aufheben</button>
+      <span className="ac-muted">{selectedTargets.length} von höchstens 200 ausgewählt</span>
+    </div>
+    <div className="ac-targets">{availableTargets.map(participant => {
+      const key = personKey(participant);
+      const existing = alreadyAssigned.has(key);
+      return <label key={key} className="ac-target-row">
+        <input type="checkbox" disabled={existing || !participant.portalReady || (selectedTargets.length >= 200 && !selectedTargets.includes(key))}
+          checked={selectedTargets.includes(key) && !existing}
+          onChange={event => setSelectedTargets(previous => event.target.checked ? [...previous, key] : previous.filter(item => item !== key))} />
+        <span><strong>{participant.name}</strong><small>{ACADEMY_AUDIENCE_LABELS[participant.kind]}{participant.contextLabel ? ` · ${participant.contextLabel}` : ''}</small>
+          {existing ? <small>Für diese Fassung bereits zugewiesen</small> : !participant.portalReady && <small>Portalzugang noch nicht aktiv</small>}
+        </span>
+      </label>;
+    })}</div>
+    {!availableTargets.length && <Empty title="Keine passende Person gefunden">Prüfen Sie die Zielgruppe, die Suche und die vorhandenen Portalzugänge.</Empty>}
+    <p className="ac-muted">{nrwAssignment ? 'Nach der Zuweisung erscheint der Pflichtkurs im persönlichen Mitarbeitendenportal unter „Meine Akademie“.' : 'Es werden vorhandene Personen und Portalzugänge verwendet. Angehörige erhalten eine eigene Teilnahme, getrennt von der betreuten Person.'}</p>
+    <button type="button" className="ac-button primary" disabled={!selectedTargets.some(key => !alreadyAssigned.has(key)) || assignCourse.status !== 'published'} onClick={() => void assign()}>Schulung verbindlich zuweisen</button>
+  </fieldset>;
+
+  return <div className="academy-workspace" data-course={showNrw ? 'nrw' : undefined} aria-busy={loading || busy}>
+    <style>{academyStyles}</style>
+    <header className="ac-header"><div className="ac-brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M4 7c4-1 8 0 12 3 4-3 8-4 12-3v18c-4-1-8 0-12 3-4-3-8-4-12-3V7Z" /><path d="M16 10v18M8 12l4 1.5M8 17l4 1.5M20 13.5l4-1.5M20 18.5l4-1.5" /></svg></div><div className="ac-header-copy"><p className="ac-eyebrow">CARESUITE+ AKADEMIE</p><h1>{isOffice ? 'Wissen weitergeben. Lernen begleiten.' : 'Ihr nächster Lernschritt.'}</h1><p>{isOffice ? 'Kurse gestalten, Schulungen zuweisen und Abschlüsse gemeinsam verfolgen.' : 'Ihre Schulungen, gespeicherten Lernschritte und persönlichen Nachweise an einem Ort.'}</p></div><div className="ac-header-actions"><button type="button" className="ac-button subtle" disabled={busy || loading || Boolean(editor)} onClick={onReload}>Aktualisieren</button>{isOffice && capabilities?.manageCourses && <button type="button" className="ac-button primary" disabled={busy || Boolean(editor)} onClick={() => go('templates')}>+ Kurs anlegen</button>}</div></header>
+    <nav className="ac-tabs" aria-label={isOffice ? 'Akademiebereiche' : 'Mein Lernbereich'}>{(isOffice ? officeSections.filter(item => (item.key !== 'templates' || capabilities?.manageCourses) && (item.key !== 'nrw' || workspace?.nrwCourseId)) : learnerSections).map(item => <button type="button" className="ac-tab" aria-current={((showNrw ? item.key === 'nrw' : section === item.key) || (!isOffice && !['certificates', 'library', 'planning'].includes(section) && item.key === 'overview')) ? 'page' : undefined} key={item.key} disabled={busy || Boolean(editor)} onClick={() => go(item.key)}>{item.label}{item.key === 'reviews' && reviews.length > 0 && !error ? ` (${reviews.length})` : ''}</button>)}</nav>
+    {!showNrw && feedback}
     {!workspace ? loading ? <div className="ac-panel ac-skeleton" role="status"><h2>Akademie wird geladen…</h2><p>Kurse, Berechtigungen und Lernstände werden abgerufen.</p></div> : <div className="ac-panel"><Empty title="Akademie noch nicht verfügbar">Die Daten konnten noch nicht geladen werden. Versuchen Sie es erneut.</Empty><button type="button" className="ac-button" disabled={busy} onClick={onReload}>Erneut laden</button></div> : <>
       {editor ? <AcademyCourseEditor key={`${editor.mode}:${editor.id}`} mode={editor.mode} course={editor.mode === 'course' ? courses.find(course => course.id === editor.id) ?? editor.course : null} template={editor.mode === 'template' ? workspace.templates?.find(template => template.id === editor.id) ?? editor.template ?? null : undefined} templates={workspace.templates ?? []} draftId={editor.id} initialContent={editor.content} busy={busy || !capabilities?.manageCourses} onCommand={onCommand} onClose={() => setEditor(null)} /> : <>
-        {isOffice && section === 'nrw' && workspace.nrwCourseId && <NrwAcademyCourse workspace={workspace} selectedEnrollmentId={selectedEnrollmentId} busy={busy} onCommand={onCommand} onAssign={beginAssign} />}
+        {showNrw && <NrwAcademyCourse workspace={workspace} selectedEnrollmentId={selectedEnrollmentId} busy={busy} onCommand={onCommand} onAssign={beginAssign}
+          onDownload={download} feedback={feedback} assignmentOpen={nrwAssignment} />}
+        {showNrw && nrwAssignment && assignmentFields && <AcademyDialog title="NRW-Pflichtkurs zuweisen" busy={busy} onClose={closeAssignment}>
+          {feedback}<p className="ac-muted">Wählen Sie einzelne oder mehrere Mitarbeitende mit aktivem Portalzugang.</p>{assignmentFields}
+        </AcademyDialog>}
         {isOffice && section === 'overview' && <>{toolbar}
           {!error && !loading && <div className="ac-kpis"><div className="ac-kpi"><span>Veröffentlichte Kurse</span><strong className="ac-kpi-value">{reportCourses.filter(course => course.status === 'published').length}</strong></div><div className="ac-kpi"><span>Laufende Schulungen</span><strong className="ac-kpi-value">{reportEnrollments.filter(enrollment => ['assigned', 'in_progress', 'returned'].includes(enrollment.state)).length}</strong></div><div className="ac-kpi"><span>Zur Prüfung eingereicht</span><strong className="ac-kpi-value">{reviews.length}</strong></div><div className="ac-kpi"><span>Frist überschritten</span><strong className="ac-kpi-value">{reportEnrollments.filter(enrollment => isAcademyOverdue(enrollment)).length}</strong></div></div>}
           <section className="ac-panel"><div className="ac-panel-header"><div><h2 className="ac-section-title">Die nächsten Schritte</h2><p className="ac-muted">Offene Abschlüsse und fällige Schulungen im Blick behalten.</p></div></div><div className="ac-card-actions">{capabilities?.review && <button type="button" className="ac-button" disabled={busy} onClick={() => go('reviews')}>Abschlüsse prüfen</button>}<button type="button" className="ac-button subtle" disabled={busy} onClick={() => { go('assignments'); setEnrollmentStatus('overdue'); }}>Überfällige Schulungen</button><button type="button" className="ac-button subtle" disabled={busy} onClick={() => go('certificates')}>Nachweise ansehen</button><button type="button" className="ac-button subtle" disabled={busy} onClick={() => go('planning')}>Schulungsplan öffnen</button></div></section>
           <div className="ac-panel-header"><h2 className="ac-section-title">Im Kurskatalog</h2><button type="button" className="ac-button subtle small" disabled={busy} onClick={() => go('courses')}>Alle Kurse</button></div>{reportCourses.some(course => course.status !== 'archived') ? <div className="ac-card-grid">{reportCourses.filter(course => course.status !== 'archived').slice(0, 4).map(renderCourseCard)}</div> : <section className="ac-panel"><Empty title={courses.length ? 'Keine passenden Kurse' : 'Raum für Ihr Wissen'}>{courses.length ? 'Passen Sie die Suche oder die Filter an.' : 'Legen Sie den ersten Kurs an. Eine Strukturvorlage unterstützt Sie bei Aufbau, Lernzielen und Wissenschecks.'}</Empty>{capabilities?.manageCourses && <button type="button" className="ac-button primary" disabled={busy} onClick={() => go('templates')}>Ersten Kurs gestalten</button>}</section>}
         </>}
         {isOffice && section === 'templates' && (capabilities?.manageCourses ? <AcademyTemplateLibrary templates={workspace.templates ?? []} busy={busy} onCommand={onCommand} onUseContent={create} onEditTemplate={editTemplate} onCreateBlank={() => create(createAcademyTemplate('blank'))} onCreateTemplate={createTemplate} /> : <section className="ac-panel"><Empty title="Vorlagen sind für Kursredakteure vorgesehen">Für die Verwaltung eigener Kursvorlagen benötigen Sie die Berechtigung zur Kursbearbeitung.</Empty></section>)}
-        {isOffice && section === 'courses' && <>
+        {isOffice && section === 'courses' && !showNrw && <>
           {courseDetail}{toolbar}{filteredCourses.length ? <div className="ac-card-grid">{filteredCourses.map(renderCourseCard)}</div> : <section className="ac-panel"><Empty title={courses.length ? 'Keine passenden Kurse' : 'Noch keine Kurse'}>{courses.length ? 'Passen Sie die Suche oder die Filter an.' : 'Beginnen Sie mit einem neuen Kurs oder einer Strukturvorlage.'}</Empty></section>}
         </>}
         {section === 'planning' && <>{toolbar}<AcademyPlanning workspace={{ ...workspace, courses, enrollments }} busy={busy} onCommand={onCommand} audience={audience} query={query} mandatoryOnly={mandatoryOnly} onOpenEnrollment={id => { setSelectedEnrollmentId(id); setSection(isOffice ? 'assignments' : 'overview'); setEnrollmentStatus('all'); setSearch(''); setMandatoryOnly(false); setAudience('all'); }} /></>}
         {isOffice && section === 'reports' && <>{toolbar}<AcademyReports workspace={workspace} enrollments={reportEnrollments} courses={reportCourses} certificates={reportCertificates} busy={busy} /></>}
         {isOffice && section === 'assignments' && <>
-          {assignCourse && capabilities?.assign && <section className="ac-panel" aria-label="Schulung zuweisen"><div className="ac-panel-header"><div><p className="ac-eyebrow">SCHULUNG ZUWEISEN</p><h2 className="ac-section-title">{assignCourse.content.title}</h2><p className="ac-muted">Fassung {assignCourse.versionNumber} · Jede Person erhält einen eigenen Lernstand.</p></div><button type="button" className="ac-button subtle" disabled={busy} onClick={() => setAssignCourseId(null)}>Schließen</button></div><fieldset disabled={busy}><div className="ac-inline-fields"><label className="ac-field ac-search">Person suchen<input className="ac-input" type="search" value={targetSearch} onChange={event => setTargetSearch(event.target.value)} placeholder="Name oder Zuordnung…" /></label><label className="ac-field">Abschluss bis<input className="ac-input" type="date" value={dueDate} onChange={event => setDueDate(event.target.value)} /></label></div><div className="ac-card-actions"><button type="button" className="ac-button subtle small" disabled={!readyTargets.length} onClick={() => setSelectedTargets(previous => [...new Set([...previous, ...readyTargets.map(personKey)])].slice(0, 200))}>Sichtbare Personen auswählen</button><button type="button" className="ac-button subtle small" disabled={!selectedTargets.length} onClick={() => setSelectedTargets([])}>Auswahl aufheben</button><span className="ac-muted">{selectedTargets.length} von höchstens 200 ausgewählt</span></div><div className="ac-targets">{availableTargets.map(participant => <label key={personKey(participant)} className="ac-target-row"><input type="checkbox" disabled={!participant.portalReady || (selectedTargets.length >= 200 && !selectedTargets.includes(personKey(participant)))} checked={selectedTargets.includes(personKey(participant))} onChange={event => setSelectedTargets(previous => event.target.checked ? [...previous, personKey(participant)] : previous.filter(key => key !== personKey(participant)))} /><span><strong>{participant.name}</strong><small>{ACADEMY_AUDIENCE_LABELS[participant.kind]}{participant.contextLabel ? ` · ${participant.contextLabel}` : ''}</small>{!participant.portalReady && <small>Portalzugang noch nicht aktiv</small>}</span></label>)}</div>{!availableTargets.length && <Empty title="Keine passende Person gefunden">Prüfen Sie die Zielgruppe, die Suche und die vorhandenen Portalzugänge.</Empty>}<p className="ac-muted">Es werden vorhandene Personen und Portalzugänge verwendet. Angehörige erhalten eine eigene Teilnahme, getrennt von der betreuten Person.</p><button type="button" className="ac-button primary" disabled={!selectedTargets.length || assignCourse.status !== 'published'} onClick={() => void assign()}>Schulung verbindlich zuweisen</button></fieldset></section>}
+          {assignCourse && !nrwAssignment && assignmentFields && <section className="ac-panel" aria-label="Schulung zuweisen">
+            <div className="ac-panel-header"><div><p className="ac-eyebrow">SCHULUNG ZUWEISEN</p><h2 className="ac-section-title">{assignCourse.content.title}</h2><p className="ac-muted">Fassung {assignCourse.versionNumber} · Jede Person erhält einen eigenen Lernstand.</p></div>
+              <button type="button" className="ac-button subtle" disabled={busy} onClick={closeAssignment}>Schließen</button></div>
+            {assignmentFields}
+          </section>}
           {!assignCourse && capabilities?.assign && <div className="ac-panel"><div className="ac-panel-header"><div><h2 className="ac-section-title">Schulungen zuweisen</h2><p className="ac-muted">Wählen Sie einen veröffentlichten Kurs und anschließend die Personen.</p></div><button type="button" className="ac-button primary" disabled={busy} onClick={() => { go('courses'); setCourseStatus('published'); }}>Kurs auswählen</button></div></div>}
           {selectedEnrollmentId && <div className="ac-panel-header"><h2 className="ac-section-title">Ausgewählte Teilnahme</h2><button type="button" className="ac-button subtle" disabled={busy} onClick={() => setSelectedEnrollmentId(null)}>Alle Zuweisungen</button></div>}{toolbar}<section className="ac-panel">{filteredEnrollments.length ? <div className="ac-list">{filteredEnrollments.map(enrollment => <article className="ac-list-row" key={enrollment.id}><div className="ac-list-main"><strong>{enrollment.participant.name}</strong><span>{enrollment.content.title}</span><small className="ac-muted">{ACADEMY_AUDIENCE_LABELS[enrollment.participant.kind]} · Fassung {enrollment.versionNumber} · {enrollment.dueDate ? `Frist ${dateText(enrollment.dueDate)}` : 'Ohne Frist'}</small><Progress value={enrollment.progress} label="Lernfortschritt" /></div><div className="ac-list-actions"><span className="ac-status" data-tone={isAcademyOverdue(enrollment) ? 'attention' : toneForState(enrollment.state)}>{isAcademyOverdue(enrollment) ? 'Überfällig' : ACADEMY_STATE_LABELS[enrollment.state]}</span>{enrollment.nrwExam && <button type="button" className="ac-button small" disabled={busy} onClick={() => { go('nrw'); setSelectedEnrollmentId(enrollment.id); }}>NRW-Teilnahme</button>}{!enrollment.nrwExam && enrollment.state === 'submitted' && capabilities?.review && (resolvedReviews[enrollment.id] === undefined || enrollment.revision > resolvedReviews[enrollment.id]!) && <button type="button" className="ac-button small" disabled={busy} onClick={() => { setReviewId(enrollment.id); setReviewNote(''); setValidUntil(''); setSection('reviews'); }}>Abschluss prüfen</button>}{!['completed', 'cancelled'].includes(enrollment.state) && capabilities?.assign && <button type="button" className="ac-button subtle small" disabled={busy} onClick={() => { setCancelId(enrollment.id); setCancelNote(''); }}>Zuweisung beenden</button>}</div></article>)}</div> : <Empty title="Keine passenden Zuweisungen">Neue Schulungen werden aus einem veröffentlichten Kurs zugewiesen. Bereits vorhandene Zuweisungen finden Sie mit der Suche und den Filtern.</Empty>}</section>
         </>}

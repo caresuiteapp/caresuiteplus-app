@@ -4457,9 +4457,21 @@
       ]
     },
     {
+      "web": "src/features/akademie/AcademyDialog.web.tsx",
+      "native": "src/features/akademie/AcademyDialog.native.tsx",
+      "sourceHash": "d6a9e30388d4d4cf39e7e158b367d4fa9991e15651f0cc26a6aa787131f609b5",
+      "environment": []
+    },
+    {
+      "web": "src/features/akademie/NrwLessonContent.web.tsx",
+      "native": "src/features/akademie/NrwLessonContent.native.tsx",
+      "sourceHash": "735cd624ca0089bd90378b76f352c5202cf0e63b8191e9d63f9114b8a869ead4",
+      "environment": []
+    },
+    {
       "web": "src/features/akademie/AcademyLearningPlayer.web.tsx",
       "native": "src/features/akademie/AcademyLearningPlayer.native.tsx",
-      "sourceHash": "17a5645a4971b5492d0cbefe0384ce53ecebcc7cb5e724192b410cbcca5373c6",
+      "sourceHash": "baf21bbd587adad7284305420cd6b30646cdab18d15b877ad4a5e75e9422d1a4",
       "environment": []
     },
     {
@@ -4481,15 +4493,21 @@
       "environment": []
     },
     {
+      "web": "src/features/akademie/NrwModulePreview.web.tsx",
+      "native": "src/features/akademie/NrwModulePreview.native.tsx",
+      "sourceHash": "2701ea574fdd17b5dfe5efe58d09b0e94280cd4108a1d9f3d892952528d444e6",
+      "environment": []
+    },
+    {
       "web": "src/features/akademie/NrwAcademyCourse.web.tsx",
       "native": "src/features/akademie/NrwAcademyCourse.native.tsx",
-      "sourceHash": "df2f359baecea04f4b7d80b79bc7053d2efd3f5643f5f85e8fce6a0b1f882a40",
+      "sourceHash": "f4df23735ff4db3b2a741b5b653263d62362decae6017b29ed4973cc3b8b785e",
       "environment": []
     },
     {
       "web": "src/features/akademie/AcademyWorkspace.web.tsx",
       "native": "src/features/akademie/AcademyWorkspace.native.tsx",
-      "sourceHash": "4e2d9c0a6dca9193a68098ad8195139633ffa476a23313e45caa002f4eccd0f6",
+      "sourceHash": "ce47332b0b91a7a8a43cff1ada7de5bc7eb01717edef040928b2279ea0dd7ea8",
       "environment": [
         "crypto"
       ]
@@ -4497,7 +4515,7 @@
     {
       "web": "src/features/akademie/AcademyWorkspaceScreen.web.tsx",
       "native": "src/features/akademie/AcademyWorkspaceScreen.native.tsx",
-      "sourceHash": "c05eaba1ea9fa29e49d061fe0932f1341a4b0156a097bb2bb9a548357ea24ad4",
+      "sourceHash": "73e8313e84b9c6b375cc525052433ce8500b77ad396d27123abfd8977e547113",
       "environment": [
         "window",
         "structuredClone",

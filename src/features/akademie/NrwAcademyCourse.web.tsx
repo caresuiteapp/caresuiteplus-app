@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { NRW_FINAL_LESSON, NRW_MODULES, nrwModuleCode, nrwModuleImage } from '@/lib/akademie/nrwCourse';
-import { ACADEMY_STATE_LABELS, type AcademyCommandHandler, type AcademyCourse, type AcademyEnrollment, type AcademyWorkspace } from '@/lib/akademie/workspaceModel';
+import { ACADEMY_STATE_LABELS, type AcademyCertificate, type AcademyCommandHandler, type AcademyCourse, type AcademyEnrollment, type AcademyWorkspace } from '@/lib/akademie/workspaceModel';
+import { AcademyDialog } from './AcademyDialog.web';
+import { NrwModulePreview } from './NrwModulePreview.web';
 
 const labels = { learning: 'Lernt', ready: 'Prüfung freigegeben', failed: 'Nicht bestanden', passed: 'Bestanden' };
 const dateLabel = (value: string) => new Date(value.slice(0, 10) + 'T12:00:00').toLocaleDateString('de-DE');
@@ -12,15 +14,22 @@ type Props = {
   busy: boolean;
   onCommand: AcademyCommandHandler;
   onAssign: (course: AcademyCourse) => void;
+  onDownload: (certificate: AcademyCertificate) => Promise<void>;
+  feedback: ReactNode;
+  assignmentOpen: boolean;
 };
 
-export function NrwAcademyCourse({ workspace, selectedEnrollmentId, busy, onCommand, onAssign }: Props) {
+export function NrwAcademyCourse({ workspace, selectedEnrollmentId, busy, onCommand, onAssign, onDownload, feedback, assignmentOpen }: Props) {
   const [selectedId, setSelectedId] = useState(selectedEnrollmentId);
   const [query, setQuery] = useState('');
   const [examFilter, setExamFilter] = useState('all');
+  const [moduleIndex, setModuleIndex] = useState<number | null>(null);
   const course = workspace.courses.find(item => item.id === workspace.nrwCourseId);
-  const enrollments = workspace.enrollments.filter(enrollment => enrollment.nrwExam);
+  const enrollments = workspace.enrollments.filter(enrollment => enrollment.courseId === workspace.nrwCourseId && enrollment.nrwExam);
   const selected = enrollments.find(enrollment => enrollment.id === selectedId);
+  const certificate = workspace.certificates.find(item => item.enrollmentId === selected?.id && !item.revokedAt);
+  const published = course?.status === 'published';
+  const status = published ? 'Veröffentlicht' : course?.status === 'archived' ? 'Archiviert' : course ? 'Entwurf' : 'Kursvorlage';
   const shown = enrollments.filter(enrollment => enrollment.participant.name.toLocaleLowerCase('de-DE').includes(query.trim().toLocaleLowerCase('de-DE'))
     && (examFilter === 'all' || enrollment.nrwExam?.state === examFilter));
 
@@ -31,21 +40,36 @@ export function NrwAcademyCourse({ workspace, selectedEnrollmentId, busy, onComm
         <h2>Alltagsbegleitung in NRW</h2>
         <p>Schulung Nordrhein-Westfalen (AnFöVO) mit bebilderten Fällen aus der Betreuung, Übungen für den nächsten Einsatz und einer Abschlussprüfung.</p>
         <div className="ac-nrw-facts"><span>8 Module</span><span>40 UE à 45 Min.</span><span>Pflichtkurs</span></div>
-        <div className="ac-card-actions">
-          {!course && workspace.capabilities.manageCourses && workspace.nrwCourseId && <button className="ac-button primary" type="button" disabled={busy} onClick={() => void onCommand('install_nrw_course', {}, { id: workspace.nrwCourseId!, revision: null })}>Kurs als Entwurf übernehmen</button>}
-          {course?.status === 'draft' && workspace.capabilities.manageCourses && <button className="ac-button primary" type="button" disabled={busy} onClick={() => void onCommand('publish_course', {}, course)}>Kurs veröffentlichen</button>}
-          {course?.status === 'published' && workspace.capabilities.assign && <button className="ac-button primary" type="button" disabled={busy} onClick={() => onAssign(course)}>Pflichtkurs zuweisen</button>}
-        </div>
       </div>
       <img className="ac-nrw-hero-image" src={nrwModuleImage('08')} alt="Eine Alltagsbegleiterin und eine ältere Frau topfen gemeinsam Kräuter um" />
     </section>
-    <section className="ac-panel ac-nrw-section" aria-label="Kursinhalte">
-      <div className="ac-panel-header"><div><p className="ac-eyebrow">LERNWEG</p><h2 className="ac-section-title">Acht Module für die Praxis</h2></div><span className="ac-status" data-tone={course?.status === 'published' ? 'good' : 'neutral'}>{course?.status === 'published' ? 'Veröffentlicht' : course?.status === 'archived' ? 'Archiviert' : course ? 'Entwurf' : 'Kursvorlage'}</span></div>
-      <div className="ac-nrw-modules">{NRW_MODULES.map((title, index) => <article className="ac-nrw-module" key={title}>
-        <img src={nrwModuleImage(nrwModuleCode(index))} alt="" loading="lazy" />
-        <div><span className="ac-eyebrow">MODUL {nrwModuleCode(index)} · 5 UE</span><h3>{title}</h3></div>
-      </article>)}</div>
+    <section className="ac-panel ac-nrw-section ac-nrw-workflow" aria-label="Kurs verwalten">
+      <div className="ac-nrw-workflow-copy">
+        <div className="ac-badges"><span className="ac-status" data-tone={published ? 'good' : 'attention'}>{status}</span>{course?.versionNumber ? <span className="ac-muted">Fassung {course.versionNumber}</span> : null}</div>
+        <h2 className="ac-section-title">{published ? 'Pflichtkurs im Team' : 'Kurs vorbereiten und freigeben'}</h2>
+        <p className="ac-muted">{published ? `${enrollments.length} ${enrollments.length === 1 ? 'Teilnahme' : 'Teilnahmen'} · ${enrollments.filter(item => item.state === 'completed').length} abgeschlossen. Zugewiesene Personen finden den Kurs unter „Meine Akademie“.`
+          : course?.status === 'draft' ? 'Öffnen Sie unten die Module zur Durchsicht. Nach der Veröffentlichung können Sie Mitarbeitende zuweisen.'
+          : course?.status === 'archived' ? 'Frühere Teilnahmen stehen im Bereich „Fortschritt und Prüfung“.'
+          : 'Übernehmen Sie die Vorlage als Entwurf, um die Unterrichtseinheiten zu öffnen und den Kurs freizugeben.'}</p>
+      </div>
+      <div className="ac-card-actions">
+        {!course && workspace.capabilities.manageCourses && workspace.nrwCourseId && <button className="ac-button primary" type="button" disabled={busy} onClick={() => void onCommand('install_nrw_course', {}, { id: workspace.nrwCourseId!, revision: null })}>Kurs als Entwurf übernehmen</button>}
+        {course?.status === 'draft' && workspace.capabilities.manageCourses && <button className="ac-button primary" type="button" disabled={busy} onClick={() => void onCommand('publish_course', {}, course)}>Kurs veröffentlichen</button>}
+        {published && workspace.capabilities.assign && <button className="ac-button primary" type="button" disabled={busy || !course.publishedVersionId} onClick={() => onAssign(course)}>Pflichtkurs zuweisen</button>}
+      </div>
+      {!selected && !assignmentOpen && feedback && <div className="ac-nrw-feedback">{feedback}</div>}
     </section>
+    <section className="ac-panel ac-nrw-section" aria-label="Kursinhalte">
+      <div className="ac-panel-header"><div><p className="ac-eyebrow">LERNWEG</p><h2 className="ac-section-title">Acht Module für die Praxis</h2>
+        <p className="ac-muted">{course ? 'Jedes Modul enthält fünf Unterrichtseinheiten, ein vergrößerbares Praxisbild und einen Wissenscheck.' : 'Die Unterrichtseinheiten stehen nach Übernahme der Vorlage zur Durchsicht bereit.'}</p></div></div>
+      {course && <div className="ac-nrw-modules">{NRW_MODULES.map((title, index) => <button type="button" className="ac-nrw-module ac-nrw-module-button" key={title}
+        aria-haspopup="dialog" aria-label={`Modul ${index + 1} öffnen · ${title}`} onClick={() => setModuleIndex(index)}>
+        <img src={nrwModuleImage(nrwModuleCode(index))} alt="" loading="lazy" />
+        <span className="ac-nrw-module-copy"><span className="ac-eyebrow">MODUL {nrwModuleCode(index)} · 5 UE</span><strong>{title}</strong><span className="ac-nrw-open-label">Modul öffnen ›</span></span>
+      </button>)}</div>}
+      {course && <details className="ac-nrw-solution ac-nrw-exam-info"><summary>Ablauf der Abschlussprüfung</summary><p>Nach den acht Modulen und ihren Wissenschecks werden 16 Fragen gezogen. Mit mindestens 12 richtigen Antworten ist die Prüfung bestanden. Nach einem nicht bestandenen Versuch kann die Verwaltung eine Wiederholung freigeben.</p></details>}
+    </section>
+    {moduleIndex !== null && course && <NrwModulePreview key={moduleIndex} index={moduleIndex} lessons={course.content.lessons} onClose={() => setModuleIndex(null)} />}
     <section className="ac-panel ac-nrw-section" aria-label="Fortschritt der Mitarbeitenden">
       <div className="ac-panel-header"><div><p className="ac-eyebrow">PFLICHTKURS IM TEAM</p><h2 className="ac-section-title">Fortschritt und Prüfung</h2><p className="ac-muted">Nach bestandener Prüfung und fachlicher Freigabe steht das Zertifikat in der Vorlage Klarblatt zum Download bereit.</p></div></div>
       {enrollments.length ? <>
@@ -62,17 +86,21 @@ export function NrwAcademyCourse({ workspace, selectedEnrollmentId, busy, onComm
               <div className="ac-stat-line"><span>Lernfortschritt</span><strong>{enrollment.progress} %</strong></div>
               <div className="ac-progress" role="progressbar" aria-label="Lernfortschritt" aria-valuemin={0} aria-valuemax={100} aria-valuenow={enrollment.progress}><span style={{ width: `${enrollment.progress}%` }} /></div>
             </div>
-            <div className="ac-list-actions"><span className="ac-status" data-tone={exam.state === 'passed' ? 'good' : exam.state === 'failed' ? 'attention' : 'neutral'}>{labels[exam.state]}</span><button className="ac-button small" type="button" disabled={busy} onClick={() => setSelectedId(enrollment.id)}>Details</button></div>
+            <div className="ac-list-actions"><span className="ac-status" data-tone={exam.state === 'passed' ? 'good' : exam.state === 'failed' ? 'attention' : 'neutral'}>{labels[exam.state]}</span><button className="ac-button small" type="button" disabled={busy} aria-haspopup="dialog" onClick={() => setSelectedId(enrollment.id)}>Teilnahme öffnen</button></div>
           </article>;
         })}</div> : <div className="ac-empty"><h3>Keine passenden Teilnahmen</h3><p>Ändern Sie die Suche oder den Prüfungsstand.</p></div>}
       </> : <div className="ac-empty"><h3>Der Pflichtkurs wurde noch nicht zugewiesen.</h3><p>Nach einer Zuweisung erscheinen hier der Lernstand und die Ergebnisse.</p></div>}
     </section>
-    {selected && <NrwReview key={selected.id} enrollment={selected} canReview={workspace.capabilities.review} busy={busy} onClose={() => setSelectedId(null)} onCommand={onCommand} />}
+    {selected && <AcademyDialog title={selected.participant.name} busy={busy} onClose={() => setSelectedId(null)}>
+      {feedback}
+      <NrwReview key={selected.id} enrollment={selected} canReview={workspace.capabilities.review} busy={busy} onCommand={onCommand} />
+      {certificate && <div className="ac-card-actions"><button type="button" className="ac-button primary" disabled={busy} onClick={() => void onDownload(certificate)}>Klarblatt-Zertifikat herunterladen</button></div>}
+    </AcademyDialog>}
   </>;
 }
 
-function NrwReview({ enrollment, canReview, busy, onClose, onCommand }: {
-  enrollment: AcademyEnrollment; canReview: boolean; busy: boolean; onClose: () => void; onCommand: AcademyCommandHandler;
+function NrwReview({ enrollment, canReview, busy, onCommand }: {
+  enrollment: AcademyEnrollment; canReview: boolean; busy: boolean; onCommand: AcademyCommandHandler;
 }) {
   const exam = enrollment.nrwExam!;
   const attempts = enrollment.attempts.filter(attempt => attempt.lessonId === NRW_FINAL_LESSON);
@@ -87,8 +115,8 @@ function NrwReview({ enrollment, canReview, busy, onClose, onCommand }: {
     const result = await onCommand('record_nrw_practice', { kind, date, provider: provider.trim(), reference: reference.trim() }, enrollment);
     if (result) { setProvider(''); setReference(''); }
   };
-  return <section className="ac-panel ac-nrw-section" aria-label="Teilnahme im Detail">
-    <div className="ac-panel-header"><div><p className="ac-eyebrow">TEILNAHME · KLARBLATT</p><h2 className="ac-section-title">{enrollment.participant.name}</h2><p className="ac-muted">{ACADEMY_STATE_LABELS[enrollment.state]}</p></div><button type="button" className="ac-button subtle" onClick={onClose}>Details schließen</button></div>
+  return <section aria-label="Teilnahme im Detail">
+    <div className="ac-badges"><span className="ac-status">{ACADEMY_STATE_LABELS[enrollment.state]}</span><span className="ac-muted">{enrollment.progress} % Lernfortschritt · Fassung {enrollment.versionNumber}</span></div>
     {attempts.length ? <div className="ac-list">{attempts.map(attempt => {
       const mistakes = exam.mistakes.filter(item => item.attempt === attempt.attempt);
       return <article className="ac-nrw-attempt" key={attempt.attempt}>

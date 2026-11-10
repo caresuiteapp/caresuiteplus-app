@@ -47,12 +47,13 @@ export function AcademyWorkspaceScreen({ view = 'office', ...props }: Props) {
   const params = useLocalSearchParams<{ section?: string; course?: string; enrollment?: string; certificate?: string }>();
   const tenantId = auth.portalSession?.tenantId ?? auth.profile?.tenantId ?? null;
   const ready = Boolean(auth.authReady && auth.isAuthenticated && auth.user?.id && tenantId);
-  const scope = JSON.stringify([auth.user?.id ?? null, tenantId, auth.portalSession?.accountId ?? null, view]);
+  const owner = JSON.stringify([auth.user?.id ?? null, tenantId, auth.portalSession?.accountId ?? null]);
+  const scope = JSON.stringify([owner, view]);
   const requestedSection = first(params.section) as AcademySection | undefined;
   const preferredSection = props.initialSection ?? (requestedSection && sectionKeys.has(requestedSection) ? requestedSection : undefined);
   const safeSection = view === 'learner' && preferredSection && !['overview', 'planning', 'certificates', 'library'].includes(preferredSection) ? 'overview' : preferredSection;
   useEffect(() => { if (!auth.user || !auth.isAuthenticated) clearAcademyDrafts(); }, [auth.user, auth.isAuthenticated]);
-  return <ConnectedAcademy key={`${scope}:${ready ? 'authenticated' : 'inactive'}`} {...props} view={view} scope={scope}
+  return <ConnectedAcademy key={`${scope}:${ready ? 'authenticated' : 'inactive'}`} {...props} view={view} scope={scope} owner={owner}
     tenantId={ready ? tenantId : null} authLoading={!auth.authReady || auth.isLoading}
     portalSession={auth.portalSession}
     initialSection={safeSection}
@@ -61,8 +62,8 @@ export function AcademyWorkspaceScreen({ view = 'office', ...props }: Props) {
     initialCertificateId={props.initialCertificateId ?? first(params.certificate)} />;
 }
 
-function ConnectedAcademy({ tenantId, scope, portalSession, authLoading, view, initialCertificateId, ...props }: Props & {
-  tenantId: string | null; scope: string; portalSession: PortalSessionRecord | null; authLoading: boolean; view: AcademyView;
+function ConnectedAcademy({ tenantId, scope, owner, portalSession, authLoading, view, initialCertificateId, ...props }: Props & {
+  tenantId: string | null; scope: string; owner: string; portalSession: PortalSessionRecord | null; authLoading: boolean; view: AcademyView;
 }) {
   const [workspace, setWorkspace] = useState<AcademyWorkspace | null>(null);
   const [loading, setLoading] = useState(false);
@@ -82,12 +83,12 @@ function ConnectedAcademy({ tenantId, scope, portalSession, authLoading, view, i
 
   useEffect(() => {
     mounted.current = true;
-    if (tenantId) activateAcademyDraftScope(scope);
+    if (tenantId) activateAcademyDraftScope(scope, owner);
     const refreshPending = () => { if (mounted.current) setPending(getPendingAcademyCommand(scope)); };
     refreshPending();
     const unsubscribe = subscribeAcademyDrafts(refreshPending);
     return () => { mounted.current = false; sequence.current++; unsubscribe(); };
-  }, [scope, tenantId]);
+  }, [scope, owner, tenantId]);
 
   const reload = useCallback(async (background = false) => {
     if (!tenantId || writeLock.current) return;
@@ -153,7 +154,11 @@ function ConnectedAcademy({ tenantId, scope, portalSession, authLoading, view, i
       }
       refreshRequiredRef.current = true;
       setRefreshRequired(true);
-      setNotice(result.replayed ? 'Der bereits gespeicherte Vorgang wurde bestätigt.' : 'Gespeichert und bestätigt.');
+      setNotice(command.action === 'assign' && typeof result.createdCount === 'number'
+        ? result.createdCount === 0 ? 'Für diese Auswahl bestehen bereits Zuweisungen.'
+          : result.createdCount === 1 ? 'Eine Person wurde der Schulung zugewiesen.' : `${result.createdCount} Personen wurden der Schulung zugewiesen.`
+        : command.action === 'publish_course' ? 'Der Kurs wurde veröffentlicht.'
+        : result.replayed ? 'Der bereits gespeicherte Vorgang wurde bestätigt.' : 'Gespeichert und bestätigt.');
       writeLock.current = false;
       void reload(true);
       return result;
@@ -181,7 +186,10 @@ function ConnectedAcademy({ tenantId, scope, portalSession, authLoading, view, i
   const command: AcademyCommandHandler = async (action, data, record) => {
     if (!tenantId || writeLock.current || refreshRequiredRef.current || getPendingAcademyCommand(scope)) return null;
     const next: AcademyCommand = structuredClone({ action, data, recordId: record?.id ?? null, expectedRevision: record?.revision ?? null, requestId: crypto.randomUUID() });
-    if (!rememberPendingAcademyCommand(scope, next)) return null;
+    if (!rememberPendingAcademyCommand(scope, next)) {
+      setError('Der Vorgang konnte dieser Sitzung nicht zugeordnet werden. Öffnen Sie die Akademie erneut.');
+      return null;
+    }
     return sendCommand(next);
   };
 
@@ -195,7 +203,7 @@ function ConnectedAcademy({ tenantId, scope, portalSession, authLoading, view, i
   const certificateEnrollment = initialCertificateId
     ? workspace?.certificates.find((entry) => entry.id === initialCertificateId)?.enrollmentId
     : undefined;
-  return <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, width: '100%' }}>
+  const recovery = ((refreshRequired && !loading && !busy) || (pending && !busy)) && <>
     {refreshRequired && !loading && !busy ? <div role="status" style={statusPanel}>
       <strong>Aktuellen Datenstand abgleichen</strong>
       <p style={{ margin: '6px 0 12px' }}>Bitte laden Sie den aktuellen Stand, bevor Sie weiterarbeiten. Ihre offenen Eingaben bleiben erhalten.</p>
@@ -206,8 +214,11 @@ function ConnectedAcademy({ tenantId, scope, portalSession, authLoading, view, i
       <p style={{ margin: '6px 0 12px' }}>Dieser Vorgang wird mit derselben Vorgangsnummer erneut geprüft. Bis zur Bestätigung bleiben Änderungen gesperrt.</p>
       <button type="button" onClick={() => { const same = getPendingAcademyCommand(scope); if (same) void sendCommand(same, true); }} style={statusAction}>Vorgang erneut prüfen</button>
     </div> : null}
+  </>;
+  return <div style={{ display: 'flex', flexDirection: 'column', flex: 1, minHeight: 0, width: '100%' }}>
     <AcademyWorkspaceView {...props} view={view} workspace={workspace} loading={loading || authLoading}
       busy={busy || Boolean(pending) || refreshRequired} error={error ?? (!tenantId && !authLoading ? 'Bitte melden Sie sich erneut an, um Ihre Akademie zu öffnen.' : null)} notice={notice}
+      recovery={recovery}
       initialEnrollmentId={props.initialEnrollmentId ?? certificateEnrollment}
       onCommand={command} onReload={() => { if (!pending) void reload(); }} onDownloadCertificate={download} />
   </div>;

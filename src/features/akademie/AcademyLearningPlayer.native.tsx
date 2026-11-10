@@ -1,8 +1,9 @@
 // Generated native presentation from src/features/akademie/AcademyLearningPlayer.web.tsx. Update through scripts/port-native-workspaces.mjs.
-import {NativeSection,NativeDiv,NativeP,NativeH2,NativeButton,NativeSpan,NativeStrong,NativeA,NativeNav,NativeLabel,NativeSelect,NativeOption,NativeSmall,NativeArticle,NativeH3,NativeImg,NativeH4,NativeForm,NativeFieldset,NativeInput,NativeFigure,NativeFigcaption,NativeDetails,NativeSummary} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeSection,NativeDiv,NativeP,NativeH2,NativeButton,NativeSpan,NativeStrong,NativeA,NativeNav,NativeLabel,NativeSelect,NativeOption,NativeSmall,NativeArticle,NativeH3,NativeForm,NativeFieldset,NativeH4,NativeInput} from '@/components/layout/NativeWorkspaceElements.native';
 import { useEffect, useState } from 'react';
 import { ACADEMY_STATE_LABELS, academySafeResourceUrl, isAcademyOverdue, type AcademyAttempt, type AcademyCertificate, type AcademyCommandHandler, type AcademyEnrollment, type AcademyEnrollmentState, type AcademyLesson, } from '@/lib/akademie/workspaceModel';
-import { NRW_FINAL_LESSON, NRW_MODULES, NRW_PRACTICE_UPLOAD, nrwModuleCode, nrwModuleImage } from '@/lib/akademie/nrwCourse';
+import { NRW_FINAL_LESSON, NRW_MODULES, NRW_PRACTICE_UPLOAD, nrwModuleCode } from '@/lib/akademie/nrwCourse';
+import { NrwLessonContent } from "./NrwLessonContent.native.tsx";
 type Props = {
     enrollment: AcademyEnrollment;
     certificate: AcademyCertificate | null;
@@ -154,15 +155,8 @@ export function AcademyLearningPlayer({ enrollment, certificate, busy, onCommand
       {selected ? <NativeArticle className="ac-editor-content" key={selected.id}>
         <NativeDiv className="ac-badges"><NativeSpan className="ac-status" data-tone="neutral">Lektion {selectedIndex + 1}</NativeSpan><NativeSpan className="ac-muted">{isFinal ? 'Abschlussprüfung' : caseLesson ? 'Bildbeispiel' : kindLabels[selected.kind]}</NativeSpan>{completed.includes(selected.id) && <NativeSpan className="ac-status" data-tone="good">Bearbeitet</NativeSpan>}</NativeDiv>
         <NativeH3 className="ac-section-title">{selected.title}</NativeH3>
-        {chapter === '03' && selected.id.endsWith('-ue3') && <NativeA className="ac-button subtle small" href="https://www.drk.de/hilfe-in-deutschland/erste-hilfe/bewusstlosigkeit/" target="_blank" rel="noopener noreferrer">Erste Hilfe beim DRK nachlesen</NativeA>}
-        {caseLesson && chapter ? <NrwIllustratedCase code={chapter} body={selected.body}/>
-                : exam && chapter && selected.kind === 'text' ? <>
-            <NativeImg className="ac-nrw-lesson-art" src={nrwModuleImage(chapter)} alt=""/>
-            <NativeDiv className="ac-nrw-unit">{selected.body.split('\n\n').map((part, index) => {
-                        const [heading, ...body] = part.split('\n');
-                        return <NativeSection key={heading}><NativeH4>{heading}</NativeH4>{index > 0 && <NativeP>{body.join('\n')}</NativeP>}</NativeSection>;
-                    })}</NativeDiv>
-          </> : selected.body && <NativeDiv className="ac-learning-body">{selected.body}</NativeDiv>}
+        {exam && chapter && selected.kind === 'text' ? <NrwLessonContent lesson={selected} code={chapter}/>
+                : selected.body && <NativeDiv className="ac-learning-body">{selected.body}</NativeDiv>}
         {(selected.kind === 'video' || selected.kind === 'document') && <NativeDiv className="ac-resource"><NativeStrong>{selected.kind === 'video' ? 'Video zur Lektion' : 'Dokument zur Lektion'}</NativeStrong><NativeP className="ac-muted">Das Material wird auf der verlinkten Seite geöffnet. Kehren Sie anschließend hierher zurück, um Ihre Bearbeitung zu bestätigen.</NativeP>{academySafeResourceUrl(selected.url) ? <NativeA className="ac-button" href={academySafeResourceUrl(selected.url)!} target="_blank" rel="noopener noreferrer">{selected.kind === 'video' ? 'Video öffnen' : 'Dokument öffnen'} ↗</NativeA> : <NativeP className="ac-message" data-tone="error">Für diese Lektion ist kein verwendbarer Link hinterlegt. Bitte wenden Sie sich an die zuständige Person.</NativeP>}</NativeDiv>}
         {selected.kind === 'quiz' ? <NativeForm className="ac-quiz" onSubmit={event => { event.preventDefault(); void submitQuiz(selected); }}>
           {isFinal && exam ? <>
@@ -182,19 +176,4 @@ export function AcademyLearningPlayer({ enrollment, certificate, busy, onCommand
     </NativeDiv>
     {(!exam || state === 'returned') && <NativeDiv className="ac-editor-footer"><NativeDiv><NativeStrong>{allDone ? 'Alle Lektionen bearbeitet' : 'Schritt für Schritt zum Abschluss'}</NativeStrong><NativeP className="ac-muted">{allDone ? 'Reichen Sie die Schulung zur Prüfung ein. Ihr Nachweis entsteht nach bestätigter Freigabe.' : 'Bearbeiten Sie alle Lektionen und bestehen Sie die Wissenschecks, bevor Sie einreichen.'}</NativeP></NativeDiv><NativeButton type="button" className="ac-button primary" disabled={!writable || !allDone} onClick={() => void submit()}>Zur Prüfung einreichen</NativeButton></NativeDiv>}
   </NativeSection>;
-}
-function NrwIllustratedCase({ code, body }: {
-    code: string;
-    body: string;
-}) {
-    const [scene, question, solution] = body.split('\n\n').map(part => part.split('\n').slice(1).join('\n'));
-    const source = nrwModuleImage(code, true);
-    return <NativeDiv className="ac-nrw-case">
-    <NativeFigure>
-      <NativeImg src={source} alt={scene}/>
-      <NativeFigcaption><NativeStrong>Aus der Praxis</NativeStrong><NativeA className="ac-button subtle small" href={source} target="_blank" rel="noopener noreferrer">Bild vergrößern</NativeA></NativeFigcaption>
-    </NativeFigure>
-    <NativeSection className="ac-nrw-observe"><NativeH4>Was fällt Ihnen auf?</NativeH4><NativeP>{question}</NativeP></NativeSection>
-    <NativeDetails className="ac-nrw-solution"><NativeSummary>Auflösung ansehen</NativeSummary><NativeP>{solution}</NativeP></NativeDetails>
-  </NativeDiv>;
 }

@@ -221,3 +221,44 @@ describe('Academy workspace workflows', () => {
     await render(view({ view: 'office', error: 'Die Daten konnten nicht aktualisiert werden.' })); expect(host.querySelector('.ac-kpis')).toBeNull(); expect(host.querySelector('[role=alert]')?.textContent).toContain('zuletzt geladenen Stand');
   });
 });
+
+
+describe('NRW mandatory course controls', () => {
+  it('opens real content from a draft module and lets the editor view its case without issuing a write', async () => {
+    const nrwContent = { ...content(), lessons: [
+      { id: 'nrw-01-ue1', title: 'Begriffe lernen', kind: 'text' as const, body: 'UE 01\n\nEinleitung\nEin Inhalt.' },
+      { id: 'nrw-01-case', title: 'Ein Fall', kind: 'text' as const, body: 'Beispiel\nMara wartet am Telefon.\n\nFrage\nWas fällt auf?\n\nAuflösung\nDen Ort prüfen.' },
+    ] };
+    const draft = course({ status: 'draft', publishedVersionId: null, versionNumber: 0, content: nrwContent });
+    const onCommand = command();
+    await render(view({ initialSection: 'courses', initialCourseId: draft.id, workspace: workspace({ nrwCourseId: draft.id, courses: [draft] }), onCommand }));
+    await click('Modul 1 öffnen · Grundlagen und Begriffe');
+    expect(host.querySelector('dialog')?.textContent).toContain('Begriffe lernen');
+    await click('Praxisbild ansehen');
+    expect(host.querySelector('dialog img')?.getAttribute('src')).toMatch(/01-praxis\.jpg$/);
+    expect(host.querySelector('dialog details')?.textContent).toContain('Den Ort prüfen.');
+    expect(onCommand).not.toHaveBeenCalled();
+    await click('Schließen');
+    await click('Kurs veröffentlichen');
+    expect(onCommand).toHaveBeenLastCalledWith('publish_course', {}, draft);
+  });
+
+  it('assigns only eligible people and keeps the course open after confirmation', async () => {
+    const training = course();
+    const active = { id: 'worker', kind: 'employee' as const, name: 'Mara Aktiv', contextLabel: '', portalReady: true };
+    const assigned = enrollment();
+    const unavailable = { ...active, id: 'inactive', name: 'Ohne Zugang', portalReady: false };
+    const onCommand = command().mockResolvedValue({ recordId: training.id, revision: 4, createdCount: 1 });
+    await render(view({ initialSection: 'nrw', workspace: workspace({ nrwCourseId: training.id, participants: [active, assigned.participant, unavailable] }), onCommand }));
+    await click('Pflichtkurs zuweisen');
+    const dialog = host.querySelector('dialog')!;
+    expect(dialog.textContent).toContain('Für diese Fassung bereits zugewiesen');
+    expect(dialog.textContent).toContain('Portalzugang noch nicht aktiv');
+    await click('Sichtbare Personen auswählen');
+    expect(dialog.querySelectorAll('input:checked')).toHaveLength(1);
+    await click('Schulung verbindlich zuweisen');
+    expect(onCommand).toHaveBeenLastCalledWith('assign', { targets: [{ id: active.id, kind: 'employee' }], dueDate: null }, training);
+    expect(host.querySelector('dialog')).toBeNull();
+    expect(button('Pflichtkurs zuweisen')).toBeDefined();
+  });
+});

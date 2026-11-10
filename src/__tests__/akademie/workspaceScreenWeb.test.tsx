@@ -1,5 +1,5 @@
 // @vitest-environment happy-dom
-import { act } from 'react';
+import { act, type ReactNode } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { AcademyCommandHandler, AcademyWorkspace } from '@/lib/akademie/workspaceModel';
@@ -7,7 +7,7 @@ import { clearAcademyDrafts } from '@/lib/akademie/workspaceDrafts';
 import { AcademyWorkspaceScreen } from '@/features/akademie/AcademyWorkspaceScreen.web';
 import { AcademyWorkspaceError } from '@/lib/akademie/workspaceService';
 
-type ViewProps = { workspace: AcademyWorkspace | null; busy: boolean; error: string | null; notice: string | null; initialSection?: string; initialMandatoryOnly?: boolean; onCommand: AcademyCommandHandler; onReload: () => void };
+type ViewProps = { workspace: AcademyWorkspace | null; busy: boolean; error: string | null; notice: string | null; recovery?: ReactNode; initialSection?: string; initialMandatoryOnly?: boolean; onCommand: AcademyCommandHandler; onReload: () => void };
 const state = vi.hoisted(() => ({
   user: 'user-a' as string | null, authenticated: true, tenant: 'tenant-a', account: 'account-a', portal: true,
   params: {} as Record<string, string>,
@@ -29,7 +29,7 @@ vi.mock('@/lib/akademie/workspaceService', () => ({
 }));
 vi.mock('@/features/akademie/AcademyWorkspace.web', () => ({ AcademyWorkspaceView: (props: ViewProps) => {
   state.view = props;
-  return <div><span>{props.workspace?.viewer.name}</span><span>{props.error}</span><span>{props.notice}</span><button disabled={props.busy}>Bearbeiten</button></div>;
+  return <div><span>{props.workspace?.viewer.name}</span><span>{props.error}</span><span>{props.notice}</span>{props.recovery}<button disabled={props.busy}>Bearbeiten</button></div>;
 } }));
 
 function workspace(name = 'Serverperson'): AcademyWorkspace {

@@ -180,7 +180,7 @@ export async function mutateAcademyWorkspace(tenantId: string, view: AcademyView
 
 /** Advance only acknowledged fields. A failed reload still blocks further editing. */
 export function applyAcademyMutationReceipt(workspace: AcademyWorkspace, command: AcademyCommand, result: AcademyMutationResult): AcademyWorkspace {
-  if (command.recordId !== result.recordId) return workspace;
+  if (command.recordId !== result.recordId || result.replayed) return workspace;
   if (['save_template', 'archive_template', 'restore_template'].includes(command.action)) {
     return { ...workspace, templates: (workspace.templates ?? []).map(template => template.id !== result.recordId ? template : {
       ...template, revision: result.revision,
@@ -189,18 +189,21 @@ export function applyAcademyMutationReceipt(workspace: AcademyWorkspace, command
     }) };
   }
   if (['save_course', 'publish_course', 'archive_course'].includes(command.action)) {
-    return { ...workspace, courses: workspace.courses.map(course => course.id !== result.recordId ? course : {
+    return { ...workspace, courses: workspace.courses.map(course => course.id !== result.recordId || course.revision > result.revision ? course : {
       ...course, revision: result.revision,
+      ...(command.action === 'publish_course' ? { status: 'published' as const } : {}),
       ...(command.action === 'archive_course' ? { status: 'archived' as const } : {}),
     }) };
   }
-  return { ...workspace, enrollments: workspace.enrollments.map(enrollment => enrollment.id !== result.recordId ? enrollment : {
+  // The learner owns optimistic lesson/quiz state. A revision-only receipt would overwrite that state before the full reload.
+  if (['start_enrollment', 'complete_lesson', 'submit_quiz', 'submit_enrollment'].includes(command.action)) return workspace;
+  return { ...workspace, enrollments: workspace.enrollments.map(enrollment => enrollment.id !== result.recordId || enrollment.revision > result.revision ? enrollment : {
     ...enrollment, revision: result.revision,
     ...(command.action === 'change_due_date' && (command.data.dueDate === null || string(command.data.dueDate))
       ? { dueDate: command.data.dueDate } : {}),
     ...(command.action === 'renew_enrollment' && result.createdEnrollmentId
       ? { nextEnrollmentId: result.createdEnrollmentId } : {}),
-    ...(command.action === 'save_nrw_exam_answer' && !result.replayed && enrollment.nrwExam
+    ...(command.action === 'save_nrw_exam_answer' && enrollment.nrwExam
       && string(command.data.questionId) && string(command.data.optionId)
       ? { nrwExam: { ...enrollment.nrwExam, draftAnswers: { ...enrollment.nrwExam.draftAnswers, [command.data.questionId]: command.data.optionId } } }
       : {}),

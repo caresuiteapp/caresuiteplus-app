@@ -4,7 +4,8 @@ import {
   type AcademyAttempt, type AcademyCertificate, type AcademyCommandHandler,
   type AcademyEnrollment, type AcademyEnrollmentState, type AcademyLesson,
 } from '@/lib/akademie/workspaceModel';
-import { NRW_FINAL_LESSON, NRW_MODULES, NRW_PRACTICE_UPLOAD, nrwModuleCode, nrwModuleImage } from '@/lib/akademie/nrwCourse';
+import { NRW_FINAL_LESSON, NRW_MODULES, NRW_PRACTICE_UPLOAD, nrwModuleCode } from '@/lib/akademie/nrwCourse';
+import { NrwLessonContent } from './NrwLessonContent.web';
 
 type Props = {
   enrollment: AcademyEnrollment;
@@ -129,15 +130,8 @@ export function AcademyLearningPlayer({ enrollment, certificate, busy, onCommand
       {selected ? <article className="ac-editor-content" key={selected.id}>
         <div className="ac-badges"><span className="ac-status" data-tone="neutral">Lektion {selectedIndex + 1}</span><span className="ac-muted">{isFinal ? 'Abschlussprüfung' : caseLesson ? 'Bildbeispiel' : kindLabels[selected.kind]}</span>{completed.includes(selected.id) && <span className="ac-status" data-tone="good">Bearbeitet</span>}</div>
         <h3 className="ac-section-title">{selected.title}</h3>
-        {chapter === '03' && selected.id.endsWith('-ue3') && <a className="ac-button subtle small" href="https://www.drk.de/hilfe-in-deutschland/erste-hilfe/bewusstlosigkeit/" target="_blank" rel="noopener noreferrer">Erste Hilfe beim DRK nachlesen</a>}
-        {caseLesson && chapter ? <NrwIllustratedCase code={chapter} body={selected.body} />
-          : exam && chapter && selected.kind === 'text' ? <>
-            <img className="ac-nrw-lesson-art" src={nrwModuleImage(chapter)} alt="" />
-            <div className="ac-nrw-unit">{selected.body.split('\n\n').map((part, index) => {
-              const [heading, ...body] = part.split('\n');
-              return <section key={heading}><h4>{heading}</h4>{index > 0 && <p>{body.join('\n')}</p>}</section>;
-            })}</div>
-          </> : selected.body && <div className="ac-learning-body">{selected.body}</div>}
+        {exam && chapter && selected.kind === 'text' ? <NrwLessonContent lesson={selected} code={chapter} />
+          : selected.body && <div className="ac-learning-body">{selected.body}</div>}
         {(selected.kind === 'video' || selected.kind === 'document') && <div className="ac-resource"><strong>{selected.kind === 'video' ? 'Video zur Lektion' : 'Dokument zur Lektion'}</strong><p className="ac-muted">Das Material wird auf der verlinkten Seite geöffnet. Kehren Sie anschließend hierher zurück, um Ihre Bearbeitung zu bestätigen.</p>{academySafeResourceUrl(selected.url) ? <a className="ac-button" href={academySafeResourceUrl(selected.url)!} target="_blank" rel="noopener noreferrer">{selected.kind === 'video' ? 'Video öffnen' : 'Dokument öffnen'} ↗</a> : <p className="ac-message" data-tone="error">Für diese Lektion ist kein verwendbarer Link hinterlegt. Bitte wenden Sie sich an die zuständige Person.</p>}</div>}
         {selected.kind === 'quiz' ? <form className="ac-quiz" onSubmit={event => { event.preventDefault(); void submitQuiz(selected); }}>
           {isFinal && exam ? <>
@@ -157,18 +151,4 @@ export function AcademyLearningPlayer({ enrollment, certificate, busy, onCommand
     </div>
     {(!exam || state === 'returned') && <div className="ac-editor-footer"><div><strong>{allDone ? 'Alle Lektionen bearbeitet' : 'Schritt für Schritt zum Abschluss'}</strong><p className="ac-muted">{allDone ? 'Reichen Sie die Schulung zur Prüfung ein. Ihr Nachweis entsteht nach bestätigter Freigabe.' : 'Bearbeiten Sie alle Lektionen und bestehen Sie die Wissenschecks, bevor Sie einreichen.'}</p></div><button type="button" className="ac-button primary" disabled={!writable || !allDone} onClick={() => void submit()}>Zur Prüfung einreichen</button></div>}
   </section>;
-}
-
-
-function NrwIllustratedCase({ code, body }: { code: string; body: string }) {
-  const [scene, question, solution] = body.split('\n\n').map(part => part.split('\n').slice(1).join('\n'));
-  const source = nrwModuleImage(code, true);
-  return <div className="ac-nrw-case">
-    <figure>
-      <img src={source} alt={scene} />
-      <figcaption><strong>Aus der Praxis</strong><a className="ac-button subtle small" href={source} target="_blank" rel="noopener noreferrer">Bild vergrößern</a></figcaption>
-    </figure>
-    <section className="ac-nrw-observe"><h4>Was fällt Ihnen auf?</h4><p>{question}</p></section>
-    <details className="ac-nrw-solution"><summary>Auflösung ansehen</summary><p>{solution}</p></details>
-  </div>;
 }
