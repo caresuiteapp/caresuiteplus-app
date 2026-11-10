@@ -110,11 +110,15 @@ export function EmployeePortalToday({ dashboard, loading, error, displayName, on
   if (!dashboard || !model) return <View style={styles.root}><Notice message={error || 'Für Ihren Zugang sind aktuell keine Portaldaten verfügbar.'} error={Boolean(error)} onRetry={onRefresh} /></View>;
   const taskStatusUnknown = Boolean(dashboard.signatureDocumentsError);
   const messageStatusUnknown = Boolean(dashboard.messageCountUnavailable || dashboard.messagesError);
+  const academy = navigation.find(item => item.id === 'academy');
   const personalItems = navigation.filter(item => ['leave', 'absence', 'profile'].includes(item.id));
 
   return <View style={[styles.root, { padding: layout.padding }]} testID="healthos-employee-portal-today">
     <EmployeeWelcome displayName={displayName} section="Mein Arbeitstag" phone={layout.phone} shortLandscape={shortLandscape} motivation={motivation}
-      action={<Action label={refreshing ? 'Wird aktualisiert…' : 'Aktualisieren'} onPress={onRefresh} disabled={refreshing} />} />
+      action={<View style={[styles.greetingActions, layout.phone && styles.greetingActionsPhone]}>
+        {academy ? <Action label="Meine Kurse" onPress={() => navigate(academy.route)} primary /> : null}
+        <Action label={refreshing ? 'Wird aktualisiert…' : 'Aktualisieren'} onPress={onRefresh} disabled={refreshing} />
+      </View>} />
     {(refreshError || error) ? <Notice message={refreshError || error!} error onRetry={onRefresh} /> : null}
     {showSuccess && !refreshError ? <Notice message="Übersicht aktualisiert." /> : null}
     {fromCache ? <Notice message={`Gespeicherter Stand${cachedAt ? ` vom ${new Date(cachedAt).toLocaleString('de-DE')}` : ''}. Einsatzaktionen stehen nach dem Aktualisieren wieder zur Verfügung.`} onRetry={onRefresh} /> : null}
@@ -202,11 +206,13 @@ export function EmployeePortalWorkspaceHome({ displayName, motivation, onRefresh
   const selected = workspace?.selected;
   const details = selected && selected !== 'assist' ? workspaceDetails[selected] : null;
   const primary = workspace?.navigation.find(item => item.id === details?.item);
+  const academy = workspace?.navigation.find(item => item.id === 'academy');
   const personal = workspace?.navigation.filter(item => ['messages', 'time', 'documents', 'leave', 'profile'].includes(item.id) && item !== primary);
   return (
     <View style={[styles.root, { padding: layout.padding }]} testID="employee-portal-workspace-home">
       <EmployeeWelcome displayName={displayName} section={selected ? employeePortalWorkspaceLabels[selected] : 'Persönlicher Bereich'}
-        phone={layout.phone} shortLandscape={shortLandscape} motivation={motivation} />
+        phone={layout.phone} shortLandscape={shortLandscape} motivation={motivation}
+        action={academy && academy !== primary ? <Action label="Meine Kurse" onPress={() => router.push(academy.route as never)} primary /> : null} />
       {workspace?.loading ? <Notice message="Ihre Modulfreigaben werden geprüft…" /> : null}
       {workspace?.error ? <Notice message={workspace.error} error onRetry={() => { onRefreshMotivation?.(); workspace.retry(); }} /> : null}
       {!selected && !workspace?.loading && !workspace?.error ? <Notice message="Für Ihr Konto ist derzeit kein Arbeitsmodul verfügbar." /> : null}
@@ -234,6 +240,8 @@ const styles = StyleSheet.create(withCareSuiteTypography({
   greetingPhone: { flexDirection: 'column', alignItems: 'stretch', padding: 14, gap: 12 },
   greetingLandscape: { padding: 14, gap: 12 },
   greetingCopy: { flexGrow: 1, flexShrink: 1, minWidth: 0, gap: 7 },
+  greetingActions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'flex-end', flexShrink: 1, gap: 8, maxWidth: '100%' },
+  greetingActionsPhone: { justifyContent: 'flex-start' },
   eyebrow: { color: c.accent, fontSize: font(12), lineHeight: font(18), letterSpacing: 1, fontWeight: '700', textTransform: 'uppercase' },
   title: { color: c.text, fontSize: font(40), lineHeight: font(48), fontWeight: '700' },
   titleLandscape: { fontSize: font(32), lineHeight: font(38) },

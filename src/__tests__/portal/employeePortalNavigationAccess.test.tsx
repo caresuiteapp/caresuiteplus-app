@@ -89,7 +89,7 @@ describe('portal navigation stays accessible during GPS and execution', () => {
   it('passes the authenticated employee photo into the header', () => {
     expect(shell().find(node => node.type === 'Avatar')?.props.avatarUrl).toBe('https://example.test/employee.png');
   });
-  it.each(['/portal/employee/beratung/case', '/portal/employee/akademie', '/portal/employee/pflegetouren'])(
+  it.each(['/portal/employee/beratung/case', '/portal/employee/pflegetouren'])(
     'never mounts an unauthorized direct module route %s', (path) => {
       state.path = path;
       const tree = shell();
@@ -97,6 +97,18 @@ describe('portal navigation stays accessible during GPS and execution', () => {
       expect(tree.some(node => node.props.testID === 'employee-portal-module-route-guard')).toBe(true);
     },
   );
+  it.each([360, 1024, 1920])('opens personal training in Assist at width %s', width => {
+    state.width = width;
+    const tab = shell().find(node => node.props.accessibilityLabel === 'Akademie, Meine Akademie')!;
+    expect(tab).toBeDefined();
+    tab.props.onPress();
+    expect(state.push).toHaveBeenLastCalledWith('/portal/employee/akademie');
+    state.path = '/portal/employee/akademie';
+    const tree = shell();
+    expect(tree.some(node => node.type === 'Stack')).toBe(true);
+    expect(tree.some(node => node.props.testID === 'employee-portal-module-route-guard')).toBe(false);
+    expect(tree.find(node => node.props.accessibilityLabel === 'Akademie, Meine Akademie')?.props.accessibilityState.selected).toBe(true);
+  });
   it('opens the personal care tour route only in the released Pflege workspace', () => {
     state.path = '/portal/employee/pflegetouren'; state.modules = ['assist', 'pflege'];
     expect(shell().some(node => node.type === 'Stack')).toBe(false);

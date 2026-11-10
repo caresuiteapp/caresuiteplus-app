@@ -63,12 +63,17 @@ describe('actual employee home assignment rows', () => {
     h.width = width;
     await act(async () => root.render(<HealthOSEmployeePortalTodayView dashboard={dashboard()} displayName="Mara" loading={false} error={null} onRefresh={() => {}} />));
     const shortcuts = host.querySelector('[data-testid="employee-portal-premium-quick-actions"]')!;
-    for (const [name, target] of [['Meine Einsätze','/portal/employee/assignments'],['Dokumentation','/portal/employee/dokumentation'],['Kalender','/portal/employee/calendar'],['Arbeitszeit','/portal/employee/arbeitszeit'],['Fahrtenbuch','/portal/employee/fahrtenbuch'],['Nachrichten','/portal/employee/messages'],['Dokumente','/portal/employee/documents'],['Aufgaben & Notizen','/portal/employee/tasks']]) {
+    for (const [name, target] of [['Meine Einsätze','/portal/employee/assignments'],['Dokumentation','/portal/employee/dokumentation'],['Kalender','/portal/employee/calendar'],['Arbeitszeit','/portal/employee/arbeitszeit'],['Fahrtenbuch','/portal/employee/fahrtenbuch'],['Nachrichten','/portal/employee/messages'],['Dokumente','/portal/employee/documents'],['Aufgaben & Notizen','/portal/employee/tasks'],['Meine Akademie','/portal/employee/akademie']]) {
       const action = shortcuts.querySelector<HTMLButtonElement>(`[aria-label="${name}"]`)!;
       expect(action, name).toBeTruthy();
       await act(async () => action.click());
       expect(h.push).toHaveBeenLastCalledWith(target);
     }
+    const welcome = host.querySelector('[data-testid="employee-portal-premium-home-hero"]')!;
+    const courses = [...welcome.querySelectorAll('button')].find(action => action.textContent === 'Meine Kurse');
+    expect(courses).toBeDefined();
+    await act(async () => courses!.click());
+    expect(h.push).toHaveBeenLastCalledWith('/portal/employee/akademie');
     expect(host.textContent).toContain('Urlaub'); expect(host.textContent).toContain('Abwesenheit');
   });
 

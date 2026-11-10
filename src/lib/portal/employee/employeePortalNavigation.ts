@@ -13,7 +13,8 @@ const workspaceItems: Record<EmployeePortalWorkspace, readonly string[]> = {
   assist: ['assignments', 'open-assignments', 'documentation', 'clients', 'calendar', 'tasks'],
   pflege: ['care-tours'],
   beratung: ['consultation'],
-  akademie: ['academy'],
+  // Personal course access is determined by enrollment, across all workspaces.
+  akademie: [],
   office: [],
 };
 

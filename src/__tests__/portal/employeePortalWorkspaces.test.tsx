@@ -122,8 +122,12 @@ describe('employee portal workspace choice', () => {
 
   it('uses one catalogue for every module and identifies legacy deep links', () => {
     expect(employeePortalNavigation('assist').some(item => item.id === 'consultation')).toBe(false);
-    expect(employeePortalNavigation('beratung').filter(item => item.group === 'work').map(item => item.id)).toEqual(['consultation', 'time', 'logbook', 'leave', 'absence']);
-    expect(employeePortalNavigation('akademie').map(item => item.id)).toContain('academy');
+    expect(employeePortalNavigation('beratung').filter(item => item.group === 'work').map(item => item.id)).toEqual(['consultation', 'academy', 'time', 'logbook', 'leave', 'absence']);
+    for (const workspace of [null, 'assist', 'pflege', 'beratung', 'akademie', 'office'] as const) {
+      const entries = employeePortalNavigation(workspace).filter(item => item.id === 'academy');
+      expect(entries.map(item => item.route)).toEqual(['/portal/employee/akademie']);
+    }
+    expect(employeePortalWorkspaceForPath('/portal/employee/akademie')).toBeNull();
     expect(employeePortalNavigation('office').some(item => item.id === 'assignments')).toBe(false);
     expect(employeePortalWorkspaceForPath('/portal/employee/execution/')).toBe('assist');
     expect(employeePortalWorkspaceForPath('/portal/employee/beratung/case-1')).toBe('beratung');
