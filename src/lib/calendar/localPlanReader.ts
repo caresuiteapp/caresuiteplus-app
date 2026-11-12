@@ -1,10 +1,13 @@
 export type LocalReaderProgress = { message: string; progress: number; page: number; pages: number };
 export type LocalReaderOptions = { signal?: AbortSignal; onProgress?: (progress: LocalReaderProgress) => void; forceOcr?: boolean; rotation?: number };
 export type LocalReaderResult = { text: string; pages: number; ocrPages: number; lowConfidence: boolean };
-type Reader = { read: (file: Blob, options: LocalReaderOptions) => Promise<LocalReaderResult> };
+type Reader = {
+  read: (file: Blob, options: LocalReaderOptions) => Promise<LocalReaderResult>;
+  readBmp?: (file: Blob, options: { signal?: AbortSignal }) => Promise<Array<Uint8Array | string>>;
+};
 declare global { interface Window { CareSuitePlanReaderV1?: Reader } }
 let pending: Promise<Reader> | undefined;
-export async function readLocalPlan(file: Blob, options: LocalReaderOptions): Promise<LocalReaderResult> {
+async function loadLocalReader(options: { signal?: AbortSignal }): Promise<Reader> {
   if (typeof window === 'undefined') throw new Error('Die lokale Texterkennung benötigt einen Webbrowser.');
   if (options.signal?.aborted) throw new DOMException('Analyse abgebrochen.', 'AbortError');
   if (!pending) pending = new Promise<Reader>((resolve, reject) => {
@@ -24,5 +27,16 @@ export async function readLocalPlan(file: Blob, options: LocalReaderOptions): Pr
     pending!.then(resolve, reject).finally(() => options.signal?.removeEventListener('abort', cancel));
   });
   if (options.signal?.aborted) throw new DOMException('Analyse abgebrochen.', 'AbortError');
+  return reader;
+}
+
+export async function readLocalPlan(file: Blob, options: LocalReaderOptions): Promise<LocalReaderResult> {
+  const reader = await loadLocalReader(options);
   return reader.read(file, options);
+}
+
+export async function readLocalBmpParts(file: Blob, signal?: AbortSignal): Promise<Array<Uint8Array | string>> {
+  const reader = await loadLocalReader({ signal });
+  if (!reader.readBmp) throw new Error('Bitte die Seite neu laden, damit die aktuelle BMP-Erkennung verfügbar ist.');
+  return reader.readBmp(file, { signal });
 }

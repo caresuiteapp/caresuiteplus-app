@@ -15,6 +15,7 @@ import { attachClientIdentityEditWeb, detachClientIdentityEditWeb, openClientIde
 import { useSectionEditModal } from "../../hooks/useSectionEditModal.native.ts";
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { ClientRecordOverviewPanel } from "../../components/pflege/ClientRecordOverview365.native.tsx";
+import { ClientMedicationPlanArchive } from "../../components/pflege/ClientMedicationPlanArchive.native.tsx";
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, SectionPanel, InfoBanner, } from '@/components/ui';
 import type { useClientRecord } from '@/hooks/useClientRecord';
@@ -1110,6 +1111,10 @@ function ClientRecordScreenContent({ initialTabOverride, clientId: clientIdProp,
             <ClientRecordPhysicianCommunicationPanel captureRead={capturePanelPhysicianCommunicationRead}/>
           </View>) : null}
         {!['uebersicht', 'stammdaten', 'kontakt', 'angehoerige', 'leistungsbereiche', 'verlauf', 'pflegegrad', 'rezepte'].includes(activeTab) ? (<ClientRecordTabContent tab={activeTab} clientId={detail.id} fullClient={fullQuery.data} canViewSensitive={fullQuery.canViewSensitive} onRecordRefresh={handleRecordRefresh}/>) : null}
+        {activeTab === 'medikation' && originalAtRender && can('pflege.access') && can('pflege.medications.view') && can('office.clients.view') && can('office.clients.view_sensitive') ? (<ClientMedicationPlanArchive key={JSON.stringify([originalAtRender.scopeKey, originalAtRender.recordTicket, originalAtRender.fullTicket])} clientId={originalAtRender.scope.clientId} scope={{ tenantId: originalAtRender.scope.tenantId, actorId: originalAtRender.scope.actorId,
+                isCurrent: () => liveActionCan.current('pflege.access') && liveActionCan.current('pflege.medications.view')
+                    && liveActionCan.current('office.clients.view') && liveActionCan.current('office.clients.view_sensitive')
+                    && sameClientRecordActionOriginal(originalAtRender, currentParent.current.liveOriginalReceipt()) }}/>) : null}
         {activeTab === 'dokumente' ? (<ClientRecordSignaturePanel captureRead={capturePanelTimelineRead}/>) : null}
       </View>
 

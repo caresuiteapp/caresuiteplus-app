@@ -15,6 +15,8 @@ import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { isValidPzn } from './medicationMasterDataValidation';
+import { woundUuid } from './woundCareDomain';
 
 type UnknownRow = Record<string, unknown>;
 
@@ -51,7 +53,7 @@ function clientName(row: UnknownRow): string {
 }
 
 function mapMedication(row: UnknownRow): MedicationListItem {
-  const route = text(row.route) ?? text(row.form) ?? 'Nicht angegeben';
+  const route = text(row.route) ?? 'Nicht angegeben';
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
@@ -173,12 +175,35 @@ export type CreateMedicationInput = {
   schedule?: string; route?: string; prescribedBy?: string; indication?: string; notes?: string; startDate?: string;
   morningDose?: string; noonDose?: string; eveningDose?: string; nightDose?: string; isPrn: boolean; prnReason?: string;
   isHighAlert: boolean; isControlledSubstance: boolean; intensiveCareRelevant: boolean; infusionRate?: string; dilution?: string; pumpRequired: boolean;
+  productPzn?: string; productBrand?: string; productManufacturer?: string; productCatalogSource?: string; productCatalogVersion?: string;
+  prescriberDirectoryId?: string;
 };
+
+/** Preserve the exact catalog pack and directory reference with the original order. */
+export function medicationCatalogInsertFields(input: CreateMedicationInput): UnknownRow {
+  const pzn = input.productPzn?.trim();
+  const prescriber = input.prescriberDirectoryId?.trim();
+  return {
+    ...(pzn ? {
+      product_pzn: pzn, product_brand: input.productBrand?.trim() || null,
+      product_manufacturer: input.productManufacturer?.trim() || null,
+      product_catalog_source: input.productCatalogSource?.trim() || null,
+      product_catalog_version: input.productCatalogVersion?.trim() || null,
+    } : {}),
+    ...(prescriber ? { prescriber_directory_id: prescriber } : {}),
+  };
+}
 
 export async function createLiveMedication(tenantId: string, actorProfileId: string | null, input: CreateMedicationInput, role?: RoleKey | null): Promise<ServiceResult<{ id: string }>> {
   const blocked = guard<{ id: string }>(tenantId, role, 'pflege.medications.manage'); if (blocked) return blocked;
   if (!actorProfileId) return { ok: false, error: 'Das angemeldete Benutzerprofil konnte nicht ermittelt werden.' };
   if (!input.clientId || !input.name.trim()) return { ok: false, error: 'Klient:in und Präparat sind erforderlich.' };
+  if (input.productPzn && (!isValidPzn(input.productPzn.trim()) || !input.productCatalogSource?.trim() || !input.productCatalogVersion?.trim())) {
+    return { ok: false, error: 'Der Präparateintrag ist nicht vollständig bestätigt.' };
+  }
+  if (input.prescriberDirectoryId && (!woundUuid(input.prescriberDirectoryId) || !input.prescribedBy?.trim())) {
+    return { ok: false, error: 'Der Arzteintrag ist nicht vollständig bestätigt.' };
+  }
   if (input.isPrn && !input.prnReason?.trim()) return { ok: false, error: 'Für Bedarfsmedikation ist eine eindeutige Indikation erforderlich.' };
   if (input.pumpRequired && !input.infusionRate?.trim()) return { ok: false, error: 'Bei Pumpengabe ist die Laufgeschwindigkeit erforderlich.' };
   if (getServiceMode() !== 'supabase') return unavailable();
@@ -193,6 +218,7 @@ export async function createLiveMedication(tenantId: string, actorProfileId: str
     is_high_alert: input.isHighAlert, is_controlled_substance: input.isControlledSubstance, intensive_care_relevant: input.intensiveCareRelevant,
     infusion_rate: input.infusionRate?.trim() || null, dilution: input.dilution?.trim() || null, pump_required: input.pumpRequired,
     status: 'active', created_by: actorProfileId, updated_by: actorProfileId,
+    ...medicationCatalogInsertFields(input),
   };
   const { data, error } = await fromUnknownTable(supabase, 'medications').insert(payload).select('id').single();
   if (error) return { ok: false, error: toGermanSupabaseError(error) };

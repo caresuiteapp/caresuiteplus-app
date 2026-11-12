@@ -20,4 +20,8 @@ source components. Exact installed versions are recorded in `versions.json`.
   The language package metadata is preserved in `lang/*.package.json`.
   See also https://github.com/tesseract-ocr/tessdata_best.
 
+- ZXing JavaScript (`@zxing/library`), ZXing contributors: Apache-2.0.
+  Source: https://github.com/zxing-js/library
+  License: `ZXING-LICENSE.txt`. The bundled decoder reads DataMatrix codes locally.
+
 No document contents are sent to these projects, their services, or a CDN.

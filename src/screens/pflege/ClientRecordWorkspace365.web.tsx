@@ -11,6 +11,7 @@ import { attachClientIdentityEditWeb, detachClientIdentityEditWeb, openClientIde
 import { useSectionEditModal } from '@/hooks/useSectionEditModal';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { ClientRecordOverviewPanel } from '@/components/pflege/ClientRecordOverview365.web';
+import { ClientMedicationPlanArchive } from '@/components/pflege/ClientMedicationPlanArchive.web';
 import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
@@ -1078,6 +1079,16 @@ function ClientRecordScreenContent({
             fullClient={fullQuery.data}
             canViewSensitive={fullQuery.canViewSensitive}
             onRecordRefresh={handleRecordRefresh}
+          />
+        ) : null}
+        {activeTab === 'medikation' && originalAtRender && can('pflege.access') && can('pflege.medications.view') && can('office.clients.view') && can('office.clients.view_sensitive') ? (
+          <ClientMedicationPlanArchive
+            key={JSON.stringify([originalAtRender.scopeKey, originalAtRender.recordTicket, originalAtRender.fullTicket])}
+            clientId={originalAtRender.scope.clientId}
+            scope={{ tenantId: originalAtRender.scope.tenantId, actorId: originalAtRender.scope.actorId,
+              isCurrent: () => liveActionCan.current('pflege.access') && liveActionCan.current('pflege.medications.view')
+                && liveActionCan.current('office.clients.view') && liveActionCan.current('office.clients.view_sensitive')
+                && sameClientRecordActionOriginal(originalAtRender, currentParent.current.liveOriginalReceipt()) }}
           />
         ) : null}
         {activeTab === 'dokumente' ? (

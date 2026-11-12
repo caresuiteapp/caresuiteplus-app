@@ -226,6 +226,12 @@ function MedicationWorkspace({ id, tenantId, actorId, role, profileRole, canView
       {query.refreshError ? <ErrorState message={query.refreshError} onRetry={query.refresh}/> : null}
       {success ? <SuccessState message={success}/> : null}
       <SectionPanel title="Verordnung prüfen" subtitle={`Angezeigter Stand: ${formatTime(order.updatedAt)}`}>
+        {order.catalogSnapshot ? <>
+          <DetailInfoRow label="PZN" value={order.catalogSnapshot.pzn}/>
+          {order.catalogSnapshot.brand ? <DetailInfoRow label="Marke" value={order.catalogSnapshot.brand}/> : null}
+          {order.catalogSnapshot.manufacturer ? <DetailInfoRow label="Hersteller" value={order.catalogSnapshot.manufacturer}/> : null}
+          {order.catalogSnapshot.source ? <DetailInfoRow label="Verzeichnis beim Anlegen" value={[order.catalogSnapshot.source, order.catalogSnapshot.version].filter(Boolean).join(' · ')}/> : null}
+        </> : null}
         <DetailInfoRow label="Wirkstoff / Stärke / Form" value={[order.activeIngredient, order.strength, order.form].filter(Boolean).join(' · ') || 'Nicht angegeben'}/>
         <DetailInfoRow label="Verordnete Dosierung" value={order.dosage}/><DetailInfoRow label="Applikation / Gabeplan" value={`${order.route} · ${order.schedule}`}/>
         <DetailInfoRow label="Tageszeiten" value={`Morgens ${order.morningDose ?? '–'} · Mittags ${order.noonDose ?? '–'} · Abends ${order.eveningDose ?? '–'} · Nachts ${order.nightDose ?? '–'}`}/>

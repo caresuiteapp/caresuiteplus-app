@@ -5,6 +5,8 @@ import { useRouter } from 'expo-router';
 import { MedicationListCard } from '@/components/pflege/MedicationListCard';
 import { MedicationListHero } from '@/components/pflege/MedicationListHero';
 import { MedicationListTable } from '@/components/pflege/MedicationListTable';
+import { MedicationMasterDataImport } from "../../components/pflege/MedicationMasterDataImport.native.tsx";
+import { MedicationPlanImportPanel } from '@/components/pflege/MedicationPlanImportPanel';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, FilterChipGroup, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -35,6 +37,8 @@ type Props = {
     runtimeRole: RoleKey | null;
     canView: boolean;
     canManage: boolean;
+    canImportPlan: () => boolean;
+    canImportMaster: () => boolean;
     roleLabel: string | null;
     permissionStatus: CarePermissionStatusState;
 };
@@ -51,7 +55,7 @@ export function MedicationListScreen() {
     const permissions = usePermissions();
     const owner: Owner | null = profile && woundUuid(profile.tenantId) && woundUuid(profile.id) && profile.roleKey
         ? { tenantId: profile.tenantId!, profileId: profile.id, role: profile.roleKey } : null;
-    return <MedicationListWorkspace key={JSON.stringify(owner)} owner={owner} serviceTenant={serviceTenant} runtimeTenant={permissions.tenantId} runtimeRole={permissions.roleKey} canView={permissions.can('pflege.medications.view')} canManage={permissions.can('pflege.medications.manage')} roleLabel={permissions.roleLabel} permissionStatus={permissions}/>;
+    return <MedicationListWorkspace key={JSON.stringify(owner)} owner={owner} serviceTenant={serviceTenant} runtimeTenant={permissions.tenantId} runtimeRole={permissions.roleKey} canView={permissions.can('pflege.medications.view')} canManage={permissions.can('pflege.medications.manage')} canImportPlan={() => permissions.can('pflege.access') && permissions.can('pflege.medications.view') && permissions.can('pflege.medications.manage') && permissions.can('office.clients.view') && permissions.can('office.clients.view_sensitive')} canImportMaster={() => permissions.can('pflege.access') && permissions.can('pflege.medications.view') && permissions.can('pflege.medications.manage') && permissions.can('business.tenant.manage')} roleLabel={permissions.roleLabel} permissionStatus={permissions}/>;
 }
 function MedicationListWorkspace(props: Props) {
     const router = useRouter();
@@ -67,8 +71,8 @@ function MedicationListWorkspace(props: Props) {
     const boundary = useRef({ key: queryKey, ticket: Symbol('medication-list-read') });
     if (boundary.current.key !== queryKey)
         boundary.current = { key: queryKey, ticket: Symbol('medication-list-read') };
-    const runtime = useRef({ owner: props.owner, access, canRead, ticket: boundary.current.ticket });
-    runtime.current = { owner: props.owner, access, canRead, ticket: boundary.current.ticket };
+    const runtime = useRef({ owner: props.owner, access, canRead, canImportPlan: props.canImportPlan, canImportMaster: props.canImportMaster, ticket: boundary.current.ticket });
+    runtime.current = { owner: props.owner, access, canRead, canImportPlan: props.canImportPlan, canImportMaster: props.canImportMaster, ticket: boundary.current.ticket };
     function ownRead(ticket: symbol) {
         return alive.current && !!owner && runtime.current.canRead && runtime.current.ticket === ticket && same(owner, runtime.current.owner);
     }
@@ -179,6 +183,8 @@ function MedicationListWorkspace(props: Props) {
         <PremiumButton title="+ Verordnung anlegen" disabled={isReadOnly} onPress={openCreate}/>
         <PremiumButton title="Aktualisieren" variant="secondary" onPress={refresh}/>
       </View>
+      {owner && access.canManage && props.canImportPlan() ? <MedicationPlanImportPanel tenantId={owner.tenantId} actorId={owner.profileId} isCurrent={() => ownRead(renderTicket) && runtime.current.access.canManage && runtime.current.canImportPlan()}/> : null}
+      {owner && access.canManage && props.canImportMaster() ? <MedicationMasterDataImport tenantId={owner.tenantId} isCurrent={() => ownRead(renderTicket) && runtime.current.access.canManage && runtime.current.canImportMaster()}/> : null}
       <PremiumInput label="Suche" placeholder="Klient:in, Präparat oder Wirkstoff" value={search} onChangeText={changeSearch}/>
       <FilterChipGroup options={[{ key: 'active', label: 'Aktiv' }, { key: 'paused', label: 'Pausiert' }, { key: 'stopped', label: 'Beendet' }, { key: 'all', label: 'Alle' }]} value={statusFilter} onChange={changeStatus}/>
     </View>);

@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import {stripTypeScriptTypes} from 'node:module';
 import {woundUuid} from '../../src/lib/pflege/woundCareDomain.ts';
 import {validEventInstant} from '../../src/lib/pflege/medicationAdministrationDomain.ts';
+import {isValidPzn} from '../../src/lib/pflege/medicationMasterDataValidation.ts';
 const expected={id:'med',tenantId:'tenant',clientId:'client',updatedAt:'2026-10-08T12:00:00.123456Z'};
 const row={id:'med',tenant_id:'tenant',client_id:'client',updated_at:expected.updatedAt,status:'active',name:'Präparat',dosage:'1 Tablette',route:'oral',prescribed_by:'Ärztliche Person',start_date:'2026-10-01',end_date:null,is_prn:false,is_controlled_substance:false,is_high_alert:false};
 test('Vollständige gespeicherte Angaben sind keine automatische ärztliche Freigabe',()=>{const a=check(row,expected);assert.equal(a.canRecord,true);assert.deepEqual(a.missing,[]);assert.equal(a.status,'active');assert.equal('approved' in a,false);});
@@ -16,21 +17,23 @@ test('Unklare Risikoangaben werden nicht als Nein behandelt',()=>{for(const key 
 test('Ungültige Gültigkeitsdaten und widersprüchliche Zeiträume werden erkannt',()=>{for(const change of [{start_date:'2026-02-30'},{end_date:'2026-02-30'},{end_date:'2026-09-30'}])assert.equal(check({...row,...change},expected).canRecord,false);assert.equal(check({...row,end_date:row.start_date},expected).canRecord,true);});
 test('Bedarfsverordnung benötigt sichtbare verordnete Bedarfsindikation',()=>{assert.ok(check({...row,is_prn:true,prn_reason:null},expected).missing.includes('Verordnete Bedarfsindikation'));assert.deepEqual(check({...row,is_prn:true,prn_reason:'Hinterlegte ärztliche Indikation'},expected).missing,[]);});
 
-// Exercise the private Web receipt against the actual unchanged service-generated insert.
+// Exercise the private Web receipt against the actual service-generated insert.
 // Source extraction uses the existing Node runtime; it is neither an SDK nor a database test.
 const receiptSource=fs.readFileSync(new URL('../../src/lib/pflege/medicationCreateReceipt.web.ts',import.meta.url),'utf8');
 const receiptCode=stripTypeScriptTypes(receiptSource.slice(receiptSource.indexOf('type OwnAttempt =')),{mode:'strip'}).replace(/export /g,'');
 const liveSource=fs.readFileSync(new URL('../../src/lib/pflege/medicationLiveService.ts',import.meta.url),'utf8');
+const snapshotCode=stripTypeScriptTypes(liveSource.slice(liveSource.indexOf('export function medicationCatalogInsertFields('),liveSource.indexOf('export async function createLiveMedication(')),{mode:'strip'}).replace(/^export /,'');
+const medicationCatalogInsertFields=new Function(snapshotCode+'\nreturn medicationCatalogInsertFields;')();
 const createCode=stripTypeScriptTypes(liveSource.slice(liveSource.indexOf('export async function createLiveMedication('),liveSource.indexOf('\nexport async function setLiveMedicationStatus')),{mode:'strip'}).replace(/^export /,'');
 const nativeAttempt={id:'11111111-1111-4111-8111-111111111111',tenantId:'22222222-2222-4222-8222-222222222222',profileId:'33333333-3333-4333-8333-333333333333',clientId:'44444444-4444-4444-8444-444444444444',role:'business_admin',input:{clientId:'44444444-4444-4444-8444-444444444444',name:' Präparat ',activeIngredient:' Wirkstoff ',strength:' 5 mg ',form:' Tablette ',dosage:' 1 Tablette ',schedule:' 1-0-0-0 ',route:' oral ',prescribedBy:' Ärztliche Originalangabe ',indication:' Originalindikation ',notes:' ',startDate:'2026-10-11',morningDose:'1',noonDose:'',eveningDose:'',nightDose:'',isPrn:true,prnReason:' Verordnete Indikation ',isHighAlert:true,isControlledSubstance:false,intensiveCareRelevant:true,infusionRate:'2 ml/h',dilution:'Originalträger',pumpRequired:true}};
-async function actualInsert(){
+async function actualInsert(input=nativeAttempt.input){
  let inserted;
- const create=new Function('guard','getServiceMode','getSupabaseClient','unavailable','fromUnknownTable','toGermanSupabaseError',createCode+'\nreturn createLiveMedication;')(()=>null,()=>'supabase',()=>({mock:true}),()=>({ok:false,error:'mock unavailable'}),()=>({insert(payload){inserted=structuredClone(payload);return {select(){return {single:async()=>({data:{id:nativeAttempt.id},error:null})};}};}}),String);
- assert.equal((await create(nativeAttempt.tenantId,nativeAttempt.profileId,structuredClone(nativeAttempt.input),nativeAttempt.role)).ok,true);
+ const create=new Function('guard','getServiceMode','getSupabaseClient','unavailable','fromUnknownTable','toGermanSupabaseError','medicationCatalogInsertFields','isValidPzn','woundUuid',createCode+'\nreturn createLiveMedication;')(()=>null,()=>'supabase',()=>({mock:true}),()=>({ok:false,error:'mock unavailable'}),()=>({insert(payload){inserted=structuredClone(payload);return {select(){return {single:async()=>({data:{id:nativeAttempt.id},error:null})};}};}}),String,medicationCatalogInsertFields,isValidPzn,woundUuid);
+ assert.equal((await create(nativeAttempt.tenantId,nativeAttempt.profileId,structuredClone(input),nativeAttempt.role)).ok,true);
  return {...inserted,id:nativeAttempt.id,created_at:'2026-10-11T10:00:00.123456Z',updated_at:'2026-10-11T10:00:00.123457Z',untouched_original:{instant:'2026-10-11T12:00:00.123456+02:00'}};
 }
 function receiptRuntime(overrides={}){
- const deps={woundUuid,validEventInstant,enforcePermission:()=>null,guardServiceTenant:()=>null,getServiceMode:()=>'supabase',getSupabaseClient:()=>({mock:true}),withServiceQueryTimeout:p=>p,fromUnknownTable:()=>{throw Error('unexpected transport');},...overrides};
+ const deps={woundUuid,validEventInstant,medicationCatalogInsertFields,enforcePermission:()=>null,guardServiceTenant:()=>null,getServiceMode:()=>'supabase',getSupabaseClient:()=>({mock:true}),withServiceQueryTimeout:p=>p,fromUnknownTable:()=>{throw Error('unexpected transport');},...overrides};
  return new Function(...Object.keys(deps),receiptCode+'\nreturn {assertMedicationCreateReceipt,readMedicationCreateReceipt};')(...Object.values(deps));
 }
 test('Web-Anlagenachweis passt zu sämtlichen tatsächlich normalisierten Insertfeldern ohne klinische Freigabe',async()=>{
@@ -50,6 +53,17 @@ test('Jedes tatsächlich gesendete Verordnungsfeld muss unverändert rückgelese
   assert.throws(()=>verify({...raw,[key]:changed},nativeAttempt),key);
   const missing={...raw};delete missing[key];assert.throws(()=>verify(missing,nativeAttempt),key);
  }
+});
+test('Katalogpackung mit führenden Nullen und Arztbezug sind Teil des Anlagenachweises',async()=>{
+ const input={...nativeAttempt.input,productPzn:'00000017',productBrand:'Testmarke',productManufacturer:'Testhersteller',productCatalogSource:'testkatalog',productCatalogVersion:'2026-11',prescriberDirectoryId:'55555555-5555-4555-8555-555555555555'};
+ const raw=await actualInsert(input),verify=receiptRuntime().assertMedicationCreateReceipt,attempt={...nativeAttempt,input};
+ assert.equal(raw.product_pzn,'00000017');
+ assert.equal(raw.prescriber_directory_id,input.prescriberDirectoryId);
+ assert.deepEqual(verify(raw,attempt),raw);
+ for(const key of ['product_pzn','product_brand','product_manufacturer','product_catalog_source','product_catalog_version','prescriber_directory_id']){
+  assert.throws(()=>verify({...raw,[key]:null},attempt),key);
+ }
+ assert.equal('product_pzn' in await actualInsert(),false);
 });
 test('Native Rohzeiten benötigen tatsächliche Strings und gültige Kalender mit Mikrosekunden',async()=>{
  const raw=await actualInsert(),verify=receiptRuntime().assertMedicationCreateReceipt;

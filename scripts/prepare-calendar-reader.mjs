@@ -2,11 +2,14 @@
 import { cp, mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { build } from 'esbuild';
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const out = path.join(root, 'public/calendar-reader/v1');
 await mkdir(out, { recursive: true });
 const copy = async (source, target) => cp(path.join(root, source), path.join(out, target), { recursive: true });
 await copy('scripts/calendar-reader/reader.mjs', 'reader.mjs');
+await build({ entryPoints: [path.join(root, 'scripts/calendar-reader/bmp-datamatrix.mjs')], outfile: path.join(out, 'bmp-datamatrix.mjs'), bundle: true, format: 'esm', platform: 'browser', minify: true, legalComments: 'inline' });
+await copy('node_modules/@zxing/library/LICENSE', 'ZXING-LICENSE.txt');
 await copy('scripts/calendar-reader/invoice-pdf.mjs', 'invoice-pdf.mjs');
 await copy('node_modules/pdfjs-dist/legacy/build/pdf.mjs', 'pdf.mjs');
 await copy('node_modules/pdfjs-dist/legacy/build/pdf.worker.mjs', 'pdf.worker.mjs');
@@ -29,7 +32,7 @@ for (const lang of ['deu', 'eng']) {
   await copy(`node_modules/@tesseract.js-data/${lang}/4.0.0_best_int/${lang}.traineddata.gz`, `lang/${lang}.traineddata.gz`);
   await copy(`node_modules/@tesseract.js-data/${lang}/package.json`, `lang/${lang}.package.json`);
 }
-const packages = ['pdfjs-dist', 'tesseract.js', 'tesseract.js-core', '@tesseract.js-data/deu', '@tesseract.js-data/eng'];
+const packages = ['pdfjs-dist', 'tesseract.js', 'tesseract.js-core', '@tesseract.js-data/deu', '@tesseract.js-data/eng', '@zxing/library'];
 const versions = {};
 for (const name of packages) {
   const pkg = JSON.parse(await readFile(path.join(root, 'node_modules', name, 'package.json'), 'utf8'));

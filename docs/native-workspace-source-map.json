@@ -536,7 +536,7 @@
     {
       "web": "src/lib/pflege/medicationAdministrationService.ts",
       "native": "src/lib/pflege/medicationAdministrationService.native.ts",
-      "sourceHash": "f63d9b6edea86aa716cc07cc8728c01b5298449e75f484cf7b81b2bf1969102a",
+      "sourceHash": "3b9cdd27dd1f43c8077fb47b2beb17e9181693ee4971b70500b6659db2cae832",
       "environment": []
     },
     {
@@ -3012,6 +3012,12 @@
       "environment": []
     },
     {
+      "web": "src/components/pflege/ClientMedicationPlanArchive.web.tsx",
+      "native": "src/components/pflege/ClientMedicationPlanArchive.native.tsx",
+      "sourceHash": "dea9aa260c93e53afda355982dbb6168527c37dec00847b4fabeb8cf2f199434",
+      "environment": []
+    },
+    {
       "web": "src/lib/clients/clientDocumentEvidence.web.ts",
       "native": "src/lib/clients/clientDocumentEvidence.native.ts",
       "sourceHash": "a83a70d2e2fb55f4e4d902ccde70e6bbd8c44a44323a8cfb314c605de29575ca",
@@ -3102,6 +3108,12 @@
       "web": "src/components/pflege/MedicationHistoricalPlan.web.tsx",
       "native": "src/components/pflege/MedicationHistoricalPlan.native.tsx",
       "sourceHash": "37ecd69b360f69e9c9714cc3cc62158e19d907a1ec0d0564461b3bdb193960ed",
+      "environment": []
+    },
+    {
+      "web": "src/components/pflege/MedicationMasterDataImport.web.tsx",
+      "native": "src/components/pflege/MedicationMasterDataImport.native.tsx",
+      "sourceHash": "14230bc01b28418bbe4b2f613cae5512f33278d39d9857790d8818f86946a94b",
       "environment": []
     },
     {
@@ -5931,7 +5943,7 @@
     {
       "web": "src/screens/pflege/ClientRecordWorkspace365.web.tsx",
       "native": "src/screens/pflege/ClientRecordWorkspace365.native.tsx",
-      "sourceHash": "18e644d968329f52ba3869ede31c1cb7b7b641c73c375cd8b52f25c7141a9e7e",
+      "sourceHash": "2a767fd7c31da5b26b884825cec1dd14116c0f77fd00f97bdca808df56a0164a",
       "environment": [
         "window"
       ]
@@ -6006,13 +6018,13 @@
     {
       "web": "src/lib/pflege/medicationCreateReceipt.web.ts",
       "native": "src/lib/pflege/medicationCreateReceipt.native.ts",
-      "sourceHash": "50dce1a812e57b529a2b005d51abab9a20678743749dfdd1a3d739347878dd46",
+      "sourceHash": "dead9124a8920995dce26c2a573ee55d90197efb8bc8b2be7324713e2f64eddc",
       "environment": []
     },
     {
       "web": "src/screens/pflege/MedicationCreateScreen.web.tsx",
       "native": "src/screens/pflege/MedicationCreateScreen.native.tsx",
-      "sourceHash": "de8cdd9840a37fbd986902e80bfeb1e5668a004fa9b921215411263e51c8f1e8",
+      "sourceHash": "1a6e611ff5d5f37196941f93fa9901c97d504f04026ed0f628e87fde37264516",
       "environment": [
         "window"
       ]
@@ -6054,7 +6066,7 @@
     {
       "web": "src/screens/pflege/MedicationDetailScreen.web.tsx",
       "native": "src/screens/pflege/MedicationDetailScreen.native.tsx",
-      "sourceHash": "6ff8fdeac4aead20eb8fd1026b4ac230dc4c4f4b6d72513bbb102b23fd7378d6",
+      "sourceHash": "2ff45df0474e538feccaacc9ebedc885c63856e1b92bf594a69062686e15b521",
       "environment": [
         "structuredClone"
       ]
@@ -6076,7 +6088,7 @@
     {
       "web": "src/screens/pflege/MedicationListScreen.web.tsx",
       "native": "src/screens/pflege/MedicationListScreen.native.tsx",
-      "sourceHash": "5e180a9579fcc536b8fbb0a699428982ffd56edac08c8a614ec5f41ae58d2af8",
+      "sourceHash": "32bf7d2ab17e3a6c7322c01b2e5159ae3f4fd684c2f31c0bbf15ce0de82ec53c",
       "environment": [
         "structuredClone"
       ]

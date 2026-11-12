@@ -117,4 +117,118 @@ async function read(file, { signal, onProgress = () => {}, forceOcr = false, rot
   try { return await Promise.race([work(), cancelPromise]); }
   finally { stopped = true; clearTimeout(timeout); signal?.removeEventListener('abort', stop); await worker?.terminate(); await loading?.destroy(); }
 }
-window.CareSuitePlanReaderV1 = { read };
+function bmpError(message) {
+  const error = new Error(message);
+  error.name = 'CareSuiteBmpReadError';
+  return error;
+}
+
+function bmpCanvas(width, height) {
+  if (!(width > 0 && height > 0) || !Number.isFinite(width * height)) throw bmpError('Die Bildgröße ist ungültig.');
+  const scale = Math.min(4, 3600 / Math.max(width, height), Math.sqrt(8_000_000 / (width * height)));
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.max(1, Math.floor(width * scale));
+  canvas.height = Math.max(1, Math.floor(height * scale));
+  return { canvas, scale };
+}
+
+/** Extract only structured BMP data. Nothing is sent to an OCR or barcode API. */
+async function readBmp(file, { signal } = {}) {
+  check(signal);
+  if (!file || file.size < 1 || file.size > 3 * 1024 * 1024) throw bmpError('Bitte eine Datei bis 3 MiB auswählen.');
+  let loading, renderTask, cancel, stopped = false;
+  const cancelled = new Promise((_, reject) => { cancel = reject; });
+  const stop = (error) => {
+    stopped = true;
+    renderTask?.cancel();
+    void loading?.destroy().catch(() => {});
+    cancel(error);
+  };
+  const onAbort = () => stop(abortError());
+  signal?.addEventListener('abort', onAbort, { once: true });
+  const timer = setTimeout(() => stop(bmpError('Der Medikationsplan konnte nicht rechtzeitig gelesen werden. Bitte die BMP-XML-Datei verwenden.')), 75_000);
+  const current = () => { if (stopped) throw abortError(); check(signal); };
+  const work = async () => {
+    const bytes = new Uint8Array(await file.arrayBuffer());
+    current();
+    const header = String.fromCharCode(...bytes.subarray(0, 12));
+    const isPdf = header.startsWith('%PDF-');
+    const isImage = (bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255)
+      || [137, 80, 78, 71, 13, 10, 26, 10].every((value, index) => bytes[index] === value)
+      || (header.startsWith('RIFF') && header.slice(8) === 'WEBP');
+    if (!isPdf && !isImage) throw bmpError('Bitte einen Medikationsplan als BMP-XML, PDF oder Bilddatei auswählen.');
+    const { looksLikeBmpXml, readBmpDataMatrix } = await import('./bmp-datamatrix.mjs');
+    current();
+    const decodeCanvas = (canvas) => {
+      current();
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) throw bmpError('Die lokale Bildanalyse ist nicht verfügbar. Bitte BMP-XML verwenden.');
+      const matches = readBmpDataMatrix(ctx.getImageData(0, 0, canvas.width, canvas.height).data, canvas.width, canvas.height);
+      if (matches.length > 1) throw bmpError('Die Seite enthält mehrere unterschiedliche BMP-Codes. Bitte einen eindeutigen Medikationsplan auswählen.');
+      if (!matches.length) throw bmpError('Eine Seite enthält keinen lesbaren BMP-Code. Bitte eine klarere Vorlage oder die BMP-XML-Datei verwenden.');
+      return matches[0];
+    };
+
+    if (isPdf) {
+      loading = getDocument({ data: bytes, isEvalSupported: false, enableXfa: false, stopAtErrors: true, useSystemFonts: false,
+        maxImageSize: 40_000_000, canvasMaxAreaInBytes: 32_000_000,
+        cMapUrl: `${base}cmaps/`, cMapPacked: true, standardFontDataUrl: `${base}standard_fonts/`, wasmUrl: `${base}wasm/` });
+      loading.onPassword = () => stop(bmpError('Das PDF ist passwortgeschützt. Bitte eine ungeschützte Kopie verwenden.'));
+      const doc = await loading.promise;
+      current();
+      if (doc.numPages < 1 || doc.numPages > 12) throw bmpError('Bitte höchstens 12 Seiten je Medikationsplan auswählen.');
+      const attachments = Object.values(await doc.getAttachments() ?? {});
+      current();
+      if (attachments.length > 24) throw bmpError('Das PDF enthält zu viele eingebettete Dateien. Bitte den Medikationsplan separat auswählen.');
+      const structured = attachments.flatMap(({ content }) => {
+        if (!(content instanceof Uint8Array) || !content.length) return [];
+        const skip = content[0] === 239 && content[1] === 187 && content[2] === 191 ? 3 : 0;
+        const prefix = String.fromCharCode(...content.subarray(skip, skip + 384));
+        if (!looksLikeBmpXml(prefix)) return [];
+        if (content.length > 131072) throw bmpError('Die eingebetteten BMP-Daten sind zu groß. Bitte die BMP-XML-Datei verwenden.');
+        return [content];
+      });
+      if (structured.length) return structured;
+
+      const codes = [];
+      for (let number = 1; number <= doc.numPages; number++) {
+        current();
+        const page = await doc.getPage(number);
+        const viewport = page.getViewport({ scale: 1 });
+        const { canvas, scale } = bmpCanvas(viewport.width, viewport.height);
+        try {
+          current();
+          renderTask = page.render({ canvas, viewport: page.getViewport({ scale }) });
+          await renderTask.promise;
+          renderTask = undefined;
+          codes.push(decodeCanvas(canvas));
+        } finally { canvas.width = canvas.height = 1; page.cleanup(); }
+      }
+      return codes;
+    }
+
+    if (typeof createImageBitmap !== 'function') throw bmpError('Dieser Browser kann die Bilddatei nicht lokal lesen. Bitte BMP-XML verwenden.');
+    const bitmap = await createImageBitmap(file);
+    let canvas;
+    try {
+      current();
+      if (bitmap.width * bitmap.height > 40_000_000) throw bmpError('Das Bild ist zu groß. Bitte eine kleinere Kopie mit lesbarem BMP-Code auswählen.');
+      ({ canvas } = bmpCanvas(bitmap.width, bitmap.height));
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      if (!ctx) throw bmpError('Die lokale Bildanalyse ist nicht verfügbar. Bitte BMP-XML verwenden.');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(bitmap, 0, 0, canvas.width, canvas.height);
+      return [decodeCanvas(canvas)];
+    } finally { bitmap.close(); if (canvas) canvas.width = canvas.height = 1; }
+  };
+  try { return await Promise.race([work(), cancelled]); }
+  finally {
+    stopped = true;
+    clearTimeout(timer);
+    signal?.removeEventListener('abort', onAbort);
+    void loading?.destroy().catch(() => {});
+  }
+}
+
+window.CareSuitePlanReaderV1 = { read, readBmp };

@@ -27,7 +27,11 @@ export type MedicationEvent = MedicationAdministration & {
   occurredAt: string | null; orderSnapshot: Row | null; followUps: MedicationFollowUp[]; recordedById: string | null; witnessedById: string | null;
 };
 export type MedicationStatusEvent = { id: string; previousStatus: string; nextStatus: string; reason: string; recordedByName: string; createdAt: string };
-export type MedicationDocumentation = Omit<MedicationDetail, 'administrations' | 'status'> & { status: MedicationOrderIntegrity['status']; integrity: MedicationOrderIntegrity; administrations: MedicationEvent[]; statusEvents: MedicationStatusEvent[] };
+export type MedicationDocumentation = Omit<MedicationDetail, 'administrations' | 'status'> & {
+  status: MedicationOrderIntegrity['status']; integrity: MedicationOrderIntegrity;
+  administrations: MedicationEvent[]; statusEvents: MedicationStatusEvent[];
+  catalogSnapshot?: { pzn: string; brand: string | null; manufacturer: string | null; source: string | null; version: string | null } | null;
+};
 export type MedicationWriteResult = ServiceResult<{ id: string }> & { uncertain?: boolean };
 export type MedicationEventPayload = AdministrationDraft & { expectedUpdatedAt: string };
 export type FollowUpPayload = { observedAt: string; observation: string; action: string; painScore: number | null };
@@ -58,8 +62,12 @@ export async function fetchMedicationDocumentation(id: string, tenantId: string,
     const raw = await withServiceQueryTimeout(Promise.resolve(fromUnknownTable(client, 'medications').select('*').eq('tenant_id', tenantId).eq('id', id).maybeSingle()), 'Verordnungsgrundlage');
     if (raw.error) return { ok: false, error: toGermanSupabaseError(raw.error) };
     if (!raw.data) return { ok: false, error: 'Verordnung nicht mehr zugänglich.' };
-    const integrity = assessMedicationOrder(raw.data as Row, { id, tenantId, clientId: base.data.clientId, updatedAt: base.data.updatedAt });
-    if ((raw.data as Row).tenant_id !== tenantId || (raw.data as Row).client_id !== base.data.clientId || (raw.data as Row).updated_at !== base.data.updatedAt) return { ok: false, error: 'Verordnungszuordnung oder Stand geändert. Bitte neu laden.' };
+    const original = raw.data as Row;
+    const integrity = assessMedicationOrder(original, { id, tenantId, clientId: base.data.clientId, updatedAt: base.data.updatedAt });
+    if (original.tenant_id !== tenantId || original.client_id !== base.data.clientId || original.updated_at !== base.data.updatedAt) return { ok: false, error: 'Verordnungszuordnung oder Stand geändert. Bitte neu laden.' };
+    const pzn = text(original.product_pzn);
+    const catalogSnapshot = pzn ? { pzn, brand: text(original.product_brand), manufacturer: text(original.product_manufacturer),
+      source: text(original.product_catalog_source), version: text(original.product_catalog_version) } : null;
     const [events, statusRows] = await Promise.all([
       allRows(client, 'medication_administrations', tenantId, q => q.eq('medication_id', id), row => row.medication_id === id && row.client_id === base.data.clientId),
       allRows(client, 'medication_order_status_events', tenantId, q => q.eq('medication_id', id), row => row.medication_id === id),
@@ -86,7 +94,7 @@ export async function fetchMedicationDocumentation(id: string, tenantId: string,
       orderSnapshot: row.order_snapshot && typeof row.order_snapshot === 'object' ? row.order_snapshot as Row : null, followUps: followUps.get(String(row.id)) ?? [],
     }));
     const lastAdministeredAt = latestActualMedicationInstant(administrations);
-    return { ok: true, data: { ...base.data, status: integrity.status, route: integrity.route ?? 'Nicht angegeben', integrity, administrations, statusEvents: statusRows.map(row => ({ id: String(row.id), previousStatus: String(row.previous_status), nextStatus: String(row.next_status), reason: String(row.reason), recordedByName: text(row.recorded_by_name) ?? 'Name nicht verfügbar', createdAt: String(row.created_at) })), lastAdministeredAt } };
+    return { ok: true, data: { ...base.data, status: integrity.status, route: integrity.route ?? 'Nicht angegeben', integrity, ...(catalogSnapshot ? { catalogSnapshot } : {}), administrations, statusEvents: statusRows.map(row => ({ id: String(row.id), previousStatus: String(row.previous_status), nextStatus: String(row.next_status), reason: String(row.reason), recordedByName: text(row.recorded_by_name) ?? 'Name nicht verfügbar', createdAt: String(row.created_at) })), lastAdministeredAt } };
   } catch (error) { return { ok: false, error: error instanceof Error ? error.message : 'Medikationsverlauf konnte nicht geladen werden.' }; }
 }
 

@@ -5,6 +5,7 @@ import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { chromium } from 'playwright';
 import { jsPDF } from 'jspdf';
+import { PDFDocument } from 'pdf-lib';
 const root = path.resolve('public/calendar-reader/v1');
 const server = createServer(async (request, response) => {
   const pathname = new URL(request.url, 'http://localhost').pathname;
@@ -60,6 +61,41 @@ try {
     } return failures;
   });
   assert.deepEqual(rejected, [true, true]);
+  const bmp = JSON.parse(await readFile('scripts/calendar-reader/fixtures/synthetic-bmp-ecc200.json', 'utf8'));
+  const bmpPhoto = await page.evaluate(async ({ width, height, bits }) => {
+    const canvas = document.createElement('canvas'); canvas.width = 1600; canvas.height = 1800;
+    const ctx = canvas.getContext('2d'); ctx.fillStyle = 'white'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = 'black'; ctx.font = '40px Arial'; ctx.fillText('Synthetischer Medikationsplan', 60, 100);
+    const bytes = Uint8Array.from(atob(bits), char => char.charCodeAt(0));
+    for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+      const i = y * width + x;
+      if (bytes[i >> 3] & (1 << (7 - (i & 7)))) ctx.fillRect(910 + x * 4, 130 + y * 4, 4, 4);
+    }
+    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    const decoded = await window.CareSuitePlanReaderV1.readBmp(blob);
+    const dataUrl = canvas.toDataURL('image/png');
+    ctx.fillStyle = 'white'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const blank = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+    let blankRejected = false;
+    try { await window.CareSuitePlanReaderV1.readBmp(blank); } catch (error) { blankRejected = error.name === 'CareSuiteBmpReadError'; }
+    return { decoded, blankRejected, dataUrl };
+  }, bmp);
+  assert.deepEqual(bmpPhoto.decoded, [bmp.text]);
+  assert.equal(bmpPhoto.blankRejected, true);
+
+  const bmpScan = new jsPDF({ compress: true });
+  bmpScan.addImage(bmpPhoto.dataUrl, 'PNG', 10, 20, 190, 213.75, undefined, 'FAST');
+  const scanBytes = Array.from(new Uint8Array(bmpScan.output('arraybuffer')));
+  const pdfWithAttachment = await PDFDocument.create(); pdfWithAttachment.addPage();
+  await pdfWithAttachment.attach(Buffer.from(bmp.text, 'latin1'), 'medikationsplan.xml', { mimeType: 'application/xml' });
+  const attachmentBytes = Array.from(await pdfWithAttachment.save());
+  const bmpPdfs = await page.evaluate(async ({ scanBytes, attachmentBytes }) => {
+    const read = async (bytes) => window.CareSuitePlanReaderV1.readBmp(new Blob([Uint8Array.from(bytes)], { type: 'application/pdf' }));
+    return { scan: await read(scanBytes), attachment: (await read(attachmentBytes)).map(bytes => Array.from(bytes)) };
+  }, { scanBytes, attachmentBytes });
+  assert.deepEqual(bmpPdfs.scan, [bmp.text]);
+  assert.deepEqual(bmpPdfs.attachment, [Array.from(Buffer.from(bmp.text, 'latin1'))]);
+
   assert.ok(requests.every((r) => r.method === 'GET' && r.url.startsWith(origin + '/')), 'Documents must never be uploaded / sent to a third party');
-  console.log('Browserprüfung bestanden: PDF-Text, PDF-Scan, Hybrid-PDF, Foto, Abbruch, ungültige/zu große Dateien und ausschließlich lokale Asset-Abrufe.');
+  console.log('Browserprüfung bestanden: Kalendererkennung, BMP-ECC200 in Foto/PDF, eingebettetes BMP-XML, Fehlerfälle und ausschließlich lokale Asset-Abrufe.');
 } finally { await browser?.close(); server.close(); }

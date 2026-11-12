@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import { readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 const directory = path.resolve(process.argv[2] || 'dist', 'calendar-reader/v1');
-const required = ['reader.mjs', 'invoice-pdf.mjs', 'pdf.mjs', 'pdf.worker.mjs', 'tesseract.esm.min.js', 'worker.min.js', 'lang/deu.traineddata.gz', 'lang/eng.traineddata.gz', 'versions.json'];
+const required = ['reader.mjs', 'bmp-datamatrix.mjs', 'ZXING-LICENSE.txt', 'invoice-pdf.mjs', 'pdf.mjs', 'pdf.worker.mjs', 'tesseract.esm.min.js', 'worker.min.js', 'lang/deu.traineddata.gz', 'lang/eng.traineddata.gz', 'versions.json'];
 for (const variant of ['', '-simd', '-relaxedsimd', '-lstm', '-simd-lstm', '-relaxedsimd-lstm']) {
   required.push(`core/tesseract-core${variant}.wasm`, `core/tesseract-core${variant}.wasm.js`);
 }
