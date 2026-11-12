@@ -1,5 +1,5 @@
 import type { RoleKey } from '@/types';
-import { medicationCatalogInsertFields, type CreateMedicationInput } from './medicationLiveService';
+import { medicationBmpInsertFields, medicationCatalogInsertFields, type CreateMedicationInput } from './medicationLiveService';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
@@ -32,6 +32,7 @@ export function assertMedicationCreateReceipt(raw: unknown, attempt: OwnAttempt)
     infusion_rate: input.infusionRate?.trim() || null, dilution: input.dilution?.trim() || null, pump_required: input.pumpRequired,
     status: 'active', created_by: attempt.profileId, updated_by: attempt.profileId,
     ...medicationCatalogInsertFields(input),
+    ...medicationBmpInsertFields(input),
   };
   if (Object.keys(expected).some(key => !Object.hasOwn(row, key) || row[key] !== expected[key])
     || typeof row.created_at !== 'string' || typeof row.updated_at !== 'string'

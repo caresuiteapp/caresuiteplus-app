@@ -22,18 +22,18 @@ test('Bedarfsverordnung benötigt sichtbare verordnete Bedarfsindikation',()=>{a
 const receiptSource=fs.readFileSync(new URL('../../src/lib/pflege/medicationCreateReceipt.web.ts',import.meta.url),'utf8');
 const receiptCode=stripTypeScriptTypes(receiptSource.slice(receiptSource.indexOf('type OwnAttempt =')),{mode:'strip'}).replace(/export /g,'');
 const liveSource=fs.readFileSync(new URL('../../src/lib/pflege/medicationLiveService.ts',import.meta.url),'utf8');
-const snapshotCode=stripTypeScriptTypes(liveSource.slice(liveSource.indexOf('export function medicationCatalogInsertFields('),liveSource.indexOf('export async function createLiveMedication(')),{mode:'strip'}).replace(/^export /,'');
-const medicationCatalogInsertFields=new Function(snapshotCode+'\nreturn medicationCatalogInsertFields;')();
+const snapshotCode=stripTypeScriptTypes(liveSource.slice(liveSource.indexOf('export function medicationCatalogInsertFields('),liveSource.indexOf('export async function createLiveMedication(')),{mode:'strip'}).replace(/^export /gm,'');
+const {medicationCatalogInsertFields,medicationBmpInsertFields}=new Function(snapshotCode+'\nreturn {medicationCatalogInsertFields,medicationBmpInsertFields};')();
 const createCode=stripTypeScriptTypes(liveSource.slice(liveSource.indexOf('export async function createLiveMedication('),liveSource.indexOf('\nexport async function setLiveMedicationStatus')),{mode:'strip'}).replace(/^export /,'');
 const nativeAttempt={id:'11111111-1111-4111-8111-111111111111',tenantId:'22222222-2222-4222-8222-222222222222',profileId:'33333333-3333-4333-8333-333333333333',clientId:'44444444-4444-4444-8444-444444444444',role:'business_admin',input:{clientId:'44444444-4444-4444-8444-444444444444',name:' Präparat ',activeIngredient:' Wirkstoff ',strength:' 5 mg ',form:' Tablette ',dosage:' 1 Tablette ',schedule:' 1-0-0-0 ',route:' oral ',prescribedBy:' Ärztliche Originalangabe ',indication:' Originalindikation ',notes:' ',startDate:'2026-10-11',morningDose:'1',noonDose:'',eveningDose:'',nightDose:'',isPrn:true,prnReason:' Verordnete Indikation ',isHighAlert:true,isControlledSubstance:false,intensiveCareRelevant:true,infusionRate:'2 ml/h',dilution:'Originalträger',pumpRequired:true}};
 async function actualInsert(input=nativeAttempt.input){
  let inserted;
- const create=new Function('guard','getServiceMode','getSupabaseClient','unavailable','fromUnknownTable','toGermanSupabaseError','medicationCatalogInsertFields','isValidPzn','woundUuid',createCode+'\nreturn createLiveMedication;')(()=>null,()=>'supabase',()=>({mock:true}),()=>({ok:false,error:'mock unavailable'}),()=>({insert(payload){inserted=structuredClone(payload);return {select(){return {single:async()=>({data:{id:nativeAttempt.id},error:null})};}};}}),String,medicationCatalogInsertFields,isValidPzn,woundUuid);
+ const create=new Function('guard','getServiceMode','getSupabaseClient','unavailable','fromUnknownTable','toGermanSupabaseError','medicationCatalogInsertFields','medicationBmpInsertFields','isValidPzn','woundUuid',createCode+'\nreturn createLiveMedication;')(()=>null,()=>'supabase',()=>({mock:true}),()=>({ok:false,error:'mock unavailable'}),()=>({insert(payload){inserted=structuredClone(payload);return {select(){return {single:async()=>({data:{id:nativeAttempt.id},error:null})};}};}}),String,medicationCatalogInsertFields,medicationBmpInsertFields,isValidPzn,woundUuid);
  assert.equal((await create(nativeAttempt.tenantId,nativeAttempt.profileId,structuredClone(input),nativeAttempt.role)).ok,true);
  return {...inserted,id:nativeAttempt.id,created_at:'2026-10-11T10:00:00.123456Z',updated_at:'2026-10-11T10:00:00.123457Z',untouched_original:{instant:'2026-10-11T12:00:00.123456+02:00'}};
 }
 function receiptRuntime(overrides={}){
- const deps={woundUuid,validEventInstant,medicationCatalogInsertFields,enforcePermission:()=>null,guardServiceTenant:()=>null,getServiceMode:()=>'supabase',getSupabaseClient:()=>({mock:true}),withServiceQueryTimeout:p=>p,fromUnknownTable:()=>{throw Error('unexpected transport');},...overrides};
+ const deps={woundUuid,validEventInstant,medicationCatalogInsertFields,medicationBmpInsertFields,enforcePermission:()=>null,guardServiceTenant:()=>null,getServiceMode:()=>'supabase',getSupabaseClient:()=>({mock:true}),withServiceQueryTimeout:p=>p,fromUnknownTable:()=>{throw Error('unexpected transport');},...overrides};
  return new Function(...Object.keys(deps),receiptCode+'\nreturn {assertMedicationCreateReceipt,readMedicationCreateReceipt};')(...Object.values(deps));
 }
 test('Web-Anlagenachweis passt zu sämtlichen tatsächlich normalisierten Insertfeldern ohne klinische Freigabe',async()=>{
@@ -88,4 +88,14 @@ test('Fehlender Originalnachweis oder Transportfehler liefert keinen bestätigte
   const builder={select(){return this;},eq(){return this;},maybeSingle(){return result;}};
   await assert.rejects(receiptRuntime({fromUnknownTable:()=>builder}).readMedicationCreateReceipt(nativeAttempt,()=>true));
  }
+});
+
+test('BMP-Herkunft wird einschließlich Position null exakt gespeichert und rückgelesen',async()=>{
+ const input={...nativeAttempt.input,bmpImportId:'55555555-5555-4555-8555-555555555555',bmpRowIndex:0};
+ const raw=await actualInsert(input), verify=receiptRuntime().assertMedicationCreateReceipt, attempt={...nativeAttempt,input};
+ assert.equal(raw.bmp_import_id,input.bmpImportId); assert.equal(raw.bmp_row_index,0);
+ assert.deepEqual(verify(raw,attempt),raw);
+ assert.throws(()=>verify({...raw,bmp_row_index:1},attempt));
+ assert.throws(()=>verify({...raw,bmp_import_id:null},attempt));
+ assert.equal('bmp_import_id' in await actualInsert(),false);
 });

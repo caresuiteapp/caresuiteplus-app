@@ -12,13 +12,18 @@ const mock = vi.hoisted(() => ({
   physician: '10000000-0000-4000-8000-000000000004',
   medication: '10000000-0000-4000-8000-000000000005',
   allowed: true,
+  bmp: undefined as string | undefined,
+  planId: '10000000-0000-4000-8000-000000000006',
+  getPlan: vi.fn(), getLink: vi.fn(), takeHandoff: vi.fn(), confirm: vi.fn(),
   search: vi.fn(), searchDoctors: vi.fn(), saveDoctor: vi.fn(), create: vi.fn(),
 }));
-vi.mock('expo-router', () => ({ useRouter: () => ({ back: vi.fn(), push: vi.fn() }), useNavigation: () => ({ dispatch: vi.fn() }) }));
+vi.mock('expo-router', () => ({ useLocalSearchParams: () => ({ bmp: mock.bmp }), useRouter: () => ({ back: vi.fn(), push: vi.fn() }), useNavigation: () => ({ dispatch: vi.fn() }) }));
 vi.mock('expo-router/react-navigation', () => ({ usePreventRemove: vi.fn() }));
 vi.mock('@/components/layout', () => ({ ScreenShell: ({ title, children }: { title: string; children: ReactNode }) => <main><h1>{title}</h1>{children}</main> }));
 vi.mock('@/components/inputs/CareMedicationScheduleInput', () => ({ CareMedicationScheduleInput: () => null }));
-vi.mock('@/lib/platform/confirmAction', () => ({ confirmAction: async () => true }));
+vi.mock('@/lib/platform/confirmAction', () => ({ confirmAction: mock.confirm }));
+vi.mock('@/lib/pflege/medicationPlanImportService', () => ({ getMedicationPlanImport: mock.getPlan, getMedicationPlanOrderLink: mock.getLink }));
+vi.mock('@/lib/pflege/medicationPlanOrderHandoff', () => ({ takeMedicationPlanOrderHandoff: mock.takeHandoff }));
 vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => mock.tenant }));
 vi.mock('@/lib/auth/context', () => ({ useAuth: () => ({ profile: { tenantId: mock.tenant, id: mock.profile, roleKey: 'business_admin' } }) }));
 vi.mock('@/hooks/pflege/useCareRuntimePermissions.web', () => ({ useCareRuntimePermissions: () => ({ roleKey: 'business_admin', roleLabel: 'Geschäftsführung', can: () => mock.allowed }) }));
@@ -88,11 +93,68 @@ const finishSearch = () => act(async () => { await vi.advanceTimersByTimeAsync(2
 beforeEach(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
   vi.resetAllMocks(); vi.useFakeTimers(); mock.allowed = true;
+  mock.bmp = undefined; mock.confirm.mockResolvedValue(true); mock.getLink.mockResolvedValue(null);
   mock.search.mockResolvedValue({ ok: true, data: [testPackage] });
   mock.searchDoctors.mockResolvedValue({ ok: true, data: [testDoctor] });
   mock.saveDoctor.mockResolvedValue({ ok: true, data: testDoctor });
   mock.create.mockResolvedValue({ ok: true, data: { id: mock.medication } });
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
+});
+
+function reviewedPlan(overrides = {}) {
+  mock.bmp = 'opaque-ticket';
+  mock.takeHandoff.mockReturnValue({ tenantId: mock.tenant, actorId: mock.profile, clientId: mock.client, importId: mock.planId, rowIndex: 0 });
+  mock.getPlan.mockResolvedValue({ id: mock.planId, clientId: mock.client, fileName: 'Synthetischer BMP', confirmed: [{ rowIndex: 0 }], plan: { rows: [{
+    kind: 'medication', name: 'Präparat im BMP', pzn: '00000017', ingredients: [{ name: 'Originalwirkstoff', strength: '5 mg' }],
+    section: { code: '412', label: null }, form: 'Tablette', formCode: null, page: 1,
+    morning: '1', noon: '0', evening: '1', night: '0', doseText: null, unit: null, unitCode: '1', weekdayCode: null,
+    instructions: null, additionalText: null, indication: 'Testindikation', ...overrides,
+  }] } });
+}
+
+describe('Geprüfte Position aus einem BMP', () => {
+  it('sperrt die Akte und speichert erst nach Prüfung, exakter Einzeldosis und bewusster Bestätigung', async () => {
+    reviewedPlan(); await render();
+    expect(host.textContent).toContain('Geprüfte Originalposition 1');
+    expect(field('Klient:in suchen')).toBeNull();
+    expect(field('Präparat *').value).toBe('Präparat im BMP');
+    expect(field('Dosierung').value).toBe('');
+    expect((button('Tageswerte aus dem Original übernehmen') as HTMLButtonElement).disabled).toBe(true);
+    await type('Dosierung', '1 Stück'); await click('Tageswerte aus dem Original übernehmen');
+    await type('Applikationsweg', 'oral'); await type('Verordnet durch', 'Testarzt');
+    await type('Bestätigter Therapiebeginn *', '2026-11-12');
+    mock.confirm.mockResolvedValueOnce(false);
+    await click('Verordnung speichern'); expect(mock.create).not.toHaveBeenCalled();
+    await click('Verordnung speichern');
+    expect(mock.create).toHaveBeenCalledExactlyOnceWith(mock.tenant, mock.profile, expect.objectContaining({
+      clientId: mock.client, bmpImportId: mock.planId, bmpRowIndex: 0, productPzn: '',
+      dosage: '1 Stück', schedule: '1-0-1-0', morningDose: '1', eveningDose: '1', startDate: '2026-11-12',
+    }), 'business_admin');
+  });
+
+  it('öffnet bei bestehender Übernahme und bei einem Wochenplan keine neue Anlage', async () => {
+    reviewedPlan(); mock.getLink.mockResolvedValueOnce(mock.medication); await render();
+    expect(host.textContent).toContain('Position bereits übernommen');
+    expect(button('Verordnung speichern')).toBeUndefined();
+    mock.bmp = 'another-ticket'; reviewedPlan({ weekdayCode: '2' }); mock.bmp = 'another-ticket'; await render();
+    expect(button('Verordnung speichern')).toBeUndefined();
+    expect(mock.create).not.toHaveBeenCalled();
+  });
+
+  it('liest bei unklarer Antwort den Originalbezug nach, ohne erneut anzulegen', async () => {
+    reviewedPlan(); await render();
+    await type('Dosierung', '1 Stück'); await click('Tageswerte aus dem Original übernehmen');
+    await type('Applikationsweg', 'oral'); await type('Verordnet durch', 'Testarzt');
+    await type('Bestätigter Therapiebeginn *', '2026-11-12');
+    mock.create.mockResolvedValueOnce({ ok: false, error: 'Transport unterbrochen' });
+    await click('Verordnung speichern');
+    expect(host.textContent).toContain('Anlagenbeleg prüfen');
+    mock.getLink.mockResolvedValueOnce(mock.medication);
+    await click('Speicherergebnis erneut lesen');
+    expect(host.textContent).toContain('Anlagenbeleg gelesen');
+    expect(mock.getLink).toHaveBeenLastCalledWith(expect.objectContaining({ tenantId: mock.tenant, actorId: mock.profile }), mock.planId, mock.client, 0);
+    expect(mock.create).toHaveBeenCalledTimes(1);
+  });
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi.useRealTimers(); });
 

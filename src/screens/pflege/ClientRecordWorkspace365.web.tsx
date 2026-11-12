@@ -1085,6 +1085,7 @@ function ClientRecordScreenContent({
           <ClientMedicationPlanArchive
             key={JSON.stringify([originalAtRender.scopeKey, originalAtRender.recordTicket, originalAtRender.fullTicket])}
             clientId={originalAtRender.scope.clientId}
+            canTransfer={() => !currentEditor.current && !identityWorkBlocked() && liveActionCan.current('pflege.medications.manage')}
             scope={{ tenantId: originalAtRender.scope.tenantId, actorId: originalAtRender.scope.actorId,
               isCurrent: () => liveActionCan.current('pflege.access') && liveActionCan.current('pflege.medications.view')
                 && liveActionCan.current('office.clients.view') && liveActionCan.current('office.clients.view_sensitive')

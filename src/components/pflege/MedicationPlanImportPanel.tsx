@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { randomUUID } from 'expo-crypto';
+import { useRouter } from 'expo-router';
 import { ErrorState, InfoBanner, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { medicationPlanOriginalFields, medicationPlanPositionTitle, parseMedicationPlanPages, type MedicationPlanDraft } from '@/lib/pflege/medicationPlanImportDomain';
 import { importMedicationPlanFile } from '@/lib/pflege/medicationPlanImportReader';
+import { discardMedicationPlanOrderHandoff, startMedicationPlanOrderHandoff } from '@/lib/pflege/medicationPlanOrderHandoff';
+import { prepareMedicationPlanOrderPrefill } from '@/lib/pflege/medicationPlanOrderPrefill';
 import {
   confirmMedicationPlanImportPosition, findMedicationPlanClients, getMedicationPlanImport,
   listMedicationPlanImports, readMedicationPlanOriginal, saveMedicationPlanImport,
@@ -24,6 +27,7 @@ const conflictsWithBirthDate = (prepared: Prepared | null, client: MedicationPla
 
 /** Imported plans remain review records: no medication is created, activated, or administered here. */
 export function MedicationPlanImportPanel(scope: MedicationPlanImportScope) {
+  const router = useRouter();
   const { colors } = useLegacyTheme();
   const styles = useMemo(() => StyleSheet.create({
     actions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm },
@@ -45,7 +49,10 @@ export function MedicationPlanImportPanel(scope: MedicationPlanImportScope) {
   const owner = `${scope.tenantId}:${scope.actorId}`;
   const live = useRef({ owner, isCurrent: scope.isCurrent });
   const alive = useRef(false), pending = useRef<AbortController | null>(null);
+  const latestDraft = useRef({ stored, clientId: selected?.id, open });
+  const transferUntil = useRef(0);
   live.current = { owner, isCurrent: scope.isCurrent };
+  latestDraft.current = { stored, clientId: selected?.id, open };
   useEffect(() => { alive.current = true; return () => { alive.current = false; pending.current?.abort(); pending.current = null; }; }, []);
   const current = () => alive.current && live.current.owner === owner && live.current.isCurrent();
   const currentScope = { tenantId: scope.tenantId, actorId: scope.actorId, isCurrent: current };
@@ -129,6 +136,23 @@ export function MedicationPlanImportPanel(scope: MedicationPlanImportScope) {
         ? { ...previous, confirmed: [...previous.confirmed, confirmation] } : previous);
     });
   }
+  function openOrder(draft: StoredMedicationPlan, rowIndex: number) {
+    const latest = latestDraft.current;
+    if (!current() || pending.current || !latest.open || latest.stored !== draft || latest.clientId !== draft.clientId
+      || transferUntil.current > Date.now() || !draft.confirmed.some(item => item.rowIndex === rowIndex)) return;
+    const prefill = prepareMedicationPlanOrderPrefill(draft.plan.rows[rowIndex]);
+    if (!prefill || prefill.scheduleStatus === 'unsupported') return;
+    let token: string | undefined;
+    transferUntil.current = Date.now() + 800;
+    try {
+      token = startMedicationPlanOrderHandoff({ tenantId: scope.tenantId, actorId: scope.actorId, clientId: draft.clientId, importId: draft.id, rowIndex });
+      router.push({ pathname: '/pflege/medikation/new', params: { bmp: token } });
+    } catch (cause) {
+      if (token) discardMedicationPlanOrderHandoff(token);
+      transferUntil.current = 0;
+      if (current()) setError(errorMessage(cause));
+    }
+  }
   async function downloadOriginal(draft: StoredMedicationPlan) {
     if (Platform.OS !== 'web') return;
     await run('Privates Original wird geprüft…', async () => {
@@ -190,11 +214,12 @@ export function MedicationPlanImportPanel(scope: MedicationPlanImportScope) {
     </View> : null}
     {stored ? <View style={styles.group}>
       <Text style={styles.heading}>{stored.confirmed.length} von {stored.plan.rows.length} Positionen bestätigt</Text>
-      <Text style={styles.hint}>Die Positionen bleiben Prüfentwürfe. Bestehende Verordnungen und der Gabeplan bleiben unverändert.</Text>
+      <Text style={styles.hint}>Nach der Einzelprüfung können Sie geeignete Positionen im Verordnungsformular öffnen. Eine Verordnung entsteht erst beim Speichern im Formular.</Text>
       {Platform.OS === 'web' ? <PremiumButton title="Originaldatei herunterladen" variant="secondary" disabled={busy} onPress={() => { void downloadOriginal(stored); }} /> : null}
     </View> : null}
     {reviewRows.map((row, i) => {
       const rowIndex = page * PAGE_SIZE + i, reviewed = stored?.confirmed.some(item => item.rowIndex === rowIndex);
+      const prefill = reviewed ? prepareMedicationPlanOrderPrefill(row) : null;
       return <View key={rowIndex} style={styles.row}>
         <Text style={styles.heading}>{rowIndex + 1}. {medicationPlanPositionTitle(row)}</Text>
         <Text style={styles.hint}>Seite {row.page}{row.section.label ? ` · ${row.section.label}` : row.section.code ? ` · Abschnitt ${row.section.code}` : ''}</Text>
@@ -202,6 +227,9 @@ export function MedicationPlanImportPanel(scope: MedicationPlanImportScope) {
           <Text style={styles.hint}>{field.label}</Text><Text style={styles.body}>{field.value || 'Leer im Original'}</Text>
         </View>)}</View>
         {stored ? (reviewed ? <Text style={styles.reviewed}>Einzeln bestätigt</Text> : <PremiumButton title={`Position ${rowIndex + 1} bestätigen`} variant="secondary" disabled={busy} onPress={() => { void confirmRow(stored, rowIndex); }} />) : null}
+        {stored && prefill ? (prefill.scheduleStatus === 'unsupported'
+          ? <Text style={styles.hint}>{prefill.scheduleMessage}</Text>
+          : <PremiumButton title="Im Verordnungsformular öffnen" accessibilityLabel={`Position ${rowIndex + 1} im Verordnungsformular öffnen`} variant="secondary" disabled={busy} onPress={() => openOrder(stored, rowIndex)} />) : null}
       </View>;
     })}
     {pageCount > 1 ? <View style={styles.actions}>

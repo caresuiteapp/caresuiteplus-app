@@ -177,6 +177,7 @@ export type CreateMedicationInput = {
   isHighAlert: boolean; isControlledSubstance: boolean; intensiveCareRelevant: boolean; infusionRate?: string; dilution?: string; pumpRequired: boolean;
   productPzn?: string; productBrand?: string; productManufacturer?: string; productCatalogSource?: string; productCatalogVersion?: string;
   prescriberDirectoryId?: string;
+  bmpImportId?: string; bmpRowIndex?: number;
 };
 
 /** Preserve the exact catalog pack and directory reference with the original order. */
@@ -194,6 +195,12 @@ export function medicationCatalogInsertFields(input: CreateMedicationInput): Unk
   };
 }
 
+export function medicationBmpInsertFields(input: CreateMedicationInput): UnknownRow {
+  return input.bmpImportId === undefined && input.bmpRowIndex === undefined ? {} : {
+    bmp_import_id: input.bmpImportId, bmp_row_index: input.bmpRowIndex,
+  };
+}
+
 export async function createLiveMedication(tenantId: string, actorProfileId: string | null, input: CreateMedicationInput, role?: RoleKey | null): Promise<ServiceResult<{ id: string }>> {
   const blocked = guard<{ id: string }>(tenantId, role, 'pflege.medications.manage'); if (blocked) return blocked;
   if (!actorProfileId) return { ok: false, error: 'Das angemeldete Benutzerprofil konnte nicht ermittelt werden.' };
@@ -203,6 +210,11 @@ export async function createLiveMedication(tenantId: string, actorProfileId: str
   }
   if (input.prescriberDirectoryId && (!woundUuid(input.prescriberDirectoryId) || !input.prescribedBy?.trim())) {
     return { ok: false, error: 'Der Arzteintrag ist nicht vollständig bestätigt.' };
+  }
+  if ((input.bmpImportId !== undefined || input.bmpRowIndex !== undefined)
+    && (!woundUuid(input.bmpImportId) || typeof input.bmpRowIndex !== 'number' || !Number.isInteger(input.bmpRowIndex)
+      || input.bmpRowIndex < 0 || input.bmpRowIndex >= 200)) {
+    return { ok: false, error: 'Die Herkunft aus dem Medikationsplan ist nicht vollständig bestätigt.' };
   }
   if (input.isPrn && !input.prnReason?.trim()) return { ok: false, error: 'Für Bedarfsmedikation ist eine eindeutige Indikation erforderlich.' };
   if (input.pumpRequired && !input.infusionRate?.trim()) return { ok: false, error: 'Bei Pumpengabe ist die Laufgeschwindigkeit erforderlich.' };
@@ -219,6 +231,7 @@ export async function createLiveMedication(tenantId: string, actorProfileId: str
     infusion_rate: input.infusionRate?.trim() || null, dilution: input.dilution?.trim() || null, pump_required: input.pumpRequired,
     status: 'active', created_by: actorProfileId, updated_by: actorProfileId,
     ...medicationCatalogInsertFields(input),
+    ...medicationBmpInsertFields(input),
   };
   const { data, error } = await fromUnknownTable(supabase, 'medications').insert(payload).select('id').single();
   if (error) return { ok: false, error: toGermanSupabaseError(error) };

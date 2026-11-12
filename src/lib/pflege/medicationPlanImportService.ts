@@ -116,6 +116,12 @@ export async function getMedicationPlanImport(scope: MedicationPlanImportScope, 
   if (result.id !== importId || result.clientId !== clientId) throw Error(couldNotRead);
   return result;
 }
+export async function getMedicationPlanOrderLink(scope: MedicationPlanImportScope, importId: string, clientId: string, rowIndex: number): Promise<string | null> {
+  if (!woundUuid(importId) || !woundUuid(clientId) || !index(rowIndex)) throw Error('Ungültige Position.');
+  const result = await scopedRpc(scope, 'get_medication_plan_order_link', { p_import: importId, p_client: clientId, p_row_index: rowIndex });
+  if (result !== null && !woundUuid(result)) throw Error(couldNotRead);
+  return result;
+}
 export async function confirmMedicationPlanImportPosition(scope: MedicationPlanImportScope, importId: string, rowIndex: number): Promise<MedicationPlanPositionConfirmation> {
   if (!index(rowIndex)) throw Error('Ungültige Position.');
   const result = await scopedRpc(scope, 'confirm_medication_plan_import_position', { p_import: importId, p_row_index: rowIndex });
