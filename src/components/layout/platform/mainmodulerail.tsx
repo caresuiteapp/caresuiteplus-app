@@ -69,7 +69,7 @@ function RailItem({
 export function MainModuleRail({ activeModule }: MainModuleRailProps) {
   const router = useRouter();
   const moduleAccent = useMainModuleAccent();
-  const { tenantId } = useModuleAccess();
+  const { tenantId, entitlementRevision } = useModuleAccess();
   const { roleKey } = usePermissions();
   const { modules: tenantModules } = useTenantModuleSettings();
   const visibleModules = useMemo(() => {
@@ -79,7 +79,7 @@ export function MainModuleRail({ activeModule }: MainModuleRailProps) {
       );
     }
     return getVisibleMainModuleRailItems({ tenantId, roleKey, tenantModules });
-  }, [tenantId, roleKey, tenantModules]);
+  }, [tenantId, roleKey, tenantModules, entitlementRevision]);
   const railStyles = useMemo(
     () => createRailStyles(moduleAccent),
     [moduleAccent],

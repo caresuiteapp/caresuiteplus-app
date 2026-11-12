@@ -99,7 +99,7 @@ describe('Platform tenant module enforcement', () => {
   it('5. active trial eines unveröffentlichten Moduls bleibt gesperrt', () => {
     seedPlatformTenantModulesForDemo(TENANT, [
       {
-        moduleKey: 'care',
+        moduleKey: 'stationary',
         status: 'trial',
         isTrial: true,
         trialEndsAt: '2099-01-01T00:00:00.000Z',
@@ -108,7 +108,7 @@ describe('Platform tenant module enforcement', () => {
         manualOverride: false,
       },
     ]);
-    expect(hasEffectiveModuleGateAccess('pflege', TENANT)).toBe(false);
+    expect(hasEffectiveModuleGateAccess('stationaer', TENANT)).toBe(false);
   });
 
   it('6. missing platform entry + tenant_products aktiv → Fallback erlaubt', () => {

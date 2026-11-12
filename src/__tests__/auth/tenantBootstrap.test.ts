@@ -200,7 +200,7 @@ describe('tenant bootstrap role resolution', () => {
   it('AuthProvider repairs profile when session exists without roleKey', () => {
     const provider = readSrc('src/lib/auth/AuthProvider.tsx');
     expect(provider).toContain('repairProfileFromSession');
-    expect(provider).toContain('!user || !session || profile?.roleKey');
+    expect(provider).toContain('!user || !sessionUserId || profile?.roleKey');
     expect(provider).toContain('profileRepairAttemptedRef');
     expect(provider).toContain('profileBootstrapError');
     expect(provider).toContain('retryProfileBootstrap');

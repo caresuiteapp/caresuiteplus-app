@@ -66,7 +66,7 @@ export function ShellNavigationDrawer({
   const auroraActive = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
   const useLightDrawer = auroraActive && isLight;
-  const { tenantId } = useModuleAccess();
+  const { tenantId, entitlementRevision } = useModuleAccess();
   const { roleKey } = usePermissions();
   const { modules: tenantModules } = useTenantModuleSettings();
   const { openModal } = useModalStack();
@@ -77,7 +77,7 @@ export function ShellNavigationDrawer({
       return MAIN_MODULE_RAIL.filter((m) => m.key === 'zentrale' || m.key === 'admin');
     }
     return getVisibleMainModuleRailItems({ tenantId, roleKey, tenantModules });
-  }, [tenantId, roleKey, tenantModules]);
+  }, [tenantId, roleKey, tenantModules, entitlementRevision]);
 
   const navConfig = useMemo(() => getModuleNavConfig(mainModule), [mainModule]);
   const activeNavKey = resolveActiveModuleNavKey(pathname, navConfig);

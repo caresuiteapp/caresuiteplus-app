@@ -9,6 +9,8 @@ import type {
 import { demoProducts } from '@/data/demo/products';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { isFreePlatformEnabled } from '@/lib/billing/freePlatformService';
+import { getServiceMode } from '@/lib/services/mode';
+import { getTenantModuleSettingsCache } from '@/lib/tenant/tenantModuleSettingsCache';
 import {
   hasPlatformModuleHydration,
   isProductAllowedByPlatform,
@@ -44,6 +46,27 @@ const ACCESS_SOURCE_LABELS: Record<ModuleAccessSource, string> = {
 type ModuleStore = Map<string, TenantProduct[]>;
 
 const tenantModuleStore: ModuleStore = new Map();
+const confirmedLiveProducts = new Set<string>();
+const moduleAccessListeners = new Set<() => void>();
+let moduleAccessRevision = 0;
+
+export function subscribeModuleAccess(listener: () => void): () => void {
+  moduleAccessListeners.add(listener);
+  return () => { moduleAccessListeners.delete(listener); };
+}
+
+export function getModuleAccessRevision(): number {
+  return moduleAccessRevision;
+}
+
+function notifyModuleAccessChanged(): void {
+  moduleAccessRevision += 1;
+  moduleAccessListeners.forEach((listener) => listener());
+}
+
+export function usesConfirmedPflegeAccess(tenantId: string): boolean {
+  return tenantId !== DEMO_TENANT_ID && getServiceMode() === 'supabase';
+}
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -209,19 +232,26 @@ function buildInitialDemoModules(tenantId: string): TenantProduct[] {
 export function initializeModuleAccessStore(
   tenantId: string,
   modules?: TenantProduct[],
+  source?: 'live',
 ): void {
   const seed = modules ?? buildInitialDemoModules(tenantId);
   tenantModuleStore.set(tenantId, cloneModules(seed));
+  if (source === 'live' && modules) confirmedLiveProducts.add(tenantId);
+  else confirmedLiveProducts.delete(tenantId);
   syncOfficeInclusion(tenantModuleStore.get(tenantId)!);
+  notifyModuleAccessChanged();
 }
 
 /** Nur für Tests — Store zurücksetzen. */
 export function resetModuleAccessStore(tenantId?: string): void {
   if (tenantId) {
     tenantModuleStore.delete(tenantId);
-    return;
+    confirmedLiveProducts.delete(tenantId);
+  } else {
+    tenantModuleStore.clear();
+    confirmedLiveProducts.clear();
   }
-  tenantModuleStore.clear();
+  notifyModuleAccessChanged();
 }
 
 initializeModuleAccessStore(DEMO_TENANT_ID);
@@ -233,7 +263,13 @@ export function getTenantModules(tenantId: string): TenantProduct[] {
 }
 
 export function getEffectiveModuleAccess(tenantId: string): EffectiveModuleAccess[] {
-  return getTenantModules(tenantId).map(toEffectiveAccess);
+  return getTenantModules(tenantId).map((module) => {
+    const access = toEffectiveAccess(module);
+    if (module.productKey === 'pflege' && usesConfirmedPflegeAccess(tenantId)) {
+      return { ...access, isEffective: hasEffectiveModuleGateAccess('pflege', tenantId) };
+    }
+    return access;
+  });
 }
 
 export function hasModuleAccess(
@@ -241,6 +277,9 @@ export function hasModuleAccess(
   tenantId: string = DEMO_TENANT_ID,
 ): boolean {
   if (isUnreleasedModuleKey(moduleKey)) return false;
+  if (moduleKey === 'pflege' && usesConfirmedPflegeAccess(tenantId)) {
+    return hasEffectiveModuleGateAccess(moduleKey, tenantId);
+  }
 
   const modules = getTenantModules(tenantId);
   const module = modules.find((entry) => entry.productKey === moduleKey);
@@ -383,6 +422,12 @@ export function hasLegacyTenantModuleGateAccess(
 
   const modules = getTenantModules(tenantId);
   const direct = modules.find((entry) => entry.productKey === moduleKey);
+  if (moduleKey === 'pflege' && usesConfirmedPflegeAccess(tenantId)) {
+    return confirmedLiveProducts.has(tenantId) &&
+      getTenantModuleSettingsCache(tenantId).pflegeEnabled &&
+      !!direct?.isActive && direct.billingStatus !== 'admin_disabled' &&
+      direct.accessSource !== 'expired' && direct.accessSource !== 'disabled';
+  }
   if (direct?.billingStatus === 'admin_disabled') {
     return false;
   }

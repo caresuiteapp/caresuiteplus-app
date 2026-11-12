@@ -26,6 +26,6 @@ export async function hydrateTenantModulesFromSupabase(
     return { ok: false, error: platformResult.error };
   }
 
-  initializeModuleAccessStore(tenantId, result.data);
+  initializeModuleAccessStore(tenantId, result.data, 'live');
   return { ok: true, data: getTenantModules(tenantId) };
 }

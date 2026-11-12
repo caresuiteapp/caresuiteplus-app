@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { ModuleTile } from '@/components/ui';
-import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { getModuleSwitcherItems } from '@/lib/navigation/shellConfig';
 import { careSpacing } from '@/design/tokens/spacing';
 
@@ -13,7 +13,7 @@ type ModuleSwitcherProps = {
 
 export function ModuleSwitcher({ visible, onClose }: ModuleSwitcherProps) {
   const router = useRouter();
-  const tenantId = useServiceTenantId();
+  const { tenantId } = useModuleAccess();
   const modules = getModuleSwitcherItems(tenantId ?? '');
 
   const handleSelect = (path: string, isActive: boolean) => {

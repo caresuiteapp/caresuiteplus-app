@@ -193,7 +193,7 @@ export function TenantCompanyEditorForms({ section, value, onChange, errors }: P
             detail: string;
         }[] = [
             { key: 'assistEnabled', module: 'assist', title: 'Alltagsbegleitung', detail: 'Leistungsbereich Assist' },
-            { key: 'pflegeEnabled', module: 'pflege', title: 'Ambulante Pflege', detail: 'Noch nicht zur Nutzung freigegeben' },
+            { key: 'pflegeEnabled', module: 'pflege', title: 'Ambulante Pflege', detail: 'Pflegebereich für dieses Unternehmen anzeigen' },
             { key: 'stationaerEnabled', module: 'stationaer', title: 'Stationäre Pflege', detail: 'Noch nicht zur Nutzung freigegeben' },
             { key: 'beratungEnabled', module: 'beratung', title: 'Beratung', detail: 'Noch nicht zur Nutzung freigegeben' },
         ];

@@ -37,6 +37,21 @@ const identity = {
   ok: true, user: { id: 'user-test', roleKey: 'business_admin' },
   profile: { id: 'user-test', roleKey: 'business_admin', tenantId: 'tenant-test' }, session: liveSession,
 };
+const originalSession = {
+  ...liveSession, refresh_token: 'test-only-refresh', expires_at: 4_000_000_000,
+};
+const renewedSession = {
+  ...originalSession,
+  user: { ...originalSession.user, app_metadata: { tenant_id: 'other-tenant', role_key: 'nurse' } },
+  access_token: 'renewed-token', refresh_token: 'renewed-refresh', expires_at: originalSession.expires_at + 60,
+};
+const originalIdentity = {
+  ...identity,
+  session: {
+    user: identity.user, accessToken: originalSession.access_token,
+    refreshToken: originalSession.refresh_token, expiresAt: originalSession.expires_at * 1000,
+  },
+};
 const familyRecord: PortalSessionRecord = {
   accountId: 'family-account', tenantId: 'family-tenant', relativeContactId: 'family-contact',
   sessionToken: 'opaque-test-family-session', expiresAt: '2099-01-01T00:00:00Z',
@@ -226,6 +241,98 @@ describe('web session bootstrap', () => {
     expect(mock.bootstrap).toHaveBeenCalledOnce();
     await act(async () => profile.resolve(identity));
     expect(host.textContent).toBe('Desktop'); expect(mock.permissions).toHaveBeenCalledOnce();
+  });
+  it.each(['web', 'android'])('updates credentials for the same %s account without rebuilding its profile', async (platform) => {
+    mock.platform.OS = platform;
+    mock.getSession.mockResolvedValue({ ok: true, data: originalSession });
+    mock.bootstrap.mockResolvedValue(originalIdentity);
+    await render();
+    const profile = latestAuth.profile, user = latestAuth.user, calls = mock.bootstrap.mock.calls.length;
+    const permissionCalls = mock.permissions.mock.calls.length;
+    await act(async () => mock.listener?.('TOKEN_REFRESHED', renewedSession));
+    expect(latestAuth.session).toMatchObject({
+      accessToken: renewedSession.access_token, refreshToken: renewedSession.refresh_token,
+      expiresAt: renewedSession.expires_at * 1000,
+    });
+    expect(latestAuth.session?.user).toBe(user);
+    expect(latestAuth.user).toBe(user);
+    expect(latestAuth.profile).toBe(profile);
+    expect(mock.bootstrap).toHaveBeenCalledTimes(calls);
+    expect(mock.permissions).toHaveBeenCalledTimes(permissionCalls);
+  });
+  it('keeps a refresh received during a delayed bootstrap without publishing an unconfirmed account', async () => {
+    const bootstrap = deferred<typeof originalIdentity>();
+    mock.getSession.mockResolvedValue({ ok: true, data: originalSession });
+    mock.bootstrap.mockReturnValueOnce(bootstrap.promise);
+    await render();
+    await act(async () => mock.listener?.('TOKEN_REFRESHED', renewedSession));
+    expect(latestAuth.session).toBeNull();
+    expect(latestAuth.profile).toBeNull();
+    await act(async () => bootstrap.resolve(originalIdentity));
+    expect(latestAuth.profile).toBe(originalIdentity.profile);
+    expect(latestAuth.session?.accessToken).toBe(renewedSession.access_token);
+    expect(mock.bootstrap).toHaveBeenCalledOnce();
+  });
+  it('lets an already running profile repair finish after a refresh of the same account', async () => {
+    const repair = deferred<typeof originalIdentity>();
+    mock.getSession.mockResolvedValue({ ok: true, data: originalSession });
+    mock.bootstrap.mockResolvedValueOnce({ ok: false, error: 'profile temporarily unavailable' });
+    mock.bootstrap.mockReturnValueOnce(repair.promise);
+    await render();
+    expect(mock.bootstrap).toHaveBeenCalledTimes(2);
+    expect(latestAuth.profile).toBeNull();
+    await act(async () => mock.listener?.('TOKEN_REFRESHED', renewedSession));
+    expect(latestAuth.session?.accessToken).toBe(renewedSession.access_token);
+    await act(async () => repair.resolve(originalIdentity));
+    expect(latestAuth.profile).toBe(originalIdentity.profile);
+    expect(latestAuth.profileBootstrapError).toBeNull();
+    expect(latestAuth.session?.accessToken).toBe(renewedSession.access_token);
+    expect(mock.bootstrap).toHaveBeenCalledTimes(2);
+  });
+  it('rejects a previous account refresh while a different signed-in account is loading', async () => {
+    mock.bootstrap.mockResolvedValue(originalIdentity);
+    await render();
+    const next = { ...originalSession, user: { ...originalSession.user, id: 'new-account' }, access_token: 'next-account-token' };
+    const nextUser = { ...identity.user, id: next.user.id };
+    const bootstrap = deferred<typeof originalIdentity>();
+    mock.bootstrap.mockReturnValueOnce(bootstrap.promise);
+    await act(async () => mock.listener?.('SIGNED_IN', next));
+    await act(async () => mock.listener?.('TOKEN_REFRESHED', renewedSession));
+    expect(latestAuth.session).toBe(originalIdentity.session);
+    await act(async () => bootstrap.resolve({
+      ...originalIdentity, user: nextUser, profile: { ...identity.profile, id: nextUser.id },
+      session: { ...originalIdentity.session, user: nextUser, accessToken: next.access_token },
+    }));
+    await act(async () => mock.listener?.('TOKEN_REFRESHED', renewedSession));
+    expect(latestAuth.session?.user.id).toBe(nextUser.id);
+    expect(latestAuth.session?.accessToken).toBe(next.access_token);
+  });
+  it('ignores malformed or unowned refreshes and does not create a signed-in session', async () => {
+    mock.bootstrap.mockResolvedValue(originalIdentity);
+    await render();
+    for (const candidate of [null, { ...renewedSession, expires_at: undefined }, { ...renewedSession, expires_at: 1 },
+      { ...renewedSession, user: { ...renewedSession.user, id: 'unrelated-account' } }]) {
+      await act(async () => mock.listener?.('TOKEN_REFRESHED', candidate));
+      expect(latestAuth.session).toBe(originalIdentity.session);
+    }
+    await act(async () => mock.listener?.('SIGNED_OUT', null));
+    await act(async () => mock.listener?.('TOKEN_REFRESHED', renewedSession));
+    expect(latestAuth.session).toBeNull();
+    expect(latestAuth.isAuthenticated).toBe(false);
+  });
+  it('does not publish refreshed credentials during or after explicit logout', async () => {
+    mock.bootstrap.mockResolvedValue(originalIdentity);
+    await render();
+    const logout = deferred<{ ok: true; data: null }>();
+    mock.signOut.mockReturnValueOnce(logout.promise);
+    let signOut!: Promise<void>;
+    await act(async () => { signOut = latestAuth.signOut(); });
+    await act(async () => mock.listener?.('TOKEN_REFRESHED', renewedSession));
+    expect(latestAuth.session).toBe(originalIdentity.session);
+    await act(async () => { logout.resolve({ ok: true, data: null }); await signOut; });
+    await act(async () => mock.listener?.('TOKEN_REFRESHED', renewedSession));
+    expect(latestAuth.session).toBeNull();
+    expect(latestAuth.profile).toBeNull();
   });
   it('opens login after an anonymous restore without a second reconciliation request', async () => {
     mock.getSession.mockResolvedValue({ ok: true, data: null });
