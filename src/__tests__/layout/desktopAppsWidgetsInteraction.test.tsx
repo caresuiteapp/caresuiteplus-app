@@ -14,7 +14,7 @@ const api = {
   centerRequest: undefined as string | undefined, authReady: true, setParams: vi.fn(),
 };
 const Box = forwardRef<HTMLDivElement, any>((props, ref) => <div ref={ref} data-testid={props.testID} id={props.nativeID} aria-label={props.accessibilityLabel}>{props.children}</div>);
-const Pressable = forwardRef<HTMLButtonElement, any>((props, ref) => <button type="button" ref={ref} role={props.accessibilityRole} aria-label={props.accessibilityLabel} aria-selected={props.accessibilityState?.selected} aria-disabled={props.disabled} disabled={props.disabled} onClick={props.disabled ? undefined : props.onPress}>{props.children}</button>);
+const Pressable = forwardRef<HTMLButtonElement, any>((props, ref) => <button type="button" ref={ref} role={props.accessibilityRole} aria-label={props.accessibilityLabel} aria-selected={props['aria-selected'] ?? props.accessibilityState?.selected} aria-disabled={props.disabled} disabled={props.disabled} onClick={props.disabled ? undefined : props.onPress}>{props.children}</button>);
 const native = {
   Platform: { OS: 'web' },
   StyleSheet: { create: (value: any) => value, flatten: (value: any): any => Array.isArray(value) ? Object.assign({}, ...value.map(native.StyleSheet.flatten)) : value ?? {} },

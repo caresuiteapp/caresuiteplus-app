@@ -1,3 +1,22 @@
+export function desktopHeaderLayout(width: number, height: number, fontScale: number) {
+  const scale = Math.max(1, fontScale);
+  const wide = width >= 1380 * scale && height >= 540;
+  const short = height < 580 * scale;
+  const inlineWidth = short ? 740 + 240 * (scale - 1) : 800 + 200 * (scale - 1);
+  const inline = width >= inlineWidth;
+  const phone = !inline && width < 560 + 100 * (scale - 1);
+  return {
+    mode: wide ? 'wide' : inline ? 'inline' : phone ? 'phone' : 'stacked',
+    wide,
+    phone,
+    short,
+    compactTextControls: phone ? width < 416 : inline ? width < 940 + 120 * (scale - 1) : width < 700,
+    compactDate: width < 420 || (!phone && width < 760 * scale),
+    stackWeather: width < 280 * scale,
+    showWeatherIcon: wide || width >= 440 && !inline,
+  } as const;
+}
+
 /** Web CSS and native layout use the same card thresholds and reserved label space. */
 export function desktopGridMetrics(fontScale: number, mobile: boolean, hasSuggestions: boolean) {
   const scale = Math.max(1, Number.isFinite(fontScale) ? fontScale : 1);

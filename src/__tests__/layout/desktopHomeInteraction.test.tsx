@@ -6,12 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { moduleDesktopStorageKey } from '@/liquid-command/navigation/moduleDesktop.web';
 import { resolveDesktopGridLayout } from '@/lib/platform/desktopGridLayout';
 import { desktopAreaStorageKey } from '@/liquid-command/navigation/desktopAreas';
+import { desktopHeaderLayout } from '@/liquid-command/navigation/desktopLayoutModel';
 
 const memory = new Map<string, string>();
 const api = { owner: 'a', width: 1440, scale: 1, push: vi.fn(), getItem: vi.fn(), multiSet: vi.fn(), setItem: vi.fn() };
 const flatten = (style: any): any => Array.isArray(style) ? Object.assign({}, ...style.map(flatten)) : style ?? {};
 const Box = (p: any) => <div data-testid={p.testID} id={p.nativeID} aria-label={p.accessibilityLabel} aria-hidden={p['aria-hidden']} style={flatten(p.style)}>{p.children}</div>;
-const Pressable = (p: any) => <div role={p.accessibilityRole ?? "button"} aria-label={p.accessibilityLabel} aria-selected={p.accessibilityState?.selected} aria-expanded={p.accessibilityState?.expanded} aria-disabled={p.disabled} onClick={p.disabled ? undefined : p.onPress}>{p.children}</div>;
+const Pressable = (p: any) => <div role={p.accessibilityRole ?? "button"} aria-label={p.accessibilityLabel} aria-selected={p['aria-selected'] ?? p.accessibilityState?.selected} aria-expanded={p.accessibilityState?.expanded} aria-disabled={p.disabled} onClick={p.disabled ? undefined : p.onPress}>{p.children}</div>;
 class Value {
   constructor(public value: number) {}
   setValue(value: number) { this.value = value; }
@@ -187,6 +188,23 @@ describe('App centre categories and distinct actions', () => {
   });
 });
 
+
+describe('desktop header layout', () => {
+  it.each([
+    [1440, 900, 1, 'wide'],
+    [917, 581, 1, 'inline'],
+    [768, 1024, 1, 'stacked'],
+    [844, 390, 1, 'inline'],
+    [390, 844, 1, 'phone'],
+    [667, 375, 1.5, 'stacked'],
+  ] as const)('fits a %d × %d viewport at text scale %d in %s mode', (width, height, scale, mode) => {
+    expect(desktopHeaderLayout(width, height, scale).mode).toBe(mode);
+  });
+
+  it('gives time and long weather messages room at increased text size', () => {
+    expect(desktopHeaderLayout(320, 667, 1.5)).toMatchObject({ stackWeather: true, compactDate: true, short: true });
+  });
+});
 
 describe('area desktops with the permitted navigation', () => {
   it('keeps area tabs and changes navigation with the selected desktop', async () => {

@@ -1,4 +1,4 @@
-import { defaultDesktopWidgetIds } from '../navigation/desktopLayoutModel';
+import { defaultDesktopWidgetIds, desktopHeaderLayout } from '../navigation/desktopLayoutModel';
 import { PortalTextSizeControls } from '@/components/portal/accessibility/PortalTextSizeControls';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
@@ -67,8 +67,11 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const availableKeys = useMemo(() => availableSignature.split(',') as ProductKey[], [availableSignature]);
   const router = useRouter(); const auth = useAuth(); const { width, height, fontScale } = useWindowDimensions();
   const insets = useSafeAreaInsets();
-  const compactHeight = height - insets.top - insets.bottom < 500 && width > height && fontScale < 1.4;
-  const shortViewport = height - insets.top - insets.bottom < 600 * Math.max(1, fontScale);
+  const viewportWidth = width - insets.left - insets.right;
+  const viewportHeight = height - insets.top - insets.bottom;
+  const header = desktopHeaderLayout(viewportWidth, viewportHeight, fontScale);
+  const compactHeight = viewportHeight < 500 && width > height && fontScale < 1.4;
+  const shortViewport = header.short;
   const owner = auth.user!.id; const scope = JSON.stringify([tenantId, owner]);
   const desktopKey = desktopAreaStorageKey(tenantId, owner, selectedArea);
   const dismissedKey = `${desktopKey}.dismissed-suggestions.v1`;
@@ -97,13 +100,25 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const [workspaceHeight, setWorkspaceHeight] = useState(0); const [controlsHeight, setControlsHeight] = useState(0);
   const [saving, setSaving] = useState(false); const [edit, setEdit] = useState(false); const [navigationOpen, setNavigationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [areaStripWidth, setAreaStripWidth] = useState(0);
+  const [selectedTabBounds, setSelectedTabBounds] = useState<{ x: number; width: number } | null>(null);
+  const areaStripRef = useRef<ScrollView>(null);
   const [navQuery, setNavQuery] = useState('');
   const [weatherOpen, setWeatherOpen] = useState(false); const weather = useDesktopWeather(scope);
   const [now, setNow] = useState(new Date());
   const suggestions = useMemo(() => suggestDesktopWidgets(widgets.filter(widget => isDesktopCatalogRouteAvailableInArea(widget.route, selectedArea) && !preferences.dismissed.includes(widget.id)), preferences.ids, selectedArea, desktopCatalogAreaForRoute, Math.min(6, Math.max(0, 12 - preferences.ids.length))), [widgets, preferences.ids, preferences.dismissed, selectedArea]);
-  const layout = nativeDesktopLayout(width - insets.left - insets.right, fontScale, suggestions.length > 0);
+  const layout = nativeDesktopLayout(viewportWidth, fontScale, suggestions.length > 0);
+  const weatherInline = viewportWidth >= 1060 * Math.max(1, fontScale);
+  const actionsInline = viewportWidth >= 600 && !header.phone;
+  const logoWidth = Math.min(header.wide ? 234 : 182, Math.max(1, (viewportWidth - 2 * layout.framePadding - 88) / 2));
   useEffect(() => { const timer = setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(timer); }, []);
   useEffect(() => { setNavigationOpen(false); }, [layout.sidebar]);
+  useEffect(() => {
+    if (areaStripWidth && selectedTabBounds) {
+      const { x, width } = selectedTabBounds;
+      areaStripRef.current?.scrollTo?.({ x: Math.max(0, x + Math.min(width, areaStripWidth) - areaStripWidth), animated: false });
+    }
+  }, [areaStripWidth, selectedTabBounds]);
   useEffect(() => {
     let active = true; setReady(false); setError('');
     void AsyncStorage.multiGet([desktopKey, backgroundKey, `caresuite.healthos.desktop-widgets.v3.${owner}`, `caresuite.healthos.desktop-widgets.v2.${owner}`, `caresuite.healthos.top-widgets.v1.${owner}`, `caresuite.healthos.desktop-background.v1.${owner}`, ...(['office', 'assist'] as ProductKey[]).map(key => moduleDesktopStorageKey(tenantId, owner, key)), combinedKey, dismissedKey]).then(async entries => {
@@ -161,31 +176,90 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
     <NativeAction label="Hilfe & Anleitungen" onPress={() => open({ route: '/hilfe' })} />
   </View>;
   if (!ready) return <SafeAreaView style={styles.loading}><View style={ui.surface}><Text style={ui.title}>Desktop wird vorbereitet</Text>{error ? <><Text style={ui.error}>{error}</Text><NativeAction label="Erneut laden" onPress={() => setAttempt(value => value + 1)} /></> : <ActivityIndicator color="#8dc8ff" />}</View></SafeAreaView>;
+  const profileName = auth.profile?.displayName || auth.user?.displayName || 'Profil';
+  const profileControl = (
+    <Pressable accessibilityRole="button" accessibilityLabel="Mein Profil" onPress={() => setProfileOpen(true)} style={styles.profileTrigger}>
+      {header.wide ? <View style={styles.profileCopy}><Text numberOfLines={1} style={styles.profileName}>{profileName}</Text><Text numberOfLines={1} style={styles.profileRole}>{permissions.roleLabel ?? 'Verwaltung'}</Text></View> : null}
+      <TopbarProfileAvatar name={profileName} avatarUrl={auth.profile?.avatarUrl} avatarVersion={auth.profile?.updatedAt ?? auth.profile?.avatarUrl} accentColor="#56C7FF" size={header.wide ? 'lg' : 'sm'} />
+    </Pressable>
+  );
+  const clockWeather = (
+    <View style={[styles.headerInfo, header.stackWeather && styles.headerInfoStacked]} testID="desktop-clock-weather">
+      <View style={[styles.timeBlock, header.stackWeather && styles.timeBlockStacked]}>
+        <Text style={[styles.clock, !header.wide && styles.clockCompact]}>{now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Text>
+        <Text style={styles.desktopDate}>{now.toLocaleDateString('de-DE', header.compactDate ? { day: '2-digit', month: '2-digit', year: 'numeric' } : { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</Text>
+      </View>
+      <View style={[styles.weatherGroup, header.stackWeather && styles.weatherGroupStacked]}>
+        {header.showWeatherIcon ? <Text style={styles.weatherIcon}>{weather.data?.glyph ?? '☁'}</Text> : null}
+        <Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherOpen(true)} style={styles.weather}>
+          <Text style={styles.weatherText}>{weather.data ? `${weather.data.temperature}\u00a0°C · ${weather.data.label}` : 'Wetter'}</Text>
+          <Text style={styles.weatherPlace}>{weather.message}</Text>
+          <Text style={styles.weatherEdit}>Ort ändern</Text>
+        </Pressable>
+        <Pressable accessibilityRole="button" accessibilityLabel="Wetter aktualisieren" disabled={weather.status === 'loading'} onPress={weather.refresh} style={styles.weatherRefresh}>
+          <MobileIcon name="rotate-cw" color="#8FE4FF" size={16} />
+        </Pressable>
+      </View>
+    </View>
+  );
+  const headerActions = (
+    <View style={[styles.headerActions, actionsInline && styles.headerHalf]} testID="desktop-topbar-actions">
+      {!layout.sidebar ? <MobileIconButton label="Navigation" icon="menu" dark onPress={() => setNavigationOpen(true)} /> : null}
+      <PortalTextSizeControls compact appearance="desktop-header" />
+      {layout.sidebar ? <View style={[styles.livePill, !header.wide && styles.livePillCompact]} accessibilityLabel="Live"><View style={styles.liveDot}/>{header.wide ? <Text style={styles.liveText}>Live</Text> : null}</View> : null}
+      <Pressable accessibilityRole="button" accessibilityLabel="Apps und Widgets öffnen" onPress={() => openCenter('apps')} style={[styles.headerControl, !header.wide && styles.headerControlCompact]}>
+        <MobileIcon name="grid" size={20} color="#83E8FF" />
+        {header.wide ? <Text style={styles.headerControlText}>Apps & Widgets</Text> : null}
+      </Pressable>
+      <MobileIconButton label="Hilfe & Anleitungen" icon="help-circle" dark onPress={() => open({ route: '/hilfe' })} />
+      {actionsInline ? profileControl : null}
+    </View>
+  );
+
   return <ImageBackground source={selectedBackground.image} resizeMode="cover" style={styles.root} testID="native-administration-desktop">
     <NativeDesktopFrame compact={shortViewport} padding={layout.framePadding}>
-      <View style={[styles.header, layout.mobile && styles.headerMobile]} testID="desktop-full-width-header">
-        <View style={styles.brandGroup}><Image source={BRAND} accessibilityLabel="CareSuite HealthOS" style={[styles.brand, { width: Math.min(234, Math.max(80, (width - insets.left - insets.right - layout.framePadding * 2 - 112) / 2)), height: Math.min(234, Math.max(80, (width - insets.left - insets.right - layout.framePadding * 2 - 112) / 2)) / 8 }]} resizeMode="contain" /><View testID="native-neo-header-dock" pointerEvents="none" style={styles.assistantDock} /></View>
-        <View style={[styles.headerInfo, layout.mobile && styles.headerInfoMobile, fontScale >= 1.4 && { flexDirection: 'column', alignItems: 'stretch' }]} testID="desktop-clock-weather">
-          <View style={[styles.timeBlock, layout.mobile && { flexBasis: '42%', minWidth: 0 }]}><Text style={[styles.clock, layout.mobile && { fontSize: 30, lineHeight: 35 }]}>{now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Text><Text style={[styles.desktopEyebrow, { fontSize: layout.mobile ? 13 : 15, lineHeight: layout.mobile ? 18 : 21, fontWeight: '700' }]}>{now.toLocaleDateString('de-DE', { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</Text></View>
-          <View style={[styles.weatherGroup, layout.mobile && { flex: 1, width: undefined }]}><Text style={{ color: '#8FE4FF', fontSize: 25 }}>{weather.data?.glyph ?? '☁'}</Text><Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherOpen(true)} style={styles.weather}><Text style={styles.weatherText}>{weather.data ? `${weather.data.temperature} °C · ${weather.data.label}` : layout.mobile ? 'Wetter' : 'Standortwetter'}</Text><Text style={styles.weatherPlace}>{weather.message}</Text><Text style={styles.weatherEdit}>Ort ändern</Text></Pressable><Pressable accessibilityRole="button" accessibilityLabel="Wetter aktualisieren" onPress={weather.refresh} style={styles.weatherRefresh}><MobileIcon name="rotate-cw" color="#8FE4FF" size={16} /></Pressable></View>
+      <View style={styles.header} testID="desktop-full-width-header">
+        <View style={styles.headerRow}>
+          <View style={styles.brandGroup} testID="desktop-header-brand">
+            {logoWidth < 140 ? <View accessible accessibilityLabel="CareSuite HealthOS">
+              <Text allowFontScaling={false} style={styles.brandName}>CareSuite</Text>
+              <Text allowFontScaling={false} style={[styles.brandName, styles.brandAccent]}>HealthOS</Text>
+            </View> : <Image source={BRAND} accessibilityLabel="CareSuite HealthOS" style={{ width: logoWidth, height: logoWidth / 8 }} resizeMode="contain" />}
+            {weatherInline ? clockWeather : null}
+          </View>
+          <View testID="native-neo-header-dock" pointerEvents="none" style={styles.assistantDock} />
+          {actionsInline ? headerActions : <View style={styles.headerProfile}>{profileControl}</View>}
         </View>
-        <View style={[styles.headerActions, width < 1400 * Math.max(1, fontScale) && styles.headerActionsSecondRow, layout.mobile && styles.headerActionsMobile]}>
-          {!layout.sidebar ? <MobileIconButton label="Navigation" icon="menu" dark onPress={() => setNavigationOpen(true)} /> : null}
-          <PortalTextSizeControls compact appearance="desktop-header" />
-          {!layout.mobile ? <View style={styles.livePill}><View style={styles.liveDot}/><Text style={styles.liveText}>Live</Text></View> : null}
-          <Pressable accessibilityRole="button" accessibilityLabel="Apps und Widgets öffnen" onPress={() => openCenter('apps')} style={styles.headerControl}><MobileIcon name="grid" size={20} color="#83E8FF" />{!layout.mobile ? <Text style={styles.headerControlText}>Apps & Widgets</Text> : null}</Pressable>
-          <MobileIconButton label="Hilfe & Anleitungen" icon="help-circle" dark onPress={() => open({ route: '/hilfe' })} />
-          <Pressable accessibilityRole="button" accessibilityLabel="Mein Profil" onPress={() => setProfileOpen(true)} style={styles.profileTrigger}>{width >= 1240 * fontScale ? <View style={styles.profileCopy}><Text style={styles.profileName}>{auth.profile?.displayName || auth.user?.displayName || 'Profil'}</Text><Text style={styles.profileRole}>{permissions.roleLabel ?? 'Verwaltung'}</Text></View> : null}<TopbarProfileAvatar name={auth.profile?.displayName || auth.user?.displayName || 'Profil'} avatarUrl={auth.profile?.avatarUrl} avatarVersion={auth.profile?.updatedAt ?? auth.profile?.avatarUrl} accentColor="#56C7FF" size={layout.mobile ? 'sm' : 'lg'} /></Pressable>
-        </View>
+        {!weatherInline ? clockWeather : null}
+        {!actionsInline ? headerActions : null}
       </View>
       <View style={[styles.workarea, { gap: layout.workareaGap }, shortViewport && { flex: 0, height: Math.max(360, controlsHeight + 220), minHeight: Math.max(360, controlsHeight + 220) }]}>
         {layout.sidebar ? <ScrollView keyboardShouldPersistTaps="handled" style={[styles.sidebar, { width: layout.sidebarWidth }]} contentContainerStyle={{ padding: 12, gap: 14 }}>{navigation}</ScrollView> : null}
         <View onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setWorkspaceHeight(current => current === value ? current : value); }} style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
-          <View onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setControlsHeight(current => current === value ? current : value); }} style={[styles.desktopToolbar, layout.mobile && { padding: 8, gap: 6 }]}>
-            <View style={[styles.desktopHeading, layout.mobile && { flexBasis: '100%' }]}><Text accessibilityRole="header" style={styles.desktopTitle}>Mein Desktop · {moduleLabel}</Text><View style={styles.moduleContent} accessibilityLabel="Arbeitsbereiche">
-              {DESKTOP_AREAS.map(area => <Pressable key={area.key} accessibilityRole="tab" accessibilityLabel={area.label} accessibilityState={{ selected: selectedArea === area.key }} onPress={() => onSelectArea(area.key)} style={[styles.areaTab, selectedArea === area.key && styles.areaTabActive]}><Text style={[styles.areaText, selectedArea === area.key && { color: '#fff' }]}>{area.label}</Text></Pressable>)}
-            </View></View>
-            <View style={styles.desktopActions}><View style={styles.livePill}><View style={styles.liveDot}/><Text style={styles.countText}>{preferences.ids.length}{!layout.mobile && preferences.ids.length <= 12 ? '/12' : ''} aktiv</Text></View><Pressable accessibilityRole="button" accessibilityLabel={edit ? 'Bearbeitung beenden' : 'Desktop bearbeiten'} accessibilityState={{ selected: edit }} onPress={() => setEdit(!edit)} style={[styles.headerControl, edit && { backgroundColor: 'rgba(24,107,91,0.68)' }]}><MobileIcon name={edit ? 'check' : 'edit-3'} color="#EAF8FF" size={16}/><Text style={styles.editText}>{edit ? 'Fertig' : 'Bearbeiten'}</Text></Pressable></View>
+          <View testID="desktop-workspace-header" onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setControlsHeight(current => current === value ? current : value); }} style={styles.desktopToolbar}>
+            <View style={styles.desktopTitleRow}>
+              <Text accessibilityRole="header" style={[styles.desktopTitle, header.phone && styles.desktopTitlePhone]}>Mein Desktop · {moduleLabel}</Text>
+              <View style={styles.desktopActions}>
+                <View style={styles.livePill}><View style={styles.liveDot}/><Text style={styles.countText}>{preferences.ids.length}{!layout.mobile && preferences.ids.length <= 12 ? '/12' : ''} aktiv</Text></View>
+                <Pressable accessibilityRole="button" accessibilityLabel={edit ? 'Bearbeitung beenden' : 'Desktop bearbeiten'} accessibilityState={{ selected: edit }} onPress={() => setEdit(!edit)} style={[styles.headerControl, edit && styles.editingControl]}>
+                  <MobileIcon name={edit ? 'check' : 'edit-3'} color="#EAF8FF" size={16}/><Text style={styles.editText}>{edit ? 'Fertig' : 'Bearbeiten'}</Text>
+                </Pressable>
+              </View>
+            </View>
+            <ScrollView ref={areaStripRef} horizontal showsHorizontalScrollIndicator accessibilityRole="tablist" accessibilityLabel="Desktop-Bereiche"
+              onLayout={event => setAreaStripWidth(event.nativeEvent.layout.width)} style={styles.moduleBar} contentContainerStyle={styles.moduleContent}>
+              {DESKTOP_AREAS.map(area => {
+                const selected = area.key === selectedArea;
+                return <Pressable key={area.key} accessibilityRole="tab" accessibilityLabel={area.label} accessibilityState={{ selected }}
+                  onLayout={selected ? event => {
+                    const { x, width } = event.nativeEvent.layout;
+                    setSelectedTabBounds(previous => previous?.x === x && previous.width === width ? previous : { x, width });
+                  } : undefined}
+                  onPress={() => { if (!selected) onSelectArea(area.key); }} style={[styles.areaTab, selected && styles.areaTabActive]}>
+                  <Text style={styles.areaText}>{area.label}</Text>
+                </Pressable>;
+              })}
+            </ScrollView>
           </View>
           {error ? <View style={ui.surface}><Text accessibilityRole="alert" style={ui.error}>{error}</Text><NativeAction label="Erneut speichern" onPress={() => persist(current.current)} /></View> : null}
           {saving ? <Text accessibilityLiveRegion="polite" style={styles.desktopEyebrow}>Auswahl wird gespeichert …</Text> : null}
@@ -241,18 +315,49 @@ function NativeWidget({ widget, narrow, compact, onOpen, suggestion, artworkHeig
 const styles = StyleSheet.create({
   navigationKicker: { color: '#78E5FF', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 16, fontWeight: '700', letterSpacing: 1 }, navigationTitle: { color: '#FFF', fontFamily: careSuiteAppFontFamily, fontSize: 18, lineHeight: 24, fontWeight: '700' }, navigationSearch: { borderWidth: 1, borderColor: 'rgba(126,205,255,0.3)', borderRadius: 12, paddingHorizontal: 10, backgroundColor: 'rgba(1,11,28,0.7)' }, navigationInput: { minHeight: 44, color: '#EAF6FF', fontFamily: careSuiteAppFontFamily, fontSize: 14 },
   emptyWidget: { borderRadius: 18, borderWidth: 1, borderStyle: 'dashed', borderColor: 'rgba(126,208,244,0.25)', backgroundColor: 'rgba(4,23,44,0.34)', alignItems: 'center', justifyContent: 'center' }, emptyPlus: { color: '#78E4FF', fontSize: 24 }, emptyTitle: { color: '#E9F8FF', fontFamily: careSuiteAppFontFamily, fontSize: 13, fontWeight: '700' }, emptyCopy: { color: '#91B5CA', fontFamily: careSuiteAppFontFamily, fontSize: 11, marginTop: 2 },
-  headerInfo: { flexGrow: 1, flexShrink: 1, flexBasis: 320, minWidth: 0, minHeight: 72, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  headerInfoMobile: { flexBasis: '100%', minHeight: 70, paddingHorizontal: 10, paddingVertical: 7, gap: 8 },
-  // The global voice assistant starts in the centre of this reserved first row.
-  brandGroup: { flexDirection: 'row', alignItems: 'center', minWidth: 0, width: '100%', flexBasis: '100%', minHeight: 74 }, assistantDock: { position: 'absolute', left: '50%', marginLeft: -34, width: 68, height: 74 },
-  headerMobile: { padding: 10 }, headerActionsSecondRow: { flexBasis: '100%', width: '100%', justifyContent: 'flex-end', borderTopWidth: 1, borderTopColor: 'rgba(139,211,255,0.18)', paddingTop: 10 }, headerActionsMobile: { justifyContent: 'center', gap: 4, paddingHorizontal: 4, minHeight: 52 },
-  headerControl: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(126,214,255,0.28)', backgroundColor: 'rgba(7,36,67,0.7)', paddingHorizontal: 11, paddingVertical: 8 }, headerControlText: { color: '#F3FCFF', fontFamily: careSuiteAppFontFamily, fontSize: 16, fontWeight: '700' },
-  livePill: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(105,207,242,0.22)' }, liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#58D8C1' }, liveText: { color: '#CEE6F3', fontFamily: careSuiteAppFontFamily, fontSize: 16, fontWeight: '700' }, countText: { color: '#CEE6F3', fontFamily: careSuiteAppFontFamily, fontSize: 12, fontWeight: '700' },
-  profileTrigger: { minHeight: 52, flexDirection: 'row', alignItems: 'center', gap: 9, paddingHorizontal: 4 }, profileCopy: { maxWidth: 180, alignItems: 'flex-end' }, profileName: { color: '#FFF', fontFamily: careSuiteAppFontFamily, fontSize: 16, fontWeight: '700' }, profileRole: { color: '#BFD8EE', fontFamily: careSuiteAppFontFamily, fontSize: 13 },
-  weatherGroup: { width: 220, flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 }, weatherRefresh: { minHeight: 44, minWidth: 36, alignItems: 'center', justifyContent: 'center' }, weatherPlace: { color: '#BCD4EC', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 18, textAlign: 'center' },
-  desktopHeading: { flexGrow: 1, flexBasis: 280, maxWidth: '100%', minWidth: 0 }, desktopActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, alignItems: 'center' }, editText: { color: '#EAF8FF', fontFamily: careSuiteAppFontFamily, fontSize: 13, fontWeight: '700' },
-  timeBlock: { flexShrink: 0, minWidth: 126 },
-  weatherEdit: { color: '#8FE4FF', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 19, fontWeight: '700' },
+  header: { padding: 9, gap: 6, borderRadius: 18, borderWidth: 1, borderColor: 'rgba(139,211,255,0.3)', backgroundColor: 'rgba(2,15,35,0.76)' },
+  headerRow: { flexDirection: 'row', alignItems: 'center', minHeight: 74, gap: 6 },
+  headerHalf: { flex: 1, minWidth: 0 },
+  brandGroup: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandName: { color: '#FFF', fontFamily: careSuiteAppFontFamily, fontSize: 17, lineHeight: 20, fontWeight: '700' },
+  brandAccent: { color: '#8FE4FF' },
+  assistantDock: { width: 68, height: 74, flexShrink: 0, alignSelf: 'flex-start' },
+  headerProfile: { flex: 1, minWidth: 0, alignItems: 'flex-end' },
+  headerInfo: { flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(139,211,255,0.2)', backgroundColor: 'rgba(6,27,51,0.46)' },
+  headerInfoStacked: { flexDirection: 'column', alignItems: 'stretch' },
+  timeBlock: { minWidth: 0, flexShrink: 0, paddingRight: 8, borderRightWidth: 1, borderRightColor: 'rgba(139,211,255,0.22)' },
+  timeBlockStacked: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, paddingRight: 0, paddingBottom: 4, borderRightWidth: 0, borderBottomWidth: 1, borderBottomColor: 'rgba(139,211,255,0.22)' },
+  clock: { color: '#FFF', fontFamily: careSuiteAppFontFamily, fontSize: 34, lineHeight: 39, fontWeight: '900', fontVariant: ['tabular-nums'] },
+  clockCompact: { fontSize: 27, lineHeight: 31 },
+  desktopDate: { color: '#D8EAFF', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 17, fontWeight: '700' },
+  weatherGroup: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 5 },
+  weatherGroupStacked: { flex: 0 },
+  weather: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
+  weatherIcon: { color: '#8FE4FF', fontSize: 20, flexShrink: 0 },
+  weatherText: { color: '#FFF', fontFamily: careSuiteAppFontFamily, fontSize: 15, lineHeight: 19, fontWeight: '700' },
+  weatherPlace: { color: '#BCD4EC', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 16 },
+  weatherEdit: { color: '#8FE4FF', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 16, fontWeight: '700' },
+  weatherRefresh: { minHeight: 44, minWidth: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
+  headerActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minWidth: 0 },
+  headerControl: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(126,214,255,0.28)', backgroundColor: 'rgba(7,36,67,0.7)', paddingHorizontal: 11, paddingVertical: 8 },
+  headerControlCompact: { minWidth: 44, paddingHorizontal: 0 },
+  headerControlText: { color: '#F3FCFF', fontFamily: careSuiteAppFontFamily, fontSize: 16, fontWeight: '700' },
+  livePill: { minHeight: 42, flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(105,207,242,0.22)' },
+  livePillCompact: { minHeight: 44, paddingHorizontal: 9 },
+  liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: '#58D8C1' },
+  liveText: { color: '#CEE6F3', fontFamily: careSuiteAppFontFamily, fontSize: 16, fontWeight: '700' },
+  countText: { color: '#CEE6F3', fontFamily: careSuiteAppFontFamily, fontSize: 12, fontWeight: '700' },
+  profileTrigger: { minHeight: 44, minWidth: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingHorizontal: 3 },
+  profileCopy: { maxWidth: 160, alignItems: 'flex-end' },
+  profileName: { color: '#FFF', fontFamily: careSuiteAppFontFamily, fontSize: 16, fontWeight: '700' },
+  profileRole: { color: '#BFD8EE', fontFamily: careSuiteAppFontFamily, fontSize: 13 },
+  desktopToolbar: { gap: 6, paddingHorizontal: 2 },
+  desktopTitleRow: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 6 },
+  desktopTitle: { color: '#F7FCFF', fontFamily: careSuiteAppFontFamily, fontSize: 22, lineHeight: 28, fontWeight: '700', flexShrink: 1, minWidth: 0 },
+  desktopTitlePhone: { fontSize: 19, lineHeight: 24 },
+  desktopActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 7, alignItems: 'center', minWidth: 0 },
+  editText: { color: '#EAF8FF', fontFamily: careSuiteAppFontFamily, fontSize: 13, fontWeight: '700' },
+  editingControl: { backgroundColor: 'rgba(24,107,91,0.68)' },
   navLabel: { color: '#E6F1FA', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 19, fontWeight: '700' },
   widgetLabelBar: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 },
   artworkStage: { margin: 10, marginTop: 0, borderRadius: 13, backgroundColor: 'rgba(4,23,47,0.5)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
@@ -260,12 +365,13 @@ const styles = StyleSheet.create({
   categoryText: { color: '#B9DCEB', fontFamily: careSuiteAppFontFamily, fontSize: 11, lineHeight: 15, fontWeight: '700', textTransform: 'uppercase' },
   root: { flex: 1, backgroundColor: '#071629' }, safe: { flex: 1, padding: 12, gap: 16, backgroundColor: 'rgba(0,10,27,0.2)' },
   loading: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#071629' },
-  header: { padding: 9, gap: 12, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-start', borderRadius: 20, borderWidth: 1, borderColor: 'rgba(139,211,255,0.3)', backgroundColor: 'rgba(2,15,35,0.76)' }, headerActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: 8, minHeight: 64, padding: 6 },
-  brand: { maxWidth: '100%', flexShrink: 1 }, moduleBar: { flexGrow: 0, flexShrink: 0 }, moduleContent: { flexDirection: 'row', flexWrap: 'wrap', paddingTop: 8, gap: 6 },
-  areaTab: { minHeight: 40, paddingVertical: 8, paddingHorizontal: 15, borderRadius: 12, justifyContent: 'center', backgroundColor: '#0B223D', borderWidth: 1, borderColor: '#466887' }, areaTabActive: { backgroundColor: '#075577', borderColor: '#62DCFF' }, areaText: { color: '#F0F7FF', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 18, fontWeight: '600' },
+  moduleBar: { flexGrow: 0, flexShrink: 0 },
+  moduleContent: { flexDirection: 'row', gap: 6, paddingBottom: 4 },
+  areaTab: { minHeight: 44, flexShrink: 0, paddingVertical: 8, paddingHorizontal: 13, borderRadius: 12, justifyContent: 'center', backgroundColor: '#0B223D', borderWidth: 1, borderColor: '#466887' },
+  areaTabActive: { backgroundColor: '#075577', borderColor: '#62DCFF' },
+  areaText: { color: '#F0F7FF', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 18, fontWeight: '700' },
   workarea: { flex: 1, minHeight: 0, flexDirection: 'row', gap: 16 }, sidebar: { flexGrow: 0, flexShrink: 0, backgroundColor: 'rgba(2,15,35,0.76)', borderWidth: 1, borderColor: 'rgba(139,211,255,0.3)', borderRadius: 28 }, navItem: { minHeight: 48, flexDirection: 'row', alignItems: 'center', paddingVertical: 6, paddingHorizontal: 7, gap: 8, borderRadius: 14 }, group: { color: '#7699B0', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 18, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 },
-  welcome: { flexDirection: 'row', alignItems: 'center', padding: 16, gap: 12, borderRadius: 23, borderWidth: 1, borderColor: 'rgba(157,205,255,0.3)' }, desktopEyebrow: { color: '#BDD4F0', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 19 }, desktopTitle: { color: '#F7FCFF', fontFamily: careSuiteAppFontFamily, fontSize: 22, lineHeight: 28, fontWeight: '700' }, weather: { flex: 1, alignItems: 'center', minWidth: 0, gap: 3, minHeight: 52, justifyContent: 'center' }, clock: { color: '#fff', fontFamily: careSuiteAppFontFamily, fontSize: 34, lineHeight: 39, fontWeight: '600', fontVariant: ['tabular-nums'] }, weatherText: { color: '#D4E8FF', fontFamily: careSuiteAppFontFamily, fontSize: 17, lineHeight: 22, fontWeight: '700', textAlign: 'center' },
-  desktopToolbar: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 16, paddingVertical: 4, paddingHorizontal: 2 }, sectionLabel: { color: '#E0EEFF', fontFamily: careSuiteAppFontFamily, fontSize: 14, lineHeight: 22, fontWeight: '600', flexShrink: 1 },
+  desktopEyebrow: { color: '#BDD4F0', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 19 },
   widget: { borderRadius: 18, borderWidth: 1, borderColor: 'rgba(131,203,245,0.22)', backgroundColor: 'rgba(1,12,29,0.78)', overflow: 'hidden', shadowColor: '#00132B', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.25, shadowRadius: 16, elevation: 3 }, widgetBody: { minHeight: 120 }, widgetTitle: { color: '#F1F8FF', fontFamily: careSuiteAppFontFamily, fontSize: 18, lineHeight: 24, fontWeight: '700', flex: 1, minWidth: 0 }, widgetImage: { width: '100%', aspectRatio: 1.6 }, widgetFallback: { alignItems: 'center', justifyContent: 'center', minHeight: 72 },
   suggestions: { gap: 12 }, suggestionCard: { borderStyle: 'dashed', borderColor: 'rgba(177,221,255,0.5)', backgroundColor: 'rgba(16,49,88,0.65)' }, dismissSuggestion: { position: 'absolute', right: 0, top: 0, width: 44, height: 44, alignItems: 'center', justifyContent: 'center' }, suggestionBadge: { position: 'absolute', left: 8, right: 8, bottom: 8, paddingVertical: 5, borderRadius: 10, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 5, backgroundColor: 'rgba(7,28,58,0.88)' }, suggestionText: { color: '#DDEFFF', fontFamily: careSuiteAppFontFamily, fontSize: 11, lineHeight: 16 },
   widgetEdit: { padding: 8, gap: 8, backgroundColor: '#F3F7FD' }, backgroundChoice: { borderRadius: 18, overflow: 'hidden', borderWidth: 2, borderColor: '#D7E5F5' }, backgroundPreview: { width: '100%', height: 140 }, selected: { borderColor: '#1569E8' },
