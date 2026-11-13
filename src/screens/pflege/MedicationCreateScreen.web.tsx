@@ -6,6 +6,7 @@ import { CareMedicationScheduleInput } from '@/components/inputs/CareMedicationS
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
 import { MedicationOrderFieldOptions, MedicationPackagePicker, MedicationPhysicianPicker, medicationPackageKey } from '@/components/pflege/MedicationReferenceInputs';
+import { MedicationEntryFooter, MedicationEntryOverview, MedicationSelectedPackage } from '@/components/pflege/MedicationEntryLayout';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useCareRuntimePermissions as usePermissions } from '@/hooks/pflege/useCareRuntimePermissions.web';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -412,16 +413,13 @@ function MedicationCreateEditor(props: Props) {
   const { clientSearch, clientId, name, activeIngredient, strength, form, dosage, route, prescribedBy, indication, notes,
     schedule, schemaKey, isPrn, prnReason, isHighAlert, isControlled, intensive, pumpRequired, infusionRate, dilution } = value;
   const directoryAccess = { tenantId: owner?.tenantId ?? '', enabled: !writeBlocked, canEditNow: writable };
-  const productSummary = value.productPzn ? [
-    `PZN ${value.productPzn}`, value.productBrand ? `Marke: ${value.productBrand}` : '',
-    value.productManufacturer ? `Hersteller: ${value.productManufacturer}` : '',
-    [value.productCatalogSource, value.productCatalogVersion].filter(Boolean).join(' · '),
-  ].filter(Boolean).join(' · ') : '';
   const roleLabel = props.roleLabel;
   const filteredClients = useMemo(() => {
     const needle = clientSearch.trim().toLocaleLowerCase('de-DE');
-    return clients.filter(client => !needle || client.label.toLocaleLowerCase('de-DE').includes(needle)).slice(0, 40);
+    return clients.filter(client => !needle || client.label.toLocaleLowerCase('de-DE').includes(needle));
   }, [clients, clientSearch]);
+  const [showMoreClients, setShowMoreClients] = useState(false);
+  const clientLimit = showMoreClients ? 40 : 8;
   const selectedClient = clients.find(client => client.id === clientId);
   const knownOriginal = attempt.current;
   const readableReceipt = currentOriginalReceipt();
@@ -460,12 +458,19 @@ function MedicationCreateEditor(props: Props) {
   return (
     <ScreenShell title="Medikation anlegen" subtitle={`Ambulante Pflege und Intensivpflege · ${roleLabel ?? 'Pflegefachkraft'}`} onBack={() => { void handleLeave(); }}>
       <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-        <InfoBanner variant="info" title="Verordnung erfassen" message="Gespeicherte Angaben sind keine ärztliche Freigabe oder bestätigte Durchführung. Originalquelle und fachliche Prüfung bleiben gesondert erforderlich." />
+        <MedicationEntryOverview client={selectedClient?.label} product={name.trim()} physician={prescribedBy.trim()} />
         {error ? <ErrorState message={error} /> : null}
-        <SectionPanel title="Klient:in" subtitle={bmpSource ? 'Mit der geprüften Planposition verknüpft' : 'Aktiver Versorgungsfall'}>
+        <SectionPanel title="1 · Klientenakte" subtitle={bmpSource ? 'Mit der geprüften Planposition verknüpft' : 'Wählen Sie, zu welcher Akte die Verordnung gehört.'}>
           {bmpSource ? <Text style={styles.originalValue}>{selectedClient?.label}</Text> : <>
-            <PremiumInput label="Klient:in suchen" placeholder="Name eingeben" value={clientSearch} onChangeText={value => change("clientSearch", value)} editable={!writeBlocked} />
-            <FilterChipGroup options={filteredClients.map((client) => ({ key: client.id, label: client.label }))} value={clientId} onChange={value => change("clientId", value)} />
+            <PremiumInput label="Klient:in suchen" placeholder="Name eingeben" value={clientSearch} onChangeText={value => {
+              change('clientSearch', value); setShowMoreClients(false);
+            }} editable={!writeBlocked} />
+            {filteredClients.length ? <FilterChipGroup options={filteredClients.slice(0, clientLimit).map((client) => ({ key: client.id, label: client.label }))}
+              value={clientId} onChange={value => change('clientId', value)} />
+              : <Text accessibilityLiveRegion="polite" style={styles.fieldLabel}>Keine passende Klientenakte gefunden.</Text>}
+            {filteredClients.length > clientLimit ? <Text style={styles.fieldLabel}>Die ersten {clientLimit} von {filteredClients.length} Treffern. Suche bei Bedarf eingrenzen.</Text> : null}
+            {!showMoreClients && filteredClients.length > clientLimit ? <PremiumButton title="Weitere Klientenakten anzeigen" size="sm" variant="secondary"
+              onPress={() => setShowMoreClients(true)} disabled={writeBlocked} /> : null}
           </>}
           {selectedClient?.allergies ? <InfoBanner variant="warning" title="Allergien / Unverträglichkeiten" message={selectedClient.allergies} /> : null}
         </SectionPanel>
@@ -478,12 +483,12 @@ function MedicationCreateEditor(props: Props) {
           <PremiumInput label="Bestätigter Therapiebeginn *" placeholder="JJJJ-MM-TT" value={value.bmpStartDate} maxLength={10}
             onChangeText={date => change('bmpStartDate', date)} editable={!writeBlocked} />
         </SectionPanel> : null}
-        <SectionPanel title="Präparat" subtitle="Passende Packung auswählen oder Angaben aus der Verordnung erfassen">
+        <SectionPanel title="2 · Präparat" subtitle="Packung auswählen oder Daten aus der Originalverordnung eingeben.">
           <MedicationPackagePicker {...directoryAccess} selectedKey={value.productPzn
             ? medicationPackageKey({ pzn: value.productPzn, source: value.productCatalogSource }) : undefined} onPick={pickPackage} />
-          {productSummary ? <InfoBanner variant="info" title="Ausgewählter Präparateintrag" message={productSummary} /> : null}
-          {productSummary ? <PremiumButton title="Verzeichnisbezug lösen" variant="ghost" size="sm"
-            disabled={writeBlocked} onPress={() => update(withoutPackage)} /> : null}
+          {value.productPzn ? <MedicationSelectedPackage pzn={value.productPzn} brand={value.productBrand} manufacturer={value.productManufacturer}
+            onClear={<PremiumButton title="Packungszuordnung lösen" variant="ghost" size="sm" onPress={() => update(withoutPackage)} />}
+            disabled={writeBlocked} /> : null}
           <PremiumInput label="Präparat *" accessibilityLabel="Präparat" value={name} onChangeText={value => change("name", value)} editable={!writeBlocked} />
           <View style={styles.twoCols}>
             <View style={styles.column}><PremiumInput label="Wirkstoff" accessibilityLabel="Wirkstoff" value={activeIngredient} onChangeText={value => change("activeIngredient", value)} editable={!writeBlocked} /></View>
@@ -494,23 +499,24 @@ function MedicationCreateEditor(props: Props) {
             <MedicationOrderFieldOptions kind="form" value={form} enabled={!writeBlocked} onSelect={next => change("form", next)} />
           </View>
         </SectionPanel>
-        <SectionPanel title="Ärztliche Verordnung" subtitle="Verordnende Person, Gabe und Indikation">
+        <SectionPanel title="3 · Verordnende Person" subtitle="Arztkontakt aus dem eigenen Verzeichnis wählen, einen Praxisstandort prüfen oder den Namen direkt eintragen.">
           <MedicationPhysicianPicker {...directoryAccess} prescribedBy={prescribedBy} selectedId={value.prescriberDirectoryId} onPick={pickPhysician} />
           <PremiumInput label="Verordnet durch" accessibilityLabel="Verordnet durch" placeholder="Ärztin oder Arzt" value={prescribedBy}
             hint={value.prescriberDirectoryId ? 'Aus dem Verzeichnis ausgewählt. Eine manuelle Namensänderung löst den Verzeichnisbezug.' : undefined}
             onChangeText={value => change("prescribedBy", value)} editable={!writeBlocked} />
-          <View style={styles.field}>
-            <PremiumInput label="Applikationsweg" accessibilityLabel="Applikationsweg" value={route} onChangeText={value => change("route", value)} editable={!writeBlocked} />
-            <MedicationOrderFieldOptions kind="route" value={route} enabled={!writeBlocked} onSelect={next => change("route", next)} />
-          </View>
-          <View style={styles.field}>
-            <PremiumInput label="Dosierung" accessibilityLabel="Dosierung" placeholder="Einzeldosis aus der Verordnung" value={dosage} onChangeText={value => change("dosage", value)} editable={!writeBlocked} />
-            <MedicationOrderFieldOptions kind="dose" value={dosage} enabled={!writeBlocked} onSelect={next => change("dosage", next)} />
-          </View>
-          <PremiumInput label="Indikation" value={indication} onChangeText={value => change("indication", value)} editable={!writeBlocked} />
-          <PremiumInput label="Einnahme- und Pflegehinweise" value={notes} onChangeText={value => change("notes", value)} editable={!writeBlocked} multiline />
         </SectionPanel>
-        <SectionPanel title="Gabeplan" subtitle="Morgens · mittags · abends · nachts">
+        <SectionPanel title="4 · Dosierung und Gabe" subtitle="Dosis, Applikationsweg und Einnahmezeiten aus der Originalverordnung erfassen.">
+          <View style={styles.twoCols}>
+            <View style={[styles.column, styles.field]}>
+              <PremiumInput label="Dosierung" accessibilityLabel="Dosierung" placeholder="Einzeldosis aus der Verordnung" value={dosage} onChangeText={value => change("dosage", value)} editable={!writeBlocked} />
+              <MedicationOrderFieldOptions kind="dose" value={dosage} enabled={!writeBlocked} onSelect={next => change("dosage", next)} />
+            </View>
+            <View style={[styles.column, styles.field]}>
+              <PremiumInput label="Applikationsweg" accessibilityLabel="Applikationsweg" value={route} onChangeText={value => change("route", value)} editable={!writeBlocked} />
+              <MedicationOrderFieldOptions kind="route" value={route} enabled={!writeBlocked} onSelect={next => change("route", next)} />
+            </View>
+          </View>
+          <Text accessibilityRole="header" style={styles.fieldLabel}>Gabeplan · morgens, mittags, abends, nachts</Text>
           {bmpSource ? <>
             <Text style={styles.originalValue}>Einzeldosis aus dem Original: {bmpSource.prefill.expectedDose}</Text>
             <PremiumButton title="Tageswerte aus dem Original übernehmen" variant="secondary"
@@ -521,25 +527,35 @@ function MedicationCreateEditor(props: Props) {
           <View pointerEvents={writeBlocked ? "none" : "auto"}><CareMedicationScheduleInput label="Regelmedikation" value={schedule} onChange={value => change("schedule", value)} schemaKey={schemaKey} onSchemaKeyChange={value => change("schemaKey", value)} /></View>
           {!bmpSource ? <><Text style={styles.fieldLabel}>Bedarfsmedikation</Text><FilterChipGroup options={yesNo} value={isPrn ? 'yes' : 'no'} onChange={value => change("isPrn", value === "yes")} /></> : null}
           {isPrn ? <PremiumInput label="Bedarfsindikation / Grenzwert *" placeholder="z. B. Schmerz NRS ≥ 4; max. Tagesdosis beachten" value={prnReason} onChangeText={value => change("prnReason", value)} editable={!writeBlocked} multiline /> : null}
+          <PremiumInput label="Indikation" value={indication} onChangeText={value => change("indication", value)} editable={!writeBlocked} />
+          <PremiumInput label="Einnahme- und Pflegehinweise" value={notes} onChangeText={value => change("notes", value)} editable={!writeBlocked} multiline />
         </SectionPanel>
-        <SectionPanel title="Medikationssicherheit" subtitle="Kennzeichnung und Gegenkontrolle">
-          <Text style={styles.fieldLabel}>Hochrisikomedikament</Text><FilterChipGroup options={yesNo} value={isHighAlert ? 'yes' : 'no'} onChange={value => change("isHighAlert", value === "yes")} />
-          <Text style={styles.fieldLabel}>Betäubungsmittel (BtM)</Text><FilterChipGroup options={yesNo} value={isControlled ? 'yes' : 'no'} onChange={value => change("isControlled", value === "yes")} />
-          <Text style={styles.fieldLabel}>Intensivpflegerelevant</Text><FilterChipGroup options={yesNo} value={intensive ? 'yes' : 'no'} onChange={value => change("intensive", value === "yes")} />
-          {intensive ? <><Text style={styles.fieldLabel}>Pumpengabe</Text><FilterChipGroup options={yesNo} value={pumpRequired ? 'yes' : 'no'} onChange={value => change("pumpRequired", value === "yes")} /><View style={styles.twoCols}><PremiumInput label="Laufgeschwindigkeit" placeholder="z. B. 2 ml/h" value={infusionRate} onChangeText={value => change("infusionRate", value)} editable={!writeBlocked} /><PremiumInput label="Verdünnung / Trägerlösung" value={dilution} onChangeText={value => change("dilution", value)} editable={!writeBlocked} /></View></> : null}
+        <SectionPanel title="5 · Medikationssicherheit" subtitle="Besondere Kennzeichnungen der Verordnung erfassen.">
+          <View style={styles.twoCols}>
+            <View style={styles.column}><Text style={styles.fieldLabel}>Hochrisikomedikament</Text><FilterChipGroup options={yesNo} value={isHighAlert ? 'yes' : 'no'} onChange={value => change('isHighAlert', value === 'yes')} /></View>
+            <View style={styles.column}><Text style={styles.fieldLabel}>Betäubungsmittel (BtM)</Text><FilterChipGroup options={yesNo} value={isControlled ? 'yes' : 'no'} onChange={value => change('isControlled', value === 'yes')} /></View>
+            <View style={styles.column}><Text style={styles.fieldLabel}>Intensivpflegerelevant</Text><FilterChipGroup options={yesNo} value={intensive ? 'yes' : 'no'} onChange={value => change('intensive', value === 'yes')} /></View>
+          </View>
+          {intensive ? <><Text style={styles.fieldLabel}>Pumpengabe</Text><FilterChipGroup options={yesNo} value={pumpRequired ? 'yes' : 'no'} onChange={value => change('pumpRequired', value === 'yes')} />
+            <View style={styles.twoCols}>
+              <View style={styles.column}><PremiumInput label="Laufgeschwindigkeit" placeholder="z. B. 2 ml/h" value={infusionRate} onChangeText={value => change('infusionRate', value)} editable={!writeBlocked} /></View>
+              <View style={styles.column}><PremiumInput label="Verdünnung / Trägerlösung" value={dilution} onChangeText={value => change('dilution', value)} editable={!writeBlocked} /></View>
+            </View></> : null}
         </SectionPanel>
-        <View style={styles.actions}><PremiumButton title={status === 'busy' ? 'Wird gespeichert…' : 'Verordnung speichern'} disabled={writeBlocked || !clientId || !name.trim()} onPress={() => { void handleSave(); }} /><PremiumButton title="Abbrechen" variant="secondary" disabled={(['busy','uncertain'] as readonly string[]).includes(status)} onPress={() => { void handleLeave(); }} /></View>
+        <MedicationEntryFooter detail={!clientId || !name.trim() ? 'Zum Speichern sind Klientenakte und Präparat erforderlich.' : 'Prüfen Sie die erfassten Angaben vor dem Speichern gegen die Originalverordnung.'}>
+          <PremiumButton title={status === 'busy' ? 'Wird gespeichert…' : 'Verordnung speichern'} disabled={writeBlocked || !clientId || !name.trim()} onPress={() => { void handleSave(); }} />
+          <PremiumButton title="Abbrechen" variant="secondary" disabled={(['busy','uncertain'] as readonly string[]).includes(status)} onPress={() => { void handleLeave(); }} />
+        </MedicationEntryFooter>
       </ScrollView>
     </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
+  scroll: { alignSelf: 'center', width: '100%', maxWidth: 1100, paddingHorizontal: spacing.sm, paddingTop: spacing.sm, paddingBottom: spacing.xxl, gap: spacing.md },
   fieldLabel: { ...typography.label, color: colors.textMuted, marginTop: spacing.sm, marginBottom: spacing.xs },
   originalValue: { ...typography.body, color: colors.textPrimary },
   twoCols: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   column: { flexBasis: 200, flexGrow: 1, flexShrink: 1, minWidth: 0 },
   field: { gap: spacing.xs },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

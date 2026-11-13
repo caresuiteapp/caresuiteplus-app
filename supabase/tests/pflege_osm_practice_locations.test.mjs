@@ -39,6 +39,7 @@ try {
   await migrate('20261112104503_pflege_master_data_catalogs.sql');
   await migrate('20261112125312_pflege_open_practice_locations.sql');
   await migrate('20261113083637_pflege_osm_practice_locations.sql');
+  await migrate('20261113103607_pflege_practice_location_pages.sql');
   await db.query(`insert into pflege_catalog.osm_practice_locations
     (tenant_id,id,source,source_version,source_updated_at,external_id,display_name,practice_name,specialty,postal_code,city,street,phone,state_code,state_name)
     values ($1,$2,'osm-de-praxis','test-stand','2026-01-02','n:123','Prüfpraxis Berlin',null,'Allgemeinmedizin','01234','Berlin',null,null,'DE-BE','Berlin'),
@@ -54,6 +55,10 @@ try {
     await db.exec(`set role ${role}`);
   };
   const search = async (target, needle, state = null) => (await db.query('select public.search_pflege_osm_practice_locations($1,$2,$3) result',[target,needle,state])).rows[0].result;
+  const searchPage = async (target, needle, state = null, cursor = null) =>
+    (await db.query('select public.search_pflege_osm_practice_locations_page($1,$2,$3,$4) result',[target,needle,state,cursor])).rows[0].result;
+  const searchRuhrPage = async (target, needle, cursor = null) =>
+    (await db.query('select public.search_pflege_practice_locations_page($1,$2,$3) result',[target,needle,cursor])).rows[0].result;
   const insertProbe = (code, name, external = 'n:999') => db.query(`insert into pflege_catalog.osm_practice_locations
     (tenant_id,source,source_version,external_id,display_name,state_code,state_name) values ($1,'osm-de-praxis','test-stand',$2,'Probe',$3,$4)`,
   [tenant,external,code,name]);
@@ -97,5 +102,48 @@ try {
     await assert.rejects(insertProbe('DE-BE','Berlin','untyped-7'),{code:'23514'});
     await assert.rejects(db.query(`insert into public.medications(tenant_id,name,prescribed_by,prescriber_directory_id)
       values($1,'Prüfpräparat','Prüfpraxis Herne',$2)`,[tenant,ruhr]),{code:'23514'});
+  });
+
+  await test('paged practice searches return every row once across name ties, with correctly bounded final pages', async () => {
+    await db.exec('reset role');
+    await db.query(`insert into pflege_catalog.osm_practice_locations(tenant_id,id,source,source_version,external_id,display_name,city,state_code,state_name)
+      select $1,('20000000-0000-4000-8000-'||lpad(g::text,12,'0'))::uuid,'osm-de-praxis','test-stand','n:'||g,
+      case when g < 435 then 'Seitentest A' else 'Seitentest B' end,'Herne','DE-NW','Nordrhein-Westfalen' from generate_series(400,464) g
+      order by g desc`, [tenant]);
+    await db.query(`insert into pflege_catalog.practice_locations(tenant_id,id,source,source_version,external_id,display_name,city)
+      select $1,('20000000-0000-4000-8000-'||lpad(g::text,12,'0'))::uuid,'rvr-ruhr-praxis','test-stand','paged-'||g,
+      case when g < 530 then 'Seitentest A' else 'Seitentest B' end,'Dortmund' from generate_series(500,559) g
+      order by g desc`, [tenant]);
+    await session(actor,tenant);
+    const first = await searchPage(tenant,'Seitentest Herne','DE-NW');
+    const second = await searchPage(tenant,'Seitentest Herne','DE-NW',first.nextCursor);
+    const third = await searchPage(tenant,'Seitentest Herne','DE-NW',second.nextCursor);
+    assert.deepEqual([first.rows.length,second.rows.length,third.rows.length],[30,30,5]);
+    assert.deepEqual([first.nextCursor,second.nextCursor,third.nextCursor],[uuid(429),uuid(459),null]);
+    assert.deepEqual([...first.rows,...second.rows,...third.rows].map(row=>row.id),Array.from({length:65},(_,i)=>uuid(400+i)));
+    assert.deepEqual(first.rows,await search(tenant,'Seitentest Herne','DE-NW'));
+    const ruhrFirst = await searchRuhrPage(tenant,'Seitentest Dortmund');
+    const ruhrSecond = await searchRuhrPage(tenant,'Seitentest Dortmund',ruhrFirst.nextCursor);
+    assert.deepEqual([ruhrFirst.rows.length,ruhrSecond.rows.length,ruhrFirst.nextCursor,ruhrSecond.nextCursor],[30,30,uuid(529),null]);
+    assert.deepEqual([...ruhrFirst.rows,...ruhrSecond.rows].map(row=>row.id),Array.from({length:60},(_,i)=>uuid(500+i)));
+    assert.deepEqual(await searchPage(tenant,'Seitentest Herne','DE-BE'),{rows:[],nextCursor:null});
+    assert.deepEqual(await searchRuhrPage(tenant,'Seitentest Herne'),{rows:[],nextCursor:null});
+  });
+
+  await test('paged lookup validates scope, state and cursor without disclosing a foreign location', async () => {
+    await session(actor,tenant);
+    await assert.rejects(searchPage(other,'Prüfpraxis'),{code:'42501'});
+    await assert.rejects(searchRuhrPage(other,'Prüfpraxis'),{code:'42501'});
+    await assert.rejects(searchPage(tenant,'Prüfpraxis','DE-XX'),{code:'22023'});
+    await assert.rejects(searchPage(tenant,'Prüfpraxis','DE-BE',ruhr),{code:'22023'});
+    await assert.rejects(searchPage(tenant,'Seitentest','DE-NW',ruhr),{code:'22023'});
+    await assert.rejects(searchPage(tenant,'Prüfpraxis',null,foreign),{code:'22023'});
+    await assert.rejects(searchRuhrPage(tenant,'Prüfpraxis',foreign),{code:'22023'});
+    await session('',tenant,'','anon');
+    await assert.rejects(searchPage(tenant,'Prüfpraxis'),{code:'42501'});
+    await assert.rejects(searchRuhrPage(tenant,'Prüfpraxis'),{code:'42501'});
+    await session(actor,tenant,'employee');
+    await assert.rejects(searchPage(tenant,'Prüfpraxis'),{code:'42501'});
+    await assert.rejects(searchRuhrPage(tenant,'Prüfpraxis'),{code:'42501'});
   });
 } finally { await db.close(); }

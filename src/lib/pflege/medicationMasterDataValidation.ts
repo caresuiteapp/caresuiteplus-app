@@ -31,7 +31,7 @@ export const MASTER_DATA_BATCH_LIMIT = 500;
 export const MASTER_DATA_FILE_LIMIT = 1_000_000;
 
 const medicationFields = { pzn: 8, name: 400, ingredient: 2000, strength: 500, dosageForm: 200, brand: 160, manufacturer: 240, packageSize: 120 } as const;
-const physicianFields = { displayName: 180, practiceName: 240, specialty: 160, postalCode: 5, city: 120, street: 200, phone: 60, lanr: 9, bsnr: 9 } as const;
+export const PHYSICIAN_FIELD_LIMITS = { displayName: 180, practiceName: 240, specialty: 160, postalCode: 5, city: 120, street: 200, phone: 60, lanr: 9, bsnr: 9 } as const;
 
 /** IFA PZN-8: retain leading zeros, reject remainder 10 and the unassigned zero code. */
 export function isValidPzn(value: unknown): value is string {
@@ -72,7 +72,7 @@ function medication(value: unknown): MedicationPackageInput {
 function physician(value: unknown, imported: true): PhysicianImportInput;
 function physician(value: unknown, imported: false): PhysicianInput;
 function physician(value: unknown, imported: boolean): PhysicianInput | PhysicianImportInput {
-  const fields = normalizedFields(value, imported ? { externalId: 160, ...physicianFields } : physicianFields,
+  const fields = normalizedFields(value, imported ? { externalId: 160, ...PHYSICIAN_FIELD_LIMITS } : PHYSICIAN_FIELD_LIMITS,
     imported ? ['externalId', 'displayName'] : ['displayName']);
   if (fields.postalCode && !/^[0-9]{5}$/.test(fields.postalCode)) throw new Error('Die Postleitzahl muss fünf Stellen haben.');
   if ((fields.lanr && !/^[0-9]{9}$/.test(fields.lanr)) || (fields.bsnr && !/^[0-9]{9}$/.test(fields.bsnr))) {

@@ -8,6 +8,7 @@ import {
   validateMedicationPackageFeed, validatePhysicianFeed,
   type MedicationPackageInput, type PhysicianInput,
 } from './medicationMasterDataValidation';
+import { addReviewedPracticeContact } from './medicationPracticeContactReview';
 
 export * from './medicationMasterDataValidation';
 
@@ -20,7 +21,22 @@ export type AuthorizedMedicine = {
 export type PhysicianOption = Required<PhysicianInput> & Origin & { id: string };
 export type PracticeLocationOption = Origin & { id: string; displayName: string; practiceName: string | null; specialty: string | null;
   postalCode: string | null; city: string | null; street: string | null; phone: string | null; sourceUpdatedAt: string | null;
-  stateCode?: string | null; stateName?: string | null };
+  stateCode?: string | null; stateName?: string | null; contactSourceUrl?: string };
+export type PracticeLocationPage = { rows: PracticeLocationOption[]; nextCursor: string | null; limited?: true };
+export type PhysicianDraft = Record<'displayName' | 'practiceName' | 'specialty' | 'postalCode' | 'city' | 'street' | 'phone', string>;
+
+/** A place can supply work contact details, but does not identify the person who issued the order. */
+export function practiceLocationToPhysicianDraft(practice: PracticeLocationOption): PhysicianDraft {
+  return {
+    displayName: '',
+    practiceName: practice.practiceName ?? practice.displayName,
+    specialty: practice.specialty ?? '',
+    postalCode: practice.postalCode ?? '',
+    city: practice.city ?? '',
+    street: practice.street ?? '',
+    phone: practice.phone ?? '',
+  };
+}
 export const PRACTICE_STATES = [
   ['DE-BW', 'Baden-Württemberg'], ['DE-BY', 'Bayern'], ['DE-BE', 'Berlin'], ['DE-BB', 'Brandenburg'],
   ['DE-HB', 'Bremen'], ['DE-HH', 'Hamburg'], ['DE-HE', 'Hessen'], ['DE-MV', 'Mecklenburg-Vorpommern'],
@@ -34,6 +50,7 @@ function object(value: unknown): Record<string, unknown> | null {
 }
 
 function str(value: unknown): value is string { return typeof value === 'string' && value.trim().length > 0; }
+function uuid(value: unknown): value is string { return typeof value === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value); }
 
 function validRow(value: unknown, name: string, optional: readonly string[]): value is Record<string, unknown> {
   const row = object(value);
@@ -58,7 +75,8 @@ function isPhysician(value: unknown): value is PhysicianOption {
 
 function isPracticeLocationSource(value: unknown, source: string): value is PracticeLocationOption {
   return validRow(value, 'displayName', ['practiceName', 'specialty', 'postalCode', 'city', 'street', 'phone']) &&
-    value.source === source && typeof value.id === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value.id) &&
+    value.source === source && uuid(value.id) &&
+    value.contactSourceUrl === undefined && // Only supplements reviewed in the app can set the external link.
     (value.sourceUpdatedAt === null || (typeof value.sourceUpdatedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.sourceUpdatedAt)));
 }
 
@@ -71,7 +89,13 @@ function message(error: unknown): string {
   return 'Die Pflege-Stammdaten konnten nicht verarbeitet werden.';
 }
 
-async function call<T>(tenantId: string, name: string, parameters: Record<string, unknown>, decode: (value: unknown) => T | null): Promise<ServiceResult<T>> {
+function isMissingRpc(error: unknown): boolean {
+  const code = object(error)?.code;
+  return code === 'PGRST202' || code === '42883';
+}
+
+async function call<T>(tenantId: string, name: string, parameters: Record<string, unknown>, decode: (value: unknown) => T | null,
+  missing?: () => Promise<ServiceResult<T>>, errorMessage = message): Promise<ServiceResult<T>> {
   const blocked = guardServiceTenant(tenantId);
   if (blocked) return blocked;
   const client = getServiceMode() === 'supabase' ? getSupabaseClient() : null;
@@ -79,7 +103,7 @@ async function call<T>(tenantId: string, name: string, parameters: Record<string
   const rpc = client as unknown as { rpc: (functionName: string, args: Record<string, unknown>) => PromiseLike<{ data: unknown; error: unknown }> };
   try {
     const { data, error } = await withServiceQueryTimeout(Promise.resolve(rpc.rpc(name, { ...parameters, p_tenant: tenantId })), 'Pflege-Stammdaten', 15_000);
-    if (error) return { ok: false, error: message(error) };
+    if (error) return missing && isMissingRpc(error) ? await missing() : { ok: false, error: errorMessage(error) };
     const result = decode(data);
     return result === null ? { ok: false, error: 'Die Stammdaten konnten nicht eindeutig gelesen werden.' } : { ok: true, data: result };
   } catch {
@@ -110,11 +134,58 @@ export function searchPracticeLocations(tenantId: string, query: string): Promis
   return search(tenantId, query, 'search_pflege_practice_locations', (value): value is PracticeLocationOption => isPracticeLocationSource(value, 'rvr-ruhr-praxis'));
 }
 
-export function searchNationalPracticeLocations(tenantId: string, query: string, state: string | null): Promise<ServiceResult<PracticeLocationOption[]>> {
-  if (state !== null && !PRACTICE_STATES.some(([code]) => code === state)) return Promise.resolve({ ok: false, error: 'Bundesland ist ungültig.' });
-  return search(tenantId, query, 'search_pflege_osm_practice_locations', (value): value is PracticeLocationOption =>
-    isPracticeLocationSource(value, 'osm-de-praxis') && PRACTICE_STATES.some(([code, name]) => code === value.stateCode && name === value.stateName)
-    && (!state || value.stateCode === state), { p_state: state });
+function isNationalPractice(value: unknown, state: string | null): value is PracticeLocationOption {
+  return isPracticeLocationSource(value, 'osm-de-praxis') &&
+    PRACTICE_STATES.some(([code, name]) => code === value.stateCode && name === value.stateName) && (!state || value.stateCode === state);
+}
+
+export async function searchNationalPracticeLocations(tenantId: string, query: string, state: string | null): Promise<ServiceResult<PracticeLocationOption[]>> {
+  if (state !== null && !PRACTICE_STATES.some(([code]) => code === state)) return { ok: false, error: 'Bundesland ist ungültig.' };
+  const result = await search(tenantId, query, 'search_pflege_osm_practice_locations',
+    (value): value is PracticeLocationOption => isNationalPractice(value, state), { p_state: state });
+  return result.ok ? { ok: true, data: result.data.map(addReviewedPracticeContact) } : result;
+}
+
+const PRACTICE_PAGE_SIZE = 30;
+
+function decodePracticePage(data: unknown, after: string | null, valid: (value: unknown) => value is PracticeLocationOption): PracticeLocationPage | null {
+  const envelope = object(data);
+  if (!envelope || !Array.isArray(envelope.rows) || envelope.rows.length > PRACTICE_PAGE_SIZE || !envelope.rows.every(valid)) return null;
+  const rows = envelope.rows;
+  const cursor = envelope.nextCursor;
+  const ids = new Set(rows.map(row => row.id.toLowerCase()));
+  if (ids.size !== rows.length || (after !== null && ids.has(after.toLowerCase())) ||
+      (cursor !== null && (!uuid(cursor) || rows.length !== PRACTICE_PAGE_SIZE || cursor !== rows[rows.length - 1]?.id))) return null;
+  return { rows, nextCursor: cursor };
+}
+
+function searchPracticePage(tenantId: string, query: string, name: string, after: string | null,
+  valid: (value: unknown) => value is PracticeLocationOption, legacy: () => Promise<ServiceResult<PracticeLocationOption[]>>,
+  extra: Record<string, unknown> = {}): Promise<ServiceResult<PracticeLocationPage>> {
+  const value = query.trim();
+  if (value.length < 2) return Promise.resolve({ ok: true, data: { rows: [], nextCursor: null } });
+  if (value.length > 120 || /[\u0000-\u001f\u007f]/u.test(value)) return Promise.resolve({ ok: false, error: 'Suchbegriff ist ungültig oder zu lang.' });
+  if (after !== null && !uuid(after)) return Promise.resolve({ ok: false, error: 'Suchposition ist ungültig. Bitte suchen Sie erneut.' });
+  return call(tenantId, name, { ...extra, p_query: value, p_after: after }, data => decodePracticePage(data, after, valid),
+    after !== null ? undefined : async () => {
+      const result = await legacy();
+      return result.ok ? { ok: true, data: { rows: result.data, nextCursor: null,
+        ...(result.data.length === PRACTICE_PAGE_SIZE ? { limited: true } : {}) } } : result;
+    }, error => after !== null && object(error)?.code === '22023' ? 'Suchposition ist nicht mehr gültig. Bitte suchen Sie erneut.' : message(error));
+}
+
+export function searchPracticeLocationsPage(tenantId: string, query: string, after: string | null = null): Promise<ServiceResult<PracticeLocationPage>> {
+  return searchPracticePage(tenantId, query, 'search_pflege_practice_locations_page', after,
+    (value): value is PracticeLocationOption => isPracticeLocationSource(value, 'rvr-ruhr-praxis'),
+    () => searchPracticeLocations(tenantId, query));
+}
+
+export async function searchNationalPracticeLocationsPage(tenantId: string, query: string, state: string | null, after: string | null = null): Promise<ServiceResult<PracticeLocationPage>> {
+  if (state !== null && !PRACTICE_STATES.some(([code]) => code === state)) return { ok: false, error: 'Bundesland ist ungültig.' };
+  const result = await searchPracticePage(tenantId, query, 'search_pflege_osm_practice_locations_page', after,
+    (value): value is PracticeLocationOption => isNationalPractice(value, state),
+    () => searchNationalPracticeLocations(tenantId, query, state), { p_state: state });
+  return result.ok ? { ok: true, data: { ...result.data, rows: result.data.rows.map(addReviewedPracticeContact) } } : result;
 }
 
 export async function saveManualPhysician(tenantId: string, input: PhysicianInput): Promise<ServiceResult<PhysicianOption>> {

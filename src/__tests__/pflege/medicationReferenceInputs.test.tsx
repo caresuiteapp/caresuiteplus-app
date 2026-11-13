@@ -21,6 +21,8 @@ vi.mock('expo-router', () => ({ useLocalSearchParams: () => ({ bmp: mock.bmp }),
 vi.mock('expo-router/react-navigation', () => ({ usePreventRemove: vi.fn() }));
 vi.mock('@/components/layout', () => ({ ScreenShell: ({ title, children }: { title: string; children: ReactNode }) => <main><h1>{title}</h1>{children}</main> }));
 vi.mock('@/components/inputs/CareMedicationScheduleInput', () => ({ CareMedicationScheduleInput: () => null }));
+vi.mock('@expo/vector-icons/Ionicons', () => ({ default: () => null }));
+vi.mock('@expo/vector-icons/Feather', () => ({ default: () => null }));
 vi.mock('@/lib/platform/confirmAction', () => ({ confirmAction: mock.confirm }));
 vi.mock('@/lib/pflege/medicationPlanImportService', () => ({ getMedicationPlanImport: mock.getPlan, getMedicationPlanOrderLink: mock.getLink }));
 vi.mock('@/lib/pflege/medicationPlanOrderHandoff', () => ({ takeMedicationPlanOrderHandoff: mock.takeHandoff }));
@@ -34,8 +36,8 @@ vi.mock('@/lib/pflege/medicationLiveService', () => ({
 vi.mock('@/lib/pflege/medicationMasterData', async importOriginal => ({
   ...await importOriginal<typeof import('@/lib/pflege/medicationMasterData')>(),
   searchMedicationPackages: mock.search, searchPhysicians: mock.searchDoctors,
-  searchAuthorizedMedicines: mock.searchAuthorizations, searchPracticeLocations: mock.searchPractices,
-  searchNationalPracticeLocations: mock.searchNational, saveManualPhysician: mock.saveDoctor,
+  searchAuthorizedMedicines: mock.searchAuthorizations, searchPracticeLocationsPage: mock.searchPractices,
+  searchNationalPracticeLocationsPage: mock.searchNational, saveManualPhysician: mock.saveDoctor,
 }));
 vi.mock('@/lib/pflege/medicationCreateReceipt.web', () => ({ assertMedicationCreateReceipt: (value: unknown) => value, readMedicationCreateReceipt: async () => ({ id: mock.medication }) }));
 vi.mock('@/hooks/core/useAsyncQuery', () => ({
@@ -102,7 +104,8 @@ beforeEach(() => {
   mock.search.mockResolvedValue({ ok: true, data: [testPackage] });
   mock.searchAuthorizations.mockResolvedValue({ ok: true, data: [] });
   mock.searchDoctors.mockResolvedValue({ ok: true, data: [testDoctor] });
-  mock.searchPractices.mockResolvedValue({ ok: true, data: [] });
+  mock.searchPractices.mockResolvedValue({ ok: true, data: { rows: [], nextCursor: null } });
+  mock.searchNational.mockResolvedValue({ ok: true, data: { rows: [], nextCursor: null } });
   mock.saveDoctor.mockResolvedValue({ ok: true, data: testDoctor });
   mock.create.mockResolvedValue({ ok: true, data: { id: mock.medication } });
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
@@ -174,7 +177,7 @@ describe('Verzeichnisse in der Medikationsanlage', () => {
     await render(); await click('Testakte');
     await type('Präparat *', 'Geprüftes Original'); await type('Dosierung', 'Eigene Originalangabe');
     await type('Applikationsweg', 'oral');
-    await click('Zugelassene Arzneimittel suchen');
+    await click('EMA-Suche');
     await type('Zulassungssuche', 'EMA'); await finishSearch();
     expect(mock.searchAuthorizations).toHaveBeenCalledWith(mock.tenant, 'EMA');
     expect(mock.search).not.toHaveBeenCalled();
@@ -196,9 +199,9 @@ describe('Verzeichnisse in der Medikationsanlage', () => {
   it('verwirft eine verspätete EMA-Antwort beim Wechsel zur Packungssuche', async () => {
     let resolveSearch = (_value: unknown) => {};
     mock.searchAuthorizations.mockReturnValue(new Promise((resolve) => { resolveSearch = resolve; }));
-    await render(); await click('Zugelassene Arzneimittel suchen');
+    await render(); await click('EMA-Suche');
     await type('Zulassungssuche', 'EMA'); await finishSearch();
-    await click('Präparat im Verzeichnis suchen');
+    await click('Packung suchen');
     await act(async () => resolveSearch({ ok: true, data: [{ id: mock.medication, name: 'Veraltete EMA-Antwort', source: 'ema-article57' }] }));
     expect(host.textContent).not.toContain('Veraltete EMA-Antwort');
     await type('Präparatesuche', '00000017'); await finishSearch();
@@ -209,12 +212,16 @@ describe('Verzeichnisse in der Medikationsanlage', () => {
   it('übernimmt nur nach Auswahl die genaue Packung und den Arzteintrag; die Gabe bleibt unverändert', async () => {
     await render(); await click('Testakte');
     await type('Dosierung', 'Eigene Originalangabe');
-    await click('Präparat im Verzeichnis suchen');
+    await click('Packung suchen');
     await type('Präparatesuche', testPackage.pzn); await finishSearch();
     expect(mock.search).toHaveBeenCalledWith(mock.tenant, '00000017');
     expect(field('Präparat *').value).toBe('');
     await act(async () => host.querySelector<HTMLElement>('[role=button][aria-label^="Testpräparat, PZN"]')!.click());
+    expect(field('Präparat *').value).toBe('');
+    expect(host.textContent).toContain('Packungsgröße: Testpackung');
+    await click('Packung übernehmen');
     expect(field('Präparat *').value).toBe('Testpräparat');
+    expect(host.textContent).toContain('Packung übernommen');
     expect(field('Wirkstoff').value).toBe('Testwirkstoff');
     expect(field('Darreichungsform').value).toBe('Lösung');
     expect(field('Applikationsweg').value).toBe('');
@@ -232,7 +239,7 @@ describe('Verzeichnisse in der Medikationsanlage', () => {
   it('verwirft überholte Treffer und lässt nach einem Verzeichnisausfall eine manuelle Anlage zu', async () => {
     let resolveOld: (value: unknown) => void = () => {};
     mock.search.mockReturnValueOnce(new Promise((done) => { resolveOld = done; })).mockResolvedValueOnce({ ok: false, error: 'Transport' });
-    await render(); await click('Testakte'); await click('Präparat im Verzeichnis suchen');
+    await render(); await click('Testakte'); await click('Packung suchen');
     await type('Präparatesuche', 'erste Suche'); await finishSearch();
     await type('Präparatesuche', 'zweite Suche'); await finishSearch();
     await act(async () => resolveOld({ ok: true, data: [testPackage] }));
@@ -243,46 +250,53 @@ describe('Verzeichnisse in der Medikationsanlage', () => {
   });
 
   it('speichert eine Ärztin oder einen Arzt nur über die ausdrückliche Verzeichnisaktion', async () => {
-    await render(); await click('Ärztin oder Arzt suchen'); await click('Eigenen Verzeichniseintrag anlegen');
+    await render(); await click('Ärztin oder Arzt suchen'); await click('Arztkontakt anlegen');
     await type('Name der Ärztin oder des Arztes *', 'Dr. Testperson'); await type('Praxis', 'Testpraxis');
     expect(mock.saveDoctor).not.toHaveBeenCalled();
-    await click('Im Verzeichnis speichern und auswählen');
+    await click('Kontakt speichern');
     expect(mock.saveDoctor).toHaveBeenCalledWith(mock.tenant, expect.objectContaining({ displayName: 'Dr. Testperson', practiceName: 'Testpraxis' }));
     expect(field('Verordnet durch').value).toBe('Dr. Testperson');
   });
 
   it('übernimmt RVR-Praxisdaten erst in einen Kontaktentwurf, der den Namen der verordnenden Person offenlässt', async () => {
-    mock.searchPractices.mockResolvedValue({ ok: true, data: [{
+    mock.searchPractices.mockResolvedValue({ ok: true, data: { rows: [{
       id: 'rvr-4', displayName: 'Gemeinschaftspraxis Muster', practiceName: 'Praxis Muster', specialty: 'Allgemeinmedizin',
       city: 'Herne', postalCode: '44623', street: 'Musterstraße 1', phone: null, source: 'rvr-ruhr-praxis',
       sourceVersion: '2026-11-12', sourceUpdatedAt: '2024-10-12',
-    }] });
+    }], nextCursor: null } });
     await render(); await click('Testakte');
     await type('Verordnet durch', 'Bisherige Person');
     await click('Ärztin oder Arzt suchen'); await click('Praxissuche Ruhrgebiet');
     await type('Praxissuche Ruhrgebiet', 'Herne'); await finishSearch();
-    expect(mock.searchPractices).toHaveBeenCalledWith(mock.tenant, 'Herne');
+    expect(mock.searchPractices).toHaveBeenCalledWith(mock.tenant, 'Herne', null);
     expect(mock.searchDoctors).not.toHaveBeenCalled();
     expect(host.textContent).toContain('© Regionalverband Ruhr');
     expect(host.textContent).toContain('Lizenz dl-de/by-2-0');
     expect(host.textContent).toContain('Stand des Eintrags: 12.10.2024');
     await act(async () => host.querySelector<HTMLElement>('[role=button][aria-label^="Gemeinschaftspraxis Muster, Praxisstandort"]')!.click());
+    expect(host.textContent).toContain('Kontaktdaten des Praxisstandorts');
+    expect(host.textContent).toContain('Nicht in der Quelle enthalten');
+    expect(field('Name der Ärztin oder des Arztes *')).toBeNull();
+    await click('Praxisdaten übernehmen');
     expect(field('Verordnet durch').value).toBe('Bisherige Person');
     expect(field('Name der Ärztin oder des Arztes *').value).toBe('');
     expect(field('Praxis').value).toBe('Praxis Muster');
     expect(field('Praxisanschrift').value).toBe('Musterstraße 1');
-    expect((button('Im Verzeichnis speichern und auswählen') as HTMLButtonElement).disabled).toBe(true);
+    expect((button('Kontakt speichern') as HTMLButtonElement).disabled).toBe(true);
     expect(mock.saveDoctor).not.toHaveBeenCalled();
     await type('Name der Ärztin oder des Arztes *', 'Dr. Testperson');
-    await click('Im Verzeichnis speichern und auswählen');
-    expect(mock.saveDoctor).toHaveBeenCalledWith(mock.tenant, expect.objectContaining({ displayName: 'Dr. Testperson', practiceName: 'Praxis Muster' }));
+    await click('Kontakt speichern');
+    expect(mock.saveDoctor).toHaveBeenCalledWith(mock.tenant, expect.objectContaining({
+      displayName: 'Dr. Testperson', practiceName: 'Praxis Muster', specialty: 'Allgemeinmedizin', street: 'Musterstraße 1',
+      postalCode: '44623', city: 'Herne', phone: '',
+    }));
     expect(field('Verordnet durch').value).toBe('Dr. Testperson');
   });
 
   it('zeigt FAIR IOP als Forschungsbestand und behält den Quellenhinweis nach der Auswahl', async () => {
     mock.search.mockResolvedValue({ ok: true, data: [{ ...testPackage, source: 'fair-iop-2024', sourceVersion: '2024-v1' }] });
     await render(); await click('Testakte');
-    await click('Präparat im Verzeichnis suchen'); await type('Präparatesuche', testPackage.pzn); await finishSearch();
+    await click('Packung suchen'); await type('Präparatesuche', testPackage.pzn); await finishSearch();
     expect(host.textContent).toContain('FAIR IOP Medication Database · Forschungsstand 2024');
     expect(host.textContent).toContain('Lizenz CC BY 4.0');
     await act(async () => host.querySelector<HTMLElement>('[role=button][aria-label^="Testpräparat, PZN"]')!.click());
@@ -292,31 +306,67 @@ describe('Verzeichnisse in der Medikationsanlage', () => {
   });
 
   it('sucht bundesweit mit Bundeslandfilter und speichert einen Standort nicht als verordnende Person', async () => {
-    mock.searchNational.mockResolvedValue({ ok: true, data: [{
+    mock.searchNational.mockResolvedValue({ ok: true, data: { rows: [{
       id: 'osm-1', name: 'Prüfpraxis', displayName: 'Prüfpraxis', practiceName: null, specialty: null,
-      city: 'Berlin', postalCode: '10115', street: 'Teststraße 8', phone: null, stateCode: 'DE-BE', stateName: 'Berlin',
+      city: 'Berlin', postalCode: '10115', street: 'Teststraße 8', phone: '030 555550', stateCode: 'DE-BE', stateName: 'Berlin',
+      contactSourceUrl: 'https://praxis.example/kontakt',
       source: 'osm-de-praxis', sourceVersion: '2026-11-12', sourceUpdatedAt: null,
-    }] });
+    }], nextCursor: null } });
     await render(); await click('Testakte'); await click('Ärztin oder Arzt suchen'); await click('Praxissuche Deutschland');
     await click('Bundesland: Alle'); await click('Berlin'); await type('Praxissuche Deutschland', 'Teststraße'); await finishSearch();
-    expect(mock.searchNational).toHaveBeenCalledWith(mock.tenant, 'Teststraße', 'DE-BE');
+    expect(mock.searchNational).toHaveBeenCalledWith(mock.tenant, 'Teststraße', 'DE-BE', null);
     expect(mock.searchPractices).not.toHaveBeenCalled();
     expect(host.textContent).toContain('© OpenStreetMap-Mitwirkende');
     await act(async () => host.querySelector<HTMLElement>('[role=button][aria-label^="Prüfpraxis, Praxisstandort"]')!.click());
+    expect(host.textContent).toContain('Kontaktdaten: Praxiswebsite');
+    await click('Praxisdaten übernehmen');
     expect(field('Name der Ärztin oder des Arztes *').value).toBe('');
     expect(field('Praxis').value).toBe('Prüfpraxis');
+    expect(field('Telefon der Praxis').value).toBe('030 555550');
     expect(field('Verordnet durch').value).toBe('');
     expect(mock.saveDoctor).not.toHaveBeenCalled();
   });
 
+  it('lädt weitere Praxisstandorte nach und verwirft verspätete Seiten einer anderen Suche', async () => {
+    const page = (id: string, displayName: string, nextCursor: string | null) => ({ ok: true, data: { rows: [{
+      id, displayName, practiceName: null, specialty: null, postalCode: null, city: 'Testort', street: null, phone: null,
+      source: 'osm-de-praxis', sourceVersion: '2026-11-12', sourceUpdatedAt: null,
+    }], nextCursor } });
+    let resolvePage: (value: unknown) => void = () => {};
+    mock.searchNational
+      .mockResolvedValueOnce(page('osm-old-1', 'Erster alter Standort', 'old-1'))
+      .mockReturnValueOnce(new Promise(resolve => { resolvePage = resolve; }))
+      .mockResolvedValueOnce(page('osm-new-1', 'Erster neuer Standort', 'new-1'))
+      .mockResolvedValueOnce(page('osm-new-2', 'Zweiter neuer Standort', null));
+    await render(); await click('Ärztin oder Arzt suchen'); await click('Praxissuche Deutschland');
+    await type('Praxissuche Deutschland', 'alter Ort'); await finishSearch(); await click('Weitere Treffer laden');
+    expect(mock.searchNational).toHaveBeenLastCalledWith(mock.tenant, 'alter Ort', null, 'old-1');
+    await type('Praxissuche Deutschland', 'neuer Ort'); await finishSearch();
+    await act(async () => resolvePage(page('osm-old-2', 'Zweiter alter Standort', null)));
+    expect(host.textContent).not.toContain('alter Standort');
+    expect(host.textContent).toContain('Erster neuer Standort');
+    await click('Weitere Treffer laden');
+    expect(mock.searchNational).toHaveBeenLastCalledWith(mock.tenant, 'neuer Ort', null, 'new-1');
+    expect(host.textContent).toContain('Erster neuer Standort');
+    expect(host.textContent).toContain('Zweiter neuer Standort');
+    expect(button('Weitere Treffer laden')).toBeUndefined();
+    await act(async () => host.querySelector<HTMLElement>('[role=button][aria-label^="Zweiter neuer Standort, Praxisstandort"]')!.click());
+    await click('Praxisdaten übernehmen');
+    await click('Zurück zur Suche');
+    expect(field('Praxissuche Deutschland').value).toBe('neuer Ort');
+    expect(host.textContent).toContain('Kontaktdaten des Praxisstandorts');
+    expect(mock.searchNational).toHaveBeenCalledTimes(4);
+  });
+
   it('hängt nach Änderungen an Stärke oder Name keine unpassenden Verzeichniskennungen an', async () => {
-    await render(); await click('Testakte'); await click('Präparat im Verzeichnis suchen');
+    await render(); await click('Testakte'); await click('Packung suchen');
     await type('Präparatesuche', 'Testpräparat'); await finishSearch();
     await act(async () => host.querySelector<HTMLElement>('[role=button][aria-label^="Testpräparat, PZN"]')!.click());
+    await click('Packung übernehmen');
     await click('Ärztin oder Arzt suchen'); await type('Arztsuche', 'Testpraxis'); await finishSearch();
     await act(async () => host.querySelector<HTMLElement>('[role=button][aria-label^="Dr. Testperson, Testpraxis"]')!.click());
     await type('Stärke', 'Korrigierte Originalstärke'); await type('Verordnet durch', 'Verordnende Person laut Original');
-    expect(host.textContent).not.toContain('PZN 00000017');
+    expect(host.textContent).not.toContain('Packung übernommen');
     await click('Verordnung speichern');
     expect(mock.create).toHaveBeenCalledWith(mock.tenant, mock.profile, expect.objectContaining({
       name: 'Testpräparat', strength: 'Korrigierte Originalstärke', productPzn: '', productCatalogSource: '',

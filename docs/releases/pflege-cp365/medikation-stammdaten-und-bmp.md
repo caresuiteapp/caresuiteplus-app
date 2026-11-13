@@ -33,6 +33,10 @@ Unter **Ärztin oder Arzt suchen → Praxissuche Deutschland** durchsucht CareSu
 
 Praxisquelle: © OpenStreetMap-Mitwirkende, Deutschland-Auszug Geofabrik vom 12.11.2026, bearbeitet, [ODbL 1.0](https://www.openstreetmap.org/copyright). Geografische Zuordnung: © BKG 2026, VG250 Stand 01.01.2026 (Daten bearbeitet), [dl-de/by-2-0](https://www.govdata.de/dl-de/by-2-0), [BKG-Datenquellen](https://sgx.geodatenzentrum.de/web_public/gdz/datenquellen/datenquellen_vg_nuts.pdf). Der separate, maschinenlesbare Auszug ist im Web-Export unter `/open-data/osm-praxen-deutschland-2026-11-12.zip` verfügbar. RVR, persönliche Kontakte und Klientendaten sind nicht enthalten.
 
+Die Praxissuche für Deutschland und das Ruhrgebiet lädt jeweils bis zu 30 Treffer auf einmal. Über **Weitere Treffer laden** erscheinen die folgenden Treffer derselben Suche. In der Trefferansicht stehen Quelle, Praxisdaten und fehlende Angaben getrennt. **Praxisdaten übernehmen** öffnet einen bearbeitbaren Kontaktentwurf. Erst **Im Verzeichnis speichern und auswählen** speichert ihn beim eigenen Unternehmen und verknüpft die verordnende Person mit der Verordnung. Für den Standort Dr. med. Uwe Wellbrock ergänzt CareSuite Straße, PLZ und Telefon anhand der [Praxiswebsite](https://www.praxis-wellbrock.de/index.php/kontakt.html) und weist diese Quelle gesondert aus.
+
+Bei einer Packung zeigt die Vorschau PZN, Wirkstoff, Stärke, Darreichungsform, Marke, Hersteller und Packungsgröße an, soweit Daten vorliegen. Erst **Packung übernehmen** füllt die Präparatfelder. Packungsgröße bleibt eine Anzeige aus dem Katalog. Sie bestimmt keine Dosierung. Die Verordnung speichert den Bezug zur ausgewählten Packung und, bei Auswahl eines Kontakts, zur verordnenden Person.
+
 ## Medikationsplan
 
 Der strukturierte BMP wird als eigener Entwurf verarbeitet. Ein Plan kann nur einem zulässigen Klienten des eigenen Mandanten zugeordnet werden. Automatische Zuordnung setzt eine eindeutige Übereinstimmung der Identität voraus. Der Originalinhalt und die gelesenen Werte dienen als Prüfgrundlage. Das Speichern und die Einzelbestätigung im Prüfentwurf erfassen keine Gabe und legen keine Verordnung an.
