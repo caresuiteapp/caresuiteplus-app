@@ -1,0 +1,785 @@
+{
+  "source": "de-pack-verified",
+  "sourceVersion": "2026-11-13.1",
+  "checkedOn": "2026-11-13",
+  "references": [
+    {
+      "pzn": "00217001",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metoprololsuccinat-heumann-2375-mg-retardtabletten.html"
+    },
+    {
+      "pzn": "00220693",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metoprololsuccinat-heumann-475-mg-retardtabletten.html"
+    },
+    {
+      "pzn": "00223846",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metoprololsuccinat-heumann-95-mg-retardtabletten.html"
+    },
+    {
+      "pzn": "00277718",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "00297046",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "00300423",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "00300446",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "00300452",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "00300469",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02223891",
+      "sourceUrl": "https://www.docmorris.de/ramiprilratiopharm-25-mg-tabletten/02223891"
+    },
+    {
+      "pzn": "02223945",
+      "sourceUrl": "https://www.docmorris.de/ramiprilratiopharm-5-mg-tabletten/02223945"
+    },
+    {
+      "pzn": "02532675",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532681",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532706",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532712",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532735",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532741",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532764",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532770",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532793",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532801",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532824",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532830",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532853",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02532876",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "02634097",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/amlodipin-ratiopharm-5-mg-n-tabletten-pzn-2634097/"
+    },
+    {
+      "pzn": "02634536",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/amlodipin-ratiopharm-10-mg-n-tabletten-pzn-2634536/"
+    },
+    {
+      "pzn": "02765267",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/simvastatin-heumann-20-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "02765333",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/simvastatin-heumann-20-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "02765385",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/simvastatin-heumann-40-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "02765391",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/simvastatin-heumann-40-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "04446543",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metoprolol-50-heumann.html"
+    },
+    {
+      "pzn": "04446566",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metoprolol-50-heumann.html"
+    },
+    {
+      "pzn": "04446603",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metoprolol-100-heumann.html"
+    },
+    {
+      "pzn": "04446632",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metoprolol-200-retard-heumann.html"
+    },
+    {
+      "pzn": "04446649",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metoprolol-200-retard-heumann.html"
+    },
+    {
+      "pzn": "04446655",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metoprolol-200-retard-heumann.html"
+    },
+    {
+      "pzn": "04876203",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "05371652",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/losartan-heumann-50-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "05371669",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/losartan-heumann-50-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "05371675",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/losartan-heumann-50-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "05371681",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/losartan-heumann-100-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "05371698",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/losartan-heumann-100-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "05371706",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/losartan-heumann-100-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "05860227",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-20-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "05860233",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-20-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "05860322",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-20-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "05860339",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-20-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "05860345",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-40-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "05860351",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-40-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "05860411",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-40-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "05860463",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-40-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "06865959",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/bisoprolol-ratiopharm-5-mg-tabletten-pzn-6865959/"
+    },
+    {
+      "pzn": "06865988",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/bisoprolol-ratiopharm-10-mg-tabletten-pzn-6865988/"
+    },
+    {
+      "pzn": "08879523",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-4-mg-tabletten-pzn-8879523/",
+      "packageSourceUrl": "https://www.gkv-spitzenverband.de/media/dokumente/service_1/zuzahlung_und_befreiung/zuzahlungsbefreite_arzneimittel_nach_name/Zuzahlungsbefreit_sort_Name_240201.pdf"
+    },
+    {
+      "pzn": "08879546",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-4-mg-tabletten-pzn-8879523/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-4-mg-tabletten/08879546"
+    },
+    {
+      "pzn": "08879552",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-4-mg-tabletten-pzn-8879523/",
+      "packageSourceUrl": "https://www.gkv-spitzenverband.de/media/dokumente/service_1/zuzahlung_und_befreiung/zuzahlungsbefreite_arzneimittel_nach_name/Zuzahlungsbefreit_sort_Name_260415.pdf"
+    },
+    {
+      "pzn": "08879569",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-8-mg-tabletten-pzn-8879569/",
+      "packageSourceUrl": "https://www.gkv-spitzenverband.de/media/dokumente/service_1/zuzahlung_und_befreiung/zuzahlungsbefreite_arzneimittel_nach_name/Zuzahlungsbefreit_sort_Name_260415.pdf"
+    },
+    {
+      "pzn": "08879730",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-8-mg-tabletten-pzn-8879569/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-8-mg-tabletten/08879730"
+    },
+    {
+      "pzn": "08879747",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-8-mg-tabletten-pzn-8879569/",
+      "packageSourceUrl": "https://www.gkv-spitzenverband.de/media/dokumente/service_1/zuzahlung_und_befreiung/zuzahlungsbefreite_arzneimittel_nach_name/Zuzahlungsbefreit_sort_Name_260415.pdf"
+    },
+    {
+      "pzn": "08879753",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-16-mg-tabletten-pzn-8879753/",
+      "packageSourceUrl": "https://www.gkv-spitzenverband.de/media/dokumente/service_1/zuzahlung_und_befreiung/zuzahlungsbefreite_arzneimittel_nach_name/Zuzahlungsbefreit_sort_Name_240201.pdf"
+    },
+    {
+      "pzn": "08879776",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-16-mg-tabletten-pzn-8879753/",
+      "packageSourceUrl": "https://www.gkv-spitzenverband.de/media/dokumente/service_1/zuzahlung_und_befreiung/zuzahlungsbefreite_arzneimittel_nach_name/Zuzahlungsbefreit_sort_Name_260415.pdf"
+    },
+    {
+      "pzn": "08879782",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-16-mg-tabletten-pzn-8879753/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-16-mg-tabletten/08879782"
+    },
+    {
+      "pzn": "08879799",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-32-mg-tabletten-pzn-8879799/",
+      "packageSourceUrl": "https://www.gkv-spitzenverband.de/media/dokumente/service_1/zuzahlung_und_befreiung/zuzahlungsbefreite_arzneimittel_nach_name/Zuzahlungsbefreit_sort_Name_260415.pdf"
+    },
+    {
+      "pzn": "08879807",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-32-mg-tabletten-pzn-8879799/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-32-mg-tabletten/08879807"
+    },
+    {
+      "pzn": "08879813",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-32-mg-tabletten-pzn-8879799/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-32-mg-tabletten/08879813"
+    },
+    {
+      "pzn": "09068169",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-8-mg-12-5-mg-tabletten-pzn-9068169/",
+      "packageSourceUrl": "https://www.shop-apotheke.com/arzneimittel/9068169/candesartan-ratiopharm-comp-8-mg-12-5-mg.htm"
+    },
+    {
+      "pzn": "09068175",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-8-mg-12-5-mg-tabletten-pzn-9068169/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-comp-8-mg125-mg-tabl/09068175"
+    },
+    {
+      "pzn": "09068181",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-8-mg-12-5-mg-tabletten-pzn-9068169/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-comp-8-mg125-mg-tabl/09068181"
+    },
+    {
+      "pzn": "09068206",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-16-mg-12-5-mg-tabletten-pzn-9068206/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-comp-16-mg125-mg-tabl/09068206"
+    },
+    {
+      "pzn": "09068212",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-16-mg-12-5-mg-tabletten-pzn-9068206/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-comp-16-mg-12-5-mg-tabl-56-st/09068212"
+    },
+    {
+      "pzn": "09068229",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-16-mg-12-5-mg-tabletten-pzn-9068206/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-comp-16-mg125-mg-tabl/09068229"
+    },
+    {
+      "pzn": "09068241",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-32-mg-12-5-mg-tabletten-pzn-9068241/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-comp-32-mg125-mg-tabl/09068241"
+    },
+    {
+      "pzn": "09068258",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-32-mg-12-5-mg-tabletten-pzn-9068241/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-comp-32-mg125-mg-tabl/09068258/"
+    },
+    {
+      "pzn": "09068264",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-32-mg-12-5-mg-tabletten-pzn-9068241/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-comp-32-mg125-mg-tabl/09068264"
+    },
+    {
+      "pzn": "09068287",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-32-mg-25-mg-tabletten-pzn-9068287/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-comp-32-mg25-mg-tabletten/09068287/"
+    },
+    {
+      "pzn": "09068293",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-32-mg-25-mg-tabletten-pzn-9068287/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-comp-32-mg25-mg-tabletten/09068293"
+    },
+    {
+      "pzn": "09068301",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/candesartan-ratiopharm-comp-32-mg-25-mg-tabletten-pzn-9068287/",
+      "packageSourceUrl": "https://www.docmorris.de/candesartanratiopharm-comp-32-mg25-mg-tabletten/09068301"
+    },
+    {
+      "pzn": "09192142",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-20-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "09192165",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-20-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "09192171",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-20-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "09192194",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-20-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "09192219",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-40-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "09192248",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-40-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "09192254",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-40-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "09192277",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-40-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "09273171",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.paul-pille.de/produkt/candesartan-1a-pharma-16-mg-tabletten-56-st-09273171.html",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "09273188",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.sanicare.de/produkt/candesartan-1a-pharma-16-mg-tabletten-98-st-09273188.html",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "09273202",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.aliva.de/produkt/candesartan-1a-pharma-32-mg-tabletten-56-st-09273202.html",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "09390617",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.docmorris.de/candesartan-hexal-16-mg-tabletten/09390617",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "09390623",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.docmorris.de/candesartan-hexal-16-mg-tabletten/09390623",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "09390652",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.docmorris.de/candesartan-hexal-32-mg-tabletten/09390652",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "09390675",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.docmorris.de/candesartan-hexal-32-mg-tabletten/09390675",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "09424434",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-4-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424440",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-4-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424457",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-4-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424575",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-8-mg125-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424581",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-8-mg125-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424598",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-8-mg125-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424606",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-16-mg125-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424612",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-16-mg125-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424629",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-16-mg125-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424635",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-32-mg125-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424641",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-32-mg125-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424658",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-32-mg125-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424664",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-32-mg25-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424670",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-32-mg25-mg-tabletten.html"
+    },
+    {
+      "pzn": "09424687",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartanhct-heumann-32-mg25-mg-tabletten.html"
+    },
+    {
+      "pzn": "09530751",
+      "sourceUrl": "https://www.hennig-am.de/produkte/candesartancilexetil-hennig-8-mg",
+      "manufacturerSourceUrl": "https://www.hennig-am.de/fileadmin/Medien/Website/PDF/Gebrauchsinformationen/Candesartancilexetil_Hennig_8_mg.pdf"
+    },
+    {
+      "pzn": "09530797",
+      "sourceUrl": "https://www.hennig-am.de/produkte/candesartancilexetil-hennig-16-mg",
+      "manufacturerSourceUrl": "https://www.hennig-am.de/fileadmin/Medien/Website/PDF/Gebrauchsinformationen/Candesartancilexetil_Hennig_16_mg.pdf"
+    },
+    {
+      "pzn": "09530834",
+      "sourceUrl": "https://www.hennig-am.de/produkte/candesartancilexetil-hennig-32-mg"
+    },
+    {
+      "pzn": "09530892",
+      "sourceUrl": "https://www.hennig-am.de/produkte/candesartancilexetil-hennigr-plus-hct-8mg125mg",
+      "manufacturerSourceUrl": "https://www.hennig-am.de/fileadmin/Medien/Website/PDF/Gebrauchsinformationen/Candesartancilexetil_Hennig_plus_HCT_8_mg_-_12_5_mg.pdf"
+    },
+    {
+      "pzn": "09530923",
+      "sourceUrl": "https://www.hennig-am.de/produkte/candesartancilexetil-hennigr-plus-hct-16-mg125mg",
+      "manufacturerSourceUrl": "https://www.hennig-am.de/fileadmin/Medien/Website/PDF/Gebrauchsinformationen/Candesartancilexetil_Hennig_plus_HCT_16_mg_12_5_mg.pdf"
+    },
+    {
+      "pzn": "09533229",
+      "sourceUrl": "https://www.hennig-am.de/produkte/atorvastatin-hennig-10-mg"
+    },
+    {
+      "pzn": "09533235",
+      "sourceUrl": "https://www.hennig-am.de/produkte/atorvastatin-hennig-10-mg"
+    },
+    {
+      "pzn": "09533258",
+      "sourceUrl": "https://www.hennig-am.de/produkte/atorvastatin-hennig-20-mg"
+    },
+    {
+      "pzn": "09533264",
+      "sourceUrl": "https://www.hennig-am.de/produkte/atorvastatin-hennig-20-mg"
+    },
+    {
+      "pzn": "09533287",
+      "sourceUrl": "https://www.hennig-am.de/produkte/atorvastatin-hennig-40-mg"
+    },
+    {
+      "pzn": "09533293",
+      "sourceUrl": "https://www.hennig-am.de/produkte/atorvastatin-hennig-40-mg"
+    },
+    {
+      "pzn": "09533324",
+      "sourceUrl": "https://www.hennig-am.de/produkte/atorvastatin-hennig-80-mg"
+    },
+    {
+      "pzn": "10330046",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/bisoprolol-ratiopharm-1-25-mg-tabletten-pzn-10330046/"
+    },
+    {
+      "pzn": "10330069",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/bisoprolol-ratiopharm-2-5-mg-tabletten-pzn-10330069/"
+    },
+    {
+      "pzn": "10330106",
+      "sourceUrl": "https://www.ratiopharm.de/produkte/details/bisoprolol-ratiopharm-3-75-mg-tabletten-pzn-10330106/"
+    },
+    {
+      "pzn": "11544134",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-40-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "11544140",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/pantoprazol-heumann-20-mg-magensaftresistente-tabletten.html"
+    },
+    {
+      "pzn": "12658242",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/losartan-heumann-25-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "12658259",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/losartan-heumann-25-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "12658265",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/losartan-heumann-25-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "14214897",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/amlodipinvalsartan-heumann-5-mg80-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "14214911",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/amlodipinvalsartan-heumann-5-mg80-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "14214928",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/amlodipinvalsartan-heumann-5-mg80-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "14214934",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/amlodipinvalsartan-heumann-5-mg160-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "14214940",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/amlodipinvalsartan-heumann-5-mg160-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "14214957",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/amlodipinvalsartan-heumann-5-mg160-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "14214963",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/amlodipinvalsartan-heumann-10-mg160-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "14214986",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/amlodipinvalsartan-heumann-10-mg160-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "14214992",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/amlodipinvalsartan-heumann-10-mg160-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "15864568",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-8-mg-tabletten-1.html"
+    },
+    {
+      "pzn": "15864580",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-8-mg-tabletten-1.html"
+    },
+    {
+      "pzn": "15864597",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-8-mg-tabletten-1.html"
+    },
+    {
+      "pzn": "15864605",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-16-mg-tabletten.html"
+    },
+    {
+      "pzn": "15864634",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-16-mg-tabletten.html"
+    },
+    {
+      "pzn": "15864640",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-16-mg-tabletten.html"
+    },
+    {
+      "pzn": "15864657",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-32-mg-tabletten-1.html"
+    },
+    {
+      "pzn": "15864663",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-32-mg-tabletten-1.html"
+    },
+    {
+      "pzn": "15864686",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-32-mg-tabletten-1.html"
+    },
+    {
+      "pzn": "16917427",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "16917433",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "16917462",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "16917479",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "16917522",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "16917551",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "16917580",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "16917597",
+      "sourceUrl": "https://pro.campus.sanofi/dam/Portal/Germany/Resources/service-materialien-schilddruese/pdf/Henning_Gesamtsortimenter.pdf"
+    },
+    {
+      "pzn": "17367495",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/sitagliptin-heumann-25-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "17367503",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/sitagliptin-heumann-25-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "17367526",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/sitagliptin-heumann-50-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "17367532",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/sitagliptin-heumann-50-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "17367549",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/sitagliptin-heumann-100-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "17367555",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/sitagliptin-heumann-100-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "17420574",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.docmorris.de/candesartan-hexal-32-mg-tabletten-dose/17420574",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "17575762",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-2-mg-tabletten.html"
+    },
+    {
+      "pzn": "17575785",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-2-mg-tabletten.html"
+    },
+    {
+      "pzn": "17575816",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/candesartan-heumann-2-mg-tabletten.html"
+    },
+    {
+      "pzn": "18400792",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metformin-heumann-500-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "18400800",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metformin-heumann-500-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "18400817",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metformin-heumann-500-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "18400846",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metformin-heumann-850-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "18400852",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metformin-heumann-850-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "18400869",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metformin-heumann-850-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "18400875",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metformin-heumann-1000-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "18400881",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metformin-heumann-1000-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "18400898",
+      "sourceUrl": "https://www.heumann.de/de/unsere-produkte/rezeptpflichtige-arzneimittel/metformin-heumann-1000-mg-filmtabletten.html"
+    },
+    {
+      "pzn": "19126790",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.apo.com/candesartan-1a-pharma-4-mg-tabletten-30stk-pzn-19126790",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "19126809",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.aliva.de/produkt/candesartan-1a-pharma-4-mg-tabletten-60-st-19126809.html",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "19126815",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.versandapotheke.de/19126815/candesartan-1a-pharma-4-mg-tabletten.html",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "19126844",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.versandapotheke.de/19126844/candesartan-1a-pharma-8-mg-tabletten.html",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "19126867",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.mediscout24.de/candesartan-1a-pharma-8-mg-tabletten-19126867",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-1a-pharma-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "19127588",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.docmorris.de/candesartan-hexal-4-mg-tabletten/19127588",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten"
+    },
+    {
+      "pzn": "19127631",
+      "sourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten",
+      "packageSourceUrl": "https://www.docmorris.de/candesartan-hexal-8-mg-tabletten/19127631",
+      "manufacturerSourceUrl": "https://www.patienteninfo-service.de/a-z-liste/c/candesartan-hexal-4mg-8mg-16mg-32mg-tabletten"
+    }
+  ]
+}

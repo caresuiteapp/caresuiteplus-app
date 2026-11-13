@@ -22,7 +22,8 @@ export type PhysicianOption = Required<PhysicianInput> & Origin & { id: string }
 export type PracticeLocationOption = Origin & { id: string; displayName: string; practiceName: string | null; specialty: string | null;
   postalCode: string | null; city: string | null; street: string | null; phone: string | null; sourceUpdatedAt: string | null;
   stateCode?: string | null; stateName?: string | null; contactSourceUrl?: string };
-export type PracticeLocationPage = { rows: PracticeLocationOption[]; nextCursor: string | null; limited?: true };
+export type CatalogPage<T> = { rows: T[]; nextCursor: string | null; limited?: true };
+export type PracticeLocationPage = CatalogPage<PracticeLocationOption>;
 export type PhysicianDraft = Record<'displayName' | 'practiceName' | 'specialty' | 'postalCode' | 'city' | 'street' | 'phone', string>;
 
 /** A place can supply work contact details, but does not identify the person who issued the order. */
@@ -146,45 +147,64 @@ export async function searchNationalPracticeLocations(tenantId: string, query: s
   return result.ok ? { ok: true, data: result.data.map(addReviewedPracticeContact) } : result;
 }
 
-const PRACTICE_PAGE_SIZE = 30;
+const CATALOG_PAGE_SIZE = 30;
+const idCursor = <T extends { id: string }>(row: T) => row.id.toLowerCase();
+const packageCursor = (row: MedicationPackageOption) => `${row.source}:${row.pzn}`;
+const validPackageCursor = (cursor: unknown): cursor is string => {
+  if (typeof cursor !== 'string') return false;
+  const [source, pzn, unexpected] = cursor.split(':');
+  return unexpected === undefined && validCatalogSource(source) && source !== 'manual' && isValidPzn(pzn);
+};
 
-function decodePracticePage(data: unknown, after: string | null, valid: (value: unknown) => value is PracticeLocationOption): PracticeLocationPage | null {
+function decodeCatalogPage<T>(data: unknown, after: string | null, valid: (value: unknown) => value is T,
+  makeCursor: (row: T) => string, validCursor: (value: unknown) => value is string): CatalogPage<T> | null {
   const envelope = object(data);
-  if (!envelope || !Array.isArray(envelope.rows) || envelope.rows.length > PRACTICE_PAGE_SIZE || !envelope.rows.every(valid)) return null;
+  if (!envelope || !Array.isArray(envelope.rows) || envelope.rows.length > CATALOG_PAGE_SIZE || !envelope.rows.every(valid)) return null;
   const rows = envelope.rows;
   const cursor = envelope.nextCursor;
-  const ids = new Set(rows.map(row => row.id.toLowerCase()));
+  const ids = new Set(rows.map(makeCursor));
   if (ids.size !== rows.length || (after !== null && ids.has(after.toLowerCase())) ||
-      (cursor !== null && (!uuid(cursor) || rows.length !== PRACTICE_PAGE_SIZE || cursor !== rows[rows.length - 1]?.id))) return null;
+      (cursor !== null && (!validCursor(cursor) || rows.length !== CATALOG_PAGE_SIZE || cursor !== makeCursor(rows[rows.length - 1])))) return null;
   return { rows, nextCursor: cursor };
 }
 
-function searchPracticePage(tenantId: string, query: string, name: string, after: string | null,
-  valid: (value: unknown) => value is PracticeLocationOption, legacy: () => Promise<ServiceResult<PracticeLocationOption[]>>,
-  extra: Record<string, unknown> = {}): Promise<ServiceResult<PracticeLocationPage>> {
+function searchCatalogPage<T>(tenantId: string, query: string, name: string, after: string | null,
+  valid: (value: unknown) => value is T, legacy: () => Promise<ServiceResult<T[]>>,
+  makeCursor: (row: T) => string, validCursor: (value: unknown) => value is string,
+  extra: Record<string, unknown> = {}): Promise<ServiceResult<CatalogPage<T>>> {
   const value = query.trim();
   if (value.length < 2) return Promise.resolve({ ok: true, data: { rows: [], nextCursor: null } });
   if (value.length > 120 || /[\u0000-\u001f\u007f]/u.test(value)) return Promise.resolve({ ok: false, error: 'Suchbegriff ist ungültig oder zu lang.' });
-  if (after !== null && !uuid(after)) return Promise.resolve({ ok: false, error: 'Suchposition ist ungültig. Bitte suchen Sie erneut.' });
-  return call(tenantId, name, { ...extra, p_query: value, p_after: after }, data => decodePracticePage(data, after, valid),
+  if (after !== null && !validCursor(after)) return Promise.resolve({ ok: false, error: 'Suchposition ist ungültig. Bitte suchen Sie erneut.' });
+  return call(tenantId, name, { ...extra, p_query: value, p_after: after }, data => decodeCatalogPage(data, after, valid, makeCursor, validCursor),
     after !== null ? undefined : async () => {
       const result = await legacy();
       return result.ok ? { ok: true, data: { rows: result.data, nextCursor: null,
-        ...(result.data.length === PRACTICE_PAGE_SIZE ? { limited: true } : {}) } } : result;
+        ...(result.data.length === CATALOG_PAGE_SIZE ? { limited: true } : {}) } } : result;
     }, error => after !== null && object(error)?.code === '22023' ? 'Suchposition ist nicht mehr gültig. Bitte suchen Sie erneut.' : message(error));
 }
 
+export function searchMedicationPackagesPage(tenantId: string, query: string, after: string | null = null): Promise<ServiceResult<CatalogPage<MedicationPackageOption>>> {
+  return searchCatalogPage(tenantId, query, 'search_pflege_medication_packages_page', after, isPackage,
+    () => searchMedicationPackages(tenantId, query), packageCursor, validPackageCursor);
+}
+
+export function searchAuthorizedMedicinesPage(tenantId: string, query: string, after: string | null = null): Promise<ServiceResult<CatalogPage<AuthorizedMedicine>>> {
+  return searchCatalogPage(tenantId, query, 'search_pflege_authorized_medicines_page', after, isAuthorizedMedicine,
+    () => searchAuthorizedMedicines(tenantId, query), idCursor, uuid);
+}
+
 export function searchPracticeLocationsPage(tenantId: string, query: string, after: string | null = null): Promise<ServiceResult<PracticeLocationPage>> {
-  return searchPracticePage(tenantId, query, 'search_pflege_practice_locations_page', after,
+  return searchCatalogPage(tenantId, query, 'search_pflege_practice_locations_page', after,
     (value): value is PracticeLocationOption => isPracticeLocationSource(value, 'rvr-ruhr-praxis'),
-    () => searchPracticeLocations(tenantId, query));
+    () => searchPracticeLocations(tenantId, query), idCursor, uuid);
 }
 
 export async function searchNationalPracticeLocationsPage(tenantId: string, query: string, state: string | null, after: string | null = null): Promise<ServiceResult<PracticeLocationPage>> {
   if (state !== null && !PRACTICE_STATES.some(([code]) => code === state)) return { ok: false, error: 'Bundesland ist ungültig.' };
-  const result = await searchPracticePage(tenantId, query, 'search_pflege_osm_practice_locations_page', after,
+  const result = await searchCatalogPage(tenantId, query, 'search_pflege_osm_practice_locations_page', after,
     (value): value is PracticeLocationOption => isNationalPractice(value, state),
-    () => searchNationalPracticeLocations(tenantId, query, state), { p_state: state });
+    () => searchNationalPracticeLocations(tenantId, query, state), idCursor, uuid, { p_state: state });
   return result.ok ? { ok: true, data: { ...result.data, rows: result.data.rows.map(addReviewedPracticeContact) } } : result;
 }
 

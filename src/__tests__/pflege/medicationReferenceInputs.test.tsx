@@ -35,8 +35,8 @@ vi.mock('@/lib/pflege/medicationLiveService', () => ({
 }));
 vi.mock('@/lib/pflege/medicationMasterData', async importOriginal => ({
   ...await importOriginal<typeof import('@/lib/pflege/medicationMasterData')>(),
-  searchMedicationPackages: mock.search, searchPhysicians: mock.searchDoctors,
-  searchAuthorizedMedicines: mock.searchAuthorizations, searchPracticeLocationsPage: mock.searchPractices,
+  searchMedicationPackagesPage: mock.search, searchPhysicians: mock.searchDoctors,
+  searchAuthorizedMedicinesPage: mock.searchAuthorizations, searchPracticeLocationsPage: mock.searchPractices,
   searchNationalPracticeLocationsPage: mock.searchNational, saveManualPhysician: mock.saveDoctor,
 }));
 vi.mock('@/lib/pflege/medicationCreateReceipt.web', () => ({ assertMedicationCreateReceipt: (value: unknown) => value, readMedicationCreateReceipt: async () => ({ id: mock.medication }) }));
@@ -83,6 +83,7 @@ const testPackage = {
   pzn: '00000017', name: 'Testpräparat', ingredient: 'Testwirkstoff', strength: '5 Testeinheiten', dosageForm: 'Lösung',
   brand: 'Testmarke', manufacturer: 'Testhersteller', packageSize: 'Testpackung', source: 'test', sourceVersion: '2026-11',
 };
+const page = <T,>(rows: T[], nextCursor: string | null = null) => ({ ok: true, data: { rows, nextCursor } });
 const testDoctor = { id: mock.physician, displayName: 'Dr. Testperson', practiceName: 'Testpraxis', city: 'Testort', source: 'manual', sourceVersion: '1' };
 let host: HTMLDivElement;
 let root: Root;
@@ -101,8 +102,8 @@ beforeEach(() => {
   (globalThis as Record<string, unknown>).IS_REACT_ACT_ENVIRONMENT = true;
   vi.resetAllMocks(); vi.useFakeTimers(); mock.allowed = true;
   mock.bmp = undefined; mock.confirm.mockResolvedValue(true); mock.getLink.mockResolvedValue(null);
-  mock.search.mockResolvedValue({ ok: true, data: [testPackage] });
-  mock.searchAuthorizations.mockResolvedValue({ ok: true, data: [] });
+  mock.search.mockResolvedValue(page([testPackage]));
+  mock.searchAuthorizations.mockResolvedValue(page([]));
   mock.searchDoctors.mockResolvedValue({ ok: true, data: [testDoctor] });
   mock.searchPractices.mockResolvedValue({ ok: true, data: { rows: [], nextCursor: null } });
   mock.searchNational.mockResolvedValue({ ok: true, data: { rows: [], nextCursor: null } });
@@ -170,18 +171,24 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); vi
 
 describe('Verzeichnisse in der Medikationsanlage', () => {
   it('zeigt EMA-Zulassungen mit Quelle und Geltungsbereich an, ohne die Verordnung oder PZN zu verändern', async () => {
-    mock.searchAuthorizations.mockResolvedValue({ ok: true, data: [
+    mock.searchAuthorizations.mockResolvedValueOnce(page([
       { id: mock.medication, source: 'ema-article57', sourceVersion: '12.11.2026', name: 'EMA-Prüfpräparat',
         activeSubstance: 'EMA-Wirkstoff', authorizationHolder: 'EU-Zulassungsinhaber', authorizationScope: 'EU' },
-    ] });
+    ], 'ema-cursor')).mockResolvedValueOnce(page([
+      { id: mock.planId, source: 'ema-article57', sourceVersion: '12.11.2026', name: 'Weiteres EMA-Prüfpräparat',
+        activeSubstance: 'EMA-Wirkstoff', authorizationHolder: 'DE-Zulassungsinhaber', authorizationScope: 'DE' },
+    ]));
     await render(); await click('Testakte');
     await type('Präparat *', 'Geprüftes Original'); await type('Dosierung', 'Eigene Originalangabe');
     await type('Applikationsweg', 'oral');
     await click('EMA-Suche');
     await type('Zulassungssuche', 'EMA'); await finishSearch();
-    expect(mock.searchAuthorizations).toHaveBeenCalledWith(mock.tenant, 'EMA');
+    expect(mock.searchAuthorizations).toHaveBeenCalledWith(mock.tenant, 'EMA', null);
     expect(mock.search).not.toHaveBeenCalled();
     expect(host.textContent).toContain('Die Einträge enthalten keine PZN');
+    await click('Weitere Treffer laden');
+    expect(mock.searchAuthorizations).toHaveBeenLastCalledWith(mock.tenant, 'EMA', 'ema-cursor');
+    expect(host.textContent).toContain('Weiteres EMA-Prüfpräparat');
     await act(async () => host.querySelector<HTMLElement>('[role=button][aria-label^="EMA-Prüfpräparat, EU-Zulassung"]')!.click());
     expect(host.textContent).toContain('Zulassungseintrag · Nur zur Ansicht');
     expect(host.textContent).toContain('Zulassungsinhaber: EU-Zulassungsinhaber');
@@ -202,10 +209,10 @@ describe('Verzeichnisse in der Medikationsanlage', () => {
     await render(); await click('EMA-Suche');
     await type('Zulassungssuche', 'EMA'); await finishSearch();
     await click('Packung suchen');
-    await act(async () => resolveSearch({ ok: true, data: [{ id: mock.medication, name: 'Veraltete EMA-Antwort', source: 'ema-article57' }] }));
+    await act(async () => resolveSearch(page([{ id: mock.medication, name: 'Veraltete EMA-Antwort', source: 'ema-article57' }])));
     expect(host.textContent).not.toContain('Veraltete EMA-Antwort');
     await type('Präparatesuche', '00000017'); await finishSearch();
-    expect(mock.search).toHaveBeenCalledWith(mock.tenant, '00000017');
+    expect(mock.search).toHaveBeenCalledWith(mock.tenant, '00000017', null);
     expect(host.textContent).toContain('Testpräparat');
   });
 
@@ -214,7 +221,7 @@ describe('Verzeichnisse in der Medikationsanlage', () => {
     await type('Dosierung', 'Eigene Originalangabe');
     await click('Packung suchen');
     await type('Präparatesuche', testPackage.pzn); await finishSearch();
-    expect(mock.search).toHaveBeenCalledWith(mock.tenant, '00000017');
+    expect(mock.search).toHaveBeenCalledWith(mock.tenant, '00000017', null);
     expect(field('Präparat *').value).toBe('');
     await act(async () => host.querySelector<HTMLElement>('[role=button][aria-label^="Testpräparat, PZN"]')!.click());
     expect(field('Präparat *').value).toBe('');
@@ -242,7 +249,7 @@ describe('Verzeichnisse in der Medikationsanlage', () => {
     await render(); await click('Testakte'); await click('Packung suchen');
     await type('Präparatesuche', 'erste Suche'); await finishSearch();
     await type('Präparatesuche', 'zweite Suche'); await finishSearch();
-    await act(async () => resolveOld({ ok: true, data: [testPackage] }));
+    await act(async () => resolveOld(page([testPackage])));
     expect(host.textContent).not.toContain('Testpräparat');
     expect(host.textContent).toContain('Die manuelle Eingabe bleibt möglich.');
     await type('Präparat *', 'Manuelles Original'); await click('Verordnung speichern');
@@ -294,7 +301,7 @@ describe('Verzeichnisse in der Medikationsanlage', () => {
   });
 
   it('zeigt FAIR IOP als Forschungsbestand und behält den Quellenhinweis nach der Auswahl', async () => {
-    mock.search.mockResolvedValue({ ok: true, data: [{ ...testPackage, source: 'fair-iop-2024', sourceVersion: '2024-v1' }] });
+    mock.search.mockResolvedValue(page([{ ...testPackage, source: 'fair-iop-2024', sourceVersion: '2024-v1' }]));
     await render(); await click('Testakte');
     await click('Packung suchen'); await type('Präparatesuche', testPackage.pzn); await finishSearch();
     expect(host.textContent).toContain('FAIR IOP Medication Database · Forschungsstand 2024');
@@ -303,6 +310,36 @@ describe('Verzeichnisse in der Medikationsanlage', () => {
     expect(host.textContent).toContain('Datensatz FAIR IOP (DOI)');
     expect(host.textContent).toContain('PZN und Angaben mit der aktuellen Packung abgleichen.');
     expect(field('Dosierung').value).toBe('');
+  });
+
+  it('lädt weitere geprüfte Packungen nach und übernimmt die konkret gewählte PZN', async () => {
+    const candesartan = { ...testPackage, name: 'Candesartan Test 8 mg', source: 'de-pack-verified', sourceVersion: '2026-11-13' };
+    const second = { ...candesartan, name: 'Candesartan Test 16 mg', strength: '16 mg', pzn: '00000025' };
+    mock.search.mockResolvedValueOnce(page([candesartan], 'pack-cursor')).mockResolvedValueOnce(page([second]));
+    await render(); await click('Testakte'); await click('Packung suchen');
+    expect(host.textContent).toContain('achtstellige PZN');
+    await type('Präparatesuche', 'Candesartan'); await finishSearch();
+    expect(mock.search).toHaveBeenLastCalledWith(mock.tenant, 'Candesartan', null);
+    expect(host.textContent).toContain(candesartan.name);
+    expect(host.textContent).not.toContain(second.name);
+    await click('Weitere Treffer laden');
+    expect(mock.search).toHaveBeenLastCalledWith(mock.tenant, 'Candesartan', 'pack-cursor');
+    expect(host.textContent).toContain(candesartan.name);
+    expect(host.textContent).toContain(second.name);
+    expect(button('Weitere Treffer laden')).toBeUndefined();
+    await act(async () => host.querySelector<HTMLElement>('[role=button][aria-label^="Candesartan Test 16 mg, PZN 00000025"]')!.click());
+    expect(host.textContent).toContain('Quelle: Geprüfte deutsche Packungsdaten');
+    expect(host.textContent).toContain('Datenstand: 2026-11-13');
+    expect(field('Präparat *').value).toBe('');
+    await click('Packung übernehmen');
+    expect(host.textContent).toContain('Packung übernommen');
+    expect(host.textContent).toContain('Geprüfte deutsche Packungsdaten');
+    expect(host.textContent).toContain('keine aktuelle Lieferbarkeit');
+    expect(field('Präparat *').value).toBe(second.name);
+    await click('Verordnung speichern');
+    expect(mock.create).toHaveBeenCalledWith(mock.tenant, mock.profile, expect.objectContaining({
+      productPzn: '00000025', productCatalogSource: 'de-pack-verified', productCatalogVersion: '2026-11-13',
+    }), 'business_admin');
   });
 
   it('sucht bundesweit mit Bundeslandfilter und speichert einen Standort nicht als verordnende Person', async () => {

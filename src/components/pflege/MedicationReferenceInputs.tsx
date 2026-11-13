@@ -10,7 +10,9 @@ import {
   practiceLocationToPhysicianDraft,
   saveManualPhysician,
   searchAuthorizedMedicines,
+  searchAuthorizedMedicinesPage,
   searchMedicationPackages,
+  searchMedicationPackagesPage,
   searchNationalPracticeLocations,
   searchNationalPracticeLocationsPage,
   searchPhysicians,
@@ -136,6 +138,7 @@ function useDirectoryStyles() {
 
 const RVR_SOURCE = 'rvr-ruhr-praxis';
 const FAIR_SOURCE = 'fair-iop-2024';
+const VERIFIED_DE_PACK_SOURCE = 'de-pack-verified';
 const EMA_SOURCE = 'ema-article57';
 const OSM_SOURCE = 'osm-de-praxis';
 const NATIONAL_PHYSICIAN_DIRECTORY = 'https://gesund.bund.de/suchen/aerztinnen-und-aerzte';
@@ -168,6 +171,11 @@ const directorySourceDetails = {
       { label: 'Lizenz CC BY 4.0', url: 'https://creativecommons.org/licenses/by/4.0/' },
     ],
   },
+  [VERIFIED_DE_PACK_SOURCE]: {
+    label: 'Geprüfte deutsche Packungsdaten',
+    notice: 'Ausgewählte Packungen mit geprüfter PZN. Vergleiche PZN und Stärke mit der Originalpackung. Die Suche bestätigt keine aktuelle Lieferbarkeit.',
+    links: [],
+  },
   [EMA_SOURCE]: {
     label: 'Quelle: Europäische Arzneimittel-Agentur (EMA)',
     notice: 'Auszug aus dem Artikel-57-Register. Die Zulassung sagt nichts über verfügbare Packungen aus. Die Einträge enthalten keine PZN und werden nicht in die Verordnung übernommen.',
@@ -180,16 +188,16 @@ const directorySourceDetails = {
 
 function DirectorySourceAttribution({ source }: { source: string }) {
   const styles = useDirectoryStyles();
-  if (source !== RVR_SOURCE && source !== FAIR_SOURCE && source !== EMA_SOURCE && source !== OSM_SOURCE) return null;
+  if (source !== RVR_SOURCE && source !== FAIR_SOURCE && source !== VERIFIED_DE_PACK_SOURCE && source !== EMA_SOURCE && source !== OSM_SOURCE) return null;
   const info = directorySourceDetails[source];
   return <View style={styles.source}>
     <Text style={styles.heading}>{info.label}</Text>
     <Text style={styles.caption}>{info.notice}</Text>
     {'creators' in info ? <Text style={styles.caption}>{info.creators}</Text> : null}
-    <View style={styles.choices}>{info.links.map(({ label, url }) => <Pressable key={url} accessibilityRole="link"
+    {info.links.length > 0 ? <View style={styles.choices}>{info.links.map(({ label, url }) => <Pressable key={url} accessibilityRole="link"
       style={styles.sourceLink} onPress={() => { void Linking.openURL(url).catch(() => undefined); }}>
       <Text style={styles.linkLabel}>{label}</Text>
-    </Pressable>)}</View>
+    </Pressable>)}</View> : null}
   </View>;
 }
 
@@ -215,11 +223,12 @@ function ResultButton({ title, detail, selected, disabled, onPress }: {
 
 function DirectorySearch<T extends { source: string }>({
   tenantId, enabled, canEditNow, search, label, placeholder, empty, itemKey, describe, selectedKey, onPick,
-  extra, source, activeDetails, onQueryChange, initialQuery = '', attributionAfterResults = false, searchPage,
+  extra, source, activeDetails, onQueryChange, initialQuery = '', attributionAfterResults = false, searchPage, inputHint,
 }: DirectoryAccess & {
   search: (tenant: string, needle: string) => Promise<ServiceResult<T[]>>;
   searchPage?: SearchPageReader<T>;
   label: string; placeholder: string; empty: string;
+  inputHint?: string;
   itemKey: (item: T) => string;
   describe: (item: T) => { title: string; detail: string };
   selectedKey?: string;
@@ -247,7 +256,7 @@ function DirectorySearch<T extends { source: string }>({
     : current.limited ? 'Bis zu 30 Treffer. Grenze die Suche ein, um andere Ergebnisse zu finden.'
     : `${current.nextCursor ? `${current.rows.length} Treffer geladen. Weitere sind verfügbar.` : !searchPage && current.rows.length === 30 ? 'Die ersten 30 Treffer.' : `${current.rows.length} Treffer.`} ${activeDetails ? 'Eintrag für Details öffnen.' : 'Wähle den passenden Eintrag.'}`;
   return <View style={styles.panel}>
-    <PremiumInput label={label} accessibilityLabel={label} value={query} placeholder={placeholder} autoComplete="off"
+    <PremiumInput label={label} accessibilityLabel={label} value={query} placeholder={placeholder} hint={inputHint} autoComplete="off"
       maxLength={120} editable={enabled} onChangeText={(value) => {
         if (!canEditNow()) return;
         searchState.current = { ...searchState.current, query: value, current: null };
@@ -286,7 +295,8 @@ function DirectorySearch<T extends { source: string }>({
 export const medicationPackageKey = (item: Pick<MedicationPackageOption, 'source' | 'pzn'>) => `${item.source}:${item.pzn}`;
 const describePackage = (item: MedicationPackageOption) => ({
   title: item.name,
-  detail: [`PZN ${item.pzn}`, item.strength, item.dosageForm, item.packageSize].filter(Boolean).join(' · '),
+  detail: [`PZN ${item.pzn}`, item.strength, item.dosageForm, item.packageSize,
+    item.source === VERIFIED_DE_PACK_SOURCE ? 'Geprüfte Packung' : item.source === FAIR_SOURCE ? 'FAIR IOP' : null].filter(Boolean).join(' · '),
 });
 const authorizedMedicineKey = (item: AuthorizedMedicine) => item.id;
 const authorizationScope = (item: AuthorizedMedicine) => item.authorizationScope === 'EU' ? 'EU-Zulassung' : 'Zulassung in Deutschland';
@@ -321,7 +331,7 @@ export function MedicationPackagePicker({ selectedKey, onPick, ...access }: Dire
   const styles = useDirectoryStyles();
   return <View style={styles.list}>
     <Text accessibilityRole="header" style={styles.heading}>Arzneimittelverzeichnisse</Text>
-    <Text style={styles.body}>Die Packungssuche übernimmt Präparatedaten. Die EMA-Suche zeigt Zulassungen zur Ansicht.</Text>
+    <Text style={styles.body}>In der Packungssuche kannst du geprüfte Angaben zur konkreten Packung übernehmen. Die EMA-Suche zeigt Zulassungen ohne Packungsdaten.</Text>
     <View style={styles.choices}>
       <PremiumButton title={directory === 'package' ? 'Packungssuche zu' : 'Packung suchen'} size="sm"
         accessibilityLabel={directory === 'package' ? 'Packungssuche schließen' : 'Packung suchen: Präparat im Verzeichnis suchen'}
@@ -333,16 +343,17 @@ export function MedicationPackagePicker({ selectedKey, onPick, ...access }: Dire
     {directory === 'package' && access.enabled ? <MedicationPackageLookup key={access.tenantId} {...access}
       onPick={(item) => { onPick(item); setDirectory(null); }} /> : null}
     {directory === 'authorization' && access.enabled ? <AuthorizedMedicineLookup key={access.tenantId} {...access} /> : null}
-    {directory !== 'package' && selectedKey?.startsWith(`${FAIR_SOURCE}:`) ? <DirectorySourceAttribution source={FAIR_SOURCE} /> : null}
+    {directory !== 'package' && selectedKey ? <DirectorySourceAttribution source={selectedKey.split(':', 1)[0]} /> : null}
   </View>;
 }
 
 function MedicationPackageLookup({ onPick, ...access }: DirectoryAccess & { onPick: (item: MedicationPackageOption) => void }) {
   const [active, setActive] = useState<MedicationPackageOption>();
   const styles = useDirectoryStyles();
-  return <DirectorySearch {...access} search={searchMedicationPackages} itemKey={medicationPackageKey}
+  return <DirectorySearch {...access} search={searchMedicationPackages} searchPage={searchMedicationPackagesPage} itemKey={medicationPackageKey}
     label="Präparatesuche" placeholder="PZN, Name, Wirkstoff, Marke oder Hersteller"
-    empty="Keine Packung in diesem Verzeichnis gefunden. Präparat und Stärke können Sie anhand der Originalverordnung erfassen."
+    inputHint="Für eine eindeutige Packungssuche gib die achtstellige PZN ein, einschließlich führender Nullen."
+    empty="Keine passende Packung im verfügbaren Katalog. Prüfe die PZN auf der Packung oder erfasse die Angaben laut Verordnung."
     selectedKey={active ? medicationPackageKey(active) : undefined} describe={describePackage} attributionAfterResults
     onQueryChange={() => setActive(undefined)} onPick={(item) => setActive(active === item ? undefined : item)}
     activeDetails={(item) => active === item ? <View style={styles.reference}>
@@ -352,7 +363,9 @@ function MedicationPackageLookup({ onPick, ...access }: DirectoryAccess & { onPi
         ['Wirkstoff', item.ingredient], ['Stärke', item.strength], ['Darreichungsform', item.dosageForm],
         ['Marke', item.brand], ['Hersteller', item.manufacturer], ['Packungsgröße', item.packageSize],
       ].map(([label, value]) => <Text key={label} style={styles.caption}>{label}: {value || 'Im Verzeichnis nicht hinterlegt'}</Text>)}
+      {item.source === VERIFIED_DE_PACK_SOURCE ? <Text style={styles.caption}>Quelle: Geprüfte deutsche Packungsdaten</Text> : null}
       <Text style={styles.caption}>Datenstand: {item.sourceVersion}</Text>
+      <Text style={styles.caption}>Vergleiche die PZN mit der Originalpackung.</Text>
       <Text style={styles.caption}>Die Auswahl füllt die Präparatfelder neu. Dosierung, Applikationsweg und Gabezeiten bleiben unverändert.</Text>
       <PremiumButton title="Packung übernehmen" variant="primary" disabled={!access.enabled} onPress={() => {
         if (access.canEditNow()) onPick(item);
@@ -363,7 +376,7 @@ function MedicationPackageLookup({ onPick, ...access }: DirectoryAccess & { onPi
 function AuthorizedMedicineLookup(access: DirectoryAccess) {
   const [activeId, setActiveId] = useState<string>();
   const styles = useDirectoryStyles();
-  return <DirectorySearch {...access} search={searchAuthorizedMedicines} itemKey={authorizedMedicineKey} attributionAfterResults
+  return <DirectorySearch {...access} search={searchAuthorizedMedicines} searchPage={searchAuthorizedMedicinesPage} itemKey={authorizedMedicineKey} attributionAfterResults
     label="Zulassungssuche" placeholder="Arzneimittelname, Wirkstoff oder Zulassungsinhaber"
     empty="Keine passende Zulassung im verfügbaren EMA-Datenstand. Prüfen Sie den Suchbegriff."
     describe={describeAuthorization} source={EMA_SOURCE} selectedKey={activeId}
