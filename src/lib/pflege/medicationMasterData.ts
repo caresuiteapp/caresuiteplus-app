@@ -13,7 +13,20 @@ export * from './medicationMasterDataValidation';
 
 type Origin = { source: string; sourceVersion: string };
 export type MedicationPackageOption = Required<MedicationPackageInput> & Origin;
+export type AuthorizedMedicine = {
+  id: string; source: 'ema-article57'; sourceVersion: string; name: string;
+  activeSubstance: string | null; authorizationHolder: string | null; authorizationScope: 'DE' | 'EU';
+};
 export type PhysicianOption = Required<PhysicianInput> & Origin & { id: string };
+export type PracticeLocationOption = Origin & { id: string; displayName: string; practiceName: string | null; specialty: string | null;
+  postalCode: string | null; city: string | null; street: string | null; phone: string | null; sourceUpdatedAt: string | null;
+  stateCode?: string | null; stateName?: string | null };
+export const PRACTICE_STATES = [
+  ['DE-BW', 'Baden-Württemberg'], ['DE-BY', 'Bayern'], ['DE-BE', 'Berlin'], ['DE-BB', 'Brandenburg'],
+  ['DE-HB', 'Bremen'], ['DE-HH', 'Hamburg'], ['DE-HE', 'Hessen'], ['DE-MV', 'Mecklenburg-Vorpommern'],
+  ['DE-NI', 'Niedersachsen'], ['DE-NW', 'Nordrhein-Westfalen'], ['DE-RP', 'Rheinland-Pfalz'], ['DE-SL', 'Saarland'],
+  ['DE-SN', 'Sachsen'], ['DE-ST', 'Sachsen-Anhalt'], ['DE-SH', 'Schleswig-Holstein'], ['DE-TH', 'Thüringen'],
+] as const;
 export type MasterDataImportResult = { imported: number };
 
 function object(value: unknown): Record<string, unknown> | null {
@@ -32,9 +45,21 @@ function isPackage(value: unknown): value is MedicationPackageOption {
   return validRow(value, 'name', ['ingredient', 'strength', 'dosageForm', 'brand', 'manufacturer', 'packageSize']) && isValidPzn(value.pzn);
 }
 
+function isAuthorizedMedicine(value: unknown): value is AuthorizedMedicine {
+  return validRow(value, 'name', ['activeSubstance', 'authorizationHolder']) && value.source === 'ema-article57' &&
+    (value.authorizationScope === 'DE' || value.authorizationScope === 'EU') &&
+    typeof value.id === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value.id);
+}
+
 function isPhysician(value: unknown): value is PhysicianOption {
   return validRow(value, 'displayName', ['practiceName', 'specialty', 'postalCode', 'city', 'street', 'phone', 'lanr', 'bsnr']) &&
     typeof value.id === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value.id);
+}
+
+function isPracticeLocationSource(value: unknown, source: string): value is PracticeLocationOption {
+  return validRow(value, 'displayName', ['practiceName', 'specialty', 'postalCode', 'city', 'street', 'phone']) &&
+    value.source === source && typeof value.id === 'string' && /^[a-f0-9]{8}(?:-[a-f0-9]{4}){3}-[a-f0-9]{12}$/i.test(value.id) &&
+    (value.sourceUpdatedAt === null || (typeof value.sourceUpdatedAt === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value.sourceUpdatedAt)));
 }
 
 function message(error: unknown): string {
@@ -62,19 +87,34 @@ async function call<T>(tenantId: string, name: string, parameters: Record<string
   }
 }
 
-function search<T>(tenantId: string, query: string, name: string, valid: (value: unknown) => value is T): Promise<ServiceResult<T[]>> {
+function search<T>(tenantId: string, query: string, name: string, valid: (value: unknown) => value is T, extra: Record<string, unknown> = {}): Promise<ServiceResult<T[]>> {
   const value = query.trim();
   if (value.length < 2) return Promise.resolve({ ok: true, data: [] });
   if (value.length > 120 || /[\u0000-\u001f\u007f]/u.test(value)) return Promise.resolve({ ok: false, error: 'Suchbegriff ist ungültig oder zu lang.' });
-  return call(tenantId, name, { p_query: value }, data => Array.isArray(data) && data.length <= 30 && data.every(valid) ? data : null);
+  return call(tenantId, name, { ...extra, p_query: value }, data => Array.isArray(data) && data.length <= 30 && data.every(valid) ? data : null);
 }
 
 export function searchMedicationPackages(tenantId: string, query: string): Promise<ServiceResult<MedicationPackageOption[]>> {
   return search(tenantId, query, 'search_pflege_medication_packages', isPackage);
 }
 
+export function searchAuthorizedMedicines(tenantId: string, query: string): Promise<ServiceResult<AuthorizedMedicine[]>> {
+  return search(tenantId, query, 'search_pflege_authorized_medicines', isAuthorizedMedicine);
+}
+
 export function searchPhysicians(tenantId: string, query: string): Promise<ServiceResult<PhysicianOption[]>> {
   return search(tenantId, query, 'search_pflege_physicians', isPhysician);
+}
+
+export function searchPracticeLocations(tenantId: string, query: string): Promise<ServiceResult<PracticeLocationOption[]>> {
+  return search(tenantId, query, 'search_pflege_practice_locations', (value): value is PracticeLocationOption => isPracticeLocationSource(value, 'rvr-ruhr-praxis'));
+}
+
+export function searchNationalPracticeLocations(tenantId: string, query: string, state: string | null): Promise<ServiceResult<PracticeLocationOption[]>> {
+  if (state !== null && !PRACTICE_STATES.some(([code]) => code === state)) return Promise.resolve({ ok: false, error: 'Bundesland ist ungültig.' });
+  return search(tenantId, query, 'search_pflege_osm_practice_locations', (value): value is PracticeLocationOption =>
+    isPracticeLocationSource(value, 'osm-de-praxis') && PRACTICE_STATES.some(([code, name]) => code === value.stateCode && name === value.stateName)
+    && (!state || value.stateCode === state), { p_state: state });
 }
 
 export async function saveManualPhysician(tenantId: string, input: PhysicianInput): Promise<ServiceResult<PhysicianOption>> {
