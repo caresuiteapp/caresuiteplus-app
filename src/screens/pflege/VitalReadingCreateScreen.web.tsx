@@ -19,6 +19,7 @@ import {executeVitalCreateNativeWeb} from '@/lib/pflege/vitalCreateNativeWrite.w
 import {carePermissionOwner} from '@/lib/permissions/carePermissionOwner.web';
 import {isDemoMode} from '@/lib/supabase/config';
 import type {RoleKey} from '@/types';
+import {CarePermissionStatus,type CarePermissionStatusState} from './CarePermissionStatus.web';
 
 export function VitalReadingCreateScreen(){
   const auth=useAuth(),permissions=usePermissions(),tenantId=useServiceTenantId();
@@ -29,10 +30,10 @@ export function VitalReadingCreateScreen(){
   useEffect(()=>()=>held.current?.runtime.dispose(),[]);
   const runtime=held.current?.runtime??null;const [,setOwnerStoreRevision]=useState(0);
   useEffect(()=>runtime?.subscribeOriginal(()=>setOwnerStoreRevision(value=>value+1)),[runtime]);
-  if(!runtime)return <ScreenShell title="Vitalwerte erfassen"><ErrorState message="Der aktuelle eigene Benutzer- und Pflegezugriff konnte nicht bestätigt werden."/></ScreenShell>;
-  return <VitalCreateWorkspace key={`${scope}:${runtime.originalDraftVersion}`} runtime={runtime} tenantId={runtime.tenantId} role={runtime.role} canView={runtime.canRead()} canManage={runtime.canManage()}/>;
+  if(!runtime)return <ScreenShell title="Vitalwerte erfassen"><CarePermissionStatus state={permissions} deniedMessage="Der eigene Benutzer- und Pflegezugriff konnte nicht bestätigt werden."/></ScreenShell>;
+  return <VitalCreateWorkspace key={`${scope}:${runtime.originalDraftVersion}`} runtime={runtime} tenantId={runtime.tenantId} role={runtime.role} canView={runtime.canRead()} canManage={runtime.canManage()} permissionStatus={permissions}/>;
 }
-function VitalCreateWorkspace({runtime,tenantId,role,canView,canManage}:{runtime:VitalCreateRuntimeWeb;tenantId:string;role:RoleKey|null;canView:boolean;canManage:boolean}){
+function VitalCreateWorkspace({runtime,tenantId,role,canView,canManage,permissionStatus}:{runtime:VitalCreateRuntimeWeb;tenantId:string;role:RoleKey|null;canView:boolean;canManage:boolean;permissionStatus:CarePermissionStatusState}){
   const router=useRouter(),styles=useStyles();
   const [clientId,setClientId]=useState(''),[type,setType]=useState(''),[values,setValues]=useState<Record<string,string>>({}),[context,setContext]=useState<Record<string,string>>({}),[note,setNote]=useState('');
   const [time,setTime]=useState(currentMedicationEventTime),[timeEdited,setTimeEdited]=useState(false);
@@ -79,8 +80,7 @@ function VitalCreateWorkspace({runtime,tenantId,role,canView,canManage}:{runtime
     const payload={clientId,type,occurredAt:medicationEventInstant(time),valuesJson:JSON.stringify(deriveVitalValues(type,numbers)),contextJson:JSON.stringify(Object.fromEntries(Object.entries(context).filter(([,v])=>v.trim()).map(([k,v])=>[k,v.trim()]))),note,catalogVersion:choice.catalogVersion,configurationVersion:choice.configurationVersion};
     const error=validateVitalMeasurement(payload,definition);if(error){write.setError(error);return;}if(!runtime.prepare(payload,clientsQuery.data,choicesQuery.data)){write.setError('Aktuelle native Messdefinition, Einheit und Pflegefallzuordnung zuerst bestätigen.');return;}await write.submit(payload);
   }
-  if(!canView)return <ScreenShell title="Vitalwerte erfassen"><ErrorState message="Für Vitalwerte fehlt die Leseberechtigung."/></ScreenShell>;
-  if(!canManage)return <ScreenShell title="Vitalwerte erfassen"><ErrorState message="Für das Erfassen von Vitalwerten fehlt die Schreibberechtigung."/></ScreenShell>;
+  if(!canView||!canManage)return <ScreenShell title="Vitalwerte erfassen"><CarePermissionStatus state={permissionStatus} deniedMessage={canView?'Für das Erfassen von Vitalwerten fehlt die Schreibberechtigung.':'Für Vitalwerte fehlt die Leseberechtigung.'}/></ScreenShell>;
   const displayedReceipt=runtime.confirmedReceipt(),newDraftToken=runtime.captureNewDraft();
   const newMeasurement=()=>{if(renderRevision!==draftRevision.current||!displayedReceipt)return;const freshTime=currentMedicationEventTime();if(renderRevision!==draftRevision.current||!runtime.startNewDraft(newDraftToken))return;draftRevision.current++;setConfirmedId('');receiptId.current='';setClientId('');setType('');setValues({});setContext({});setNote('');setTime(freshTime);setTimeEdited(false);};
   const openReceipt=()=>{if(displayedReceipt&&runtime.confirmedReceipt()===displayedReceipt&&runtime.mayConfirm(displayedReceipt))router.replace(`/pflege/vitalwerte/${displayedReceipt}` as never);};

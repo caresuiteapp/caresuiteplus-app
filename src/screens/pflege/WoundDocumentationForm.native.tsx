@@ -8,6 +8,7 @@ import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, P
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useCareRuntimePermissions as usePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
+import { CarePermissionStatus, type CarePermissionStatusState } from "./CarePermissionStatus.native.tsx";
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useMedicationSubmission } from "../../hooks/useMedicationSubmission.native.ts";
 import { MedicationEventTimeInput, currentMedicationEventTime, medicationEventInstant } from "../../components/pflege/MedicationEventTimeInput.native.tsx";
@@ -23,15 +24,16 @@ function WoundFormBoundary({ mode }: {
     const { id } = useLocalSearchParams<{
         id: string;
     }>(), tenant = useServiceTenantId(), { profile } = useAuth(), permissions = usePermissions();
-    return <WoundForm key={`${tenant}:${profile?.id}:${permissions.roleKey}:${id}:${mode}`} mode={mode} woundId={id ?? ''} tenant={tenant ?? ''} role={permissions.roleKey} canView={permissions.can('pflege.wounds.view')} canManage={permissions.can('pflege.wounds.manage')}/>;
+    return <WoundForm key={`${tenant}:${profile?.id}:${permissions.roleKey}:${id}:${mode}`} mode={mode} woundId={id ?? ''} tenant={tenant ?? ''} role={permissions.roleKey} canView={permissions.can('pflege.wounds.view')} canManage={permissions.can('pflege.wounds.manage')} permissionStatus={permissions}/>;
 }
-function WoundForm({ mode, woundId, tenant, role, canView, canManage }: {
+function WoundForm({ mode, woundId, tenant, role, canView, canManage, permissionStatus }: {
     mode: 'create' | 'assessment';
     woundId: string;
     tenant: string;
     role: ReturnType<typeof usePermissions>['roleKey'];
     canView: boolean;
     canManage: boolean;
+    permissionStatus: CarePermissionStatusState;
 }) {
     const styles = useStyles(), router = useRouter(), [clientId, setClientId] = useState(''), [confirmed, setConfirmed] = useState(''), receipt = useRef('');
     const [observed, setObserved] = useState(currentMedicationEventTime), [review, setReview] = useState(currentMedicationEventTime);
@@ -72,7 +74,7 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage }: {
         return;
     } await write.submit(payload); }
     if (!canView || !canManage)
-        return <ScreenShell title="Wunddokumentation"><ErrorState message="Lese- und Schreibberechtigung für Wunddokumentation erforderlich."/></ScreenShell>;
+        return <ScreenShell title="Wunddokumentation"><CarePermissionStatus state={permissionStatus} deniedMessage="Lese- und Schreibberechtigung für Wunddokumentation erforderlich."/></ScreenShell>;
     if (confirmed)
         return <ScreenShell title="Wunddokumentation gespeichert"><SuccessState message={mode === 'create' ? 'Wundfall als Entwurf gespeichert. Ein tatsächlich erhobenes Erstassessment muss separat dokumentiert werden.' : 'Eigenständiges Wundassessment gespeichert. Der bestehende Versorgungsplan und Fallstatus wurden dadurch nicht automatisch freigegeben oder geändert.'}/><PremiumButton title="Gespeicherten Wundfall und Verlauf öffnen" disabled={write.busy} onPress={() => router.replace(`/pflege/wunden/${mode === 'create' ? confirmed : woundId}` as never)}/></ScreenShell>;
     return <ScreenShell title={mode === 'create' ? 'Wundfall anlegen' : 'Wundassessment dokumentieren'} subtitle={wound.data ? `${wound.data.clientName} · ${String(wound.data.row.body_location)}` : undefined}><ScrollView contentContainerStyle={styles.content}>

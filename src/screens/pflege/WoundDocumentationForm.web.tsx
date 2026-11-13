@@ -6,6 +6,7 @@ import {ErrorState,FilterChipGroup,InfoBanner,LoadingState,PremiumButton,Premium
 import {useAuth} from '@/lib/auth/context';
 import {useServiceTenantId} from '@/hooks/useTenantId';
 import { useCareRuntimePermissions as usePermissions } from '@/hooks/pflege/useCareRuntimePermissions.web';
+import {CarePermissionStatus,type CarePermissionStatusState} from './CarePermissionStatus.web';
 import {useAsyncQuery} from '@/hooks/core/useAsyncQuery';
 import {useMedicationSubmission} from '@/hooks/useMedicationSubmission.web';
 import {MedicationEventTimeInput,currentMedicationEventTime,medicationEventInstant} from '@/components/pflege/MedicationEventTimeInput.web';
@@ -17,9 +18,9 @@ export function WoundCreateScreen(){return <WoundFormBoundary mode="create"/>;}
 export function WoundAssessmentCreateScreen(){return <WoundFormBoundary mode="assessment"/>;}
 function WoundFormBoundary({mode}:{mode:'create'|'assessment'}){
  const {id}=useLocalSearchParams<{id:string}>(),tenant=useServiceTenantId(),{profile}=useAuth(),permissions=usePermissions();
- return <WoundForm key={`${tenant}:${profile?.id}:${permissions.roleKey}:${id}:${mode}`} mode={mode} woundId={id??''} tenant={tenant??''} role={permissions.roleKey} canView={permissions.can('pflege.wounds.view')} canManage={permissions.can('pflege.wounds.manage')}/>;
+ return <WoundForm key={`${tenant}:${profile?.id}:${permissions.roleKey}:${id}:${mode}`} mode={mode} woundId={id??''} tenant={tenant??''} role={permissions.roleKey} canView={permissions.can('pflege.wounds.view')} canManage={permissions.can('pflege.wounds.manage')} permissionStatus={permissions}/>;
 }
-function WoundForm({mode,woundId,tenant,role,canView,canManage}:{mode:'create'|'assessment';woundId:string;tenant:string;role:ReturnType<typeof usePermissions>['roleKey'];canView:boolean;canManage:boolean}){
+function WoundForm({mode,woundId,tenant,role,canView,canManage,permissionStatus}:{mode:'create'|'assessment';woundId:string;tenant:string;role:ReturnType<typeof usePermissions>['roleKey'];canView:boolean;canManage:boolean;permissionStatus:CarePermissionStatusState}){
  const styles=useStyles(),router=useRouter(),[clientId,setClientId]=useState(''),[confirmed,setConfirmed]=useState(''),receipt=useRef('');
  const [observed,setObserved]=useState(currentMedicationEventTime),[review,setReview]=useState(currentMedicationEventTime);
  const [draft,setDraft]=useState<Record<string,string>>(()=>mode==='create'?{...emptyWoundCase()}:{...emptyWoundAssessment()});
@@ -32,7 +33,7 @@ function WoundForm({mode,woundId,tenant,role,canView,canManage}:{mode:'create'|'
  const field=(key:string,label:string)=><PremiumInput key={key} label={label} accessibilityLabel={label} value={draft[key]??''} onChangeText={value=>change(key,value)} editable={!write.locked} maxLength={2000} multiline/>;
  const chips=(key:string,options:{key:string;label:string}[])=><FilterChipGroup wrap options={options} value={draft[key]??''} onChange={write.locked?undefined:value=>change(key,value)}/>;
  async function save(){if(write.uncertain){await write.retry();return;}if(mode==='assessment'&&(!wound.data||wound.refreshError||!['draft','active','healing','deteriorated'].includes(String(wound.data.row.status)))){write.setError('Offenen Wundfall neu laden.');return;}if(mode==='create'&&(!clients.data?.some(c=>c.id===clientId)||clients.refreshError)){write.setError('Aktiven Pflegefall ausdrücklich auswählen.');return;}const data={...draft,nextReviewAt:draft.reviewStatus==='scheduled'?medicationEventInstant(review):'',...(mode==='assessment'?{observedAt:medicationEventInstant(observed)}:{})};const payload:WoundRequest={action:mode,subjectId:mode==='create'?clientId:woundId,dataJson:JSON.stringify(data)};const error=validateWoundRequest(payload);if(error){write.setError(error);return;}await write.submit(payload);}
- if(!canView||!canManage)return <ScreenShell title="Wunddokumentation"><ErrorState message="Lese- und Schreibberechtigung für Wunddokumentation erforderlich."/></ScreenShell>;
+ if(!canView||!canManage)return <ScreenShell title="Wunddokumentation"><CarePermissionStatus state={permissionStatus} deniedMessage="Lese- und Schreibberechtigung für Wunddokumentation erforderlich."/></ScreenShell>;
  if(confirmed)return <ScreenShell title="Wunddokumentation gespeichert"><SuccessState message={mode==='create'?'Wundfall als Entwurf gespeichert. Ein tatsächlich erhobenes Erstassessment muss separat dokumentiert werden.':'Eigenständiges Wundassessment gespeichert. Der bestehende Versorgungsplan und Fallstatus wurden dadurch nicht automatisch freigegeben oder geändert.'}/><PremiumButton title="Gespeicherten Wundfall und Verlauf öffnen" disabled={write.busy} onPress={()=>router.replace(`/pflege/wunden/${mode==='create'?confirmed:woundId}` as never)}/></ScreenShell>;
  return <ScreenShell title={mode==='create'?'Wundfall anlegen':'Wundassessment dokumentieren'} subtitle={wound.data?`${wound.data.clientName} · ${String(wound.data.row.body_location)}`:undefined}><ScrollView contentContainerStyle={styles.content}>
  {write.error?<ErrorState message={write.error}/>:null}{write.uncertain?<InfoBanner variant="warning" message="Speicherergebnis unklar. Dieselbe unveränderte Anfrage erneut prüfen. Angaben und Schließen bleiben bis zur Klärung gesperrt."/>:null}

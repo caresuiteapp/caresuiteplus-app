@@ -24,6 +24,7 @@ import { woundUuid } from '@/lib/pflege/woundCareDomain';
 import type { RoleKey, ServiceResult } from '@/types';
 import type { MedicationClientOption } from '@/types/modules/pflege';
 import { colors, spacing, typography } from '@/theme';
+import { CarePermissionStatus, type CarePermissionStatusState } from './CarePermissionStatus.web';
 
 type Owner = { tenantId: string; profileId: string; role: RoleKey };
 type Status = 'idle' | 'busy' | 'uncertain' | 'confirmed';
@@ -41,7 +42,7 @@ type ClientRead = { ticket: symbol; owner: Owner; clients: MedicationClientOptio
 type Attempt = { owner: Owner; ticket: symbol; form: Form; clients: MedicationClientOption[]; client: MedicationClientOption; payload: CreateMedicationInput; receiptId: string | null; saved: Record<string, unknown> | null };
 type OriginalWrite = { attempt: Attempt; ticket: symbol; original: Pick<Attempt, 'owner' | 'form' | 'clients' | 'client' | 'payload'>; receiptId: string | null };
 type ReadReceipt = { attempt: Attempt; ticket: symbol; original: OriginalWrite['original']; id: string; raw: Record<string, unknown> };
-type Props = { owner: Owner | null; runtimeTenant: string | null; runtimeRole: RoleKey | null; canView: boolean; canManage: boolean; roleLabel: string | null; bmpToken?: string | string[]; bmpAllowed: boolean };
+type Props = { owner: Owner | null; runtimeTenant: string | null; runtimeRole: RoleKey | null; canView: boolean; canManage: boolean; roleLabel: string | null; bmpToken?: string | string[]; bmpAllowed: boolean; permissionStatus: CarePermissionStatusState };
 type BmpCoordinates = NonNullable<ReturnType<typeof takeMedicationPlanOrderHandoff>>;
 type BmpSource = { coords: BmpCoordinates; prefill: Extract<MedicationPlanOrderPrefill, { scheduleStatus: 'manual' }>; fileName: string };
 type BmpLoad = { ticket: symbol; source?: BmpSource; linkedId?: string; error?: string };
@@ -124,7 +125,7 @@ export function MedicationCreateScreen() {
   // Permission/runtime readiness is deliberately absent from this native mount key.
   return <MedicationCreateEditor key={JSON.stringify([owner, bmp])} owner={owner} runtimeTenant={runtimeTenant}
     runtimeRole={permissions.roleKey} canView={permissions.can('pflege.medications.view')}
-    canManage={permissions.can('pflege.medications.manage')} roleLabel={permissions.roleLabel} bmpToken={bmp}
+    canManage={permissions.can('pflege.medications.manage')} roleLabel={permissions.roleLabel} bmpToken={bmp} permissionStatus={permissions}
     bmpAllowed={bmp !== undefined && permissions.can('pflege.access') && permissions.can('office.clients.view') && permissions.can('office.clients.view_sensitive')} />;
 }
 
@@ -431,13 +432,15 @@ function MedicationCreateEditor(props: Props) {
       <InfoBanner variant="warning" title="Ursprüngliche Angaben erhalten" message={knownOriginal?.payload.bmpImportId
         ? 'Das Speicherergebnis lässt sich anhand der Position im Originalplan erneut lesen. Dabei wird keine weitere Verordnung angelegt.'
         : 'Eine sichere erneute Anlage ist nicht verfügbar. Eine bereits zurückgegebene Kennung kann ausschließlich lesend mit dem ursprünglichen Auftrag abgeglichen werden. Ohne Kennung bleibt das Ergebnis ungeklärt. Der lokale Originalauftrag kann bei Neuladen verloren gehen.'} />
-    </> : <ErrorState message="Der aktuelle eigene Benutzerbezug oder das erforderliche Leserecht ist nicht verfügbar. Der ursprüngliche Speicherstand bleibt gesperrt." />}
+    </> : <CarePermissionStatus state={props.permissionStatus} deniedMessage="Der eigene Benutzerbezug oder das erforderliche Leserecht für den Anlagenbeleg fehlt." />}
     <PremiumButton title={confirmingRead ? 'Anlagenbeleg wird gelesen…' : 'Speicherergebnis erneut lesen'} disabled={!canConfirmKnown} onPress={() => { void confirmKnownOriginal(); }} />
     <PremiumButton title="Gespeicherte Verordnung öffnen" disabled={!readableReceipt} onPress={openCreated} />
     <PremiumButton title="Zurück" disabled={(status === 'uncertain' && !knownOriginal?.payload.bmpImportId) || confirmingRead} variant="secondary" onPress={() => { void handleLeave(); }} />
   </ScreenShell>;
   if (!canLoadClients || !ready) return <ScreenShell title="Medikation anlegen" onBack={() => { void handleLeave(); }}>
-    {canLoadClients && clientsQuery.loading ? <LoadingState message="Klientenbestand wird geladen…" /> : <ErrorState message={poolError ?? clientsQuery.error ?? clientsQuery.refreshError ?? 'Der aktuelle Benutzerbezug oder die erforderlichen Rechte sind nicht verfügbar.'} />}
+    {!canLoadClients ? <CarePermissionStatus state={props.permissionStatus} deniedMessage="Für diesen Vorgang fehlt der bestätigte Benutzerbezug oder die erforderliche Berechtigung." />
+      : clientsQuery.loading ? <LoadingState message="Klientenbestand wird geladen…" />
+      : <ErrorState message={poolError ?? clientsQuery.error ?? clientsQuery.refreshError ?? 'Der Klientenbestand konnte nicht bestätigt werden.'} />}
     <PremiumButton title="Klientenbestand erneut laden" disabled={!canLoadClients} onPress={reloadClients} />
     <PremiumButton title="Zurück" disabled={(['busy','uncertain'] as readonly string[]).includes(status)} variant="secondary" onPress={() => { void handleLeave(); }} />
   </ScreenShell>;

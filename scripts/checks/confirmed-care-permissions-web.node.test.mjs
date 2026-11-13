@@ -34,7 +34,7 @@ function backend(){
  return {env,calls,fetch,inner,get fallback(){return fallback;}};
 }
 test('Actual wrapper and complete keyset loader confirm the token user and active own native joined role before and after granting',async()=>{
- const b=backend(),p=await b.fetch(own());assert.deepEqual(p,['pflege.wounds.view']);assert.ok(Object.isFrozen(p));assert.ok(b.env.authCalls>=2);assert.equal(b.env.profileCalls,2);assert.ok(b.calls.filter(c=>c.table==='profiles'&&c.dispatch).every(c=>c.filters.id===id(1)));assert.equal(b.fallback,0);
+ const b=backend(),p=await b.fetch(own());assert.deepEqual(p,['pflege.wounds.view']);assert.ok(Object.isFrozen(p));assert.equal(b.env.authCalls,2);assert.equal(b.env.identityCalls,4);assert.equal(b.env.profileCalls,2);assert.ok(b.calls.filter(c=>c.table==='profiles'&&c.dispatch).every(c=>c.filters.id===id(1)));assert.equal(b.fallback,0);
 });
 for(const [name,change] of [
  ['Auth server rejects user',b=>{b.env.authError={message:'blocked'};}],['foreign authentic user',b=>{b.env.serverUser.id=id(9);}],['missing authentic user',b=>{b.env.serverUser=null;}],['anonymous user',b=>{b.env.serverUser.is_anonymous=true;}],
@@ -79,7 +79,7 @@ function workspace(b,lifecycle={}){
  const useRef=initial=>{const i=index++;return slots[i]??={current:initial};};
  const useState=initial=>{const i=index++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];};
  const useEffect=(run,deps)=>{const i=index++,prev=effects[i];if(!prev||deps.some((d,j)=>d!==prev.deps[j])){prev?.cleanup?.();effects[i]={deps,cleanup:run()};}};
- const hook=compile('src/hooks/pflege/useCareRuntimePermissions.web.ts','useCareRuntimePermissions',{useEffect,useRef,useState,ROLE_LABELS:{nurse:'Pflegefachkraft'},checkPermissionWithList:(_r,ps,p)=>({allowed:ps.includes(p)}),hasEffectiveModuleGateAccess:()=>true,isDemoMode:()=>false,useAuth:()=>auth,resolveEffectiveRoleKey:()=>auth.profile?.roleKey??null,useServiceTenantId:()=>auth.profile?.tenantId??null,carePermissionOwner,sameCarePermissionOwner,carePermissionOwnerIsCurrent,fetchCurrentCarePermissions:b.fetch,...lifecycle}).useCareRuntimePermissions;
+ const hook=compile('src/hooks/pflege/useCareRuntimePermissions.web.ts','useCareRuntimePermissions',{createContext:()=>null,useContext:()=>null,useEffect,useRef,useState,ROLE_LABELS:{nurse:'Pflegefachkraft'},checkPermissionWithList:(_r,ps,p)=>({allowed:ps.includes(p)}),hasEffectiveModuleGateAccess:()=>true,isDemoMode:()=>false,useAuth:()=>auth,resolveEffectiveRoleKey:()=>auth.profile?.roleKey??null,useServiceTenantId:()=>auth.profile?.tenantId??null,carePermissionOwner,sameCarePermissionOwner,carePermissionOwnerIsCurrent,fetchCurrentCarePermissions:b.fetch,...lifecycle}).useCareRuntimePermissions;
  return {auth,render:()=>{index=0;return hook();},dispose:()=>effects.forEach(e=>e?.cleanup?.())};
 }
 test('Actual production hook binding waits for authentic server/profile/permission confirmation and retries a failed server check without borrowed grants',async()=>{
@@ -125,6 +125,16 @@ for(const event of ['focus','pageshow','online'])test(`Visible ${event} invalida
 test('Focus, pageshow and visibility bursts before rerender coalesce into one revalidation',async()=>{
  const b=backend(),l=lifecycle(),w=workspace(b,l);w.render();await settle();const count=b.env.authCalls;
  l.visibility('hidden');l.visibility('visible');l.fire('focus');l.fire('pageshow');l.fire('online');w.render();await settle();assert.equal(b.env.authCalls,count*2);assert.equal(w.render().can('pflege.wounds.view'),true);w.dispose();
+});
+test('A focus notification during the initial read does not cancel the already pending verification',async()=>{
+ const b=backend(),l=lifecycle(),w=workspace(b,l),pending=deferred();
+ b.env.authOverride=()=>pending.promise;
+ w.render();await settle();assert.equal(b.env.authCalls,1);
+ l.fire('pageshow');l.fire('focus');l.fire('online');w.render();await settle();
+ assert.equal(b.env.authCalls,1);
+ pending.resolve({error:null,data:{user:{id:id(1)}}});
+ await settle();assert.equal(w.render().can('pflege.wounds.view'),true);
+ assert.equal(b.env.authCalls,2);w.dispose();
 });
 test('A hidden pending Auth reply cannot dispatch its old native profile query or publish old permissions',async()=>{
  const b=backend(),l=lifecycle(),w=workspace(b,l),d=deferred();b.env.authOverride=()=>d.promise;w.render();await settle();l.visibility('hidden');d.resolve({error:null,data:{user:{id:id(1)}}});await settle();assert.equal(b.env.profileCalls,0);assert.equal(b.env.permissionCalls,0);assert.equal(w.render().can('pflege.wounds.view'),false);

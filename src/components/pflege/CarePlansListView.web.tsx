@@ -44,7 +44,8 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
   CarePlansListViewProps & { list: ReturnType<typeof useCarePlanList> }) {
   const router = useRouter();
   const { profile } = useAuth();
-  const { can, roleLabel, check } = usePermissions();
+  const permissions = usePermissions();
+  const { can, roleLabel, check } = permissions;
   const isReadOnly = !can('pflege.plans.manage');
   const { shellVariant } = usePlatformLayout();
   const deviceClass = useDeviceClass();
@@ -99,6 +100,14 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
   };
 
   const handleCreate = () => { if (isCurrent() && can('pflege.plans.manage')) router.push('/pflege/plans/create' as never); };
+
+  if (permissions.loading) {
+    return <LoadingState presentation="inline" message="Pflegeberechtigungen werden geprüft…" />;
+  }
+
+  if (permissions.error) {
+    return <ErrorState presentation="inline" message={permissions.error} onRetry={permissions.refreshPermissions} />;
+  }
 
   if (!canView) {
     return (

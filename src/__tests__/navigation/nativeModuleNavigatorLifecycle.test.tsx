@@ -90,6 +90,9 @@ new Function('require', 'module', 'exports', portalSource)((id: string) => {
   if (id === '@/design/withCareSuiteTypography') return { withCareSuiteTypography: (styles: unknown) => styles };
   if (id === '@/design/web/webFontSize') return { webScaledFontMetric };
   if (id === '@/lib/portal/portalViewportContext') return { PortalViewportContext };
+  if (id === '@/components/portal/employee/employeePortalDesign') return { employeePortalDesign: {} };
+  if (id === '@/lib/portal/portalMessengerFocusContext') return { PortalMessengerFocusProvider: React.Fragment };
+  if (id === '@/design/tokens/portalPremium') return { PortalPremiumProvider: React.Fragment };
   return {};
 }, portalModule, portalModule.exports);
 function portalRoleElement(kind: 'employee' | 'client'): React.ReactElement<{ ownerPath?: string; children?: ReactNode }> {

@@ -174,7 +174,8 @@ export function useCarePlanList() {
         ownFrame.revision++;
         update(value => value + 1);
     };
-    const loading = permissions.loading || (allowed && ownFrame.loading), error = allowed ? ownFrame.error : unavailable;
+    const loading = permissions.loading || (allowed && ownFrame.loading);
+    const error = permissions.loading ? null : allowed ? ownFrame.error : permissions.error ?? unavailable;
     const hasActiveFilters = ownFrame.search.length > 0 || ownFrame.status !== 'all';
     return {
         allItems, items: paginated.items, totalCount: allItems.length, filteredCount: filtered.length,
@@ -191,7 +192,8 @@ export function useCarePlanList() {
                 update(value => value + 1);
             }
         },
-        refresh: () => read(true), resetFilters: () => change(() => { ownFrame.search = ''; ownFrame.status = 'all'; ownFrame.sort = 'client_asc'; }),
+        refresh: () => permissions.error ? permissions.refreshPermissions() : read(true),
+        resetFilters: () => change(() => { ownFrame.search = ''; ownFrame.status = 'all'; ownFrame.sort = 'client_asc'; }),
         hasActiveFilters, isEmpty: !loading && !error && allItems.length === 0,
         isFilterEmpty: !loading && !error && filtered.length === 0 && hasActiveFilters,
         isCurrent, isCurrentItem: (id: string) => isCurrent() && paginated.items.some(item => item.id === id),

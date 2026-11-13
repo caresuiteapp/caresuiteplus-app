@@ -6,14 +6,24 @@ import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/component
 import { useCarePlanList } from '@/hooks/useCarePlanList.web';
 import { useCareRuntimePermissions as usePermissions } from '@/hooks/pflege/useCareRuntimePermissions.web';
 import { fetchCarePlanList } from '@/lib/pflege/carePlanListService';
+import { CarePermissionStatus } from './CarePermissionStatus.web';
 
 /** Arbeitsplan 053 — /pflege/planung */
 export function PflegeplanungListScreen() {
   const router = useRouter();
-  const { can, roleLabel } = usePermissions();
+  const permissions = usePermissions();
+  const { can, roleLabel } = permissions;
   const isReadOnly = !can('pflege.plans.manage');
   const canCreate = can('pflege.plans.manage');
   const list = useCarePlanList();
+
+  if (permissions.loading || permissions.error) {
+    return (
+      <ScreenShell title="Pflegeplanung" scroll={false}>
+        <CarePermissionStatus state={permissions} />
+      </ScreenShell>
+    );
+  }
 
   if (list.loading && list.allItems.length === 0) {
     return (

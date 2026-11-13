@@ -1,5 +1,5 @@
 import { Platform } from 'react-native';
-import type { ReactNode } from 'react';
+import { Fragment, type ComponentType, type ReactNode } from 'react';
 import { Stack, usePathname, useRouter } from 'expo-router';
 import { RequireAuth, RequireRole } from '@/lib/auth';
 import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
@@ -20,6 +20,7 @@ type LiquidModuleRouteLayoutProps = {
   requireRole?: boolean;
   requireProduct?: boolean;
   nativeRoleOwnerPath?: string;
+  workspaceProvider?: ComponentType<{ children?: ReactNode }>;
 };
 
 const transparentContent = { backgroundColor: 'transparent' } as const;
@@ -136,11 +137,12 @@ export function LiquidModuleRouteLayout({
   requireRole = true,
   requireProduct = true,
   nativeRoleOwnerPath,
+  workspaceProvider: WorkspaceProvider = Fragment,
 }: LiquidModuleRouteLayoutProps) {
   let content: ReactNode = (
     <PortalPremiumProvider kind="workspace">
       <LiquidVisualModeProvider mode="orbit">
-        {children ?? <LiquidModuleContent />}
+        <WorkspaceProvider>{children ?? <LiquidModuleContent />}</WorkspaceProvider>
       </LiquidVisualModeProvider>
     </PortalPremiumProvider>
   );

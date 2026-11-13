@@ -7,13 +7,20 @@ import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/component
 import { useCarePlanList } from "../../hooks/useCarePlanList.native.ts";
 import { useCareRuntimePermissions as usePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
 import { fetchCarePlanList } from '@/lib/pflege/carePlanListService';
+import { CarePermissionStatus } from "./CarePermissionStatus.native.tsx";
 /** Arbeitsplan 053 — /pflege/planung */
 export function PflegeplanungListScreen() {
     const router = useRouter();
-    const { can, roleLabel } = usePermissions();
+    const permissions = usePermissions();
+    const { can, roleLabel } = permissions;
     const isReadOnly = !can('pflege.plans.manage');
     const canCreate = can('pflege.plans.manage');
     const list = useCarePlanList();
+    if (permissions.loading || permissions.error) {
+        return (<ScreenShell title="Pflegeplanung" scroll={false}>
+        <CarePermissionStatus state={permissions}/>
+      </ScreenShell>);
+    }
     if (list.loading && list.allItems.length === 0) {
         return (<ScreenShell title="Pflegeplanung" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Pflegepläne werden geladen…"/>

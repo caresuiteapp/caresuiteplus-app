@@ -19,21 +19,23 @@ import { isOutputProtocol, protocolDay, protocolDaySummary, protocolHistory, typ
 import { protocolRevision } from '@/lib/pflege/dailyProtocolRuntime';
 import { emptyProtocolForm, buildProtocolRequest, protocolFormFromEntry } from '@/lib/pflege/dailyProtocolForm';
 import { SourcePicker } from "./TreatmentSourcePicker.native.tsx";
+import { CarePermissionStatus, type CarePermissionStatusState } from "./CarePermissionStatus.native.tsx";
 import { useTreatmentCorrectionStyles } from "./TreatmentCorrectionScreen.native.tsx";
 type Role = ReturnType<typeof usePermissions>['roleKey'];
 import { protocolNames as names, protocolWhen as when } from '@/lib/pflege/dailyProtocolLabels';
 const choice = (values: string[]) => values.map(key => ({ key, label: names[key] ?? key }));
 const labels: Record<string, string> = { occurredAt: 'Tatsächlicher Ereigniszeitpunkt mit Zeitzone (z. B. 2026-10-09T08:30:00+02:00)', reportedBy: 'Tatsächliche Auskunftsperson / Herkunft', observation: 'Konkrete Beobachtung / tatsächlich übermittelter Befund', reaction: 'Tatsächliche Unterstützung, Reaktion, Rücksprache oder begründeter Klärungsbedarf', reviewAt: 'Individuell vereinbarter Kontrollzeitpunkt mit Zeitzone', reviewReason: 'Individuelle Begründung / konkrete weitere Vereinbarung', description: 'Tatsächlich angebotenes Getränk / Essen und Bezug der Portion', reason: 'Tatsächlicher Abweichungsgrund / Beobachtungsgrenze', color: 'Tatsächlich beobachtete Farbe oder leer, wenn nicht beurteilt', correctionReason: 'Konkreter Berichtigungs-/Rücknahmegrund', collectionRef: 'Eindeutiger tatsächlicher Sammel-/Behälterbezug', collectionStartAt: 'Tatsächlicher Sammelbeginn mit Zeitzone', collectionEndAt: 'Tatsächliches Sammelende mit Zeitzone (gleich dem Ereigniszeitpunkt)', clarity: 'Tatsächlich beobachtete Klarheit oder leer, wenn nicht beurteilt', odor: 'Tatsächlich beobachteter Geruch oder leer, wenn nicht beurteilt', symptoms: 'Tatsächliche Beschwerden oder konkrete Beobachtungsgrenze', personDecision: 'Tatsächliche Personenentscheidung / Unterstützungsgrenze', aidsDetail: 'Tatsächlich verwendete Hilfsmittel', site: 'Konkreter Ursprung / Lokalisation der Ausfuhr', appearance: 'Tatsächlich beobachtete Beschaffenheit oder leer, wenn nicht beurteilt' };
-export function DailyProtocolScreen() { const tenant = useServiceTenantId(), { profile } = useAuth(), p = usePermissions(); return <ProtocolClients key={`${tenant}:${profile?.id}:${p.roleKey}`} tenant={tenant ?? ''} role={p.roleKey} allowed={p.can('pflege.documentation.view')}/>; }
-function ProtocolClients({ tenant, role, allowed }: {
+export function DailyProtocolScreen() { const tenant = useServiceTenantId(), { profile } = useAuth(), p = usePermissions(); return <ProtocolClients key={`${tenant}:${profile?.id}:${p.roleKey}`} tenant={tenant ?? ''} role={p.roleKey} allowed={p.can('pflege.documentation.view')} permissionStatus={p}/>; }
+function ProtocolClients({ tenant, role, allowed, permissionStatus }: {
     tenant: string;
     role: Role;
     allowed: boolean;
+    permissionStatus: CarePermissionStatusState;
 }) {
     const router = useRouter(), { profile } = useAuth(), styles = useTreatmentCorrectionStyles(), [client, setClient] = useState('');
     const q = useAsyncQuery(() => fetchDailyProtocolClients(tenant, role), [tenant, profile?.id, role], { enabled: !!tenant && allowed, queryKey: `${tenant}:${profile?.id}:${role}:protocol-clients` });
     if (!allowed)
-        return <ScreenShell title="Pflegeprotokolle"><ErrorState message="Pflegedokumentations-Leserecht erforderlich."/></ScreenShell>;
+        return <ScreenShell title="Pflegeprotokolle"><CarePermissionStatus state={permissionStatus} deniedMessage="Für Pflegeprotokolle fehlt das Leserecht der Pflegedokumentation."/></ScreenShell>;
     if (client && q.data?.some(c => c.id === client) && !q.refreshError)
         return <ProtocolList key={`${tenant}:${profile?.id}:${client}:${role}`} tenant={tenant} client={client} name={q.data.find(c => c.id === client)!.name} role={role} onBack={() => setClient('')}/>;
     return <ScreenShell title="Trinken, Mahlzeiten und Ausscheidung"><ScrollView contentContainerStyle={styles.content}>{q.loading ? <LoadingState message="Aktive eigene Pflegefälle werden geladen…"/> : q.data ? <SourcePicker label="Aktiver Pflegefall" rows={q.data.map(c => ({ id: c.id, label: c.name }))} value="" onChange={setClient} disabled={q.refreshing || !!q.refreshError}/> : <ErrorState message={q.error ?? 'Pflegefälle nicht zugänglich.'} onRetry={q.refresh}/>} {q.refreshError ? <ErrorState message={q.refreshError} onRetry={q.refresh}/> : null}<PremiumButton title="Zur Behandlungspflege" variant="secondary" onPress={() => router.replace('/pflege/behandlungspflege' as never)}/></ScrollView></ScreenShell>;

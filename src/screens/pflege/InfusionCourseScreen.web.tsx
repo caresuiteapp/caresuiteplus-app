@@ -14,6 +14,7 @@ import {snapshotInfusionRequest,type InfusionRecord,type InfusionRequest} from '
 import {appendInfusionEvent,emptyInfusionEvent,infusionCourse,infusionReadModel,infusionCourseVersion,infusionEventLabels,type InfusionEpisode,type InfusionEventDraft} from '@/lib/pflege/infusionCourseDomain';
 import {ControlSourceLaunchButton} from './ControlSourceLaunchButton.web';
 import {SourcePicker} from './TreatmentSourcePicker.web';
+import {CarePermissionStatus,type CarePermissionStatusState} from './CarePermissionStatus.web';
 import {useTreatmentCorrectionStyles} from './TreatmentCorrectionScreen.web';
 type Role=ReturnType<typeof usePermissions>['roleKey'];type Row=Record<string,unknown>;
 const when=(v:string)=>new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',dateStyle:'short',timeStyle:'short'}).format(new Date(v));
@@ -22,10 +23,10 @@ const status:Record<string,string>={linked:'Vorhandene Anordnung zugeordnet',unc
 const narrative=['observation','accessReview','communication','personDecision','qualificationBasis','deviation'] as const;
 const enumFields=new Set(['orderState','medicationDocumentation','deviceMode','remainingState','deliveredState','reviewState']);
 const purposeLabel=(v:string)=>({fluid:'Flüssigkeitszufuhr',nutrition:'Ernährung',medication:'Arzneimittelinfusion'} as Record<string,string>)[v]??'Zweck nicht bestätigt';
-export function InfusionCourseScreen(){const tenant=useServiceTenantId(),{profile}=useAuth(),permissions=usePermissions();return <ClientSelection key={`${tenant}:${profile?.id}:${permissions.roleKey}`} tenant={tenant??''} role={permissions.roleKey} canRead={permissions.can('pflege.treatment.view')&&permissions.can('pflege.orders.view')} canWrite={permissions.can('pflege.treatment.manage')}/>;}
-function ClientSelection({tenant,role,canRead,canWrite}:{tenant:string;role:Role;canRead:boolean;canWrite:boolean}){
+export function InfusionCourseScreen(){const tenant=useServiceTenantId(),{profile}=useAuth(),permissions=usePermissions();return <ClientSelection key={`${tenant}:${profile?.id}:${permissions.roleKey}`} tenant={tenant??''} role={permissions.roleKey} canRead={permissions.can('pflege.treatment.view')&&permissions.can('pflege.orders.view')} canWrite={permissions.can('pflege.treatment.manage')} permissionStatus={permissions}/>;}
+function ClientSelection({tenant,role,canRead,canWrite,permissionStatus}:{tenant:string;role:Role;canRead:boolean;canWrite:boolean;permissionStatus:CarePermissionStatusState}){
  const {profile}=useAuth(),[client,setClient]=useState(''),styles=useTreatmentCorrectionStyles(),router=useRouter(),q=useAsyncQuery(()=>fetchTreatmentClients(tenant,role),[tenant,profile?.id,role],{enabled:!!tenant&&canRead,queryKey:`${tenant}:${profile?.id}:${role}:infusion-clients`});
- if(!canRead)return <ScreenShell title="Infusionen und Pumpen"><ErrorState message="Behandlungspflege- und Anordnungsleserecht fehlen."/></ScreenShell>;
+ if(!canRead)return <ScreenShell title="Infusionen und Pumpen"><CarePermissionStatus state={permissionStatus} deniedMessage="Für diesen Bereich fehlen Leserechte für Behandlungspflege oder Anordnungen."/></ScreenShell>;
  if(client)return <ClientCourses key={client} tenant={tenant} client={client} name={q.data?.find(c=>c.id===client)?.name??'Name nicht bestätigt'} role={role} canWrite={canWrite} onClientChange={()=>setClient('')}/>;
  return <ScreenShell title="Infusionen und Pumpen" subtitle="Eigene fortlaufende Verläufe mit tatsächlichen Kontrollen und Änderungen"><ScrollView contentContainerStyle={styles.content}>{q.loading&&!q.data?<LoadingState message="Aktive zugängliche Pflegefälle werden geladen…"/>:!q.data?<ErrorState message={q.error??'Pflegefälle nicht verfügbar.'} onRetry={q.refresh}/>:<SourcePicker label="Aktiver Pflegefall" rows={q.data.map(c=>({id:c.id,label:c.name}))} value="" disabled={q.loading||!!q.refreshError} onChange={setClient}/>} {q.refreshError?<ErrorState message={q.refreshError} onRetry={q.refresh}/>:null}<PremiumButton title="Zur Behandlungspflege" variant="secondary" onPress={()=>router.replace('/pflege/behandlungspflege' as never)}/></ScrollView></ScreenShell>;
 }

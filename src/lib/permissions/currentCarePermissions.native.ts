@@ -35,12 +35,12 @@ function page(value: unknown): readonly unknown[] {
     return value;
 }
 /** UUID-PK keyset: a short server-capped page is not an exhaustion proof. */
-async function permissionPages(client: NonNullable<ReturnType<typeof getSupabaseClient>>, table: 'role_permissions' | 'role_permission_sets', value: string, tenantId: string | undefined, assertSession: () => Promise<void>, assertCurrent: () => void, close: () => void): Promise<PermissionKey[]> {
+async function permissionPages(client: NonNullable<ReturnType<typeof getSupabaseClient>>, table: 'role_permissions' | 'role_permission_sets', value: string, tenantId: string | undefined, readSession: () => Promise<void>, assertCurrent: () => void, close: () => void): Promise<PermissionKey[]> {
     const permissions: PermissionKey[] = [], seenKeys = new Set<string>();
     let cursor: string | null = null;
     try {
         for (;;) {
-            await assertSession();
+            await readSession();
             assertCurrent();
             const tenant = table === 'role_permission_sets';
             let query = tenant
@@ -62,7 +62,7 @@ async function permissionPages(client: NonNullable<ReturnType<typeof getSupabase
             const response = object(raw);
             if (field(response, 'error') !== null)
                 throw failure();
-            await assertSession();
+            await readSession();
             assertCurrent();
             const rows = page(field(response, 'data'));
             if (!rows.length)
@@ -119,34 +119,34 @@ export async function fetchCurrentCarePermissions(owner: CarePermissionOwner, re
             throw failure();
     };
     let authUserId: string | null = null;
+    const readSession = async () => {
+        current();
+        const auth = client.auth, getSession = auth.getSession;
+        current();
+        if (typeof getSession !== 'function')
+            throw failure();
+        const response = object(await getSession.call(auth));
+        current();
+        if (field(response, 'error') !== null)
+            throw failure();
+        const native = object(field(object(field(response, 'data')), 'session')), user = object(field(native, 'user'));
+        const userId = field(user, 'id');
+        if (!uuid(userId) || authUserId !== null && userId !== authUserId || field(native, 'access_token') !== captured.accessToken)
+            throw failure();
+        const expires = field(native, 'expires_at');
+        if (expires === undefined || expires === null) {
+            if (captured.expiresAt !== null)
+                throw failure();
+        }
+        else {
+            const milliseconds = typeof expires === 'number' ? expires * 1000 : NaN;
+            if (!Number.isSafeInteger(expires) || !Number.isSafeInteger(milliseconds) || milliseconds <= Date.now() || milliseconds !== captured.expiresAt)
+                throw failure();
+        }
+        authUserId = userId;
+        current();
+    };
     const assertSession = async () => {
-        const readSession = async () => {
-            current();
-            const auth = client.auth, getSession = auth.getSession;
-            current();
-            if (typeof getSession !== 'function')
-                throw failure();
-            const response = object(await getSession.call(auth));
-            current();
-            if (field(response, 'error') !== null)
-                throw failure();
-            const native = object(field(object(field(response, 'data')), 'session')), user = object(field(native, 'user'));
-            const userId = field(user, 'id');
-            if (!uuid(userId) || authUserId !== null && userId !== authUserId || field(native, 'access_token') !== captured.accessToken)
-                throw failure();
-            const expires = field(native, 'expires_at');
-            if (expires === undefined || expires === null) {
-                if (captured.expiresAt !== null)
-                    throw failure();
-            }
-            else {
-                const milliseconds = typeof expires === 'number' ? expires * 1000 : NaN;
-                if (!Number.isSafeInteger(expires) || !Number.isSafeInteger(milliseconds) || milliseconds <= Date.now() || milliseconds !== captured.expiresAt)
-                    throw failure();
-            }
-            authUserId = userId;
-            current();
-        };
         await readSession();
         current();
         const auth = client.auth, getUser = auth.getUser;
@@ -197,16 +197,18 @@ export async function fetchCurrentCarePermissions(owner: CarePermissionOwner, re
             || mapLegacyRoleKeyToRoleKey(roleKey) !== captured.roleKey
             || (roleTenant !== null && roleTenant !== captured.tenantId))
             throw failure();
-        await assertSession();
+        await readSession();
         current();
         return { id: roleId, key: roleKey, tenantId: roleTenant };
     };
     try {
         const role = await confirmation();
         current();
+        // Each page checks the pinned SDK session and is subject to RLS. The two
+        // role confirmations recheck the account, tenant and profile on the server.
         const [global, tenant] = await Promise.all([
-            permissionPages(client, 'role_permissions', role.id, undefined, assertSession, current, close),
-            permissionPages(client, 'role_permission_sets', captured.roleKey, captured.tenantId, assertSession, current, close),
+            permissionPages(client, 'role_permissions', role.id, undefined, readSession, current, close),
+            permissionPages(client, 'role_permission_sets', captured.roleKey, captured.tenantId, readSession, current, close),
         ]);
         const finalRole = await confirmation();
         current();

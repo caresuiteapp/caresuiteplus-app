@@ -21,6 +21,7 @@ import { executeVitalCreateNativeWeb } from "../../lib/pflege/vitalCreateNativeW
 import { carePermissionOwner } from "../../lib/permissions/carePermissionOwner.native.ts";
 import { isDemoMode } from '@/lib/supabase/config';
 import type { RoleKey } from '@/types';
+import { CarePermissionStatus, type CarePermissionStatusState } from "./CarePermissionStatus.native.tsx";
 export function VitalReadingCreateScreen() {
     const auth = useAuth(), permissions = usePermissions(), tenantId = useServiceTenantId();
     const owner = carePermissionOwner(auth, tenantId, isDemoMode()), native = useRef({ auth, permissions, tenantId });
@@ -46,15 +47,16 @@ export function VitalReadingCreateScreen() {
     const [, setOwnerStoreRevision] = useState(0);
     useEffect(() => runtime?.subscribeOriginal(() => setOwnerStoreRevision(value => value + 1)), [runtime]);
     if (!runtime)
-        return <ScreenShell title="Vitalwerte erfassen"><ErrorState message="Der aktuelle eigene Benutzer- und Pflegezugriff konnte nicht bestätigt werden."/></ScreenShell>;
-    return <VitalCreateWorkspace key={`${scope}:${runtime.originalDraftVersion}`} runtime={runtime} tenantId={runtime.tenantId} role={runtime.role} canView={runtime.canRead()} canManage={runtime.canManage()}/>;
+        return <ScreenShell title="Vitalwerte erfassen"><CarePermissionStatus state={permissions} deniedMessage="Der eigene Benutzer- und Pflegezugriff konnte nicht bestätigt werden."/></ScreenShell>;
+    return <VitalCreateWorkspace key={`${scope}:${runtime.originalDraftVersion}`} runtime={runtime} tenantId={runtime.tenantId} role={runtime.role} canView={runtime.canRead()} canManage={runtime.canManage()} permissionStatus={permissions}/>;
 }
-function VitalCreateWorkspace({ runtime, tenantId, role, canView, canManage }: {
+function VitalCreateWorkspace({ runtime, tenantId, role, canView, canManage, permissionStatus }: {
     runtime: VitalCreateRuntimeWeb;
     tenantId: string;
     role: RoleKey | null;
     canView: boolean;
     canManage: boolean;
+    permissionStatus: CarePermissionStatusState;
 }) {
     const router = useRouter(), styles = useStyles();
     const [clientId, setClientId] = useState(''), [type, setType] = useState(''), [values, setValues] = useState<Record<string, string>>({}), [context, setContext] = useState<Record<string, string>>({}), [note, setNote] = useState('');
@@ -163,10 +165,8 @@ function VitalCreateWorkspace({ runtime, tenantId, role, canView, canManage }: {
         }
         await write.submit(payload);
     }
-    if (!canView)
-        return <ScreenShell title="Vitalwerte erfassen"><ErrorState message="Für Vitalwerte fehlt die Leseberechtigung."/></ScreenShell>;
-    if (!canManage)
-        return <ScreenShell title="Vitalwerte erfassen"><ErrorState message="Für das Erfassen von Vitalwerten fehlt die Schreibberechtigung."/></ScreenShell>;
+    if (!canView || !canManage)
+        return <ScreenShell title="Vitalwerte erfassen"><CarePermissionStatus state={permissionStatus} deniedMessage={canView ? 'Für das Erfassen von Vitalwerten fehlt die Schreibberechtigung.' : 'Für Vitalwerte fehlt die Leseberechtigung.'}/></ScreenShell>;
     const displayedReceipt = runtime.confirmedReceipt(), newDraftToken = runtime.captureNewDraft();
     const newMeasurement = () => { if (renderRevision !== draftRevision.current || !displayedReceipt)
         return; const freshTime = currentMedicationEventTime(); if (renderRevision !== draftRevision.current || !runtime.startNewDraft(newDraftToken))

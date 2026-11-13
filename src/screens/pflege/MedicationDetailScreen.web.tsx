@@ -12,6 +12,7 @@ import { MedicationHistoricalPlan } from '@/components/pflege/MedicationHistoric
 import { recordMedicationEventWeb as recordMedicationEvent } from '@/lib/pflege/medicationEventWrite.web';
 import { MedicationDailyPlanPanel } from '@/components/pflege/MedicationDailyPlanPanel.web';
 import { MedicationOrderReviewPanel } from '@/components/pflege/MedicationOrderReviewPanel.web';
+import { CarePermissionStatus, type CarePermissionStatusState } from './CarePermissionStatus.web';
 import { MedicationOrderRevisionPanel } from '@/components/pflege/MedicationOrderRevisionPanel.web';
 import { MedicationSafetyWorkspacePanel } from '@/components/pflege/MedicationSafetyWorkspacePanel.web';
 import { captureHistoricalMedicationPlans } from '@/lib/pflege/medicationHistoricalPlan.web';
@@ -45,10 +46,10 @@ export function MedicationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const { profile } = useAuth(); const tenantId = useServiceTenantId(); const permissions = usePermissions();
   const access=careAssessmentRuntimeAccess({tenantId,profileId:profile?.id,profileRole:profile?.roleKey,runtimeTenantId:permissions.tenantId,runtimeRole:permissions.roleKey,canView:permissions.can('pflege.medications.view'),canManage:permissions.can('pflege.medications.manage')});
-  return <MedicationWorkspace key={`${tenantId}:${profile?.id}:${profile?.roleKey}:${id}`} id={id} tenantId={tenantId ?? ''} actorId={profile?.id ?? ''} role={permissions.roleKey} profileRole={profile?.roleKey??null} canView={access.canRead} canAdminister={access.canRead&&permissions.can('pflege.medications.administer')} canManage={access.canManage} canReview={access.canRead&&permissions.can('pflege.documentation.sign')} canSources={permissions.can('office.documents.view') && permissions.can('office.clients.view_sensitive')} />;
+  return <MedicationWorkspace key={`${tenantId}:${profile?.id}:${profile?.roleKey}:${id}`} id={id} tenantId={tenantId ?? ''} actorId={profile?.id ?? ''} role={permissions.roleKey} profileRole={profile?.roleKey??null} canView={access.canRead} canAdminister={access.canRead&&permissions.can('pflege.medications.administer')} canManage={access.canManage} canReview={access.canRead&&permissions.can('pflege.documentation.sign')} canSources={permissions.can('office.documents.view') && permissions.can('office.clients.view_sensitive')} permissionStatus={permissions} />;
 }
 
-function MedicationWorkspace({ id, tenantId, actorId, role, profileRole, canView, canAdminister, canManage, canReview, canSources }: { id: string; tenantId: string; actorId: string; role: RoleKey | null; profileRole: RoleKey | null; canView: boolean; canAdminister: boolean; canManage: boolean; canReview:boolean; canSources: boolean }) {
+function MedicationWorkspace({ id, tenantId, actorId, role, profileRole, canView, canAdminister, canManage, canReview, canSources, permissionStatus }: { id: string; tenantId: string; actorId: string; role: RoleKey | null; profileRole: RoleKey | null; canView: boolean; canAdminister: boolean; canManage: boolean; canReview:boolean; canSources: boolean; permissionStatus: CarePermissionStatusState }) {
   const router = useRouter(); const styles = useStyles();
   const editorLeave=useRef<(()=>Promise<boolean>)|null>(null),revisionLeave=useRef<(()=>Promise<boolean>)|null>(null),revisionEditing=useRef(false),planLeave=useRef<(()=>Promise<boolean>)|null>(null),reviewLeave=useRef<(()=>Promise<boolean>)|null>(null),planEditing=useRef(false),reviewEditing=useRef(false),activeEditor=useRef<string|null>(null);
   const [revisionActive,setRevisionActive]=useState(false),[planActive,setPlanActive]=useState(false),[reviewActive,setReviewActive]=useState(false);
@@ -91,13 +92,13 @@ function MedicationWorkspace({ id, tenantId, actorId, role, profileRole, canView
     router.back();
   }catch{}finally{leaveFlight.current=false;}}
   function confirmedEditor(message:string){if(currentWorkspace().editor!==editor)throw Error('Eigene Bearbeitung geändert.');setSuccess(message);heldFollowUp.current=null;activeEditor.current=null;setEditor(null);}
-  if(!order)return <ScreenShell title="Medikation">{!canView?<ErrorState message="Für diese Medikationsakte fehlt die Leseberechtigung."/>:query.loading?<LoadingState message="Verordnung und vollständiger Medikationsverlauf werden geladen…"/>:<ErrorState message={query.error??'Verordnung nicht gefunden.'} onRetry={query.refresh}/>}</ScreenShell>;
+  if(!order)return <ScreenShell title="Medikation">{!canView?<CarePermissionStatus state={permissionStatus} deniedMessage="Für diese Medikationsakte fehlt die Leseberechtigung."/>:query.loading?<LoadingState message="Verordnung und vollständiger Medikationsverlauf werden geladen…"/>:<ErrorState message={query.error??'Verordnung nicht gefunden.'} onRetry={query.refresh}/>}</ScreenShell>;
   const context: Context = { tenantId, actorId, role, profileRole, canView:nativeRead, canAdminister, canManage, canSources, unavailable:!fresh||query.loading||query.refreshing||!!query.error||!!query.refreshError, sourceUnavailable:sources.loading||sources.refreshing||!!sources.error||!!sources.refreshError||!sources.data, order, currentSourceDocuments:sources.data?.documents??[],currentSourceLinks:sources.data?.links??[],isLeaving,registerLeave, refresh: query.refresh, close: closeEditor, saved: confirmedEditor };
   const followUpEvent = heldFollowUp.current?.id===editor?heldFollowUp.current:order.administrations.find(e=>e.id===editor);
   const historicalPlans = captureHistoricalMedicationPlans(order.administrations, { tenantId, medicationId: order.id, clientId: order.clientId });
   return <ScreenShell title="Medikation" subtitle={canView&&fresh?`${order.medicationName} · ${order.clientName}`:undefined}>
     <ScrollView contentContainerStyle={styles.content}>
-      {!canView?<ErrorState message="Die Medikationsleseberechtigung fehlt. Angefangene und ungewisse Originalanfragen bleiben erhalten."/>:!fresh?<ErrorState message={query.error??'Verordnung wird unter dem aktuellen Lesebezug neu geladen. Angefangene Originalanfragen bleiben erhalten.'} onRetry={query.refresh}/>:null}
+      {!canView?<CarePermissionStatus state={permissionStatus} deniedMessage="Für diese Medikationsakte fehlt die Leseberechtigung."/>:!fresh&&query.loading?<LoadingState presentation="inline" message="Verordnung wird geladen…"/>:!fresh?<ErrorState message={query.error??'Verordnung konnte nicht geladen werden.'} onRetry={query.refresh}/>:null}
       {canView&&fresh?<View style={{gap:spacing.md}}>
       <SectionPanel title={order.medicationName} subtitle={order.clientName}>
         <View style={styles.actions}><PremiumBadge label={labels[order.status]} variant={order.status === 'active' ? 'green' : 'orange'} />{order.isPrn ? <PremiumBadge label="Bedarfsmedikation" variant="orange" /> : null}{order.isHighAlert ? <PremiumBadge label="Hochrisiko" variant="red" /> : null}{order.isControlledSubstance ? <PremiumBadge label="BtM · Gegenkontrolle" variant="red" /> : null}</View>

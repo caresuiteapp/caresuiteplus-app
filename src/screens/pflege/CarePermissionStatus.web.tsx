@@ -6,8 +6,14 @@ export type CarePermissionStatusState = {
   refreshPermissions: () => void;
 };
 
-export function CarePermissionStatus({ state }: { state: CarePermissionStatusState }) {
-  if (state.loading) return <LoadingState message="Aktuelle Pflegeberechtigungen werden geprüft…" />;
-  return <ErrorState message={state.error ?? 'Die aktuelle Leseberechtigung ist nicht verfügbar.'}
+export function CarePermissionStatus({
+  state,
+  deniedMessage = 'Für diese Pflegeansicht fehlt die Leseberechtigung.',
+}: {
+  state: CarePermissionStatusState;
+  deniedMessage?: string;
+}) {
+  if (state.loading) return <LoadingState presentation="inline" message="Pflegeberechtigungen werden geprüft…" />;
+  return <ErrorState presentation="inline" message={state.error ?? deniedMessage}
     onRetry={state.error ? state.refreshPermissions : undefined} />;
 }

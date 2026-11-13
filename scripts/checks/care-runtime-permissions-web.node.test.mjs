@@ -15,7 +15,7 @@ const body = file => stripTypeScriptTypes(readFileSync(new URL(`../../${file}`,i
 const loaderSource = body('src/lib/permissions/currentCarePermissions.web.ts');
 const makeLoader = new Function('carePermissionOwnerIsCurrent','mapLegacyRoleKeyToRoleKey','getPermissionsForRole','getSupabaseClient',`${loaderSource};return fetchCurrentCarePermissions;`);
 const hookSource = body('src/hooks/pflege/useCareRuntimePermissions.web.ts');
-const makeHook = new Function('useEffect','useRef','useState','ROLE_LABELS','checkPermissionWithList','hasEffectiveModuleGateAccess','isDemoMode','useAuth','resolveEffectiveRoleKey','useServiceTenantId','carePermissionOwner','sameCarePermissionOwner','carePermissionOwnerIsCurrent','fetchCurrentCarePermissions',`${hookSource};return useCareRuntimePermissions;`);
+const makeHook = new Function('createContext','useContext','useEffect','useRef','useState','ROLE_LABELS','checkPermissionWithList','hasEffectiveModuleGateAccess','isDemoMode','useAuth','resolveEffectiveRoleKey','useServiceTenantId','carePermissionOwner','sameCarePermissionOwner','carePermissionOwnerIsCurrent','fetchCurrentCarePermissions',`${hookSource};return useCareRuntimePermissions;`);
 const deferred = () => { let resolve,reject;const promise=new Promise((a,b)=>{resolve=a;reject=b;});return {promise,resolve,reject}; };
 const settle = async () => { for(let i=0;i<1000;i++)await Promise.resolve(); };
 
@@ -61,7 +61,7 @@ function workspace(nativeLoader=null){
  const useRef=initial=>{const i=index++;return slots[i]??={current:initial};};
  const useState=initial=>{const i=index++;if(!(i in slots))slots[i]=typeof initial==='function'?initial():initial;return [slots[i],value=>{slots[i]=typeof value==='function'?value(slots[i]):value;}];};
  const useEffect=(run,deps)=>{const i=index++,prev=effects[i];if(!prev||deps.some((d,j)=>d!==prev.deps[j])){prev?.cleanup?.();effects[i]={run,deps,cleanup:run()};}};
- const hook=makeHook(useEffect,useRef,useState,{nurse:'Pflegefachkraft',business_admin:'Admin'},(_role,permissions,p)=>({allowed:permissions.includes(p)}),()=>true,()=>env.demo,()=>env.auth,(p,u,s)=>s?.roleKey??p?.roleKey??u?.roleKey??null,()=>env.tenant,carePermissionOwner,sameCarePermissionOwner,carePermissionOwnerIsCurrent,nativeLoader??(readOwner=>{const d=deferred();pending.push({owner:readOwner,...d});return d.promise;}));
+ const hook=makeHook(() => null, () => null, useEffect,useRef,useState,{nurse:'Pflegefachkraft',business_admin:'Admin'},(_role,permissions,p)=>({allowed:permissions.includes(p)}),()=>true,()=>env.demo,()=>env.auth,(p,u,s)=>s?.roleKey??p?.roleKey??u?.roleKey??null,()=>env.tenant,carePermissionOwner,sameCarePermissionOwner,carePermissionOwnerIsCurrent,nativeLoader??(readOwner=>{const d=deferred();pending.push({owner:readOwner,...d});return d.promise;}));
  const render=()=>{index=0;return hook();};
  const dispose=()=>effects.forEach(e=>e?.cleanup?.());
  return {env,pending,render,dispose,strictReplay:()=>effects.forEach(e=>{if(e){e.cleanup?.();e.cleanup=e.run();}})};

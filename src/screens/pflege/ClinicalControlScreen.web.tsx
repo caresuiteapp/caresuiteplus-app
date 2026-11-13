@@ -8,6 +8,7 @@ import {ScreenShell} from '@/components/layout';
 import {ErrorState,FilterChipGroup,InfoBanner,LoadingState,PremiumButton,PremiumInput,SectionPanel,SuccessState} from '@/components/ui';
 import {useAuth} from '@/lib/auth/context';
 import { useCareRuntimePermissions as usePermissions } from '@/hooks/pflege/useCareRuntimePermissions.web';
+import {CarePermissionStatus,type CarePermissionStatusState} from './CarePermissionStatus.web';
 import {useServiceTenantId} from '@/hooks/useTenantId';
 import {useAsyncQuery} from '@/hooks/core/useAsyncQuery';
 import {useMedicationSubmission} from '@/hooks/useMedicationSubmission.web';
@@ -49,16 +50,16 @@ export function ClinicalControlScreen(){
  if(error)return <ScreenShell title="Kontrollaufträge"><ErrorState message={error}/><PremiumButton title="Pflegefall und Originalbeleg neu auswählen" onPress={()=>router.replace({pathname:'/pflege/behandlungspflege',params:{view:'controls'}} as never)}/></ScreenShell>;
  const runtimeContext:RuntimeContext={tenant:tenant??'',profileId:profile?.id??'',profileRole:profile?.roleKey??null,runtimeTenant:p.tenantId??'',runtimeRole:p.roleKey,canRead:p.can('pflege.documentation.view')&&p.can('pflege.treatment.view')&&p.can('pflege.orders.view')};
  const allowed=ownRuntime(runtimeContext,tenant??'',profile?.roleKey??null)&&runtimeContext.canRead;
- return <ClientSelection key={`${tenant}:${profile?.id}:${profile?.roleKey}:${launch?.clientId}:${launch?.sourceKind}:${launch?.sourceId}:${launch?.evaluationMeasureId}:${taskLaunch?.clientId}:${taskLaunch?.taskId}`} tenant={tenant??''} role={profile?.roleKey??null} launch={launch} taskLaunch={taskLaunch} allowed={allowed} runtimeContext={runtimeContext}/>;
+ return <ClientSelection key={`${tenant}:${profile?.id}:${profile?.roleKey}:${launch?.clientId}:${launch?.sourceKind}:${launch?.sourceId}:${launch?.evaluationMeasureId}:${taskLaunch?.clientId}:${taskLaunch?.taskId}`} tenant={tenant??''} role={profile?.roleKey??null} launch={launch} taskLaunch={taskLaunch} allowed={allowed} runtimeContext={runtimeContext} permissionStatus={p}/>;
 }
-function ClientSelection({tenant,role,allowed,launch,taskLaunch,runtimeContext}:{tenant:string;role:Role;allowed:boolean;launch:ControlLaunch|null;taskLaunch:ControlTaskLaunch|null;runtimeContext:RuntimeContext}){
+function ClientSelection({tenant,role,allowed,launch,taskLaunch,runtimeContext,permissionStatus}:{tenant:string;role:Role;allowed:boolean;launch:ControlLaunch|null;taskLaunch:ControlTaskLaunch|null;runtimeContext:RuntimeContext;permissionStatus:CarePermissionStatusState}){
  const {profile}=useAuth(),styles=useTreatmentCorrectionStyles(),router=useRouter(),[client,setClient]=useState(taskLaunch?.clientId??launch?.clientId??'');
  const q=useAsyncQuery(()=>fetchTreatmentClients(tenant,role),[tenant,profile?.id,role],{enabled:allowed&&!!tenant,queryKey:`${tenant}:${profile?.id}:${role}:${allowed}:control-clients`});
  const retainedClient=useRef<{id:string;name:string}|null>(null);
  const fresh=allowed&&!q.loading&&!q.refreshing&&!q.error&&!q.refreshError?q.data?.find(c=>c.id===client):null;
  if(fresh&&woundUuid(fresh.id))retainedClient.current={id:fresh.id,name:fresh.name};
  if(client&&retainedClient.current?.id===client)return <ControlList key={client} tenant={tenant} client={client} name={fresh?.name??''} role={role} launch={launch?.clientId===client?launch:null} taskLaunch={taskLaunch?.clientId===client?taskLaunch:null} onChange={()=>setClient('')} readBlocked={!fresh} runtimeContext={runtimeContext}/>;
- if(!allowed)return <ScreenShell title="Kontrollaufträge"><ErrorState message="Pflegedokumentations-, Behandlungs- und Anordnungsleserecht erforderlich."/></ScreenShell>;
+ if(!allowed)return <ScreenShell title="Kontrollaufträge"><CarePermissionStatus state={permissionStatus} deniedMessage="Für Kontrollaufträge brauchen Sie Leserechte für Pflegedokumentation, Behandlungspflege und Anordnungen."/></ScreenShell>;
  return <ScreenShell title="Kontrollaufträge und Rückmeldungen" subtitle="Tatsächliche Ergebnisse und Fristen im vollständigen Verlauf"><ScrollView contentContainerStyle={styles.content}>{q.loading&&!q.data?<LoadingState message="Aktive eigene Pflegefälle werden geladen…"/>:!q.data?<ErrorState message={q.error??'Pflegefälle nicht verfügbar.'} onRetry={q.refresh}/>:<><SourcePicker label="Aktiver Pflegefall" rows={q.data.map(c=>({id:c.id,label:c.name}))} value="" onChange={setClient} disabled={q.loading||q.refreshing||!!q.refreshError}/>{client&&!q.data.some(c=>c.id===client)?<ErrorState message="Der verknüpfte Pflegefall ist nicht im aktiven zugänglichen Bestand. Keine Belegübernahme."/>:null}</>} {q.refreshError?<ErrorState message={q.refreshError} onRetry={q.refresh}/>:null}<PremiumButton title="Zur Behandlungspflege" variant="secondary" onPress={()=>router.replace('/pflege/behandlungspflege' as never)}/></ScrollView></ScreenShell>;
 }
 function ControlList({tenant,client,name,role,onChange,launch,taskLaunch,readBlocked,runtimeContext}:{tenant:string;client:string;name:string;role:Role;onChange:()=>void;launch:ControlLaunch|null;taskLaunch:ControlTaskLaunch|null;readBlocked:boolean;runtimeContext:RuntimeContext}){

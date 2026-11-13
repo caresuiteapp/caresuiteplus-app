@@ -14,17 +14,19 @@ import { emptyTreatmentExecution, emptyTreatmentDetails, treatmentProfiles, vali
 import { fetchTreatmentClients, fetchTreatmentExecutionSources, writeTreatmentExecution, type TreatmentExecutionSources } from '@/lib/pflege/treatmentExecutionService';
 import { OriginalTreatmentSection, treatmentOutcome, useTreatmentCorrectionStyles } from "./TreatmentCorrectionScreen.native.tsx";
 import { SourcePicker } from "./TreatmentSourcePicker.native.tsx";
+import { CarePermissionStatus, type CarePermissionStatusState } from "./CarePermissionStatus.native.tsx";
 type Row = Record<string, unknown>;
 const display = (v: unknown) => typeof v === 'string' && v.trim() ? v : 'Nicht bestätigt';
-export function TreatmentExecutionCreateScreen() { const tenant = useServiceTenantId(), { profile } = useAuth(), p = usePermissions(); return <ClientSelection key={`${tenant}:${profile?.id}:${p.roleKey}`} tenant={tenant ?? ''} role={p.roleKey} canWrite={p.can('pflege.treatment.view') && p.can('pflege.treatment.manage') && p.can('pflege.orders.view')}/>; }
-function ClientSelection({ tenant, role, canWrite }: {
+export function TreatmentExecutionCreateScreen() { const tenant = useServiceTenantId(), { profile } = useAuth(), p = usePermissions(); return <ClientSelection key={`${tenant}:${profile?.id}:${p.roleKey}`} tenant={tenant ?? ''} role={p.roleKey} canWrite={p.can('pflege.treatment.view') && p.can('pflege.treatment.manage') && p.can('pflege.orders.view')} permissionStatus={p}/>; }
+function ClientSelection({ tenant, role, canWrite, permissionStatus }: {
     tenant: string;
     role: ReturnType<typeof usePermissions>['roleKey'];
     canWrite: boolean;
+    permissionStatus: CarePermissionStatusState;
 }) {
     const [client, setClient] = useState(''), styles = useTreatmentCorrectionStyles(), router = useRouter(), q = useAsyncQuery(() => fetchTreatmentClients(tenant, role), [tenant, role], { enabled: !!tenant && canWrite, queryKey: `${tenant}:${role}:structured-treatment-clients` });
     if (!canWrite)
-        return <ScreenShell title="Behandlungspflege dokumentieren"><ErrorState message="Behandlungspflege-Lese-/Schreibrecht und Anordnungsleserecht erforderlich."/></ScreenShell>;
+        return <ScreenShell title="Behandlungspflege dokumentieren"><CarePermissionStatus state={permissionStatus} deniedMessage="Dafür brauchen Sie Lese- und Schreibrechte für Behandlungspflege sowie Leserechte für Anordnungen."/></ScreenShell>;
     if (client)
         return <ExecutionForm key={client} tenant={tenant} client={client} clientName={q.data?.find(p => p.id === client)?.name ?? 'Name nicht bestätigt'} role={role} onClientChange={() => setClient('')}/>;
     return <ScreenShell title="Behandlungspflege dokumentieren" subtitle="Aktiven Pflegefall und tatsächliche Behandlungsart ausdrücklich wählen"><ScrollView contentContainerStyle={styles.content}>{q.loading && !q.data ? <LoadingState message="Aktive zugängliche Pflegefälle werden vollständig geladen…"/> : !q.data ? <ErrorState message={q.error ?? 'Pflegefälle nicht verfügbar.'} onRetry={q.refresh}/> : <SourcePicker label="Pflegefall" rows={q.data.map(p => ({ id: p.id, label: p.name }))} value="" disabled={q.loading || !!q.refreshError} onChange={setClient}/>} {q.refreshError ? <ErrorState message={q.refreshError} onRetry={q.refresh}/> : null}<PremiumButton title="Zur Behandlungspflegeliste" variant="secondary" onPress={() => router.replace('/pflege/behandlungspflege' as never)}/></ScrollView></ScreenShell>;
