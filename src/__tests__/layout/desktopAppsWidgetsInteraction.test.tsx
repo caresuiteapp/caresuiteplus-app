@@ -436,7 +436,10 @@ describe('Apps and Widgets in the actual Web desktop', () => {
   it('keeps accepted shared recommendations separate for each desktop, tenant and person', async () => {
     api.modules.add('beratung'); chooseArea('beratung'); seed([], 'beratung'); seed([]);
     await render(); await enterEditor();
-    await click(acceptSuggestion(suggestedRoute('/business/office/clients')));
+    const recommendation = suggestedRoute('/business/office/clients')!;
+    const position = Number(recommendation.parentElement?.dataset.csDesktopSlot);
+    await click(acceptSuggestion(recommendation));
+    expect(savedSlots('beratung')[position]).toBe('clients');
     expect(savedIds('beratung')).toEqual(['clients']);
     expect(savedIds()).toEqual([]);
     await click(tab('Office', workspaceHeader())); await enterEditor();
@@ -448,6 +451,8 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(label('Klient:innen verschieben')).toBeTruthy();
     expect(suggestedRoute('/business/office/clients')).toBeUndefined();
     const originalKey = key('beratung');
+    const originalLayout = JSON.stringify(savedSlots('beratung'));
+    expect(savedSlots('beratung')[position]).toBe('clients');
 
     api.tenant = 'tenant-b'; chooseArea('beratung'); seed([], 'beratung'); await render(); await enterEditor();
     expect(label('Klient:innen öffnen')).toBeNull();
@@ -456,7 +461,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     api.user = 'user-b'; chooseArea('beratung'); seed([], 'beratung'); await render(); await enterEditor();
     expect(label('Klient:innen öffnen')).toBeNull();
     expect(savedIds('beratung')).toEqual([]);
-    expect(memory.get(originalKey)).toBe('["clients"]');
+    expect(memory.get(originalKey)).toBe(originalLayout);
   });
 
   it('retains an accepted recommendation after a failed save and retries the existing preference write', async () => {
