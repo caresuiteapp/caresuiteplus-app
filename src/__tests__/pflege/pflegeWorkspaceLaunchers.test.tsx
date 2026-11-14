@@ -85,6 +85,23 @@ describe('live Pflege workspace navigation', () => {
     expect(routes).toContain('/pflege/plans'); expect(routes).not.toContain('/pflege/medikation'); expect(routes).not.toContain('/pflege/settings');
     api.module = false; expect(buildPflegeWorkspaceGroups(access())).toEqual([]);
   });
+  it('opens the Pflege start page and permitted plans for a Pflege role without Office access', async () => {
+    api.all = false;
+    api.allowed = new Set(['pflege.access', 'pflege.plans.view']);
+    await render();
+    expect(host.textContent).toContain('Ihre Pflegebereiche');
+    expect(link('Medikation')).toBeNull();
+    expect(link('Vitalwerte')).toBeNull();
+    await act(async () => link('Pflegepläne')!.click());
+    expect(api.push).toHaveBeenCalledWith('/pflege/plans');
+
+    const previous = api.retained.get('Pflegepläne öffnen')!;
+    api.allowed.delete('pflege.access');
+    await render();
+    expect(host.textContent).toContain('kein Pflegezugriff bestätigt');
+    await act(async () => previous());
+    expect(api.push).toHaveBeenCalledTimes(1);
+  });
   it('keeps clinical navigation visible while dashboard reads are loading or fail', async () => {
     await render(); expect(host.textContent).toContain('Dashboard lädt'); expect(link('Pflegepläne')).not.toBeNull();
     api.loading = false; api.error = 'Dashboard nicht verfügbar'; await render();

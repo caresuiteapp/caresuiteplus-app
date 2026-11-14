@@ -76,7 +76,9 @@ describe('Web apps and widgets catalog', () => {
     expect(filterDesktopCatalogEntries([{ route: '/pflege/plans' }], 'office', reader)).toEqual([]);
     expect(canShowDesktopCatalogRoute('/pflege/plans', { ...reader, hasModuleGate: module => module !== 'pflege' })).toBe(false);
     expect(canShowDesktopCatalogRoute('/pflege/plans', withPermissions('pflege.plans.view'))).toBe(false);
-    expect(canShowDesktopCatalogRoute('/pflege/plans', { ...reader, can: permission => permission !== 'office.access' && reader.can(permission) })).toBe(false);
+    const careOnly = { ...reader, can: (permission: PermissionKey) => permission !== 'office.access' && reader.can(permission) };
+    expect(canShowDesktopCatalogRoute('/pflege/plans', careOnly)).toBe(true);
+    expect(canShowDesktopCatalogRoute('/office', careOnly)).toBe(false);
     expect(canShowDesktopCatalogRoute('/pflege/plans', { ...reader, roleKey: 'employee_portal' })).toBe(false);
     expect(canShowDesktopCatalogRoute('/pflege/diagnosen', { ...admin, roleKey: 'dispatch' })).toBe(false);
   });

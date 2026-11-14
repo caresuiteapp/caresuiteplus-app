@@ -21,7 +21,7 @@ export function PflegeHomeWorkspace({ tenantId }: { tenantId: string | null }) {
   const [query, setQuery] = useState('');
   const [contentWidth, setContentWidth] = useState(0);
   const sameTenant = !!tenantId && access.tenantId === tenantId;
-  const canReadHome = sameTenant && isScopeCurrent() && access.can('office.access');
+  const canReadHome = sameTenant && isScopeCurrent() && access.can('pflege.access');
   const groups = canReadHome ? buildPflegeWorkspaceGroups(access) : [];
   const searching = hasPflegeWorkspaceSearch(query);
   const shownGroups = searching ? searchPflegeWorkspaceGroups(groups, query) : groups;
@@ -122,7 +122,7 @@ export function PflegeHomeWorkspace({ tenantId }: { tenantId: string | null }) {
                 activePlans={dashboard.activePlans} loading={dashboard.loading} error={dashboard.error} refreshError={dashboard.refreshError}
                 refreshing={dashboard.refreshing} onRefresh={dashboard.refresh} />
             </View>
-            <DocumentRecommendations module="pflege" workflow="care" compact />
+            {access.can('office.access') ? <DocumentRecommendations module="pflege" workflow="care" compact /> : null}
           </> : null}
         </View>
       )}

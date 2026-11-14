@@ -210,7 +210,10 @@ export function canShowDesktopCatalogRoute(route: string, access: DesktopCatalog
   if (!route.startsWith('/') || route.startsWith('//') || isUnreleasedModuleRoute(route)) return false;
   const path = catalogPath(route);
   const rule = RULES[path];
-  if (!rule || !access.can('office.access')) return false;
+  if (!rule) return false;
+  // The Pflege area has its own module and workspace grants. Keep the
+  // Office prerequisite for other launchers, including Office shortcuts.
+  if (rule.module !== 'pflege' && !access.can('office.access')) return false;
   const allowedRoles = getRouteByPath(path)?.allowedRoles;
   if (allowedRoles?.length && !allowedRoles.some(role => role === access.roleKey)) return false;
   if (rule.module && (!access.hasModuleGate(rule.module) || !access.can(`${rule.module}.access` as PermissionKey))) return false;
