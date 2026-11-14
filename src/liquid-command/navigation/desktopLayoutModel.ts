@@ -22,8 +22,10 @@ export function desktopGridMetrics(fontScale: number, mobile: boolean, hasSugges
   const scale = Math.max(1, Number.isFinite(fontScale) ? fontScale : 1);
   const gap = mobile ? 10 : 14;
   const minimum = (mobile && !hasSuggestions ? 135 : 240) * scale;
-  const labelHeight = Math.ceil((mobile ? 32 : 48) * scale + (mobile ? 12 : 16));
-  return { scale, gap, minimum, labelHeight };
+  const labelHeight = Math.ceil((mobile ? 24 : 26) * scale + (mobile ? 12 : 16));
+  const artworkMinHeight = mobile ? 108 : 116;
+  const artworkInset = mobile ? 4 : 6;
+  return { scale, gap, minimum, labelHeight, artworkMinHeight, artworkInset };
 }
 
 export function desktopGridColumns(available: number, minimum: number, gap: number, scale: number) {

@@ -80,7 +80,6 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const viewportWidth = width - insets.left - insets.right;
   const viewportHeight = height - insets.top - insets.bottom;
   const header = desktopHeaderLayout(viewportWidth, viewportHeight, fontScale);
-  const compactHeight = viewportHeight < 500 && width > height && fontScale < 1.4;
   const shortViewport = header.short;
   const owner = auth.user!.id; const scope = JSON.stringify([tenantId, owner]);
   const desktopKey = desktopAreaStorageKey(tenantId, owner, selectedArea);
@@ -107,7 +106,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const [recoverableWidgetIds, setRecoverableWidgetIds] = useState<string[]>([]);
   const current = useRef(preferences); const writes = useRef<Promise<void> | null>(null);
   const [ready, setReady] = useState(false); const [error, setError] = useState(''); const [attempt, setAttempt] = useState(0);
-  const [workspaceHeight, setWorkspaceHeight] = useState(0); const [controlsHeight, setControlsHeight] = useState(0);
+  const [gridHeight, setGridHeight] = useState(0); const [controlsHeight, setControlsHeight] = useState(0);
   const [saving, setSaving] = useState(false); const [edit, setEdit] = useState(false); const [navigationOpen, setNavigationOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [page, setPage] = useState(0);
@@ -228,12 +227,11 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const groups = buildDesktopAreaNavigation(apps, selectedArea, navQuery);
 
   const gridRows = Math.ceil(DESKTOP_SLOT_COUNT / layout.columns);
-  const fitArtworkHeight = !edit && !error && !saving && layout.columns >= 3 && fontScale < 1.4 && workspaceHeight > 0 && controlsHeight > 0
-    ? Math.max(72, Math.min(168, layout.cardWidth * .55, Math.floor((workspaceHeight - controlsHeight - 20 - (pages > 1 ? 40 : 0) - layout.gap * (gridRows - 1)) / gridRows) - layout.labelHeight - 12))
-    : undefined;
-  const artworkHeight = layout.mobile ? 90 : fitArtworkHeight ?? (compactHeight ? 88 : layout.cardWidth / fontScale < 190 ? 112 : 156);
-  const cellHeight = layout.labelHeight + artworkHeight + (layout.mobile ? 9 : 12);
-  const widgetGeometry = { artworkHeight, mobile: layout.mobile, labelHeight: layout.labelHeight };
+  const cardChromeHeight = layout.labelHeight + layout.artworkInset + 2;
+  const fittingArtworkHeight = Math.floor((gridHeight - 2 * NATIVE_DESKTOP_SCROLL_PADDING - layout.gap * (gridRows - 1)) / gridRows) - cardChromeHeight;
+  const artworkHeight = Math.max(layout.artworkMinHeight, Math.min(fittingArtworkHeight, layout.cardWidth - 2 * layout.artworkInset - 2));
+  const cellHeight = cardChromeHeight + artworkHeight;
+  const widgetGeometry = { artworkHeight, artworkInset: layout.artworkInset, mobile: layout.mobile, labelHeight: layout.labelHeight };
   const animateWidgets = edit && !reducedMotion && !placement.movingId && !placingId;
   const suggestionsBySlot = new Map<number, WidgetDefinition>();
   if (edit && !placingId && !placement.movingId) {
@@ -327,7 +325,7 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
       </View>
       <View style={[styles.workarea, { gap: layout.workareaGap }, shortViewport && { flex: 0, height: Math.max(360, controlsHeight + 220), minHeight: Math.max(360, controlsHeight + 220) }]}>
         {layout.sidebar ? <ScrollView keyboardShouldPersistTaps="handled" style={[styles.sidebar, { width: layout.sidebarWidth }]} contentContainerStyle={{ padding: 12, gap: 14 }}>{navigation}</ScrollView> : null}
-        <View onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setWorkspaceHeight(current => current === value ? current : value); }} style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
+        <View style={{ flex: 1, minWidth: 0, minHeight: 0 }}>
           <View testID="desktop-workspace-header" onLayout={event => { const value = Math.ceil(event.nativeEvent.layout.height); setControlsHeight(current => current === value ? current : value); }} style={styles.desktopToolbar}>
             <View style={styles.desktopTitleRow}>
               <Text accessibilityRole="header" style={[styles.desktopTitle, header.phone && styles.desktopTitlePhone]}>Mein Desktop · {moduleLabel}</Text>
@@ -358,7 +356,8 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
           {!areaAllowed ? <Text accessibilityRole="alert" style={styles.notice}>Dieser Arbeitsbereich ist für Ihren Zugang derzeit nicht freigegeben.</Text> : null}
           <View style={[styles.pageFrame, pages === 1 && { paddingHorizontal: layout.padding }]}>
             {pages > 1 ? pageArrow(-1) : null}
-            <View ref={placement.viewport} collapsable={false} {...(edit ? placement.handlers : {})} onTouchEnd={placement.clearPending} onTouchCancel={placement.clearPending} style={styles.placementViewport}>
+            <View ref={placement.viewport} collapsable={false} {...(edit ? placement.handlers : {})} onTouchEnd={placement.clearPending} onTouchCancel={placement.clearPending}
+              onLayout={event => setGridHeight(Math.floor(event.nativeEvent.layout.height))} style={styles.placementViewport}>
               <ScrollView ref={placement.scroll} testID="native-desktop-widget-viewport" style={{ flex: 1, minHeight: 0 }} keyboardShouldPersistTaps="handled"
                 scrollEnabled={!placement.movingId} showsVerticalScrollIndicator contentContainerStyle={{ paddingVertical: NATIVE_DESKTOP_SCROLL_PADDING }}
                 onContentSizeChange={(_width, height) => { placement.contentHeight.current = height; }}
@@ -456,12 +455,14 @@ function NativeDesktopFrame({ compact, padding, children }: { compact: boolean; 
 
 function moduleLabelForArea(area: DesktopAreaKey) { return DESKTOP_AREAS.find(item => item.key === area)!.label; }
 
-function NativeWidget({ widget, onOpen, suggestion, artworkHeight, mobile, labelHeight, editing }: {
-  widget: WidgetDefinition; onOpen?: () => void; suggestion?: boolean; artworkHeight: number; mobile: boolean; labelHeight: number; editing?: boolean;
+function NativeWidget({ widget, onOpen, suggestion, artworkHeight, artworkInset, mobile, labelHeight, editing }: {
+  widget: WidgetDefinition; onOpen?: () => void; suggestion?: boolean; artworkHeight: number; artworkInset: number; mobile: boolean; labelHeight: number; editing?: boolean;
 }) {
   const body = <>
     <View style={[styles.widgetLabelBar, { minHeight: labelHeight }, mobile && { paddingVertical: 6, paddingHorizontal: 10, gap: 6 }]}><Text style={[styles.widgetTitle, mobile && { fontSize: 16, lineHeight: 21 }]}>{widget.label}</Text>{!suggestion && !editing ? <MobileIcon name="arrow-up-right" color="#77DFFF" size={16} /> : null}</View>
-    <View style={[styles.artworkStage, mobile && { margin: 7, marginTop: 0, marginBottom: 7 }, { height: artworkHeight }]}><DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images} /><View style={styles.categoryPill}><Text style={styles.categoryText}>{widget.category}</Text></View></View>
+    <View style={[styles.artworkStage, { minHeight: artworkHeight, marginHorizontal: artworkInset, marginBottom: artworkInset }]}>
+      <DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images} style={StyleSheet.absoluteFill} />
+    </View>
     {suggestion ? <View style={styles.suggestionBadge}><MobileIcon name="plus" color="#CDE9FF" size={14} /><Text style={styles.suggestionText}>Übernehmen</Text></View> : null}
   </>;
   if (editing) return <View style={styles.widgetBody}>{body}</View>;
@@ -515,10 +516,8 @@ const styles = StyleSheet.create({
   editText: { color: '#EAF8FF', fontFamily: careSuiteAppFontFamily, fontSize: 13, fontWeight: '700' },
   editingControl: { backgroundColor: 'rgba(24,107,91,0.68)' },
   navLabel: { color: '#E6F1FA', fontFamily: careSuiteAppFontFamily, fontSize: 13, lineHeight: 19, fontWeight: '700' },
-  widgetLabelBar: { minHeight: 56, flexDirection: 'row', alignItems: 'center', gap: 8, padding: 12 },
-  artworkStage: { margin: 10, marginTop: 0, borderRadius: 13, backgroundColor: 'rgba(4,23,47,0.5)', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
-  categoryPill: { position: 'absolute', top: 7, left: 7, borderRadius: 8, paddingHorizontal: 7, paddingVertical: 3, backgroundColor: 'rgba(0,11,27,0.7)' },
-  categoryText: { color: '#B9DCEB', fontFamily: careSuiteAppFontFamily, fontSize: 11, lineHeight: 15, fontWeight: '700', textTransform: 'uppercase' },
+  widgetLabelBar: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 12, paddingVertical: 8 },
+  artworkStage: { flexGrow: 1, borderRadius: 12, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   root: { flex: 1, backgroundColor: '#071629' }, safe: { flex: 1, padding: 12, gap: 16, backgroundColor: 'rgba(0,10,27,0.2)' },
   loading: { flex: 1, justifyContent: 'center', padding: 24, backgroundColor: '#071629' },
   moduleBar: { flexGrow: 0, flexShrink: 0 },

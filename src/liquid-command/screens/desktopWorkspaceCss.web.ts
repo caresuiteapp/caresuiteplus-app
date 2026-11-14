@@ -2,7 +2,8 @@ import { desktopGridMetrics } from '../navigation/desktopLayoutModel';
 
 /** Keep sidebar motion, track widths and artwork height in the same browser layout pass. */
 export function desktopWorkspaceCss(fontScale: number, mobile = false) {
-  const { scale, gap, minimum, labelHeight } = desktopGridMetrics(fontScale, mobile, false);
+  const { scale, gap, minimum, labelHeight, artworkMinHeight, artworkInset } = desktopGridMetrics(fontScale, mobile, false);
+  const minCardHeight = labelHeight + artworkMinHeight + artworkInset + 2;
   const threshold = (columns: number) => columns * minimum + (columns - 1) * gap;
   return `
     [data-cs-desktop-header] {
@@ -171,15 +172,20 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
       font-weight: 700;
     }
     [data-cs-desktop-widget-grid] {
-      --cs-desktop-card-height: ${labelHeight + 150}px;
+      --cs-desktop-card-height: ${minCardHeight}px;
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(min(100%, ${minimum}px), 1fr));
       grid-auto-rows: minmax(var(--cs-desktop-card-height), auto);
       gap: ${gap}px;
       align-items: stretch;
     }
-    [data-cs-desktop-widget-label] { min-height: ${labelHeight}px !important; }
-    [data-cs-desktop-widget-artwork] { height: 138px !important; }
+    [data-cs-desktop-widget-label] { min-height: ${labelHeight}px; flex-shrink: 0; }
+    [data-cs-desktop-widget-artwork] {
+      flex: 1 0 0px;
+      min-height: ${artworkMinHeight}px;
+      margin: 0 ${artworkInset}px ${artworkInset}px;
+    }
+    [data-cs-desktop-widget-artwork] > .cs-desktop-tile-artwork { position: absolute; inset: 0; }
     [data-cs-desktop-widget-empty] { flex: 1; }
     .cs-desktop-cell {
       position: relative;
@@ -274,13 +280,12 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
       [data-cs-desktop-widget-grid] {
         --cs-desktop-columns: 1;
         --cs-desktop-rows: 12;
-        --cs-desktop-artwork-height: clamp(72px,
-          calc((100cqh - 20px - (var(--cs-desktop-rows) - 1) * ${gap}px) / var(--cs-desktop-rows) - ${labelHeight + 12}px),
-          min(168px, calc((100cqw - (var(--cs-desktop-columns) - 1) * ${gap}px) / var(--cs-desktop-columns) * .55)));
-        --cs-desktop-card-height: calc(${labelHeight + 12}px + var(--cs-desktop-artwork-height));
+        --cs-desktop-column-width: calc((100cqw - (var(--cs-desktop-columns) - 1) * ${gap}px) / var(--cs-desktop-columns));
+        --cs-desktop-card-height: clamp(${minCardHeight}px,
+          calc((100cqh - 20px - (var(--cs-desktop-rows) - 1) * ${gap}px) / var(--cs-desktop-rows)),
+          calc(var(--cs-desktop-column-width) + ${labelHeight - artworkInset}px));
         grid-template-columns: repeat(var(--cs-desktop-columns), minmax(0, 1fr));
       }
-      [data-cs-desktop-widget-artwork] { height: var(--cs-desktop-artwork-height) !important; }
       @container caresuite-desktop-widgets (min-width: ${threshold(2)}px) {
         [data-cs-desktop-widget-grid] { --cs-desktop-columns: 2; --cs-desktop-rows: 6; }
       }
@@ -295,13 +300,11 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
       }
     }
     ${mobile ? `
-    [data-cs-desktop-widget-grid] { --cs-desktop-card-height: ${labelHeight + 98}px; }
     [data-cs-desktop-widget-label] { padding: 6px 10px; gap: 6px; }
     [data-cs-desktop-widget-label] [role="heading"] {
       font-size: ${16 * fontScale}px !important;
       line-height: ${21 * fontScale}px !important;
     }
-    [data-cs-desktop-widget-artwork] { height: 90px !important; margin: 0 7px 7px; }
     ` : ''}
     [data-testid="desktop-full-width-header"] :is([role="button"],button):focus-visible,
     [data-cs-desktop-navigation-workspace] :is([role="button"],[role="tab"],button):focus-visible {

@@ -605,7 +605,9 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(savedIds()).toEqual(['clients']);
     await remount();
     expect(tab('Akademie', workspaceHeader()).getAttribute('aria-selected')).toBe('true');
-    expect(label('Vorlagen & Kursbaukasten öffnen')).toBeTruthy();
+    const tile = label('Vorlagen & Kursbaukasten öffnen')!;
+    expect(tile.textContent).not.toMatch(/Team|Versorgung|Verwaltung/i);
+    expect(tile.querySelector('[data-artwork-route="/akademie/vorlagen"] img')).toBeTruthy();
     await open();
     await clickLabel('App Vorlagen & Kursbaukasten öffnen');
     expect(api.push).toHaveBeenCalledWith('/akademie/vorlagen');

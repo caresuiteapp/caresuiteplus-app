@@ -98,6 +98,8 @@ describe('Native administration desktop interactions', () => {
     const office=moduleDesktopStorageKey(api.tenant, api.owner, 'office'); const assist=moduleDesktopStorageKey(api.tenant, api.owner, 'assist');
     memory.set(office, '["clients"]'); memory.set(assist, '["proofs"]'); await render();
     expect(button('Office')).toBeTruthy(); expect(button('Assist')).toBeTruthy(); expect(button('Klient:innen öffnen')).toBeTruthy();
+    expect(button('Klient:innen öffnen')?.textContent).toBe('Klient:innen');
+    expect(button('Klient:innen öffnen')?.querySelector('[data-catalog-artwork="/business/office/clients"]')).toBeTruthy();
     expect(JSON.parse(memory.get(key())!)).toEqual(['document-catalog', 'clients']);
     await click('Assist'); expect(host.textContent).toContain('Nachweise'); expect(button('Klient:innen öffnen')).toBeUndefined();
     expect(JSON.parse(memory.get(key('assist'))!)).toEqual(['proofs']); expect(memory.get(office)).toBe('["clients"]');
