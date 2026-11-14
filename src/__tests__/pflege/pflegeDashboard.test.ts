@@ -41,9 +41,9 @@ describe('Pflege dashboard workspace (UI Reality Fix)', () => {
   it('buildPflegeWorkspaceKpis liefert 12 Pflege-KPIs mit Routen', () => {
     const kpis = buildPflegeWorkspaceKpis(SAMPLE_STATS);
     expect(kpis).toHaveLength(PFLEGE_WORKSPACE_KPI_COUNT);
-    expect(kpis[0]?.label).toBe('Pflegeeinsätze heute');
-    expect(kpis[1]?.label).toBe('Läuft gerade');
-    expect(kpis[11]?.label).toBe('Berichte offen');
+    expect(kpis[0]?.label).toBe('Tourstopps heute');
+    expect(kpis[1]?.label).toBe('Tourstopps in Durchführung');
+    expect(kpis[11]?.label).toBe('Unsignierte Pflegeberichte');
     expect(kpis.every((k) => typeof k.route === 'string')).toBe(true);
     expect(kpis.find((k) => k.id === 'pflege-ws-kpi-active-plans')?.route).toBe(
       '/pflege/plans?status=aktiv',
@@ -52,14 +52,15 @@ describe('Pflege dashboard workspace (UI Reality Fix)', () => {
 
   it('buildPflegeWorkspaceKpis mappt alle 12 Kennzahlen', () => {
     const kpis = buildPflegeWorkspaceKpis(SAMPLE_STATS);
-    expect(kpis.some((k) => k.label === 'Auffällige Vitalwerte')).toBe(true);
+    expect(kpis.some((k) => k.label === 'Gespeicherte Grenzwertmarkierungen')).toBe(true);
     expect(kpis.some((k) => k.label === 'SIS/Assessment offen')).toBe(true);
   });
 
   it('Prioritäten leiten aus Stats ab', () => {
     const priorities = buildPflegeDashboardPriorities(SAMPLE_STATS);
     expect(priorities.length).toBeGreaterThan(0);
-    expect(priorities.some((p) => p.label === 'Auffällige Vitalwerte')).toBe(true);
+    expect(priorities.some(p => p.label === 'Evaluationstermine erreicht')).toBe(true);
+    expect(priorities.some(p => p.label === 'Gespeicherte Grenzwertmarkierungen')).toBe(false);
     expect(buildPflegeDashboardPriorities(emptyPflegeDashboardStats())).toHaveLength(0);
   });
 
@@ -68,6 +69,14 @@ describe('Pflege dashboard workspace (UI Reality Fix)', () => {
     expect(sections.some((s) => s.title === 'Pflegeeinsätze & Dienstplanung')).toBe(true);
     expect(sections.some((s) => s.title === 'Zugeordnete Klient:innen')).toBe(true);
     expect(sections.length).toBeGreaterThanOrEqual(9);
+  });
+
+
+  it('does not turn unavailable numbers into priorities or section badges', () => {
+    const partial = { ...SAMPLE_STATS, unavailableKpiIds: ['pflege-ws-kpi-due-measures', 'pflege-ws-kpi-open-docs', 'pflege-ws-kpi-client-assignment'] };
+    expect(buildPflegeWorkspaceKpis(partial).find(k => k.id === 'pflege-ws-kpi-due-measures')?.value).toBe('—');
+    expect(buildPflegeDashboardPriorities(partial).map(p => p.id)).not.toContain('priority-due-measures');
+    expect(buildPflegeDashboardSections(partial, []).find(s => s.id === 'clients')?.links[0]?.count).toBeUndefined();
   });
 
   it('Header-Aktionen sind pflege-spezifisch', () => {

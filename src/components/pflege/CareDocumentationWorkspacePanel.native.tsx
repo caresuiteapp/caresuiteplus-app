@@ -14,13 +14,15 @@ const kindOptions = [
     { key: 'control', label: 'Kontrollauftrag' }, { key: 'external', label: 'Fremddokumentation' },
 ];
 const patch = <K extends keyof CareDocumentationEntry>(entry: CareDocumentationEntry, key: K, value: CareDocumentationEntry[K]): CareDocumentationEntry => ({ ...entry, [key]: value });
-export function CareDocumentationWorkspacePanel({ tenantId, clientId, actorId, actorName, canCreate, canConfirm, original, onSaved }: {
+export function CareDocumentationWorkspacePanel({ tenantId, clientId, actorId, actorName, canCreate, canConfirm, isOwnerCurrent, canWriteNow, original, onSaved }: {
     tenantId: string;
     clientId: string;
     actorId: string;
     actorName: string;
     canCreate: boolean;
     canConfirm: boolean;
+    isOwnerCurrent: () => boolean;
+    canWriteNow: (action: CareDocumentationAction) => boolean;
     original?: CareDocumentationOriginal | null;
     onSaved?: (value: CareDocumentationOriginal) => void;
 }) {
@@ -28,9 +30,13 @@ export function CareDocumentationWorkspacePanel({ tenantId, clientId, actorId, a
     const [entry, setEntry] = useState<CareDocumentationEntry>(() => original ? structuredClone(original.payload) : blankCareDocumentationEntry('care_report'));
     const [correctionReason, setCorrectionReason] = useState(''), [confirmRole, setConfirmRole] = useState('Pflegefachperson'), [confirmScope, setConfirmScope] = useState('Diese unveränderte Dokumentationsfassung'), [confirmBasis, setConfirmBasis] = useState('Eigene fachliche Prüfung der angezeigten vollständigen Fassung');
     const [busy, setBusy] = useState(false), [error, setError] = useState<string | null>(null), [success, setSuccess] = useState<string | null>(null), [uncertain, setUncertain] = useState(false), [recovering, setRecovering] = useState(true);
-    const alive = useRef(true), identity = `${tenantId}:${clientId}:${actorId}`;
+    const alive = useRef(true), flight = useRef(false), identity = `${tenantId}:${clientId}:${actorId}`;
     const initial = useRef(JSON.stringify(entry));
-    useEffect(() => { alive.current = true; let active = true; setRecovering(true); void recoverCareDocumentation({ tenantId, clientId, actorId }, () => active && alive.current).then(result => { if (!active)
+    const scope = useRef({ identity, isOwnerCurrent, canWriteNow });
+    scope.current = { identity, isOwnerCurrent, canWriteNow };
+    const current = () => alive.current && scope.current.identity === identity && scope.current.isOwnerCurrent();
+    const canWrite = (next: CareDocumentationAction) => current() && scope.current.canWriteNow(next);
+    useEffect(() => { alive.current = true; let active = true; setRecovering(true); void recoverCareDocumentation({ tenantId, clientId, actorId }, () => active && current()).then(result => { if (!active || !current())
         return; if (result?.ok) {
         setSuccess('Der zuvor unklare Schreibvorgang wurde anhand der vollständigen nativen Quittung bestätigt.');
         onSaved?.(result.data);
@@ -45,16 +51,17 @@ export function CareDocumentationWorkspacePanel({ tenantId, clientId, actorId, a
     const chooseKind = (next: string) => { const kind = next as CareDocumentationKind; setEntry(blankCareDocumentationEntry(kind, entry.occurredAt)); setSuccess(null); };
     const change = (key: keyof CareDocumentationEntry, value: unknown) => setEntry(current => patch(current, key, value as never));
     const save = async () => {
-        if (busy || uncertain || !tenantId || !clientId || !actorId)
+        if (flight.current || busy || uncertain || !tenantId || !clientId || !actorId || !canWrite(action))
             return;
+        flight.current = true;
         setBusy(true);
         setError(null);
         setSuccess(null);
         try {
             const confirmation = action === 'confirm' && original ? { personId: actorId, personName: actorName.trim(), role: confirmRole.trim(), scope: confirmScope.trim(), basis: confirmBasis.trim(), confirmedAt: new Date().toISOString(), contentFingerprint: original.contentFingerprint } : null;
             const packet = makeCareDocumentationPacket({ action, requestId: crypto.randomUUID(), tenantId, clientId, actorId, expectedHeadId: original?.headId ?? null, expectedRevision: original?.revision ?? 0, entry: action === 'confirm' ? null : structuredClone(entry), correctionReason: action === 'correct' ? correctionReason.trim() : '', confirmation, original: original ? structuredClone(original) : null });
-            const result = await saveCareDocumentationDurably(packet, () => alive.current && identity === `${tenantId}:${clientId}:${actorId}`);
-            if (!alive.current)
+            const result = await saveCareDocumentationDurably(packet, () => canWrite(action));
+            if (!current())
                 return;
             if (!result.ok) {
                 setError(result.error);
@@ -68,15 +75,17 @@ export function CareDocumentationWorkspacePanel({ tenantId, clientId, actorId, a
             onSaved?.(result.data);
         }
         catch (cause) {
-            if (alive.current)
+            if (current())
                 setError(cause instanceof Error ? cause.message : 'Dokumentation konnte nicht gespeichert werden.');
         }
         finally {
-            if (alive.current)
+            flight.current = false;
+            if (current())
                 setBusy(false);
         }
     };
-    const retry = async () => { setBusy(true); setError(null); const result = await recoverCareDocumentation({ tenantId, clientId, actorId }, () => alive.current); if (alive.current) {
+    const retry = async () => { if (flight.current || !current())
+        return; flight.current = true; setBusy(true); setError(null); const result = await recoverCareDocumentation({ tenantId, clientId, actorId }, current); flight.current = false; if (current()) {
         setBusy(false);
         if (result?.ok) {
             setUncertain(false);
@@ -90,7 +99,7 @@ export function CareDocumentationWorkspacePanel({ tenantId, clientId, actorId, a
         return <SectionPanel title="Dokumentationsvorgang"><LoadingState message="Lokales Versandjournal und native Quittung werden geprüft…"/></SectionPanel>;
     return <SectionPanel title={original ? 'Dokumentationsfassung fortführen' : 'Pflegedokumentation erfassen'} subtitle="Ein gemeinsamer, append-only Vorgang">
   <InfoBanner variant="info" title="Ereignis und Erfassung bleiben getrennt" message="Der tatsächliche Ereigniszeitpunkt, die spätere Erfassung, ursprüngliche Fassung, Nachträge und Bestätigungen bleiben eigenständig nachvollziehbar. Öffnen oder Lesen bestätigt keine Durchführung."/>
-  {original ? <><Text style={{ ...typography.label }}>Aktion</Text><FilterChipGroup wrap options={[{ key: 'correct', label: 'Korrektur / Nachtrag' }, { key: 'confirm', label: 'Fassung bestätigen' }]} value={action} onChange={next => setAction(next as CareDocumentationAction)}/><InfoBanner variant="info" message={`Originalrevision ${original.revision} · erfasst ${original.recordedAt} · Ereignis ${original.occurredAt}`}/></> : <><Text style={{ ...typography.label }}>Dokumentationsart</Text><FilterChipGroup wrap options={kindOptions} value={entry.kind} onChange={chooseKind}/></>}
+  {original ? <><Text style={{ ...typography.label }}>Aktion</Text><FilterChipGroup wrap options={[...(canCreate ? [{ key: 'correct', label: 'Korrektur / Nachtrag' }] : []), ...(canConfirm ? [{ key: 'confirm', label: 'Fassung bestätigen' }] : [])]} value={action} onChange={next => setAction(next as CareDocumentationAction)}/><InfoBanner variant="info" message={`Originalrevision ${original.revision} · erfasst ${original.recordedAt} · Ereignis ${original.occurredAt}`}/></> : <><Text style={{ ...typography.label }}>Dokumentationsart</Text><FilterChipGroup wrap options={kindOptions} value={entry.kind} onChange={chooseKind}/></>}
   {action !== 'confirm' ? <View style={{ gap: spacing.sm }}>
    <PremiumInput label="Titel" value={entry.title} onChangeText={value => change('title', value)} editable={!busy && !uncertain}/><PremiumInput label="Tatsächlicher Ereigniszeitpunkt (ISO mit Zeitzone)" value={entry.occurredAt} onChangeText={value => change('occurredAt', value)} editable={!busy && !uncertain}/><PremiumInput label="Beobachtung / Ausgangslage" value={entry.observation} onChangeText={value => change('observation', value)} multiline editable={!busy && !uncertain}/><PremiumInput label="Tatsächliche Maßnahme / Intervention" value={entry.intervention} onChangeText={value => change('intervention', value)} multiline editable={!busy && !uncertain}/><PremiumInput label="Tatsächliches Ergebnis / aktueller Stand" value={entry.result} onChangeText={value => change('result', value)} multiline editable={!busy && !uncertain}/>
    {entry.plannedService ? <SectionPanel title="Geplante Leistung und Durchführung"><PremiumInput label="Planversions-ID" value={entry.plannedService.planVersionId} onChangeText={value => change('plannedService', { ...entry.plannedService!, planVersionId: value })}/><PremiumInput label="Einsatz-ID" value={entry.plannedService.visitId} onChangeText={value => change('plannedService', { ...entry.plannedService!, visitId: value })}/><FilterChipGroup wrap options={[{ key: 'performed', label: 'Erbracht' }, { key: 'partial', label: 'Teilweise' }, { key: 'not_performed', label: 'Nicht erbracht' }]} value={entry.plannedService.outcome} onChange={value => change('plannedService', { ...entry.plannedService!, outcome: value as 'performed' | 'partial' | 'not_performed' })}/>{entry.plannedService.outcome !== 'performed' ? <><PremiumInput label="Grund" value={entry.plannedService.reason} onChangeText={value => change('plannedService', { ...entry.plannedService!, reason: value })} multiline/><PremiumInput label="Erforderliche Reaktion" value={entry.plannedService.reaction} onChangeText={value => change('plannedService', { ...entry.plannedService!, reaction: value })} multiline/></> : null}</SectionPanel> : null}

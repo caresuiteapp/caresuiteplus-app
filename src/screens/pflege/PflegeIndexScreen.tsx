@@ -7,6 +7,8 @@ import { moduleColor } from '@/design/tokens/modules';
 import { usePflegeDashboard } from '@/hooks/usePflegeDashboard';
 import { wp378A11y } from '@/lib/a11y/wp378-pflege';
 import { ModuleDocumentsSection } from '@/components/documents/ModuleDocumentsSection';
+import { canShowDesktopCatalogRoute } from '@/liquid-command/navigation/appsWidgetsCatalogModel.shared';
+import { woundUuid } from '@/lib/pflege/woundCareDomain';
 import {
   PFLEGE_HEADER_PRIMARY_ACTIONS,
   PFLEGE_HEADER_SECONDARY_ACTIONS,
@@ -15,23 +17,25 @@ import {
 export function PflegeIndexScreen() {
   const router = useRouter();
   const pflegeAccent = moduleColor('pflege');
-  const { stats, activePlans, loading, error, refresh } = usePflegeDashboard();
+  const { stats, activePlans, loading, error, refreshError, refreshing, refresh, access, isScopeCurrent } = usePflegeDashboard({ includePlans: true });
+  const canOpen = (route?: string) => !!route && isScopeCurrent() && (canShowDesktopCatalogRoute(route, access) ||
+    route.startsWith('/pflege/plans/') && woundUuid(route.slice('/pflege/plans/'.length)) && canShowDesktopCatalogRoute('/pflege/plans', access));
 
   const navigate = (route?: string) => {
-    if (route) {
+    if (route && canOpen(route)) {
       router.push(route as never);
     }
   };
 
   const toolbarActions = [
-    ...PFLEGE_HEADER_PRIMARY_ACTIONS.map((action) => ({
+    ...PFLEGE_HEADER_PRIMARY_ACTIONS.filter(action => canOpen(action.route)).map((action) => ({
       key: action.id,
       label: `+ ${action.label.replace(/^\+?\s*/, '')}`,
       icon: action.icon,
       variant: 'primary' as const,
       onPress: () => navigate(action.route),
     })),
-    ...PFLEGE_HEADER_SECONDARY_ACTIONS.map((action) => ({
+    ...PFLEGE_HEADER_SECONDARY_ACTIONS.filter(action => canOpen(action.route)).map((action) => ({
       key: action.id,
       label: action.label,
       icon: action.icon,
@@ -63,6 +67,10 @@ export function PflegeIndexScreen() {
         activePlans={activePlans}
         loading={loading}
         error={error}
+        refreshError={refreshError}
+        refreshing={refreshing}
+        canOpenRoute={canOpen}
+        onOpenRoute={navigate}
         onRefresh={refresh}
       />
       <ModuleDocumentsSection

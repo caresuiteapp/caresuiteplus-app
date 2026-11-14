@@ -1,52 +1,80 @@
-import type { RoleKey, ServiceResult } from '@/types';
+import type { ServiceResult } from '@/types';
 import type { PermissionKey } from '@/types/permissions';
-import { hasPermission } from '@/lib/permissions';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { fetchEligibleCareClients } from '@/lib/careAssessment/careAssessmentService';
-import { fetchCareTours } from './careTourPlanningService';
+import { getServiceMode } from '@/lib/services/mode';
+import { NATIVE_SERVICE_QUERY_TIMEOUT_MS, withServiceQueryTimeout } from '@/lib/services/queryTimeout';
+import { emptyPflegeDashboardStats, type PflegeDashboardStats } from '@/types/modules/pflege';
 import { berlinCalendarDate } from './careTourWorkflow';
-import type { PflegeDashboardStats } from '@/types/modules/pflege';
+import { woundUuid } from './woundCareDomain';
 
-/** Missing/unavailable indicators must never appear as reassuring zero counts. */
-export async function fetchCareOperationalStats(tenantId: string, role?: RoleKey | null): Promise<ServiceResult<Partial<PflegeDashboardStats>>> {
+export type CareDashboardScope = {
+  tenantId: string;
+  actorId: string;
+  isCurrent(): boolean;
+  can(permission: PermissionKey): boolean;
+};
+
+const contextError = 'Der aktuelle Zugriff auf die Pflegekennzahlen ist nicht bestätigt.';
+const unavailableByDesign = ['pflege-ws-kpi-due-vitals', 'pflege-ws-kpi-medication', 'pflege-ws-kpi-client-assignment'];
+type CountResponse = { count: number | null; error: unknown };
+type CountField = Exclude<keyof PflegeDashboardStats, 'unavailableKpiIds' | 'failedKpiIds'>;
+
+/** Read aggregate records already available to the authenticated RLS caller. */
+export async function fetchCareOperationalStats(scope: CareDashboardScope): Promise<ServiceResult<PflegeDashboardStats>> {
+  const { tenantId, actorId } = scope;
   const blocked = guardServiceTenant(tenantId);
   if (blocked) return blocked;
   const client = getSupabaseClient();
-  if (!client) return { ok: false, error: 'Live-Datenbank nicht verfügbar.' };
-  async function count(table: string, permission: PermissionKey, column: string, values: string[], entryType?: string, typeColumn = 'entry_type'): Promise<ServiceResult<number | null>> {
-    if (!hasPermission(role, permission)) return { ok: true, data: null };
-    let query = fromUnknownTable(client!, table).select('id', { count: 'exact', head: true }).eq('tenant_id', tenantId).in(column, values);
-    if (entryType) query = query.eq(typeColumn, entryType);
-    const result = await query;
-    return result.error ? { ok: false, error: toGermanSupabaseError(result.error) } : { ok: true, data: result.count ?? 0 };
+  const current = () => woundUuid(actorId) && woundUuid(tenantId) && scope.actorId === actorId && scope.tenantId === tenantId
+    && scope.isCurrent() && scope.can('pflege.access') && client === getSupabaseClient() && getServiceMode() === 'supabase';
+  if (!client || !current()) return { ok: false, error: contextError };
+  const day = berlinCalendarDate();
+  const select = (table: string, columns = 'id') => fromUnknownTable(client, table)
+    .select(columns, { count: 'exact', head: true }).eq('tenant_id', tenantId);
+  const tours = () => select('care_tour_stops', 'id,care_tours!inner(id)')
+    .eq('care_tours.tenant_id', tenantId).eq('care_tours.tour_date', day).neq('care_tours.status', 'cancelled');
+  async function count(
+    permission: PermissionKey,
+    request: () => PromiseLike<CountResponse>,
+  ): Promise<{ value: number | null; failed: boolean }> {
+    if (!current() || !scope.can(permission)) return { value: null, failed: false };
+    try {
+      const result = await withServiceQueryTimeout(Promise.resolve(request()), 'Pflegekennzahl', NATIVE_SERVICE_QUERY_TIMEOUT_MS);
+      if (!current() || !scope.can(permission)) return { value: null, failed: false };
+      if (result.error || result.count === null || !Number.isSafeInteger(result.count) || result.count < 0) return { value: null, failed: true };
+      return { value: result.count, failed: false };
+    } catch {
+      return { value: null, failed: current() && scope.can(permission) };
+    }
   }
-  const [tours, clients, documents, reports, wounds, handovers, assessments, vitals] = await Promise.all([
-    fetchCareTours(tenantId, role), fetchEligibleCareClients(tenantId, role),
-    count('clinical_documentation_entries', 'pflege.documentation.view', 'signature_status', ['unsigned']),
-    count('clinical_documentation_entries', 'pflege.documentation.view', 'signature_status', ['unsigned'], 'care_report'),
-    count('clinical_wound_cases', 'pflege.wounds.view', 'status', ['active', 'healing', 'deteriorated']),
-    count('clinical_handovers', 'pflege.handovers.view', 'status', ['open']),
-    count('care_assessments', 'pflege.plans.view', 'status', ['draft', 'in_progress', 'professional_review'], 'client', 'subject_type'),
-    count('vital_sign_measurements', 'pflege.vitals.view', 'flag_status', ['outside_configured_range']),
-  ]);
-  const results = [tours, clients, documents, reports, wounds, handovers, assessments, vitals];
-  const failure = results.find((r) => !r.ok);
-  if (failure && !failure.ok) return { ok: false, error: failure.error };
-  if (!tours.ok || !clients.ok || !documents.ok || !reports.ok || !wounds.ok || !handovers.ok || !assessments.ok || !vitals.ok) return { ok: false, error: 'Kennzahlen konnten nicht vollständig geladen werden.' };
-  const today = tours.data.filter((tour) => tour.tourDate === berlinCalendarDate() && tour.status !== 'cancelled').flatMap((tour) => tour.stops).filter((stop) => stop.status !== 'cancelled');
-  const unavailableKpiIds = ['pflege-ws-kpi-due-vitals', 'pflege-ws-kpi-medication'];
-  for (const [result, id] of [[documents, 'pflege-ws-kpi-open-docs'], [reports, 'pflege-ws-kpi-reports'], [wounds, 'pflege-ws-kpi-wounds'], [handovers, 'pflege-ws-kpi-handovers'], [assessments, 'pflege-ws-kpi-sis'], [vitals, 'pflege-ws-kpi-abnormal-vitals']] as const) {
-    if (result.data === null) unavailableKpiIds.push(id);
+
+  const specs = [
+    ['visitsToday', 'pflege-ws-kpi-visits-today', 'pflege.plans.view', () => tours().neq('status', 'cancelled')],
+    ['runningNow', 'pflege-ws-kpi-running', 'pflege.plans.view', () => tours().eq('status', 'in_progress')],
+    ['totalPlans', 'pflege-ws-kpi-plan-total', 'pflege.plans.view', () => select('care_plans').in('status', ['draft', 'active', 'paused', 'completed'])],
+    ['activePlansCount', 'pflege-ws-kpi-active-plans', 'pflege.plans.view', () => select('care_plans').eq('status', 'active')],
+    ['dueMeasuresCount', 'pflege-ws-kpi-due-measures', 'pflege.plans.view', () => select('care_plan_items', 'id,care_plans!care_plan_items_care_plan_id_fkey!inner(id,clients!care_plans_client_id_fkey!inner(id))')
+      .eq('care_plans.tenant_id', tenantId).eq('care_plans.clients.tenant_id', tenantId).eq('care_plans.status', 'active').eq('status', 'active').lte('next_evaluation_date', day)],
+    ['openDocumentationCount', 'pflege-ws-kpi-open-docs', 'pflege.documentation.view', () => select('clinical_documentation_entries').eq('signature_status', 'unsigned')],
+    ['openReportsCount', 'pflege-ws-kpi-reports', 'pflege.documentation.view', () => select('clinical_documentation_entries').eq('signature_status', 'unsigned').eq('entry_type', 'care_report')],
+    ['openWoundDocsCount', 'pflege-ws-kpi-wounds', 'pflege.wounds.view', () => select('clinical_wound_cases').in('status', ['active', 'healing', 'deteriorated'])],
+    ['openHandoversCount', 'pflege-ws-kpi-handovers', 'pflege.handovers.view', () => select('clinical_handovers').eq('status', 'open')],
+    ['openSisAssessmentCount', 'pflege-ws-kpi-sis', 'pflege.plans.view', () => select('care_assessments').eq('subject_type', 'client').in('status', ['draft', 'in_progress', 'professional_review'])],
+    ['abnormalVitalsCount', 'pflege-ws-kpi-abnormal-vitals', 'pflege.vitals.view', () => select('vital_sign_measurements').eq('flag_status', 'outside_configured_range')],
+  ] as const satisfies readonly (readonly [CountField, string, PermissionKey, () => PromiseLike<CountResponse>])[];
+
+  const results = await Promise.all(specs.map(async ([field, id, permission, request]) => ({ field, id, permission, ...await count(permission, request) })));
+  if (!current() || berlinCalendarDate() !== day) return { ok: false, error: 'Der Zugriff oder der Auswertungstag hat sich geändert. Bitte neu laden.' };
+  const data = emptyPflegeDashboardStats();
+  const unavailableKpiIds = [...unavailableByDesign];
+  const failedKpiIds: string[] = [];
+  for (const { field, id, permission, value, failed } of results) {
+    if (value === null || !scope.can(permission)) {
+      unavailableKpiIds.push(id);
+      if (failed && scope.can(permission)) failedKpiIds.push(id);
+    } else data[field] = value;
   }
-  return { ok: true, data: {
-    visitsToday: today.length, runningNow: today.filter((s) => s.status === 'in_progress').length,
-    assignedClientsCount: clients.data.length,
-    openDocumentationCount: documents.data ?? 0, openReportsCount: reports.data ?? 0,
-    openWoundDocsCount: wounds.data ?? 0, openHandoversCount: handovers.data ?? 0,
-    openSisAssessmentCount: assessments.data ?? 0, abnormalVitalsCount: vitals.data ?? 0,
-    unavailableKpiIds,
-  } };
+  return { ok: true, data: { ...data, unavailableKpiIds, failedKpiIds } };
 }

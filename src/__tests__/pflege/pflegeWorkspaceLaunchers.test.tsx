@@ -3,14 +3,17 @@ import React, { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { buildSync } from 'esbuild';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { buildPflegeWorkspaceGroups, pflegeWorkspaceColumnCount } from '@/liquid-command/navigation/pflegeWorkspaceLaunchers';
+import { buildPflegeWorkspaceGroups, pflegeEverydayLinks, pflegeWorkspaceColumnCount, searchPflegeWorkspaceGroups } from '@/liquid-command/navigation/pflegeWorkspaceLaunchers';
 import { pflegeNav } from '@/lib/navigation/moduleNav/pflegeNav';
 import type { PermissionKey } from '@/types/permissions';
 import { emptyPflegeDashboardStats } from '@/types/modules/pflege';
 import { canShowDesktopCatalogRoute } from '@/liquid-command/navigation/appsWidgetsCatalogModel.shared';
 
-const api = { tenantId: 'tenant', roleKey: 'business_admin', allowed: new Set<string>(), all: true, module: true, loading: true, error: null as string | null, push: vi.fn(), refresh: vi.fn(), dashboardProps: null as any, retained: new Map<string, () => void>() };
-const access = () => ({ tenantId: api.tenantId, roleKey: api.roleKey, can: (key: PermissionKey) => api.all || api.allowed.has(key), hasModuleGate: () => api.module });
+const api = { tenantId: 'tenant', roleKey: 'business_admin', allowed: new Set<string>(), all: true, module: true, loading: true,
+  error: null as string | null, accessLoading: false, accessError: null as string | null, refreshError: null as string | null,
+  push: vi.fn(), refresh: vi.fn(), refreshPermissions: vi.fn(), dashboardProps: null as any, retained: new Map<string, () => void>() };
+const access = () => ({ tenantId: api.tenantId, roleKey: api.roleKey, can: (key: PermissionKey) => api.all || api.allowed.has(key),
+  hasModuleGate: () => api.module, loading: api.accessLoading, error: api.accessError, refreshPermissions: api.refreshPermissions });
 const native = {
   View: (props: any) => <div>{props.children}</div>,
   Pressable: (props: any) => { api.retained.set(props.accessibilityLabel, props.onPress); return <button aria-label={props.accessibilityLabel} onClick={props.onPress}>{props.children}</button>; },
@@ -21,12 +24,13 @@ const dependencies: Record<string, unknown> = {
   'expo-router': { useRouter: () => ({ push: api.push }) },
   '@/components/documents/DocumentRecommendations': { DocumentRecommendations: () => null },
   '@/components/dashboard/PflegeDashboardView': { PflegeDashboardView: (props: any) => { api.dashboardProps = props; return <div>{props.error ?? (props.loading ? 'Dashboard lädt' : 'Dashboard bereit')}</div>; } },
-  '@/hooks/usePflegeDashboard': { usePflegeDashboard: () => ({ stats: null, activePlans: [], loading: api.loading, error: api.error, refresh: api.refresh }) },
-  '@/hooks/usePermissions': { usePermissions: access },
+  '@/hooks/usePflegeDashboard': { usePflegeDashboard: () => ({ stats: null, activePlans: [], loading: api.loading, error: api.error,
+    refreshError: api.refreshError, refresh: api.refresh, access: access(), isScopeCurrent: () => api.module && !api.accessLoading && !api.accessError }) },
   '@/hooks/useHydrationSafeWindowDimensions': { useHydrationSafeWindowDimensions: () => ({ fontScale: 1 }) },
   '../components/LiquidPrimitives': {
-    LiquidButton: (props: any) => <button onClick={props.onPress}>{props.label}</button>,
-    LiquidGlyph: () => null, LiquidState: (props: any) => <div>{props.title}{props.message}</div>,
+    LiquidButton: (props: any) => <button onClick={props.onPress} disabled={props.loading}>{props.label}</button>,
+    LiquidField: (props: any) => <input aria-label={props.label} value={props.value} onInput={event => props.onChangeText(event.currentTarget.value)} />,
+    LiquidGlyph: () => null, LiquidState: (props: any) => <div>{props.title}{props.message}{props.actionLabel ? <button onClick={props.onAction}>{props.actionLabel}</button> : null}</div>,
     LiquidSurface: (props: any) => <section>{props.children}</section>, LiquidText: (props: any) => <span>{props.children}</span>,
   },
   '../shell/LiquidCommandShell': { LiquidCommandShell: (props: any) => <main>{props.aside}{props.children}</main> },
@@ -55,9 +59,15 @@ const Dashboard = dashboardModule.exports.PflegeDashboardView;
 let root: Root, host: HTMLDivElement;
 const render = async (tenantId: string | null = api.tenantId) => { await act(async () => root.render(<Workspace tenantId={tenantId} />)); };
 const link = (label: string) => host.querySelector<HTMLButtonElement>(`[aria-label="${label} öffnen"]`);
+const button = (label: string) => Array.from(host.querySelectorAll<HTMLButtonElement>('button')).find(item => item.textContent === label);
+const search = async (query: string) => {
+  const field = host.querySelector<HTMLInputElement>('[aria-label="Pflegebereiche suchen"]')!;
+  await act(async () => { field.value = query; field.dispatchEvent(new Event('input', { bubbles: true })); });
+};
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
   api.tenantId = 'tenant'; api.roleKey = 'business_admin'; api.allowed.clear(); api.all = true; api.module = true; api.loading = true; api.error = null; api.dashboardProps = null; api.retained.clear(); vi.clearAllMocks();
+  api.accessLoading = false; api.accessError = null; api.refreshError = null;
   host = document.createElement('div'); document.body.append(host); root = createRoot(host);
 });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
@@ -81,6 +91,36 @@ describe('live Pflege workspace navigation', () => {
     expect(host.textContent).toContain('Dashboard nicht verfügbar'); expect(link('Vitalwerte')).not.toBeNull();
     await act(async () => link('Vitalwerte')!.click()); expect(api.push).toHaveBeenLastCalledWith('/pflege/vitalwerte');
   });
+  it('finds names, descriptions and aliases using only the current permitted route set', () => {
+    const groups = buildPflegeWorkspaceGroups(access());
+    const paths = (query: string) => searchPflegeWorkspaceGroups(groups, query).flatMap(group => group.links.map(item => item.route));
+    expect(paths('VERSORGUNGSUEBERSICHT')).toEqual(['/pflege/versorgungsuebersicht']);
+    expect(paths('bmp PZN')).toEqual(['/pflege/medikation']);
+    api.all = false; api.allowed = new Set(['office.access', 'pflege.access', 'pflege.plans.view']);
+    const allowedGroups = buildPflegeWorkspaceGroups(access());
+    expect(searchPflegeWorkspaceGroups(allowedGroups, 'Mediplan')).toEqual([]);
+    expect(pflegeEverydayLinks(allowedGroups).map(item => item.route)).toEqual(['/pflege/tourenplanung']);
+  });
+  it('shows only search results, restores quick links on clearing, and opens an exact existing route', async () => {
+    await render(); expect(button('Medikation')).toBeDefined();
+    await search('Mediplan'); expect(link('Medikation')).not.toBeNull(); expect(link('Vitalwerte')).toBeNull();
+    expect(button('Medikation')).toBeUndefined(); expect(host.textContent).not.toContain('Kennzahlen aktualisieren');
+    await act(async () => link('Medikation')!.click()); expect(api.push).toHaveBeenCalledWith('/pflege/medikation');
+    await search('keintreffer'); expect(host.textContent).toContain('Keine passenden Pflegebereiche');
+    await act(async () => button('Alle Pflegebereiche anzeigen')!.click());
+    expect(link('Vitalwerte')).not.toBeNull(); expect(button('Medikation')).toBeDefined();
+    await act(async () => button('Kennzahlen aktualisieren')!.click()); expect(api.refresh).toHaveBeenCalledTimes(1);
+  });
+  it('keeps permission errors distinct and hides links until scope is confirmed', async () => {
+    api.accessLoading = true; await render();
+    expect(host.textContent).toContain('Pflegezugriff wird geprüft'); expect(link('Vitalwerte')).toBeNull();
+    api.accessLoading = false; api.accessError = 'Kein bestätigter Zugriff'; await render();
+    expect(host.textContent).toContain('Pflegezugriff nicht bestätigt');
+    expect(host.querySelector('[aria-label="Pflegebereiche suchen"]')).toBeNull();
+    await act(async () => button('Zugriff erneut prüfen')!.click()); expect(api.refreshPermissions).toHaveBeenCalledTimes(1);
+    api.accessError = null; api.refreshError = 'Keine frischen Kennzahlen'; await render();
+    expect(link('Vitalwerte')).not.toBeNull(); expect(api.dashboardProps.refreshError).toBe(api.refreshError);
+  });
   it('invalidates a retained action when rights or tenant change', async () => {
     await render(); const retained = api.retained.get('Pflegepläne öffnen')!;
     api.all = false; await render(); await act(async () => retained()); expect(api.push).not.toHaveBeenCalled();
@@ -93,7 +133,7 @@ describe('live Pflege workspace navigation', () => {
   it('keeps real KPI overview without duplicate navigation and preserves the default full dashboard', async () => {
     const stats = { ...emptyPflegeDashboardStats(), visitsToday: 3 };
     await act(async () => root.render(<Dashboard stats={stats} activePlans={[]} loading={false} error={null} onRefresh={api.refresh} overviewOnly />));
-    expect(host.textContent).toContain('Pflegeeinsätze heute: 3'); expect(host.textContent).toContain('Heute pflegerisch wichtig');
+    expect(host.textContent).toContain('Tourstopps heute: 3'); expect(host.textContent).toContain('Heute pflegerisch wichtig');
     expect(host.textContent).not.toContain('Pflegeeinsätze & Dienstplanung'); expect(host.textContent).not.toContain('Schnellzugriff');
     await act(async () => root.render(<Dashboard stats={stats} activePlans={[]} loading={false} error={null} onRefresh={api.refresh} />));
     expect(host.textContent).toContain('Pflegeeinsätze & Dienstplanung'); expect(host.textContent).toContain('Schnellzugriff');
@@ -107,11 +147,11 @@ describe('live Pflege workspace navigation', () => {
     expect(host.textContent).not.toContain('Alle Pflegeaufgaben sind erledigt'); expect(host.textContent).toContain('Keine Hinweise in dieser Übersicht');
   });
   it('rechecks the latest navigation guard before a retained KPI action runs', async () => {
-    const stats = { ...emptyPflegeDashboardStats(), dueVitalsCount: 2 };
+    const stats = { ...emptyPflegeDashboardStats(), abnormalVitalsCount: 2 };
     const onOpen = vi.fn();
     await act(async () => root.render(<Dashboard stats={stats} activePlans={[]} loading={false} error={null} onRefresh={api.refresh} overviewOnly canOpenRoute={() => true} onOpenRoute={onOpen} />));
-    const retained = api.retained.get('Vitalwerte fällig: 2')!; expect(retained).toBeTypeOf('function');
-    await act(async () => retained()); expect(onOpen).toHaveBeenCalledWith('/pflege/vitalwerte?filter=due'); onOpen.mockClear();
+    const retained = api.retained.get('Gespeicherte Grenzwertmarkierungen: 2')!; expect(retained).toBeTypeOf('function');
+    await act(async () => retained()); expect(onOpen).toHaveBeenCalledWith('/pflege/vitalwerte'); onOpen.mockClear();
     await act(async () => root.render(<Dashboard stats={stats} activePlans={[]} loading={false} error={null} onRefresh={api.refresh} overviewOnly canOpenRoute={() => false} onOpenRoute={onOpen} />));
     await act(async () => retained()); expect(onOpen).not.toHaveBeenCalled(); expect(api.push).not.toHaveBeenCalled();
   });

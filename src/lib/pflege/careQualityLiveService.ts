@@ -5,6 +5,10 @@ import type {
   PflegeReportStats,
 } from '@/types/modules/pflege';
 import { enforcePermission } from '@/lib/permissions';
+import type { PermissionEnforcementContext } from '@/lib/permissions/enforce';
+import { parsePflegeQualityStats } from './pflegeQualityWorkspace';
+import { readCompleteCarePlanRows } from './carePlanCompleteRead';
+import { woundUuid } from './woundCareDomain';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -47,30 +51,67 @@ async function referenceMaps(tenantId: string, rows: Row[]) {
 export async function fetchCarePlanEvaluations(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  scope?: { carePlanId?: string; permissionContext: PermissionEnforcementContext; isCurrent(): boolean },
 ): Promise<ServiceResult<CarePlanEvaluationListItem[]>> {
-  const denied = enforcePermission<CarePlanEvaluationListItem[]>(actorRoleKey, 'pflege.evaluations.view');
+  const denied = enforcePermission<CarePlanEvaluationListItem[]>(actorRoleKey, 'pflege.evaluations.view', scope?.permissionContext);
   if (denied) return denied;
   const blocked = liveGuard<CarePlanEvaluationListItem[]>(tenantId);
   if (blocked) return blocked;
-  const { data, error } = await fromUnknownTable(getSupabaseClient()!, 'care_plan_evaluations')
-    .select('*').eq('tenant_id', tenantId).order('evaluated_at', { ascending: false });
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  const rows = (data ?? []) as Row[];
-  const refs = await referenceMaps(tenantId, rows);
-  if (!refs.ok) return refs;
-  return { ok: true, data: rows.map((row) => {
-    const client = refs.clients.get(text(row.client_id));
+  const supabase = getSupabaseClient()!;
+  const current = () => (!scope || scope.isCurrent()) && supabase === getSupabaseClient();
+  const scopeError = { ok: false as const, error: 'Der Zugriff auf die Evaluationen ist nicht mehr aktuell.' };
+  if (!current() || (scope?.carePlanId !== undefined && !woundUuid(scope.carePlanId))) return scopeError;
+  const read = await readCompleteCarePlanRows((from, to) => {
+    if (!current()) throw Error(scopeError.error);
+    let query = fromUnknownTable(supabase, 'care_plan_evaluations')
+      .select('id,tenant_id,client_id,care_plan_id,outcome,observed_effect,professional_conclusion,requires_plan_update,evaluated_at,next_evaluation_at,evaluator_name_snapshot', { count: 'exact' })
+      .eq('tenant_id', tenantId);
+    if (scope?.carePlanId) query = query.eq('care_plan_id', scope.carePlanId);
+    return query.order('id', { ascending: true }).range(from, to);
+  }, row => row.tenant_id === tenantId && woundUuid(row.client_id) && woundUuid(row.care_plan_id)
+    && (!scope?.carePlanId || row.care_plan_id === scope.carePlanId));
+  if (!current()) return scopeError;
+  if (!read.ok) return { ok: false, error: 'Die Evaluationen konnten nicht vollständig geladen werden.' };
+  const clients = new Map<string, Row>(), plans = new Map<string, Row>();
+  const loadReferences = async (table: string, columns: string, ids: string[], target: Map<string, Row>) => {
+    const unique = [...new Set(ids)];
+    for (let offset = 0; offset < unique.length; offset += 100) {
+      if (!current()) return false;
+      const batch = unique.slice(offset, offset + 100);
+      const { data, error } = await fromUnknownTable(supabase, table).select(columns).eq('tenant_id', tenantId).in('id', batch);
+      if (error || !Array.isArray(data) || !current()) return false;
+      const delivered: unknown[] = data;
+      for (const value of delivered) {
+        if (typeof value !== 'object' || value === null || Array.isArray(value)) return false;
+        const row = value as Row;
+        if (row.tenant_id !== tenantId || typeof row.id !== 'string' || !batch.includes(row.id) || target.has(row.id)) return false;
+        target.set(row.id, row);
+      }
+    }
+    return true;
+  };
+  const confirmedRefs = await Promise.all([
+    loadReferences('clients', 'id,tenant_id,first_name,last_name', read.data.map(row => text(row.client_id)), clients),
+    loadReferences('care_plans', 'id,tenant_id,client_id,title', read.data.map(row => text(row.care_plan_id)), plans),
+  ]);
+  if (!current()) return scopeError;
+  if (!confirmedRefs.every(Boolean) || read.data.some(row => {
+    const plan = plans.get(text(row.care_plan_id));
+    return plan && plan.client_id !== row.client_id;
+  })) return { ok: false, error: 'Die Bezüge der Evaluationen konnten nicht geprüft werden.' };
+  return { ok: true, data: read.data.map((row) => {
+    const client = clients.get(text(row.client_id));
     return {
       id: text(row.id), tenantId: text(row.tenant_id), clientId: text(row.client_id),
       clientName: client ? `${text(client.first_name)} ${text(client.last_name)}`.trim() : '—',
-      carePlanId: text(row.care_plan_id), planTitle: text(refs.plans.get(text(row.care_plan_id))?.title) || 'Pflegeplan',
+      carePlanId: text(row.care_plan_id), planTitle: text(plans.get(text(row.care_plan_id))?.title) || 'Pflegeplan',
       outcome: text(row.outcome) as CarePlanEvaluationListItem['outcome'],
       observedEffect: text(row.observed_effect), professionalConclusion: text(row.professional_conclusion),
       requiresPlanUpdate: Boolean(row.requires_plan_update), evaluatedAt: text(row.evaluated_at),
       nextEvaluationAt: row.next_evaluation_at ? text(row.next_evaluation_at) : null,
       evaluatorName: text(row.evaluator_name_snapshot) || 'Pflegefachperson',
     };
-  }) };
+  }).sort((a, b) => b.evaluatedAt.localeCompare(a.evaluatedAt) || a.id.localeCompare(b.id)) };
 }
 
 export async function createCarePlanEvaluation(
@@ -81,8 +122,9 @@ export async function createCarePlanEvaluation(
     personFeedback: string; professionalConclusion: string; changesRequired: string;
     requiresPlanUpdate: boolean; evaluatedAt: string; nextEvaluationAt: string | null; actorName: string;
   },
+  permissionContext?: PermissionEnforcementContext,
 ): Promise<ServiceResult<{ id: string }>> {
-  const denied = enforcePermission<{ id: string }>(actorRoleKey, 'pflege.evaluations.manage');
+  const denied = enforcePermission<{ id: string }>(actorRoleKey, 'pflege.evaluations.manage', permissionContext);
   if (denied) return denied;
   const blocked = liveGuard<{ id: string }>(tenantId);
   if (blocked) return blocked;
@@ -140,8 +182,9 @@ export async function createCareQualityVisit(
     scope: string; findings: string; deviations: string; agreedActions: string;
     personFeedback: string; nextVisitAt: string | null; actorName: string;
   },
+  permissionContext?: PermissionEnforcementContext,
 ): Promise<ServiceResult<{ id: string }>> {
-  const denied = enforcePermission<{ id: string }>(actorRoleKey, 'pflege.visits.manage');
+  const denied = enforcePermission<{ id: string }>(actorRoleKey, 'pflege.visits.manage', permissionContext);
   if (denied) return denied;
   const blocked = liveGuard<{ id: string }>(tenantId);
   if (blocked) return blocked;
@@ -159,8 +202,9 @@ export async function createCareQualityVisit(
 export async function fetchLivePflegeQualityStats(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  permissionContext?: PermissionEnforcementContext,
 ): Promise<ServiceResult<PflegeReportStats>> {
-  const denied = enforcePermission<PflegeReportStats>(actorRoleKey, 'pflege.quality.view');
+  const denied = enforcePermission<PflegeReportStats>(actorRoleKey, 'pflege.quality.view', permissionContext);
   if (denied) return denied;
   const blocked = liveGuard<PflegeReportStats>(tenantId);
   if (blocked) return blocked;
@@ -169,9 +213,6 @@ export async function fetchLivePflegeQualityStats(
   };
   const { data, error } = await supabase.rpc('get_pfleger_quality_stats');
   if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
-  return { ok: true, data: {
-    activePlans: Number(data.activePlans ?? 0), sisAssessmentsDue: Number(data.sisAssessmentsDue ?? 0),
-    vitalsDocumentedThisWeek: Number(data.vitalsDocumentedThisWeek ?? 0),
-    woundCasesOpen: Number(data.woundCasesOpen ?? 0), mdkReadyCount: Number(data.mdkReadyCount ?? 0),
-  } };
+  const stats = parsePflegeQualityStats(data);
+  return stats ? { ok: true, data: stats } : { ok: false, error: 'Die Kennzahlen konnten nicht vollständig ermittelt werden.' };
 }

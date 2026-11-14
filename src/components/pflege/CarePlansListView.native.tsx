@@ -48,7 +48,7 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
     const canView = can('pflege.plans.view');
     const canCreate = can('pflege.plans.manage');
     const roleKey = profile?.roleKey ?? 'nurse';
-    const { items, totalCount, filteredCount, loading, error, refreshing, showSuccess, search, setSearch, statusFilter, setStatusFilter, sortKey, setSortKey, sortOptions, statusFilters, hasMore, loadMore, refresh, resetFilters, hasActiveFilters, isEmpty, isFilterEmpty, allItems, isCurrent, isCurrentItem, } = list;
+    const { items, totalCount, filteredCount, loading, error, refreshing, showSuccess, search, setSearch, statusFilter, setStatusFilter, sortKey, setSortKey, sortOptions, statusFilters, workFilter, setWorkFilter, workFilters, selectedClient, hasMore, loadMore, refresh, resetFilters, hasActiveFilters, isEmpty, isFilterEmpty, allItems, isCurrent, isCurrentItem, } = list;
     const kpis = useMemo(() => buildCarePlanListKpis(allItems), [allItems]);
     const compactHero = embedded || shellVariant === 'desktop';
     const tableSort = useTableColumnSort(sortKey, setSortKey, sortOptions, {
@@ -65,6 +65,11 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
     };
     const handleCreate = () => { if (isCurrent() && can('pflege.plans.manage'))
         router.push('/pflege/plans/create' as never); };
+    const openMeasures = (planId?: string) => {
+        if (!isCurrent() || (planId && !isCurrentItem(planId)))
+            return;
+        router.push({ pathname: '/pflege/massnahmen', params: planId ? { planId } : { filter: 'due' } });
+    };
     if (permissions.loading) {
         return <LoadingState presentation="inline" message="Pflegeberechtigungen werden geprüft…"/>;
     }
@@ -84,13 +89,23 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
 
       {showSuccess ? <SuccessState message="Liste erfolgreich aktualisiert."/> : null}
 
+      <View style={styles.actions}>
+        <PremiumButton title="Pflegepläne aktualisieren" variant="secondary" size="sm" onPress={refresh}/>
+        <PremiumButton title="Erreichte Evaluationstermine öffnen" variant="ghost" size="sm" onPress={() => openMeasures()}/>
+        {hasActiveFilters ? <PremiumButton title="Filter zurücksetzen" variant="ghost" size="sm" onPress={resetFilters}/> : null}
+      </View>
+      {selectedClient ? <Text style={styles.filterLabel}>Klientenakte: {selectedClient}</Text> : null}
+
       <PremiumInput label="Suche" placeholder="Titel oder Klient:in…" value={search} onChangeText={setSearch} autoCapitalize="words" autoCorrect={false} hint={`${filteredCount} von ${totalCount} Pflegeplänen`}/>
 
       <Text style={styles.filterLabel}>Status</Text>
-      <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter}/>
+      <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} wrap/>
+
+      <Text style={styles.filterLabel}>Arbeitsliste</Text>
+      <FilterChipGroup options={workFilters} value={workFilter} onChange={setWorkFilter} wrap/>
 
       <Text style={styles.filterLabel}>Sortierung</Text>
-      <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey}/>
+      <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} wrap/>
     </View>);
     if (loading && items.length === 0) {
         return (<View style={styles.container}>
@@ -115,7 +130,7 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
           {toolbar}
           {emptyContent ?? (<>
               <CarePlansListTable plans={items} selectedId={selectedId} onPlanPress={handlePlanPress} onOpenDetail={(id) => { if (isCurrentItem(id))
-                router.push(`/pflege/plans/${id}` as never); }} sortColumnKey={tableSort.sortColumnKey} sortDirection={tableSort.sortDirection} onSortColumn={tableSort.onSortColumn}/>
+                router.push(`/pflege/plans/${id}` as never); }} onOpenMeasures={openMeasures} sortColumnKey={tableSort.sortColumnKey} sortDirection={tableSort.sortDirection} onSortColumn={tableSort.onSortColumn}/>
               {footerContent}
             </>)}
         </ScrollView>
@@ -125,7 +140,7 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
       </View>);
     }
     return (<View style={styles.container}>
-      <FlatList style={styles.flatList} data={items} keyExtractor={(item) => item.id} ListHeaderComponent={toolbar} ListEmptyComponent={emptyContent} ListFooterComponent={footerContent} renderItem={({ item }) => (<CarePlanListCard plan={item} selected={selectedId === item.id} onPress={() => handlePlanPress(item.id)}/>)} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary}/>}/>
+      <FlatList style={styles.flatList} data={items} keyExtractor={(item) => item.id} ListHeaderComponent={toolbar} ListEmptyComponent={emptyContent} ListFooterComponent={footerContent} renderItem={({ item }) => (<CarePlanListCard plan={item} selected={selectedId === item.id} onPress={() => handlePlanPress(item.id)} onOpenMeasures={() => openMeasures(item.id)}/>)} contentContainerStyle={styles.list} showsVerticalScrollIndicator={false} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary}/>}/>
       {embedded && canCreate ? (<View style={styles.embeddedCta}>
           <PremiumButton title="+ Neu" size="sm" onPress={handleCreate}/>
         </View>) : null}
@@ -135,6 +150,7 @@ const styles = StyleSheet.create({
     container: { flex: 1 },
     flatList: { flex: 1 },
     toolbar: { gap: spacing.sm, marginBottom: spacing.md },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
     filterLabel: { ...typography.label, marginTop: spacing.xs },
     list: { paddingBottom: spacing.xxl },
     loadMore: { marginTop: spacing.sm, marginBottom: spacing.md },

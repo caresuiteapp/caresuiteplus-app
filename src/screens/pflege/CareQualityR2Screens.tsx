@@ -13,16 +13,13 @@ import { fetchEligibleCareClients } from '@/lib/careAssessment';
 import {
   advanceQualityDeviation,
   createQualityDeviation,
-  fetchLiveCareMeasures,
   fetchLiveCareRisks,
-  fetchMdReadiness,
   fetchQualityDeviations,
-  reviewLiveCareMeasure,
   reviewLiveCareRisk,
 } from '@/lib/pflege/careQualityR2LiveService';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
 import { colors, spacing } from '@/theme';
-import type { CareMeasureLiveItem, CareQualityDeviationItem, CareRiskLiveItem } from '@/types/modules/pflege';
+import type { CareQualityDeviationItem, CareRiskLiveItem } from '@/types/modules/pflege';
 
 const today = () => new Date().toISOString().slice(0, 10);
 const yesNo = [{ key: 'no', label: 'Nein' }, { key: 'yes', label: 'Ja' }];
@@ -32,13 +29,7 @@ export function QualityDeviationsListScreen() {
   return <DedicatedListScreen title="Qualitätsabweichungen" eyebrow="PFLEGE · QUALITÄTSREGELKREIS" subtitle="Feststellen · bewerten · handeln · Wirksamkeit prüfen" createRoute="/pflege/abweichung-new" queryFn={fetchQualityDeviations} searchKeys={['title', 'clientName', 'category', 'responsibleName']} getItemId={(item) => item.id} onOpen={(item) => router.push(`/pflege/abweichung-workflow?id=${item.id}` as never)} renderMeta={(item) => ({ primary: item.title, secondary: `${item.clientName} · ${item.category}${item.dueAt ? ` · Frist ${formatDate(item.dueAt)}` : ''}`, badge: item.recurringProblem ? `Wiederkehrend · ${item.severity}` : `${item.status} · ${item.severity}` })} />;
 }
 
-export function MdReadinessListScreen() {
-  const router = useRouter();
-  return <DedicatedListScreen title="MD-Prüfbereitschaft" eyebrow="PFLEGE · NACHWEISCHECK" subtitle="Live-Prüfstatus je aktivem Pflegefall" queryFn={fetchMdReadiness} searchKeys={['clientName', 'planTitle']} getItemId={(item) => item.carePlanId} onOpen={(item) => router.push(`/pflege/plans/${item.carePlanId}` as never)} renderMeta={(item) => {
-    const missing = Object.entries(item.checks).filter(([, value]) => !value).length;
-    return { primary: item.clientName, secondary: `${item.planTitle} · ${missing ? `${missing} Nachweise offen` : 'alle 7 Nachweise erfüllt'}`, badge: `${item.readinessPercent}%${item.ready ? ' · bereit' : ''}` };
-  }} />;
-}
+export { MdReadinessListScreen } from './MdReadinessListScreen';
 
 function useQualityContext<T>(loader: (tenantId: string, role?: Parameters<typeof fetchLiveCareRisks>[1]) => Promise<{ ok: boolean; data?: T[]; error?: string }>) {
   const tenantId = useServiceTenantId(); const { profile } = useAuth();
@@ -62,19 +53,7 @@ export function CareRiskReviewScreen() {
   return <ScreenShell title="Risiko fachlich überprüfen" subtitle={`${selected.clientName} · ${selected.riskKey}`} onBack={() => router.back()}><ScrollView contentContainerStyle={styles.scroll}><FormScreenHero eyebrow="PFLEGE · RISIKOMANAGEMENT LIVE" title="Risikolage neu bewerten" meta="Nachweis, Schutzfaktoren, Beteiligung und verbindlicher Reviewtermin" icon="⚠" formMode="edit" accentColor={colors.orange} /><SectionPanel title="Bewertung"><FilterChipGroup wrap options={[{ key: 'none', label: 'Kein Risiko' }, { key: 'unclear', label: 'Unklar' }, { key: 'present', label: 'Vorhanden' }, { key: 'controlled', label: 'Kontrolliert' }]} value={state} onChange={setState} /><FilterChipGroup wrap options={[{ key: 'routine', label: 'Routine' }, { key: 'timely', label: 'Zeitnah' }, { key: 'urgent', label: 'Dringend' }, { key: 'immediate', label: 'Sofort' }]} value={urgency} onChange={setUrgency} /><PremiumInput label="Belege / Beobachtungen" value={evidence} onChangeText={setEvidence} multiline /><PremiumInput label="Schutzfaktoren" value={protective} onChangeText={setProtective} multiline /><PremiumInput label="Fachliche Begründung *" value={rationale} onChangeText={setRationale} multiline /><PremiumInput label="Beratung / Aufklärung" value={counseling} onChangeText={setCounseling} multiline /><PremiumInput label="Entscheidung der versorgten Person" value={decision} onChangeText={setDecision} multiline /><FilterChipGroup options={yesNo} value={refusal} onChange={setRefusal} /><PremiumInput label="Nächster Review (JJJJ-MM-TT)" value={nextReview} onChangeText={setNextReview} /></SectionPanel>{error ? <ErrorState message={error} /> : null}<PremiumButton title="Risikoreview live speichern" fullWidth loading={busy} onPress={save} /></ScrollView></ScreenShell>;
 }
 
-export function CareMeasureReviewScreen() {
-  const { id = '' } = useLocalSearchParams<{ id?: string }>(); const router = useRouter();
-  const { tenantId, profile, query } = useQualityContext(fetchLiveCareMeasures); const selected = ((query.data ?? []) as CareMeasureLiveItem[]).find((item) => item.id === id);
-  const [decision, setDecision] = useState('continue'); const [effect, setEffect] = useState(''); const [feedback, setFeedback] = useState('');
-  const [rationale, setRationale] = useState(''); const [intervention, setIntervention] = useState(''); const [frequency, setFrequency] = useState('');
-  const [nextEvaluation, setNextEvaluation] = useState(''); const [busy, setBusy] = useState(false); const [error, setError] = useState<string | null>(null); const [done, setDone] = useState(false);
-  useEffect(() => { if (!selected) return; setIntervention(selected.intervention); setFrequency(selected.frequency); setNextEvaluation(selected.nextEvaluationAt?.slice(0, 10) ?? ''); }, [selected]);
-  const save = async () => { if (!tenantId) return; setBusy(true); setError(null); const result = await reviewLiveCareMeasure(tenantId, profile?.roleKey, id, { decision, observedEffect: effect, personFeedback: feedback, professionalRationale: rationale, changedIntervention: intervention, changedFrequency: frequency, nextEvaluationAt: nextEvaluation || null }); setBusy(false); if (!result.ok) return setError(result.error); setDone(true); };
-  if (query.loading) return <ScreenShell title="Maßnahmenfortschreibung"><LoadingState message="Maßnahme wird geladen…" /></ScreenShell>;
-  if (!selected) return <ScreenShell title="Maßnahmenfortschreibung"><ErrorState message={query.error ?? 'Maßnahme nicht gefunden.'} /></ScreenShell>;
-  if (done) return <ScreenShell title="Maßnahme fortgeschrieben"><SuccessState message="Entscheidung und Wirkung wurden append-only dokumentiert; die Maßnahme wurde atomar aktualisiert." /><PremiumButton title="Zu den Maßnahmen" fullWidth onPress={() => router.replace('/pflege/massnahmen' as never)} /></ScreenShell>;
-  return <ScreenShell title="Maßnahme fortschreiben" subtitle={`${selected.clientName} · ${selected.title}`} onBack={() => router.back()}><ScrollView contentContainerStyle={styles.scroll}><FormScreenHero eyebrow="PFLEGE · WIRKSAMKEIT LIVE" title="Maßnahme fachlich fortschreiben" meta={selected.intervention} icon="✓" formMode="edit" accentColor={colors.cyan} /><SectionPanel title="Wirksamkeit und Entscheidung"><FilterChipGroup wrap options={[{ key: 'continue', label: 'Fortführen' }, { key: 'change', label: 'Ändern' }, { key: 'pause', label: 'Pausieren' }, { key: 'complete', label: 'Abschließen' }]} value={decision} onChange={setDecision} /><PremiumInput label="Beobachtete Wirkung *" value={effect} onChangeText={setEffect} multiline /><PremiumInput label="Rückmeldung der versorgten Person" value={feedback} onChangeText={setFeedback} multiline /><PremiumInput label="Fachliche Begründung *" value={rationale} onChangeText={setRationale} multiline />{decision === 'change' ? <><PremiumInput label="Neue Durchführung" value={intervention} onChangeText={setIntervention} multiline /><PremiumInput label="Neue Häufigkeit" value={frequency} onChangeText={setFrequency} /></> : null}<PremiumInput label="Nächste Evaluation (JJJJ-MM-TT)" value={nextEvaluation} onChangeText={setNextEvaluation} /></SectionPanel>{error ? <ErrorState message={error} /> : null}<PremiumButton title="Fortschreibung live speichern" fullWidth loading={busy} onPress={save} /></ScrollView></ScreenShell>;
-}
+export { CareMeasureReviewScreen } from './CareMeasureReviewScreen';
 
 export function QualityDeviationCreateScreen() {
   const router = useRouter(); const tenantId = useServiceTenantId(); const { profile } = useAuth();

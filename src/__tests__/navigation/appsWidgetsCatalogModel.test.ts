@@ -12,6 +12,7 @@ import { buildDesktopApps } from '@/liquid-command/navigation/desktopAppCatalog.
 import { DESKTOP_AREAS } from '@/liquid-command/navigation/desktopAreas';
 import { buildSync } from 'esbuild';
 import type { WidgetDefinition } from '@/liquid-command/screens/administrationDesktopCatalog';
+import { pflegeNav } from '@/lib/navigation/moduleNav/pflegeNav';
 
 // Execute the real catalogue while leaving native image bytes outside Node.
 const catalogSource = buildSync({ entryPoints: ['src/liquid-command/screens/administrationDesktopCatalog.ts'], bundle: true, write: false,
@@ -31,6 +32,20 @@ const withPermissions = (...permissions: PermissionKey[]): DesktopCatalogAccess 
 });
 
 describe('Web apps and widgets catalog', () => {
+  it('distinguishes planning from active measures and keeps all 37 reviewed Pflege destinations available', () => {
+    const apps = filterDesktopCatalogEntries(buildDesktopApps(WIDGETS, 'business_admin'), 'pflege', admin)
+      .filter(app => desktopCatalogAreaForRoute(app.route) === 'pflege');
+    const sidebarRoutes = pflegeNav.groups.flatMap(group => group.items.map(item => item.href));
+    expect(sidebarRoutes).toHaveLength(37);
+    expect(apps.map(app => app.route).sort()).toEqual([...sidebarRoutes].sort());
+    expect(new Set(apps.map(app => app.label)).size).toBe(37);
+    expect(apps.find(app => app.route === '/pflege/planung')).toMatchObject({ label: 'Pflegeplanung & Verlauf', category: 'Pflegeplanung' });
+    expect(apps.find(app => app.route === '/pflege/massnahmen')).toMatchObject({ label: 'Aktive Maßnahmen', category: 'Pflegeplanung' });
+    expect(apps.find(app => app.route === '/pflege/risiken')).toMatchObject({ id: 'pflege-quality', label: 'Pflegequalität: Risiken', category: 'Qualität' });
+    expect(apps.find(app => app.route === '/pflege/medikation')).toMatchObject({ id: 'pflege-medication', category: 'Pflegedokumente' });
+    expect(WIDGETS.find(widget => widget.id === 'pflege-medication')?.description).toContain('Arztsuche');
+  });
+
   it('offers all permitted areas without bypassing module, action or unreleased-route checks', () => {
     const entries = [
       { route: '/settings/profile' }, { route: '/office/notizen' }, { route: '/assist/assignments' },

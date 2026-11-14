@@ -2831,7 +2831,7 @@
     {
       "web": "src/components/pflege/CareDocumentationWorkspacePanel.web.tsx",
       "native": "src/components/pflege/CareDocumentationWorkspacePanel.native.tsx",
-      "sourceHash": "0da1a0487d5a0ffdc1a546dbf47a7f2bc04964d5742587b94a1d7338f7b1d589",
+      "sourceHash": "faedd92f18fe27ad2a7a9aa017bc4afeac046dea47e795a78b5419d53b7c2e34",
       "environment": [
         "structuredClone",
         "crypto"
@@ -2876,13 +2876,13 @@
     {
       "web": "src/hooks/useCarePlanList.web.ts",
       "native": "src/hooks/useCarePlanList.native.ts",
-      "sourceHash": "b96c8e1bd67422e1a47a1be55c89fee6e25a070113b99ce79df71216ec0524e0",
+      "sourceHash": "6e85cc3e2566f96d0b1d14f9eb6e2c49a555e40db23e235403beef0472d51efb",
       "environment": []
     },
     {
       "web": "src/components/pflege/CarePlansListView.web.tsx",
       "native": "src/components/pflege/CarePlansListView.native.tsx",
-      "sourceHash": "127b451edf1d8f3077548fd443bf0678494e45eb0a498df34320784283095bd5",
+      "sourceHash": "e3c0544d22632d8fb12a9928755cfa0cc0124b09c86c64dc849d5dea3d475b0d",
       "environment": []
     },
     {
@@ -5773,6 +5773,24 @@
       ]
     },
     {
+      "web": "src/screens/pflege/CarePermissionStatus.web.tsx",
+      "native": "src/screens/pflege/CarePermissionStatus.native.tsx",
+      "sourceHash": "72bcfedf2e3ebca38227b9999c5612c843dec1a52e3070c541e891b8826513d4",
+      "environment": []
+    },
+    {
+      "web": "src/screens/pflege/AmbulatoryCareOverviewScreen.web.tsx",
+      "native": "src/screens/pflege/AmbulatoryCareOverviewScreen.native.tsx",
+      "sourceHash": "222f405dd29cae1a8d9591136812b32d9b06cf71a7fe696a7adb38edfc8a6ad7",
+      "environment": []
+    },
+    {
+      "web": "src/screens/pflege/AmbulatoryOperationsScreen.web.tsx",
+      "native": "src/screens/pflege/AmbulatoryOperationsScreen.native.tsx",
+      "sourceHash": "691209f32b949fbe542236f9a4e33c5ba733319f93da68e9f067dd0eb5d14728",
+      "environment": []
+    },
+    {
       "web": "src/lib/pflege/careDiagnosisAtomicRepository.supabase.web.ts",
       "native": "src/lib/pflege/careDiagnosisAtomicRepository.supabase.native.ts",
       "sourceHash": "a0d6e655313a554f26cc81baf7a0c1bc488a0916f200d845df0d40710e74c876",
@@ -5795,21 +5813,27 @@
       ]
     },
     {
-      "web": "src/screens/pflege/CareDocumentationDetailScreen.web.tsx",
-      "native": "src/screens/pflege/CareDocumentationDetailScreen.native.tsx",
-      "sourceHash": "070ffcc7560f22ae0fc6799b248c877f19a973c9ad91f4bb3b4b26fde575f5ae",
+      "web": "src/hooks/pflege/useCareDocumentationScope.web.ts",
+      "native": "src/hooks/pflege/useCareDocumentationScope.native.ts",
+      "sourceHash": "005cbab1aaacc4544459c51341469fde590cdb3d06c553b6d5c8bb3e7b604223",
       "environment": []
     },
     {
-      "web": "src/screens/pflege/CarePermissionStatus.web.tsx",
-      "native": "src/screens/pflege/CarePermissionStatus.native.tsx",
-      "sourceHash": "72bcfedf2e3ebca38227b9999c5612c843dec1a52e3070c541e891b8826513d4",
+      "web": "src/lib/pflege/careDocumentationQueue.web.ts",
+      "native": "src/lib/pflege/careDocumentationQueue.native.ts",
+      "sourceHash": "4e0eb6097788084c2ff7b217e8b2e15cc19b216714421f43ee248d07aa4112d4",
+      "environment": []
+    },
+    {
+      "web": "src/screens/pflege/CareDocumentationDetailScreen.web.tsx",
+      "native": "src/screens/pflege/CareDocumentationDetailScreen.native.tsx",
+      "sourceHash": "9df66c3a345b077cc8521cc52d85677c4544b4653f4353524c958921a68ac99c",
       "environment": []
     },
     {
       "web": "src/screens/pflege/CareDocumentationListScreen.web.tsx",
       "native": "src/screens/pflege/CareDocumentationListScreen.native.tsx",
-      "sourceHash": "15d4021640d0a7c19012f5641921d9596dce3d4a289f8fe5436dfd29473f4699",
+      "sourceHash": "1fbf902f07b13265963a6d48c9ab7192efe05fc130ebb396c8346f02512955db",
       "environment": []
     },
     {
@@ -5827,7 +5851,7 @@
     {
       "web": "src/screens/pflege/CarePlansListScreen.web.tsx",
       "native": "src/screens/pflege/CarePlansListScreen.native.tsx",
-      "sourceHash": "0e7e918b82bf95249bd2e3ec7e2c2f86005cd4eb42e8f57c0af56d8de83d5438",
+      "sourceHash": "0e2f3cb4b60cd12b49f77b1341ba70f1ad179f21948a3c7189ac121789e3c99a",
       "environment": []
     },
     {
@@ -5857,7 +5881,7 @@
     {
       "web": "src/screens/pflege/PflegeDedicatedScreens.web.tsx",
       "native": "src/screens/pflege/PflegeDedicatedScreens.native.tsx",
-      "sourceHash": "18ed23d9d31a3ae36ebd82cc95a4f8e91501074322448682261799267a64a079",
+      "sourceHash": "eb2c16609f4f64eac6b1aaf201ba19dd4bc2d57035a33d13f2144e8794c7df24",
       "environment": []
     },
     {
@@ -6108,7 +6132,7 @@
     {
       "web": "src/screens/pflege/PflegeberichtErstellenScreen.web.tsx",
       "native": "src/screens/pflege/PflegeberichtErstellenScreen.native.tsx",
-      "sourceHash": "d0c8ff98bacc06804489b0778d6915d14e1010879f998ab94bb909fcd3867a63",
+      "sourceHash": "e36061af1d4777d114d33866790b7e3cbb91d3cf5d1657f500f89ae5d644e0d0",
       "environment": []
     },
     {
@@ -8741,6 +8765,14 @@
       "native": "app/pflege/(tabs)/vitalwerte.native.tsx"
     },
     {
+      "web": "app/pflege/aufgaben.tsx",
+      "native": "app/pflege/aufgaben.native.tsx"
+    },
+    {
+      "web": "app/pflege/aufnahme.tsx",
+      "native": "app/pflege/aufnahme.native.tsx"
+    },
+    {
       "web": "app/pflege/behandlungspflege/index.web.tsx",
       "native": "app/pflege/behandlungspflege/index.native.tsx"
     },
@@ -8791,6 +8823,10 @@
     {
       "web": "app/pflege/klienten.web.tsx",
       "native": "app/pflege/klienten.native.tsx"
+    },
+    {
+      "web": "app/pflege/leistungskatalog.tsx",
+      "native": "app/pflege/leistungskatalog.native.tsx"
     },
     {
       "web": "app/pflege/leistungsnachweis-new.tsx",
@@ -8851,6 +8887,10 @@
     {
       "web": "app/pflege/uebergaben/new.web.tsx",
       "native": "app/pflege/uebergaben/new.native.tsx"
+    },
+    {
+      "web": "app/pflege/versorgungsuebersicht.tsx",
+      "native": "app/pflege/versorgungsuebersicht.native.tsx"
     },
     {
       "web": "app/pflege/visiten/index.tsx",

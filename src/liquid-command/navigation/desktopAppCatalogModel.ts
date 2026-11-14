@@ -10,8 +10,9 @@ import { akademieNav } from '@/lib/navigation/moduleNav/akademieNav';
 import { zentraleNav } from '@/lib/navigation/moduleNav/zentraleNav';
 import { WORKSPACE_SERVICES, workspaceHref } from '@/lib/googleWorkspace/workspaceModel';
 import { isUnreleasedModuleKey, isUnreleasedModuleRoute } from '@/lib/modules/constants';
+import { PFLEGE_CATALOG_CATEGORIES, pflegeCatalogPresentation } from './pflegeCatalogPresentation';
 
-export const DESKTOP_CATEGORIES = ['Übersicht', 'Versorgung', 'Team', 'Verwaltung', 'Workspace'] as const;
+export const DESKTOP_CATEGORIES = ['Übersicht', 'Versorgung', 'Team', 'Verwaltung', 'Workspace', ...PFLEGE_CATALOG_CATEGORIES] as const;
 export type DesktopCategory = (typeof DESKTOP_CATEGORIES)[number];
 export type DesktopApp = {
   id: string; label: string; description: string; route: string;
@@ -51,7 +52,9 @@ export function buildDesktopApps(widgetApps: readonly DesktopApp[], roleKey?: st
     const duplicateId = usedIds.has(app.id);
     const id = duplicateId ? `${app.id}:route:${encodeURIComponent(route)}` : app.id;
     usedIds.add(id);
+    const care = pflegeCatalogPresentation(route);
     apps.push({ ...app, id, route, label,
+      ...(care ? { ...care, group: undefined } : {}),
       ...(duplicateId ? { desktopWidgetId: `area-app:${app.id}` } : {}),
     });
   };

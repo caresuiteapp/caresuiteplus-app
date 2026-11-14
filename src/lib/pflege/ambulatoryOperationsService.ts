@@ -6,10 +6,12 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import type { CareAdmission, CareTariff, CareTask } from './ambulatoryOperationsDomain';
+import { validOperationsId, type OperationsArea } from './ambulatoryOperationsQueue';
+import { readCompleteCarePlanRows } from './carePlanCompleteRead';
 
 type Row = Record<string, unknown>;
 const text = (v: unknown) => v == null ? '' : String(v);
-type OperationsSnapshot = { admissions: CareAdmission[]; tariffs: CareTariff[]; tasks: CareTask[] };
+export type OperationsSnapshot = { admissions: CareAdmission[]; tariffs: CareTariff[]; tasks: CareTask[] };
 function guard<T>(tenant: string): ServiceResult<T> | null {
   const invalid = guardServiceTenant(tenant); if (invalid) return invalid as ServiceResult<T>;
   if (getServiceMode() !== 'supabase' || !getSupabaseClient()) return { ok: false, error: 'Ambulante Betriebsabläufe benötigen die Live-Datenbank.' };
@@ -39,15 +41,52 @@ export async function callCareOperationsRpc(tenant: string, name: string, params
     return { ok: true, data: { id: text(result.data.id) } };
   } catch { return { ok: false, error: 'Verbindung unterbrochen. Bitte aktualisieren und den Speicherstand prüfen.' }; }
 }
+const mapAdmission = (r: Row): CareAdmission => ({ id: text(r.id), clientId: text(r.client_id), clientName: '', status: text(r.status) as CareAdmission['status'], startsOn: text(r.starts_on), endsOn: text(r.ends_on), basis: text(r.legal_basis) as CareAdmission['basis'], payerName: text(r.payer_name), payerIk: text(r.payer_ik), contractReference: text(r.contract_reference), costInformationReference: text(r.cost_information_reference), consentReference: text(r.consent_reference), emergencyContact: text(r.emergency_contact), accessNotes: text(r.access_notes), notes: text(r.notes), updatedAt: text(r.updated_at) });
+const mapTariff = (r: Row): CareTariff => ({ id: text(r.id), code: text(r.service_code), label: text(r.service_label), basis: text(r.legal_basis) as CareTariff['basis'], unit: text(r.billing_unit) as CareTariff['unit'], unitPriceCents: Number(r.unit_price_cents), validFrom: text(r.valid_from), validUntil: text(r.valid_until), payerIk: text(r.payer_ik), agreementReference: text(r.agreement_reference) });
+const mapTask = (r: Row): CareTask => ({ id: text(r.id), clientId: text(r.client_id), title: text(r.title), description: text(r.description), dueOn: text(r.due_on), priority: text(r.priority) as CareTask['priority'], status: text(r.status) as CareTask['status'], assignedEmployeeId: text(r.assigned_employee_id), resolution: text(r.resolution), updatedAt: text(r.updated_at) });
+
 export async function fetchCareOperations(tenant: string, role?: RoleKey | null): Promise<ServiceResult<OperationsSnapshot>> {
   const denied = enforcePermission<OperationsSnapshot>(role, 'pflege.plans.view'); if (denied) return denied;
   const blocked = guard<OperationsSnapshot>(tenant); if (blocked) return blocked;
   const [admissions, tariffs, tasks] = await Promise.all(['care_admissions', 'care_tariffs', 'care_operations_tasks'].map((table) => readCareRows(table, tenant)));
   if (!admissions.ok) return admissions; if (!tariffs.ok) return tariffs; if (!tasks.ok) return tasks;
+  return { ok: true, data: { admissions: admissions.data.map(mapAdmission), tariffs: tariffs.data.map(mapTariff), tasks: tasks.data.map(mapTask) } };
+}
+
+const operationTables: Record<OperationsArea, string> = { admissions: 'care_admissions', tariffs: 'care_tariffs', tasks: 'care_operations_tasks' };
+const operationStates: Record<OperationsArea, readonly string[]> = {
+  admissions: ['draft', 'active', 'paused', 'closed'],
+  tasks: ['open', 'done', 'cancelled'],
+  tariffs: [],
+};
+const operationsQueueUnavailable = (): ServiceResult<never> => ({ ok: false, error: 'Der aktuelle Bestand konnte nicht vollständig bestätigt werden. Bitte erneut laden.' });
+
+/** Counted reads of one authorized queue, optionally bound to one patient case before selecting any rows. */
+export async function fetchCareOperationsQueue(
+  tenant: string, role: RoleKey | null | undefined,
+  area: OperationsArea, clientId: string | null, isCurrent: () => boolean,
+): Promise<ServiceResult<OperationsSnapshot>> {
+  const denied = enforcePermission<OperationsSnapshot>(role, 'pflege.plans.view')
+    ?? (area === 'tariffs' ? enforcePermission<OperationsSnapshot>(role, 'pflege.proofs.view') : null);
+  if (denied) return denied;
+  const blocked = guard<OperationsSnapshot>(tenant); if (blocked) return blocked;
+  if (!isCurrent() || (clientId !== null && (!validOperationsId(clientId) || area === 'tariffs'))) return operationsQueueUnavailable();
+  const db = getSupabaseClient();
+  if (!db) return operationsQueueUnavailable();
+  const current = () => isCurrent() && getSupabaseClient() === db;
+  const result = await readCompleteCarePlanRows((from, to) => {
+    if (!current()) return Promise.reject(new Error('Vorgang nicht mehr aktuell.'));
+    let query = fromUnknownTable(db, operationTables[area]).select('*', { count: 'exact' }).eq('tenant_id', tenant);
+    if (clientId) query = query.eq('client_id', clientId);
+    return query.order('id').range(from, to);
+  }, row => current() && row.tenant_id === tenant && validOperationsId(row.id) && (!clientId || row.client_id === clientId)
+    && (area === 'tariffs' || (operationStates[area].includes(text(row.status)) && !!text(row.updated_at)
+      && (area === 'tasks' && row.client_id === null || validOperationsId(row.client_id)))));
+  if (!current() || !result.ok) return operationsQueueUnavailable();
   return { ok: true, data: {
-    admissions: admissions.data.map((r) => ({ id: text(r.id), clientId: text(r.client_id), clientName: '', status: text(r.status) as CareAdmission['status'], startsOn: text(r.starts_on), endsOn: text(r.ends_on), basis: text(r.legal_basis) as CareAdmission['basis'], payerName: text(r.payer_name), payerIk: text(r.payer_ik), contractReference: text(r.contract_reference), costInformationReference: text(r.cost_information_reference), consentReference: text(r.consent_reference), emergencyContact: text(r.emergency_contact), accessNotes: text(r.access_notes), notes: text(r.notes), updatedAt: text(r.updated_at) })),
-    tariffs: tariffs.data.map((r) => ({ id: text(r.id), code: text(r.service_code), label: text(r.service_label), basis: text(r.legal_basis) as CareTariff['basis'], unit: text(r.billing_unit) as CareTariff['unit'], unitPriceCents: Number(r.unit_price_cents), validFrom: text(r.valid_from), validUntil: text(r.valid_until), payerIk: text(r.payer_ik), agreementReference: text(r.agreement_reference) })),
-    tasks: tasks.data.map((r) => ({ id: text(r.id), clientId: text(r.client_id), title: text(r.title), description: text(r.description), dueOn: text(r.due_on), priority: text(r.priority) as CareTask['priority'], status: text(r.status) as CareTask['status'], assignedEmployeeId: text(r.assigned_employee_id), resolution: text(r.resolution), updatedAt: text(r.updated_at) })),
+    admissions: area === 'admissions' ? result.data.map(mapAdmission) : [],
+    tariffs: area === 'tariffs' ? result.data.map(mapTariff) : [],
+    tasks: area === 'tasks' ? result.data.map(mapTask) : [],
   } };
 }
 export async function saveCareAdmission(tenant: string, role: RoleKey | null | undefined, payload: Omit<CareAdmission, 'id' | 'status' | 'updatedAt'>, previous?: CareAdmission) {

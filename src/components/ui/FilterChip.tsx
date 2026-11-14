@@ -55,6 +55,7 @@ export function FilterChip({
       ]}
       accessibilityRole="button"
       accessibilityState={{ selected }}
+      aria-pressed={selected}
       {...(Platform.OS === "web"
         ? ({
             dataSet: {

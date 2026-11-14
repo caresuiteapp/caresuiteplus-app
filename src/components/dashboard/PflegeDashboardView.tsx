@@ -31,6 +31,8 @@ type PflegeDashboardViewProps = {
   activePlans: CarePlanListItem[];
   loading: boolean;
   error: string | null;
+  refreshError?: string | null;
+  refreshing?: boolean;
   onRefresh: () => void;
   /** The complete workspace launchers are supplied by the parent page. */
   overviewOnly?: boolean;
@@ -100,6 +102,8 @@ export function PflegeDashboardView({
   activePlans,
   loading,
   error,
+  refreshError,
+  refreshing = false,
   onRefresh,
   overviewOnly = false,
   canOpenRoute,
@@ -123,13 +127,13 @@ export function PflegeDashboardView({
     else router.push(route as never);
   };
 
-  if (loading && !stats) {
+  if (loading || refreshing) {
     return <LoadingState message="Pflege-Dashboard wird geladen…" />;
   }
 
-  if (error && !stats) {
+  if (error || refreshError) {
     return (
-      <ErrorState title="Dashboard nicht verfügbar" message={error} onRetry={onRefresh} />
+      <ErrorState title={refreshError ? 'Kennzahlen nicht aktualisiert' : 'Dashboard nicht verfügbar'} message={refreshError ?? error ?? ''} onRetry={onRefresh} />
     );
   }
 
@@ -145,6 +149,9 @@ export function PflegeDashboardView({
   }
 
   const workspaceKpis = buildPflegeWorkspaceKpis(stats).filter(kpi => routeAllowed(kpi.route)).slice(0, PFLEGE_WORKSPACE_KPI_COUNT);
+  const hasUnavailable = workspaceKpis.some(kpi => kpi.value === '—');
+  const hasFailed = workspaceKpis.some(kpi => stats.failedKpiIds?.includes(kpi.id) ||
+    kpi.id === 'pflege-ws-kpi-active-plans' && stats.failedKpiIds?.includes('pflege-ws-kpi-plan-total'));
   const priorities = buildPflegeDashboardPriorities(stats).filter(item => routeAllowed(item.route));
   const sections = buildPflegeDashboardSections(stats, activePlans).map(section => ({
     ...section, links: section.links.filter(link => routeAllowed(link.route)),
@@ -154,11 +161,12 @@ export function PflegeDashboardView({
     <View style={styles.container}>
       <SectionPanel
         title="Heute in der Pflege"
-        subtitle="Kennzahlen für Einsätze, Pläne, Dokumentation und Maßnahmen"
+        subtitle="Heutige Tourstopps und gespeicherte Zustände in den lesbaren Bereichen"
         headerAlign="left"
         accentColor={moduleAccent}
         surface="open"
       >
+        {hasFailed ? <ErrorState title="Einige Kennzahlen sind nicht verfügbar" message="Die übrigen Werte wurden geladen. Nicht verfügbare Werte sind gekennzeichnet." onRetry={onRefresh} /> : null}
         <AdaptiveKpiGrid
           columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
           items={workspaceKpis.map((kpi) => ({
@@ -185,13 +193,13 @@ export function PflegeDashboardView({
 
       <SectionPanel
         title="Heute pflegerisch wichtig"
-        subtitle="Prioritäten und offene Vorgänge"
+        subtitle="Vorgänge zur Prüfung im eigenen Lesebereich"
         surface="open"
       >
         {priorities.length === 0 ? (
           <EmptyState
             title="Keine Hinweise in dieser Übersicht"
-            message="Nicht geladene oder nicht freigegebene Bereiche werden hier nicht bewertet."
+            message={hasUnavailable ? 'Nicht geladene oder nicht freigegebene Bereiche werden hier nicht bewertet.' : 'In den ausgewerteten Bereichen wurden keine Hinweise gefunden.'}
             actionLabel={routeAllowed('/pflege/plans') ? 'Pflegepläne anzeigen' : undefined}
             onAction={routeAllowed('/pflege/plans') ? () => navigate('/pflege/plans') : undefined}
           />
@@ -244,9 +252,9 @@ export function PflegeDashboardView({
               />
             ))}
           </View>
-          {section.id === 'clients' && activePlans.length > 0 ? (
+          {section.id === 'clients' && activePlans.some(plan => routeAllowed(`/pflege/plans/${plan.id}`)) ? (
             <View style={[styles.planList, { marginTop: spacing.sm }]}>
-              {activePlans.slice(0, 4).map((plan) => (
+              {activePlans.filter(plan => routeAllowed(`/pflege/plans/${plan.id}`)).slice(0, 4).map((plan) => (
                 <CareLightCarePlanCard
                   key={plan.id}
                   plan={plan}

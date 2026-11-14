@@ -1,2 +1,3 @@
-import { CareMeasureReviewScreen } from '@/screens/pflege/CareQualityR2Screens';
+import { CareMeasureReviewScreen } from '@/product-workflows/screens/pflege/CareMeasureReviewScreen';
+
 export default CareMeasureReviewScreen;

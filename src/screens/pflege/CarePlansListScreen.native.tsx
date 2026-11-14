@@ -1,9 +1,9 @@
 // Generated native presentation from src/screens/pflege/CarePlansListScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { CarePlansListView } from "../../components/pflege/CarePlansListView.native.tsx";
-import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCarePlanList } from "../../hooks/useCarePlanList.native.ts";
 import { useCareRuntimePermissions as usePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
 import { fetchCarePlanList } from '@/lib/pflege/carePlanListService';
@@ -14,12 +14,17 @@ export function CarePlansListScreen({ onPlanPress, selectedId, embedded = false,
     embedded?: boolean;
 } = {}) {
     const router = useRouter();
+    const params = useLocalSearchParams<{
+        status?: string;
+        work?: string;
+        clientId?: string;
+    }>();
     const permissions = usePermissions();
     const { can } = permissions;
     const isReadOnly = !can('pflege.plans.manage');
     const pageTitle = 'Pflegepläne';
     const canCreate = can('pflege.plans.manage');
-    const list = useCarePlanList();
+    const list = useCarePlanList({ initialStatus: params.status, initialWork: params.work, clientId: params.clientId });
     if (embedded) {
         return (<CarePlansListView list={list} onPlanPress={onPlanPress} selectedId={selectedId} embedded/>);
     }
@@ -41,7 +46,7 @@ export function CarePlansListScreen({ onPlanPress, selectedId, embedded = false,
     return (<ScreenShell title={pageTitle} subtitle={`Ambulante Pflegeplanung${isReadOnly ? ' · Lesemodus' : ''}`} rightSlot={canCreate ? (<PremiumButton title="+ Neu" size="sm" onPress={() => { if (list.isCurrent() && can('pflege.plans.manage'))
             router.push('/pflege/plans/create' as never); }}/>) : null} scroll={false}>
       <View style={styles.content}>
-        {list.isEmpty && !list.hasActiveFilters ? (<EmptyState title="Keine Pflegepläne" message="Es sind noch keine Pflegepläne angelegt."/>) : (<CarePlansListView list={list} onPlanPress={onPlanPress} selectedId={selectedId}/>)}
+        <CarePlansListView list={list} onPlanPress={onPlanPress} selectedId={selectedId}/>
       </View>
     </ScreenShell>);
 }

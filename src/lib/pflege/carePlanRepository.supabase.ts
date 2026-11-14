@@ -4,6 +4,8 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { readCompleteCarePlanRows } from './carePlanCompleteRead.ts';
+import { berlinCalendarDate } from './careTourWorkflow.ts';
+import { storedCalendarDay } from './carePlanDailyWorklist.ts';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 
 type Row = Record<string, unknown>;
@@ -56,6 +58,11 @@ function mapStatus(value: unknown): CarePlanListItem['status'] {
     case 'abgeschlossen': return 'abgeschlossen';
     case 'paused':
     case 'gesperrt': return 'gesperrt';
+    case 'in_progress':
+    case 'in_bearbeitung': return 'in_bearbeitung';
+    case 'geplant': return 'geplant';
+    case 'bestaetigt': return 'bestaetigt';
+    case 'fehlerhaft': return 'fehlerhaft';
     case 'archived':
     case 'archiviert': return 'archiviert';
     case 'entwurf':
@@ -132,7 +139,7 @@ async function loadReferences(
   } };
 }
 
-function mapListItem(row: Row, clients: Map<string, Row>, items: Row[]): CarePlanListItem {
+function mapListItem(row: Row, clients: Map<string, Row>, items: Row[], day: string): CarePlanListItem {
   const client = clients.get(text(row.client_id));
   const planItems = items.filter((item) => text(item.care_plan_id) === text(row.id));
   return {
@@ -148,10 +155,10 @@ function mapListItem(row: Row, clients: Map<string, Row>, items: Row[]): CarePla
       ? `${text(client.first_name)} ${text(client.last_name)}`.trim() || '—'
       : '—',
     careLevel: client?.care_level ? text(client.care_level) : null,
-    alertCount: planItems.filter((item) => {
-      const due = item.next_evaluation_date ? Date.parse(text(item.next_evaluation_date)) : Number.POSITIVE_INFINITY;
-      return !['completed', 'archived'].includes(text(item.status)) && due <= Date.now();
-    }).length,
+    alertCount: mapStatus(row.status) === 'aktiv' ? planItems.filter((item) => {
+      const due = storedCalendarDay(item.next_evaluation_date);
+      return item.status === 'active' && due !== null && due <= day;
+    }).length : 0,
   };
 }
 
@@ -163,13 +170,17 @@ export const carePlanLiveRepository = {
       .select('*', { count: 'exact' }).eq('tenant_id', tenantId).neq('status', 'archived')
       .order('id', { ascending: true }).range(from, to), row => row.tenant_id === tenantId && row.status !== 'archived');
     if (!result.ok) return result;
-    const plans = result.data.sort((a, b) => text(b.updated_at).localeCompare(text(a.updated_at)));
+    const plans = result.data.filter(row => row.status !== 'archiviert').sort((a, b) => text(b.updated_at).localeCompare(text(a.updated_at)));
     const references = await loadReferences(tenantId, plans);
     if (!references.ok) return references;
-    return {
-      ok: true,
-      data: plans.map((row) => mapListItem(row, references.data.clients, references.data.items)),
-    };
+    const itemsByPlan = new Map<string, Row[]>();
+    for (const item of references.data.items) {
+      const key = text(item.care_plan_id), known = itemsByPlan.get(key);
+      if (known) known.push(item);
+      else itemsByPlan.set(key, [item]);
+    }
+    const day = berlinCalendarDate();
+    return { ok: true, data: plans.map(row => mapListItem(row, references.data.clients, itemsByPlan.get(text(row.id)) ?? [], day)) };
   },
 
   async get(tenantId: string, id: string): Promise<ServiceResult<CarePlanDetail | null>> {
@@ -188,7 +199,7 @@ export const carePlanLiveRepository = {
     if (!references.ok) return references;
     const client = references.data.clients.get(text(row.client_id));
     const employee = references.data.employees.get(text(row.primary_nurse_id));
-    const list = mapListItem(row, references.data.clients, references.data.items);
+    const list = mapListItem(row, references.data.clients, references.data.items, berlinCalendarDate());
     const [diagnosisResult, orderResult] = await Promise.all([
       fromUnknownTable(supabase, 'care_diagnoses')
         .select('id', { count: 'exact', head: true })

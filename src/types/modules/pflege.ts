@@ -160,6 +160,7 @@ export type VitalReadingListItem = VitalReading & {
 
 export type PflegeDashboardStats = {
   unavailableKpiIds?: string[];
+  failedKpiIds?: string[];
   totalPlans: number;
   activePlansCount: number;
   dueVitalsCount: number;
@@ -279,12 +280,14 @@ export type CareMeasureLiveItem = {
   clientId: string;
   clientName: string;
   planTitle: string;
+  planStatus: string;
   title: string;
   intervention: string;
   frequency: string;
   responsibleRole: string;
   status: 'active' | 'paused' | 'completed' | 'cancelled';
   nextEvaluationAt: string | null;
+  updatedAt: string;
   overdue: boolean;
 };
 

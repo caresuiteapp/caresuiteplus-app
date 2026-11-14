@@ -1,10 +1,10 @@
 // Generated native presentation from src/screens/pflege/PflegeDedicatedScreens.web.tsx. Update through scripts/port-native-workspaces.mjs.
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
-export * from './PflegeDedicatedScreens.tsx';
 import { useEffect, useMemo, useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { ScreenShell } from '@/components/layout';
-import { ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
+import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumCard, PremiumInput } from '@/components/ui';
 import { LockedActionBanner } from '@/components/permissions';
 import { useCareRuntimePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
 import { useCareQualityVisitRead } from "../../hooks/pflege/useCareQualityVisitRead.native.ts";
@@ -18,6 +18,8 @@ import { cloneClientNativeOriginal, freezeClientNativeOriginal, sameClientNative
 import { woundUuid } from '@/lib/pflege/woundCareDomain';
 import type { CareQualityVisitTemporalEvidenceWeb } from "../../lib/pflege/careQualityVisitTemporalEvidence.native.ts";
 import { PflegeVisitsListScreen as LegacyVisitsListScreen } from './PflegeDedicatedScreens.tsx';
+import { qualityWorklistId, qualityWorklistMatch } from '@/lib/pflege/pflegeQualityWorklist';
+export { InformationCollectionListScreen, PflegeAssessmentsListScreen, PflegeEvaluationListScreen, PflegeHandoversListScreen, PflegeMeasuresListScreen, PflegeRisksListScreen, } from './PflegeDedicatedScreens.tsx';
 function text(row: ClientNativeRow, key: string): string {
     if (!Object.hasOwn(row, key))
         return 'Nicht geliefert';
@@ -105,11 +107,21 @@ export function currentCareQualityVisitParentSelectionWeb(factory: unknown, expe
         entry.checking = false;
     }
 }
-function NativeVisitsListScreen() {
+type VisitListFilter = 'all' | 'planned' | 'completed' | 'cancelled';
+const visitFilters: {
+    key: VisitListFilter;
+    label: string;
+}[] = [{ key: 'all', label: 'Alle Status' }, { key: 'planned', label: 'Geplant' }, { key: 'completed', label: 'Durchgeführt gespeichert' }, { key: 'cancelled', label: 'Abgesagt' }];
+function NativeVisitsListScreen({ clientId }: {
+    clientId?: string;
+}) {
     const runtime = useCareRuntimePermissions(), read = useCareQualityVisitRead(runtime);
+    const router = useRouter();
+    const canDocument = () => runtime.hasModuleGate('pflege') && runtime.canAll(['pflege.access', 'pflege.visits.view', 'pflege.visits.manage', 'pflege.plans.view']);
     const { c } = useCareLightPalette(), styles = useMemo(() => createStyles(c), [c]);
     const selectionState = useMemo<VisitSelectionState>(() => ({ alive: false, revision: 0, current: null }), []);
     const [selectedFactory, setSelectedFactory] = useState<(() => CareQualityVisitParentSelectionWeb | null) | null>(null);
+    const [search, setSearch] = useState(''), [filter, setFilter] = useState<VisitListFilter>('all'), [limit, setLimit] = useState(24);
     useEffect(() => { selectionState.alive = true; return () => { selectionState.alive = false; selectionState.revision++; if (selectionState.current)
         selectionState.current.valid = false; }; }, [selectionState]);
     const view = read.view(), actionRevision = selectionState.revision;
@@ -148,17 +160,43 @@ function NativeVisitsListScreen() {
         return <ScreenShell title="Pflegevisiten"><ErrorState message={read.state.error ?? 'Der gelieferte Visitenauszug ist ungeklärt. Ein vollständiger leerer Bestand ist dadurch nicht bestätigt.'} onRetry={read.refresh}/></ScreenShell>;
     if (!read.isCurrent())
         return <ScreenShell title="Pflegevisiten"><LockedActionBanner message="Dieser eigene Lesezugriff ist nicht mehr aktuell." roleLabel={runtime.roleLabel}/></ScreenShell>;
-    return <ScreenShell title="Pflegevisiten" subtitle="Getrennte Zeitbezüge im gelieferten Auszug"><View style={styles.content}>
-  <PremiumCard><Text style={styles.heading}>Gelieferter ungeprüfter Visitenauszug</Text><Text style={styles.body}>Plantermin, gespeicherter Ereigniszeitpunkt und Folgezeitbezug bleiben getrennt. Ein gespeicherter Status oder Zeitpunkt bestätigt keine Durchführung und keinen Aufgabenabschluss.</Text><Text style={styles.note}>Vollständigkeit, Aktualität und aktive Pflegezuordnung sind nicht nachgewiesen. Autor-ID, ursprüngliche Erfassungsdaten, vereinbarte Maßnahmen und vollständige Historien sind in diesem Auszug nicht enthalten.</Text><Text style={styles.note}>Gelieferte Zeilen: {view.entries.length}</Text></PremiumCard>
-  {view.entries.length === 0 ? <PremiumCard><Text style={styles.body}>Der gelieferte Auszug enthält keine Zeilen. Ein vollständiger leerer Visitenbestand ist damit nicht bestätigt.</Text></PremiumCard> : view.entries.map(entry => <PremiumCard key={text(entry.original, 'id')}><View style={styles.section}>
+    const scopeEntries = clientId ? view.entries.filter(entry => entry.original.clientId === clientId) : view.entries;
+    const shown = scopeEntries.filter(entry => (filter === 'all' || entry.storedStatus.state === 'known' && entry.storedStatus.value === filter)
+        && qualityWorklistMatch(search, [text(entry.original, 'clientName'), text(entry.original, 'scope'), text(entry.original, 'visitorName'), statusText(entry.storedStatus)]));
+    function resetSelection() { if (selectionState.current)
+        selectionState.current.valid = false; selectionState.revision++; setSelectedFactory(null); setLimit(24); }
+    return <ScreenShell title="Pflegevisiten" subtitle="Visiten finden und gespeicherte Angaben nachvollziehen"><View style={styles.content}>
+  <PremiumCard><View style={styles.section}><Text accessibilityRole="header" style={styles.heading}>Visitenauszug durchsuchen</Text>
+   {clientId ? <InfoBanner variant="info" presentation="inline" title="Auswahl: verlinkter Pflegefall" message="Hier erscheinen nur gelieferte Zeilen zu diesem Fall."/> : null}
+   <PremiumInput label="Nach Person, Prüfumfang oder Besuchenden suchen" value={search} onChangeText={value => { resetSelection(); setSearch(value); }}/>
+   <FilterChipGroup<VisitListFilter> options={visitFilters} value={filter} onChange={value => { resetSelection(); setFilter(value); }} wrap/>
+   <Text accessibilityLiveRegion="polite" style={styles.body}>{shown.length} von {scopeEntries.length} gelieferten Zeilen</Text>
+   <PremiumButton title="Aktualisieren" variant="secondary" onPress={() => { if (read.isCurrent()) {
+        resetSelection();
+        void read.refresh();
+    } }}/>
+   {canDocument() ? <PremiumButton title="Pflegevisite dokumentieren" onPress={() => { if (read.isCurrent() && canDocument())
+        router.push((clientId ? `/pflege/visiten/new?clientId=${clientId}` : '/pflege/visiten/new') as never); }}/> : null}
+  </View></PremiumCard>
+  <InfoBanner variant="info" presentation="inline" title="Zum gespeicherten Auszug" message="Plantermin, Ereigniszeitpunkt und Folgezeit bleiben getrennt. Der Auszug belegt weder Vollständigkeit noch Durchführung oder Aufgabenabschluss."/>
+  {shown.length === 0 ? <PremiumCard><Text style={styles.body}>{scopeEntries.length ? 'Keine passende Visite im gelieferten Auszug.' : 'Für diese Auswahl wurden keine Zeilen geliefert. Ein vollständiger leerer Bestand ist damit nicht bestätigt.'}</Text></PremiumCard> : shown.slice(0, limit).map(entry => <PremiumCard key={text(entry.original, 'id')}><View style={styles.section}>
    <Text style={styles.heading}>{text(entry.original, 'scope')}</Text><Text selectable style={styles.note}>Visiten-ID: {text(entry.original, 'id')}</Text><Text style={styles.body}>Anzeigetext zur Person: {text(entry.original, 'clientName')}</Text><Text style={styles.body}>Besuchende: {text(entry.original, 'visitorName')} · Herkunft des Anzeigetexts nicht bestätigt</Text><Text style={styles.body}>Gespeicherter Visitenstatus: {statusText(entry.storedStatus)}</Text>
    <Text selectable style={styles.body}>Plantermin: {timeText(entry.scheduled)}</Text><Text selectable style={styles.body}>Gespeicherter Ereigniszeitpunkt: {timeText(entry.event)}</Text><Text selectable style={styles.body}>Gespeicherter Folgezeitbezug: {timeText(entry.nextVisit)}</Text><Text style={styles.note}>Der Folgezeitbezug bestätigt keine Vereinbarung.</Text>
    <Text style={styles.body}>Gespeicherte Feststellungen: {text(entry.original, 'findings')}</Text><Text style={styles.body}>Gespeicherte Abweichungen: {text(entry.original, 'deviations')}</Text><Text selectable style={styles.note}>Klienten-ID: {text(entry.original, 'clientId')} · Gespeicherter Planbezug: {text(entry.original, 'carePlanId')}</Text>
    <PremiumButton title="Originalhistorie ansehen" variant="ghost" onPress={() => selectVisit(text(entry.original, 'id'))}/>
   </View></PremiumCard>)}
+  {shown.length > limit ? <PremiumButton title="Weitere Visiten anzeigen" variant="secondary" onPress={() => { if (read.isCurrent())
+        setLimit(value => value + 24); }}/> : null}
   {selectedFactory ? <CareQualityVisitOriginalHistoryPanel captureSelection={selectedFactory}/> : null}
  </View></ScreenShell>;
 }
-/** Only this Web export is overridden. Demo and every sibling use the unchanged physical shared implementation. */
-export function PflegeVisitsListScreen() { return getServiceMode() === 'demo' ? <LegacyVisitsListScreen key="legacy-visits-demo"/> : <NativeVisitsListScreen key="native-visits-supplied"/>; }
+/** Keep the supplied-original and history boundary intact when narrowing the presentation. */
+export function PflegeVisitsListScreen() {
+    const params = useLocalSearchParams<{
+        clientId?: string;
+    }>(), clientId = qualityWorklistId(params.clientId);
+    if (clientId === null)
+        return <ScreenShell title="Pflegevisiten"><ErrorState presentation="inline" message="Der verlinkte Pflegefall ist ungültig."/></ScreenShell>;
+    return getServiceMode() === 'demo' && !clientId ? <LegacyVisitsListScreen key="legacy-visits-demo"/> : <NativeVisitsListScreen key={clientId ?? 'native-visits-supplied'} clientId={clientId}/>;
+}
 function createStyles(c: ReturnType<typeof useCareLightPalette>['c']) { return StyleSheet.create({ content: { gap: careSpacing.md, paddingBottom: careSpacing.xl, minWidth: 0, maxWidth: '100%' }, section: { gap: careSpacing.sm, minWidth: 0 }, heading: { fontSize: 18, fontWeight: '800', color: c.text, flexShrink: 1 }, body: { fontSize: 15, lineHeight: 22, color: c.text, flexShrink: 1, maxWidth: '100%' }, note: { fontSize: 13, lineHeight: 20, color: c.muted, flexShrink: 1, maxWidth: '100%' } }); }

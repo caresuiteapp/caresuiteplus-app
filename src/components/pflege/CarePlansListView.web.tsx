@@ -72,6 +72,10 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
     setSortKey,
     sortOptions,
     statusFilters,
+    workFilter,
+    setWorkFilter,
+    workFilters,
+    selectedClient,
     hasMore,
     loadMore,
     refresh,
@@ -100,6 +104,10 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
   };
 
   const handleCreate = () => { if (isCurrent() && can('pflege.plans.manage')) router.push('/pflege/plans/create' as never); };
+  const openMeasures = (planId?: string) => {
+    if (!isCurrent() || (planId && !isCurrentItem(planId))) return;
+    router.push({ pathname: '/pflege/massnahmen', params: planId ? { planId } : { filter: 'due' } });
+  };
 
   if (permissions.loading) {
     return <LoadingState presentation="inline" message="Pflegeberechtigungen werden geprüft…" />;
@@ -145,6 +153,13 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
 
       {showSuccess ? <SuccessState message="Liste erfolgreich aktualisiert." /> : null}
 
+      <View style={styles.actions}>
+        <PremiumButton title="Pflegepläne aktualisieren" variant="secondary" size="sm" onPress={refresh} />
+        <PremiumButton title="Erreichte Evaluationstermine öffnen" variant="ghost" size="sm" onPress={() => openMeasures()} />
+        {hasActiveFilters ? <PremiumButton title="Filter zurücksetzen" variant="ghost" size="sm" onPress={resetFilters} /> : null}
+      </View>
+      {selectedClient ? <Text style={styles.filterLabel}>Klientenakte: {selectedClient}</Text> : null}
+
       <PremiumInput
         label="Suche"
         placeholder="Titel oder Klient:in…"
@@ -156,10 +171,13 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
       />
 
       <Text style={styles.filterLabel}>Status</Text>
-      <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} />
+      <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} wrap />
+
+      <Text style={styles.filterLabel}>Arbeitsliste</Text>
+      <FilterChipGroup options={workFilters} value={workFilter} onChange={setWorkFilter} wrap />
 
       <Text style={styles.filterLabel}>Sortierung</Text>
-      <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
+      <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} wrap />
     </View>
   );
 
@@ -234,6 +252,7 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
                 selectedId={selectedId}
                 onPlanPress={handlePlanPress}
                 onOpenDetail={(id) => { if (isCurrentItem(id)) router.push(`/pflege/plans/${id}` as never); }}
+                onOpenMeasures={openMeasures}
                 sortColumnKey={tableSort.sortColumnKey}
                 sortDirection={tableSort.sortDirection}
                 onSortColumn={tableSort.onSortColumn}
@@ -269,6 +288,7 @@ function CarePlansListContent({ onPlanPress, selectedId = null, embedded = false
             plan={item}
             selected={selectedId === item.id}
             onPress={() => handlePlanPress(item.id)}
+            onOpenMeasures={() => openMeasures(item.id)}
           />
         )}
         contentContainerStyle={styles.list}
@@ -294,6 +314,7 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   flatList: { flex: 1 },
   toolbar: { gap: spacing.sm, marginBottom: spacing.md },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   filterLabel: { ...typography.label, marginTop: spacing.xs },
   list: { paddingBottom: spacing.xxl },
   loadMore: { marginTop: spacing.sm, marginBottom: spacing.md },

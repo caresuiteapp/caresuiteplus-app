@@ -1,13 +1,15 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { PremiumBadge, PremiumCard } from '@/components/ui';
+import { StyleSheet, Text, View } from 'react-native';
+import { PremiumBadge, PremiumButton, PremiumCard } from '@/components/ui';
 import type { CarePlanListItem } from '@/types/modules/pflege';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
+import { storedDateLabel } from '@/lib/pflege/carePlanDailyWorklist';
 import { colors, spacing, typography } from '@/theme';
 
 type CarePlanListCardProps = {
   plan: CarePlanListItem;
   onPress?: () => void;
+  onOpenMeasures?: () => void;
   selected?: boolean;
 };
 
@@ -27,21 +29,11 @@ function statusVariant(status: CarePlanListItem['status']) {
 }
 
 function formatDateRange(from: string, until: string | null): string {
-  const fromDate = new Date(from).toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-  if (!until) return `ab ${fromDate}`;
-  const untilDate = new Date(until).toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  });
-  return `${fromDate} – ${untilDate}`;
+  const fromDate = storedDateLabel(from);
+  return until === null ? `Gültig ab: ${fromDate} · Ohne Enddatum` : `Gültig ab: ${fromDate} · Bis: ${storedDateLabel(until)}`;
 }
 
-export function CarePlanListCard({ plan, onPress, selected = false }: CarePlanListCardProps) {
+export function CarePlanListCard({ plan, onPress, onOpenMeasures, selected = false }: CarePlanListCardProps) {
   const inner = (
     <>
       <View style={styles.header}>
@@ -58,25 +50,19 @@ export function CarePlanListCard({ plan, onPress, selected = false }: CarePlanLi
       </Text>
       <Text style={styles.period}>{formatDateRange(plan.validFrom, plan.validUntil)}</Text>
       {plan.alertCount > 0 ? (
-        <Text style={styles.alert}>{plan.alertCount} Aufgabe(n) mit Hinweis</Text>
+        <Text style={styles.alert}>{plan.alertCount === 1 ? '1 Evaluationstermin erreicht' : `${plan.alertCount} Evaluationstermine erreicht`}</Text>
       ) : null}
     </>
   );
 
-  if (!onPress) {
-    return <PremiumCard style={styles.card}>{inner}</PremiumCard>;
-  }
-
   return (
-    <Pressable onPress={onPress}>
-      <PremiumCard
-        style={[styles.card, selected ? styles.cardSelected : null]}
-        accentColor={colors.success}
-        onPress={onPress}
-      >
-        {inner}
-      </PremiumCard>
-    </Pressable>
+    <PremiumCard style={[styles.card, selected ? styles.cardSelected : null]} accentColor={colors.success}>
+      {inner}
+      {onPress || onOpenMeasures ? <View style={styles.actions}>
+        {onPress ? <PremiumButton title="Plan öffnen" accessibilityLabel={`Plan ${plan.title} öffnen`} size="sm" variant="secondary" onPress={onPress} /> : null}
+        {onOpenMeasures ? <PremiumButton title="Maßnahmen" accessibilityLabel={`Maßnahmen für ${plan.title} öffnen`} size="sm" variant="ghost" onPress={onOpenMeasures} /> : null}
+      </View> : null}
+    </PremiumCard>
   );
 }
 
@@ -84,6 +70,7 @@ const styles = StyleSheet.create({
   card: {
     marginBottom: spacing.sm,
   },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   cardSelected: {
     borderColor: colors.success,
     borderWidth: 2,

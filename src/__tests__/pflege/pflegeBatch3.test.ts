@@ -169,7 +169,7 @@ describe('Pflege Sprint Batch 3 (Sprint 77)', () => {
     expect(screen).toContain('ModuleDashboardShell');
     expect(screen).toContain('PflegeDashboardView');
     expect(workspace).toContain("route: '/pflege/plans'");
-    expect(workspace).toContain("route: '/pflege/vitalwerte?filter=due'");
+    expect(workspace).toContain("route: '/pflege/vitalwerte'");
     expect(screen).toContain("moduleColor('pflege')");
   });
 

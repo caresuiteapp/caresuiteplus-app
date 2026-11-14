@@ -35,23 +35,22 @@ function emptySubValue(count: number, emptyLabel: string, activeLabel: (n: numbe
 export function buildPflegeWorkspaceKpis(stats: PflegeDashboardStats): DashboardKpi[] {
   const accent = PFLEGE_ACCENT;
   const warn = '#F59E0B';
-  const danger = '#EF4444';
 
   return [
     {
       id: 'pflege-ws-kpi-visits-today',
-      label: 'Pflegeeinsätze heute',
+      label: 'Tourstopps heute',
       value: stats.visitsToday,
-      subValue: emptySubValue(stats.visitsToday, 'Keine Einsätze heute', (n) => `${n} geplant`),
+      subValue: emptySubValue(stats.visitsToday, 'Keine Tourstopps erfasst', () => 'Ohne abgesagte Stopps und Touren'),
       icon: '📅',
       accentColor: accent,
       route: '/pflege/tourenplanung',
     },
     {
       id: 'pflege-ws-kpi-running',
-      label: 'Läuft gerade',
+      label: 'Tourstopps in Durchführung',
       value: stats.runningNow,
-      subValue: emptySubValue(stats.runningNow, 'Kein laufender Einsatz', (n) => `${n} in Durchführung`),
+      subValue: emptySubValue(stats.runningNow, 'Kein heutiger Stopp mit diesem Status', () => 'Status der heutigen Stopps'),
       icon: '▶️',
       accentColor: stats.runningNow > 0 ? '#22C55E' : accent,
       route: '/pflege/tourenplanung',
@@ -61,30 +60,30 @@ export function buildPflegeWorkspaceKpis(stats: PflegeDashboardStats): Dashboard
       label: 'Aktive Pflegepläne',
       value: stats.activePlansCount,
       subValue:
-        stats.totalPlans > 0
-          ? `${stats.totalPlans} gesamt`
-          : 'Noch keine Pflegepläne',
+        stats.unavailableKpiIds?.includes('pflege-ws-kpi-plan-total')
+          ? 'Gesamtanzahl nicht ermittelt'
+          : `${stats.totalPlans} Pflegepläne ohne Archiv`,
       icon: '📋',
       accentColor: accent,
       route: '/pflege/plans?status=aktiv',
     },
     {
       id: 'pflege-ws-kpi-due-measures',
-      label: 'Maßnahmen prüfen',
+      label: 'Evaluationstermine erreicht',
       value: stats.dueMeasuresCount,
-      subValue: emptySubValue(stats.dueMeasuresCount, 'Keine fälligen Maßnahmen', (n) => `${n} offen`),
+      subValue: emptySubValue(stats.dueMeasuresCount, 'Kein erreichter Termin erfasst', () => 'Aktive Maßnahmen, Termin bis heute'),
       icon: '✅',
       accentColor: stats.dueMeasuresCount > 0 ? warn : accent,
       route: '/pflege/massnahmen?filter=due',
     },
     {
       id: 'pflege-ws-kpi-open-docs',
-      label: 'Dokumentation offen',
+      label: 'Unsignierte Dokumentation',
       value: stats.openDocumentationCount,
-      subValue: emptySubValue(stats.openDocumentationCount, 'Alles dokumentiert', (n) => `${n} offen`),
+      subValue: emptySubValue(stats.openDocumentationCount, 'Keine unsignierten Einträge', () => 'Einträge mit Status unsigniert'),
       icon: '📝',
       accentColor: stats.openDocumentationCount > 0 ? warn : accent,
-      route: '/pflege/dokumentation?status=open',
+      route: '/pflege/dokumentation',
     },
     {
       id: 'pflege-ws-kpi-due-vitals',
@@ -93,16 +92,16 @@ export function buildPflegeWorkspaceKpis(stats: PflegeDashboardStats): Dashboard
       subValue: emptySubValue(stats.dueVitalsCount, 'Keine fällig', (n) => `${n} Messung(en)`),
       icon: '❤️',
       accentColor: stats.dueVitalsCount > 0 ? warn : accent,
-      route: '/pflege/vitalwerte?filter=due',
+      route: '/pflege/vitalwerte',
     },
     {
       id: 'pflege-ws-kpi-abnormal-vitals',
-      label: 'Auffällige Vitalwerte',
+      label: 'Gespeicherte Grenzwertmarkierungen',
       value: stats.abnormalVitalsCount,
-      subValue: emptySubValue(stats.abnormalVitalsCount, 'Keine Auffälligkeiten', (n) => `${n} prüfen`),
+      subValue: emptySubValue(stats.abnormalVitalsCount, 'Keine solche Markierung erfasst', () => 'Außerhalb hinterlegter Grenzen gespeichert'),
       icon: '⚠️',
-      accentColor: stats.abnormalVitalsCount > 0 ? danger : accent,
-      route: '/pflege/vitalwerte?filter=alert',
+      accentColor: stats.abnormalVitalsCount > 0 ? warn : accent,
+      route: '/pflege/vitalwerte',
     },
     {
       id: 'pflege-ws-kpi-medication',
@@ -111,7 +110,7 @@ export function buildPflegeWorkspaceKpis(stats: PflegeDashboardStats): Dashboard
       subValue: emptySubValue(stats.openMedicationCount, 'Keine offenen Verordnungen', (n) => `${n} offen`),
       icon: '💊',
       accentColor: stats.openMedicationCount > 0 ? warn : accent,
-      route: '/pflege/medikation?status=open',
+      route: '/pflege/medikation',
     },
     {
       id: 'pflege-ws-kpi-wounds',
@@ -142,14 +141,14 @@ export function buildPflegeWorkspaceKpis(stats: PflegeDashboardStats): Dashboard
     },
     {
       id: 'pflege-ws-kpi-reports',
-      label: 'Berichte offen',
+      label: 'Unsignierte Pflegeberichte',
       value: stats.openReportsCount,
-      subValue: emptySubValue(stats.openReportsCount, 'Keine offenen Berichte', (n) => `${n} offen`),
+      subValue: emptySubValue(stats.openReportsCount, 'Keine unsignierten Pflegeberichte', () => 'Pflegeberichte mit Status unsigniert'),
       icon: '📄',
       accentColor: stats.openReportsCount > 0 ? warn : accent,
-      route: '/pflege/berichte?status=open',
+      route: '/pflege/berichte',
     },
-  ].map((kpi) => stats.unavailableKpiIds?.includes(kpi.id) ? { ...kpi, value: '—', subValue: 'Nicht ermittelt' } : kpi);
+  ].map((kpi) => stats.unavailableKpiIds?.includes(kpi.id) ? { ...kpi, value: '—', subValue: 'Nicht ermittelt', accentColor: accent } : kpi);
 }
 
 export const PFLEGE_HEADER_PRIMARY_ACTIONS: DashboardQuickAction[] = [
@@ -218,70 +217,22 @@ export const PFLEGE_QUICK_ACCESS: DashboardQuickAction[] = [
 ];
 
 export function buildPflegeDashboardPriorities(stats: PflegeDashboardStats): PflegePriorityItem[] {
-  const items: PflegePriorityItem[] = [];
+  const summaries = [
+    { field: 'dueMeasuresCount', kpiId: 'pflege-ws-kpi-due-measures', id: 'priority-due-measures', label: 'Evaluationstermine erreicht',
+      description: 'Aktive Maßnahmen mit einem hinterlegten Termin bis heute.', route: '/pflege/massnahmen?filter=due' },
+    { field: 'openDocumentationCount', kpiId: 'pflege-ws-kpi-open-docs', id: 'priority-open-docs', label: 'Unsignierte Dokumentation',
+      description: 'Einträge mit dem gespeicherten Status unsigniert.', route: '/pflege/dokumentation' },
+    { field: 'openHandoversCount', kpiId: 'pflege-ws-kpi-handovers', id: 'priority-handovers', label: 'Übergaben offen',
+      description: 'Übergaben mit dem gespeicherten Status offen.', route: '/pflege/uebergaben' },
+    { field: 'openSisAssessmentCount', kpiId: 'pflege-ws-kpi-sis', id: 'priority-sis', label: 'SIS/Assessment offen',
+      description: 'Entwürfe und Assessments in Bearbeitung oder fachlicher Prüfung.', route: '/pflege/sis' },
+  ] as const;
+  return summaries.flatMap(({ field, kpiId, ...summary }) => stats.unavailableKpiIds?.includes(kpiId) || stats[field] <= 0
+    ? [] : [{ ...summary, severity: 'medium' as const, count: stats[field] }]);
+}
 
-  if (stats.abnormalVitalsCount > 0) {
-    items.push({
-      id: 'priority-abnormal-vitals',
-      label: 'Auffällige Vitalwerte',
-      description: `${stats.abnormalVitalsCount} Messung(en) mit Warnung — bitte prüfen.`,
-      route: '/pflege/vitalwerte?filter=alert',
-      severity: 'high',
-      count: stats.abnormalVitalsCount,
-    });
-  }
-  if (stats.dueMeasuresCount > 0) {
-    items.push({
-      id: 'priority-due-measures',
-      label: 'Maßnahmen prüfen',
-      description: `${stats.dueMeasuresCount} Maßnahme(n) sind heute fällig.`,
-      route: '/pflege/massnahmen?filter=due',
-      severity: 'high',
-      count: stats.dueMeasuresCount,
-    });
-  }
-  if (stats.openDocumentationCount > 0) {
-    items.push({
-      id: 'priority-open-docs',
-      label: 'Dokumentation offen',
-      description: `${stats.openDocumentationCount} Pflegedokumentation(en) warten auf Abschluss.`,
-      route: '/pflege/dokumentation?status=open',
-      severity: 'medium',
-      count: stats.openDocumentationCount,
-    });
-  }
-  if (stats.openHandoversCount > 0) {
-    items.push({
-      id: 'priority-handovers',
-      label: 'Übergaben offen',
-      description: `${stats.openHandoversCount} Übergabe(n) sind noch nicht abgeschlossen.`,
-      route: '/pflege/uebergaben?status=open',
-      severity: 'medium',
-      count: stats.openHandoversCount,
-    });
-  }
-  if (stats.openSisAssessmentCount > 0) {
-    items.push({
-      id: 'priority-sis',
-      label: 'SIS/Assessment offen',
-      description: `${stats.openSisAssessmentCount} Assessment(s) stehen aus.`,
-      route: '/pflege/sis?status=open',
-      severity: 'medium',
-      count: stats.openSisAssessmentCount,
-    });
-  }
-  if (stats.dueVitalsCount > 0) {
-    items.push({
-      id: 'priority-due-vitals',
-      label: 'Vitalwerte fällig',
-      description: `${stats.dueVitalsCount} Vitalmessung(en) sind fällig.`,
-      route: '/pflege/vitalwerte?filter=due',
-      severity: 'low',
-      count: stats.dueVitalsCount,
-    });
-  }
-
-  return items;
+function visibleCount(stats: PflegeDashboardStats, value: number, kpiId: string): number | undefined {
+  return stats.unavailableKpiIds?.includes(kpiId) ? undefined : value;
 }
 
 export function buildPflegeDashboardSections(
@@ -299,7 +250,7 @@ export function buildPflegeDashboardSections(
           label: 'Kalender',
           description: 'Tages- und Wochenübersicht',
           route: '/pflege/calendar',
-          count: stats.visitsToday,
+          count: visibleCount(stats, stats.visitsToday, 'pflege-ws-kpi-visits-today'),
           icon: '📅',
         },
         {
@@ -328,7 +279,7 @@ export function buildPflegeDashboardSections(
           label: 'Pflegepläne',
           description: 'Suche, Filter und Status',
           route: '/pflege/plans',
-          count: stats.activePlansCount,
+          count: visibleCount(stats, stats.activePlansCount, 'pflege-ws-kpi-active-plans'),
           icon: '📋',
         },
         {
@@ -336,7 +287,7 @@ export function buildPflegeDashboardSections(
           label: 'Maßnahmen',
           description: 'Fällige und geplante Maßnahmen',
           route: '/pflege/massnahmen',
-          count: stats.dueMeasuresCount,
+          count: visibleCount(stats, stats.dueMeasuresCount, 'pflege-ws-kpi-due-measures'),
           icon: '✅',
         },
         {
@@ -358,7 +309,7 @@ export function buildPflegeDashboardSections(
           label: 'Pflegedokumentation',
           description: 'Nachweise und Signaturen',
           route: '/pflege/dokumentation',
-          count: stats.openDocumentationCount,
+          count: visibleCount(stats, stats.openDocumentationCount, 'pflege-ws-kpi-open-docs'),
           icon: '📝',
         },
         {
@@ -380,7 +331,7 @@ export function buildPflegeDashboardSections(
           label: 'Vitalwerte',
           description: 'Alle Messungen und Verläufe',
           route: '/pflege/vitalwerte',
-          count: stats.dueVitalsCount,
+          count: visibleCount(stats, stats.dueVitalsCount, 'pflege-ws-kpi-due-vitals'),
           icon: '❤️',
         },
         {
@@ -388,7 +339,7 @@ export function buildPflegeDashboardSections(
           label: 'Auffällige Werte',
           description: 'Warnungen und Grenzwertüberschreitungen',
           route: '/pflege/vitalwerte?filter=alert',
-          count: stats.abnormalVitalsCount,
+          count: visibleCount(stats, stats.abnormalVitalsCount, 'pflege-ws-kpi-abnormal-vitals'),
           icon: '⚠️',
         },
         {
@@ -410,7 +361,7 @@ export function buildPflegeDashboardSections(
           label: 'Medikation',
           description: 'Verordnungen und Pläne',
           route: '/pflege/medikation',
-          count: stats.openMedicationCount,
+          count: visibleCount(stats, stats.openMedicationCount, 'pflege-ws-kpi-medication'),
           icon: '💊',
         },
         {
@@ -432,7 +383,7 @@ export function buildPflegeDashboardSections(
           label: 'Wunddokumentation',
           description: 'Offene und abgeschlossene Wundfälle',
           route: '/pflege/wunddokumentation',
-          count: stats.openWoundDocsCount,
+          count: visibleCount(stats, stats.openWoundDocsCount, 'pflege-ws-kpi-wounds'),
           icon: '🩹',
         },
         {
@@ -454,7 +405,7 @@ export function buildPflegeDashboardSections(
           label: 'SIS / Assessment',
           description: 'Assessments und Prüffristen',
           route: '/pflege/sis',
-          count: stats.openSisAssessmentCount,
+          count: visibleCount(stats, stats.openSisAssessmentCount, 'pflege-ws-kpi-sis'),
           icon: '📊',
         },
         {
@@ -476,7 +427,7 @@ export function buildPflegeDashboardSections(
           label: 'Berichte',
           description: 'Pflegeberichte und Entwürfe',
           route: '/pflege/berichte',
-          count: stats.openReportsCount,
+          count: visibleCount(stats, stats.openReportsCount, 'pflege-ws-kpi-reports'),
           icon: '📄',
         },
         {
@@ -484,7 +435,7 @@ export function buildPflegeDashboardSections(
           label: 'Übergaben',
           description: 'Schicht- und Teamübergaben',
           route: '/pflege/uebergaben',
-          count: stats.openHandoversCount,
+          count: visibleCount(stats, stats.openHandoversCount, 'pflege-ws-kpi-handovers'),
           icon: '🔄',
         },
         {
@@ -506,7 +457,7 @@ export function buildPflegeDashboardSections(
           label: 'Zugeordnete Klient:innen',
           description: 'Liste und Pflegekontext',
           route: '/pflege/zugeordnete-klienten',
-          count: stats.assignedClientsCount || activePlans.length,
+          count: visibleCount(stats, stats.assignedClientsCount, 'pflege-ws-kpi-client-assignment'),
           icon: '👥',
         },
         ...(activePlans.slice(0, 3).map((plan) => ({

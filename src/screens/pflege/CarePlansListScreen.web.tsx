@@ -1,8 +1,8 @@
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { CarePlansListView } from '@/components/pflege/CarePlansListView.web';
-import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCarePlanList } from '@/hooks/useCarePlanList.web';
 import { useCareRuntimePermissions as usePermissions } from '@/hooks/pflege/useCareRuntimePermissions.web';
 import { fetchCarePlanList } from '@/lib/pflege/carePlanListService';
@@ -18,12 +18,13 @@ export function CarePlansListScreen({
   embedded?: boolean;
 } = {}) {
   const router = useRouter();
+  const params = useLocalSearchParams<{ status?: string; work?: string; clientId?: string }>();
   const permissions = usePermissions();
   const { can } = permissions;
   const isReadOnly = !can('pflege.plans.manage');
   const pageTitle = 'Pflegepläne';
   const canCreate = can('pflege.plans.manage');
-  const list = useCarePlanList();
+  const list = useCarePlanList({ initialStatus: params.status, initialWork: params.work, clientId: params.clientId });
 
   if (embedded) {
     return (
@@ -71,11 +72,7 @@ export function CarePlansListScreen({
       scroll={false}
     >
       <View style={styles.content}>
-        {list.isEmpty && !list.hasActiveFilters ? (
-          <EmptyState title="Keine Pflegepläne" message="Es sind noch keine Pflegepläne angelegt." />
-        ) : (
-          <CarePlansListView list={list} onPlanPress={onPlanPress} selectedId={selectedId} />
-        )}
+        <CarePlansListView list={list} onPlanPress={onPlanPress} selectedId={selectedId} />
       </View>
     </ScreenShell>
   );

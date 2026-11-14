@@ -41,7 +41,8 @@ describe('PFLEGE TEIL 3 · PLANUNG & QUALITÄT LIVE R1', () => {
     expect(source('app/pflege/evaluation/new.tsx')).toContain('CarePlanEvaluationCreateScreen');
     expect(source('app/pflege/visiten/new.tsx')).toContain('CareQualityVisitCreateScreen');
     const lists = source('src/screens/pflege/PflegeDedicatedScreens.tsx');
-    expect(lists).toContain('createRoute="/pflege/evaluation/new"');
+    expect(lists).toContain('PflegeEvaluationWorkspace as PflegeEvaluationListScreen');
+    expect(source('src/screens/pflege/PflegeEvaluationWorkspace.tsx')).toContain('pflege.evaluations.manage');
     expect(lists).toContain('createRoute="/pflege/visiten/new"');
   });
 

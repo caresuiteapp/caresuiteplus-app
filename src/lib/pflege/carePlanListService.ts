@@ -1,7 +1,5 @@
-import { fetchCareOperationalStats } from './careDashboardOperationalService';
 import type { RoleKey, ServiceResult } from '@/types';
-import type { CarePlanListItem, PflegeDashboardStats } from '@/types/modules/pflege';
-import { emptyPflegeDashboardStats } from '@/types/modules/pflege';
+import type { CarePlanListItem } from '@/types/modules/pflege';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
@@ -19,34 +17,6 @@ export async function fetchCarePlanList(
     return { ok: false, error: 'Pflegeplanung erfordert die Live-Datenbank.' };
   }
   return carePlanLiveRepository.list(tenantId);
-}
-
-export async function fetchPflegeDashboardStats(
-  tenantId: string,
-  actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<PflegeDashboardStats>> {
-  const denied = enforcePermission<PflegeDashboardStats>(actorRoleKey, 'pflege.access');
-  if (denied) return denied;
-  const tenantBlock = guardServiceTenant(tenantId);
-  if (tenantBlock) return tenantBlock;
-  if (getServiceMode() !== 'supabase') return { ok: false, error: 'Pflegekennzahlen erfordern die Live-Datenbank.' };
-  const [listResult, operational] = await Promise.all([fetchCarePlanList(tenantId, actorRoleKey), fetchCareOperationalStats(tenantId, actorRoleKey)]);
-  if (!listResult.ok) return listResult;
-  if (!operational.ok) return operational;
-  const active = listResult.data.filter((item) => item.status === 'aktiv');
-  return {
-    ok: true,
-    data: {
-      ...emptyPflegeDashboardStats(),
-      totalPlans: listResult.data.length,
-      activePlansCount: active.length,
-      assignedClientsCount: new Set(active.map((item) => item.clientId)).size,
-      dueMeasuresCount: listResult.data.reduce((sum, item) => sum + item.alertCount, 0),
-
-      alertsCount: listResult.data.reduce((sum, item) => sum + item.alertCount, 0),
-      ...operational.data,
-    },
-  };
 }
 
 export async function fetchActiveCarePlans(

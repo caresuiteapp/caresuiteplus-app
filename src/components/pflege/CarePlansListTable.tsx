@@ -1,4 +1,4 @@
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { CarePlanListItem } from '@/types/modules/pflege';
@@ -11,6 +11,7 @@ type CarePlansListTableProps = {
   selectedId?: string | null;
   onPlanPress?: (id: string) => void;
   onOpenDetail?: (id: string) => void;
+  onOpenMeasures?: (id: string) => void;
   sortColumnKey?: string | null;
   sortDirection?: 'asc' | 'desc';
   onSortColumn?: (columnKey: string) => void;
@@ -44,6 +45,7 @@ export function CarePlansListTable({
   selectedId = null,
   onPlanPress,
   onOpenDetail,
+  onOpenMeasures,
   sortColumnKey = null,
   sortDirection = 'asc',
   onSortColumn,
@@ -95,8 +97,8 @@ export function CarePlansListTable({
         },
         {
           key: 'alerts',
-          label: 'Hinweise',
-          width: 72,
+          label: 'Evaluation fällig',
+          flex: 1.1,
           align: 'right',
           render: (item) => (
             <Text style={item.alertCount > 0 ? styles.alertCount : tableText.cellText}>
@@ -117,11 +119,12 @@ export function CarePlansListTable({
         {
           key: 'actions',
           label: 'Aktionen',
-          width: 100,
+          flex: 1.8,
           align: 'right',
           render: (item) => (
-            <PremiumButton
+            <View style={styles.actions}><PremiumButton
               title="Plan"
+              accessibilityLabel={`Plan ${item.title} öffnen`}
               size="sm"
               variant="ghost"
               onPress={() => {
@@ -131,7 +134,7 @@ export function CarePlansListTable({
                 }
                 onPlanPress?.(item.id);
               }}
-            />
+            />{onOpenMeasures ? <PremiumButton title="Maßnahmen" accessibilityLabel={`Maßnahmen für ${item.title} öffnen`} size="sm" variant="ghost" onPress={() => onOpenMeasures(item.id)} /> : null}</View>
           ),
         },
       ]}
@@ -140,6 +143,7 @@ export function CarePlansListTable({
 }
 
 const styles = StyleSheet.create({
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: 2, justifyContent: 'flex-end' },
   alertCount: { ...typography.bodyStrong, color: colors.danger },
   time: { ...typography.caption, color: colors.cyan },
 });

@@ -1,1 +1,1 @@
-export { CareRuntimePermissionsProvider } from './useCareRuntimePermissions.web';
+export { CareRuntimePermissionsProvider, useCareRuntimePermissions } from './useCareRuntimePermissions.web';

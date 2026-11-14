@@ -1,6 +1,5 @@
 export {
   fetchCarePlanList,
-  fetchPflegeDashboardStats,
   fetchActiveCarePlans,
 } from './carePlanListService';
 export { fetchCarePlanDetail } from './carePlanDetailService';

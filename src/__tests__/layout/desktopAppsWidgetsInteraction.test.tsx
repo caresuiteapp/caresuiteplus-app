@@ -175,6 +175,20 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(catalogRoute('app', '/office/notizen')).toBeNull();
   });
 
+  it('uses the care catalogue sections and opens the intended measures destination', async () => {
+    api.modules.add('pflege'); chooseArea('pflege'); seed([], 'pflege');
+    await render(); await open();
+    const planning = [...dialog().querySelectorAll<HTMLButtonElement>('.cs-center-chip')].find(chip => visibleText(chip) === 'Pflegeplanung');
+    await click(planning);
+    expect(catalogRoute('app', '/pflege/plans')).toBeTruthy();
+    expect(catalogRoute('app', '/pflege/medikation')).toBeNull();
+    await type('Apps durchsuchen', 'Maßnahmen');
+    expect(label('App Pflegeplanung & Verlauf öffnen')).toBeTruthy();
+    expect(label('App Aktive Maßnahmen öffnen')).toBeTruthy();
+    await clickLabel('App Aktive Maßnahmen öffnen');
+    expect(api.push).toHaveBeenLastCalledWith('/pflege/massnahmen');
+  });
+
   it('retains cross-area widgets on the selected desktop through reload and temporary permission loss', async () => {
     chooseArea('settings'); seed([], 'settings'); seed(['notes']); await render(); await open('Widgets');
     await clickLabel('Alle Bereiche anzeigen');

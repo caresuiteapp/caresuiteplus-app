@@ -11,7 +11,6 @@ export type CarePlanListKpi = {
 
 export function buildCarePlanListKpis(items: CarePlanListItem[]): CarePlanListKpi[] {
   const active = items.filter((p) => p.status === 'aktiv').length;
-  const inProgress = items.filter((p) => p.status === 'in_bearbeitung').length;
   const alerts = items.reduce((sum, p) => sum + p.alertCount, 0);
   const drafts = items.filter((p) => p.status === 'entwurf').length;
 
@@ -26,9 +25,9 @@ export function buildCarePlanListKpis(items: CarePlanListItem[]): CarePlanListKp
     },
     {
       id: 'careplans-kpi-review',
-      label: 'In Prüfung',
-      value: inProgress,
-      subValue: alerts > 0 ? `${alerts} Hinweise` : 'Keine Hinweise',
+      label: 'Erreichte Evaluationstermine',
+      value: alerts,
+      subValue: 'Aktive Maßnahmen in aktiven Plänen',
       icon: '📋',
       accentColor: '#FF9500',
     },

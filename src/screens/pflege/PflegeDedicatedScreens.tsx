@@ -3,13 +3,12 @@ import { DedicatedListScreen } from '@/components/einzelseiten/DedicatedListScre
 import {
   fetchInformationCollections,
   fetchPflegeAssessmentsList,
-  fetchPflegeEvaluationList,
   fetchPflegeHandoversList,
-  fetchPflegeMeasuresList,
   fetchPflegeRiskAssessments,
   fetchPflegeVisitsList,
 } from '@/lib/pflege/pflegeDedicatedService';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
+export { PflegeEvaluationWorkspace as PflegeEvaluationListScreen } from './PflegeEvaluationWorkspace';
 
 export function InformationCollectionListScreen() {
   const router = useRouter();
@@ -73,47 +72,7 @@ export function PflegeAssessmentsListScreen() {
   );
 }
 
-export function PflegeMeasuresListScreen() {
-  const router = useRouter();
-  return (
-    <DedicatedListScreen
-      title="Maßnahmen"
-      eyebrow="PFLEGE · MASSNAHMENPLAN"
-      subtitle="Aktive Pflegeplan-Maßnahmen"
-      createRoute="/pflege/plans/create"
-      queryFn={fetchPflegeMeasuresList}
-      searchKeys={['title', 'clientName']}
-      getItemId={(item) => item.id}
-      onOpen={(item) => router.push(`/pflege/massnahme-review?id=${item.id}` as never)}
-      renderMeta={(item) => ({
-        primary: item.title,
-        secondary: `${item.clientName} · ${item.frequency || 'individuell'} · ${item.responsibleRole || 'Pflegefachteam'}`,
-        badge: item.overdue ? 'Evaluation fällig' : item.status,
-      })}
-    />
-  );
-}
-
-export function PflegeEvaluationListScreen() {
-  const router = useRouter();
-  return (
-    <DedicatedListScreen
-      title="Evaluation"
-      eyebrow="PFLEGE · EVALUATION"
-      subtitle="Pläne mit anstehender Evaluation"
-      createRoute="/pflege/evaluation/new"
-      queryFn={fetchPflegeEvaluationList}
-      searchKeys={['planTitle', 'clientName', 'evaluatorName']}
-      getItemId={(item) => item.id}
-      onOpen={(item) => router.push(`/pflege/plans/${item.carePlanId}` as never)}
-      renderMeta={(item) => ({
-        primary: item.planTitle,
-        secondary: `${item.clientName} · ${item.evaluatorName} · ${formatDate(item.evaluatedAt)}`,
-        badge: item.requiresPlanUpdate ? 'Fortschreibung nötig' : item.outcome,
-      })}
-    />
-  );
-}
+export { CareMeasuresWorkspaceScreen as PflegeMeasuresListScreen } from './CareMeasuresWorkspaceScreen';
 
 export function PflegeVisitsListScreen() {
   const router = useRouter();

@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { readCompleteCarePlanRows } from '../../src/lib/pflege/carePlanCompleteRead.ts';
+import { storedCalendarDay } from '../../src/lib/pflege/carePlanDailyWorklist.ts';
 const id=n=>String(n).padStart(8,'0');
 const rows=n=>Array.from({length:n},(_,i)=>({id:id(i),tenant_id:'own'}));
 for(const n of [0,1,499,500,501,1001,1500])test(`counted reader completes ${n} rows beyond single-response cap`,async()=>{
@@ -35,7 +36,7 @@ function repositoryHarness(count=1101,patch=()=>{}){
   };
   const raw=readFileSync(new URL('../../src/lib/pflege/carePlanRepository.supabase.ts',import.meta.url),'utf8');
   const source=stripTypeScriptTypes(raw.replace(/^import .*;\n/gm,''),{mode:'strip'}).replace(/^export /gm,'');
-  const repo=new Function('getSupabaseClient','fromUnknownTable','toGermanSupabaseError','SERVICE_ERRORS','readCompleteCarePlanRows',source+'\nreturn carePlanLiveRepository;')(()=>sdk,fromUnknownTable,()=> 'Datenbankfehler',{supabaseUnavailable:'unavailable'},readCompleteCarePlanRows);
+  const repo=new Function('getSupabaseClient','fromUnknownTable','toGermanSupabaseError','SERVICE_ERRORS','readCompleteCarePlanRows','berlinCalendarDate','storedCalendarDay',source+'\nreturn carePlanLiveRepository;')(()=>sdk,fromUnknownTable,()=> 'Datenbankfehler',{supabaseUnavailable:'unavailable'},readCompleteCarePlanRows,()=> '2026-11-14',storedCalendarDay);
   return{repo,calls,tables};
 }
 test('actual repository completes 1101 plans, 6606 measures and bounded reference batches',async()=>{
