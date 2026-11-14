@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { PlatformModal } from '@/components/layout/platform/platformmodal';
+import { useEffect, useId, useState, type ReactNode } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useLiveRefresh } from '@/hooks/core/useLiveRefresh';
@@ -24,6 +23,11 @@ type TodayAccess = {
   calendarRoute?: string;
   employeeId?: string;
   canOpenAssignments: boolean;
+};
+
+export type DesktopTodayOptions = TodayAccess & {
+  owner: string;
+  onOpenRoute: (route: string) => void;
 };
 
 async function loadDesktopToday(access: TodayAccess, dayStart: string, dayEnd: string) {
@@ -80,13 +84,16 @@ function todayItems(access: TodayAccess, data: DayData, now: Date, end: string):
   return items;
 }
 
-export function DesktopToday({ now, owner, onOpenRoute, fontScale = 1, ...access }: TodayAccess & {
+export function DesktopToday({ now, owner, onOpenRoute, fontScale, compact, children, ...access }: DesktopTodayOptions & {
   now: Date;
-  owner: string;
-  onOpenRoute: (route: string) => void;
-  fontScale?: number;
+  fontScale: number;
+  compact: boolean;
+  children: (trigger: ReactNode, details: ReactNode) => ReactNode;
 }) {
   const [visible, setVisible] = useState(false);
+  const id = useId();
+  const triggerId = `${id}-today-trigger`;
+  const panelId = `${id}-today-panel`;
   const day = startOfDay(now);
   const start = day.toISOString();
   const end = addDays(day, 1).toISOString();
@@ -99,32 +106,56 @@ export function DesktopToday({ now, owner, onOpenRoute, fontScale = 1, ...access
   const summary = query.error ? 'Übersicht nicht verfügbar' : items[0]?.text;
   const bodySize = { fontSize: 14 * fontScale, lineHeight: 19 * fontScale };
 
-  return <>
-    <Pressable accessibilityRole="button" accessibilityLabel="Tagesübersicht öffnen" accessibilityHint={summary}
-      accessibilityState={{ expanded: visible }} onPress={() => { setVisible(true); void query.silentRefresh(); }} style={styles.trigger}>
+  useEffect(() => {
+    if (!visible || Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+    const isInsideOverview = (target: EventTarget | null) => target instanceof Node && (
+      document.getElementById(triggerId)?.contains(target) || document.getElementById(panelId)?.contains(target)
+    );
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || !isInsideOverview(event.target)) return;
+      setVisible(false);
+      document.getElementById(triggerId)?.focus();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (!isInsideOverview(event.target)) setVisible(false);
+    };
+    document.addEventListener('keydown', onKeyDown);
+    document.addEventListener('pointerdown', onPointerDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      document.removeEventListener('pointerdown', onPointerDown);
+    };
+  }, [visible, panelId, triggerId]);
+
+  const trigger = (
+    <Pressable nativeID={triggerId} accessibilityRole="button" accessibilityLabel="Tagesübersicht öffnen" accessibilityHint={summary}
+      aria-controls={visible ? panelId : undefined} accessibilityState={{ expanded: visible }}
+      onPress={() => { setVisible(!visible); if (!visible) void query.silentRefresh(); }} style={styles.trigger}>
       <Text style={[styles.title, styles.triggerTitle, bodySize]}>Heute</Text>
-      {summary ? <Text numberOfLines={2} style={[styles.summary, { fontSize: 12 * fontScale, lineHeight: 16 * fontScale }]}>{summary}</Text> : null}
+      {!compact && summary ? <Text numberOfLines={1} style={[styles.summary, { fontSize: 12 * fontScale, lineHeight: 16 * fontScale }]}>{summary}</Text> : null}
     </Pressable>
-    {visible ? <PlatformModal visible title="Heute" onClose={() => setVisible(false)} maxWidth={430}>
-      <View style={styles.panel}>
-        {query.loading && !query.data ? <Text accessibilityLiveRegion="polite" style={[styles.copy, bodySize]}>Tagesübersicht wird geladen.</Text> : null}
-        {query.error ? <Text accessibilityRole="alert" style={[styles.copy, bodySize]}>Die Tagesübersicht konnte nicht geladen werden.</Text> : null}
-        {items.map(({ label, text, route }) => <View key={label} style={styles.item}>
-          <Text style={[styles.title, bodySize]}>{label}</Text>
-          <Text style={[styles.copy, bodySize]}>{text}</Text>
-          {route ? <Pressable accessibilityRole="button" style={styles.link}
-            onPress={() => { setVisible(false); onOpenRoute(route); }}>
-            <Text style={[styles.linkText, bodySize]}>{label} öffnen</Text>
-          </Pressable> : null}
-        </View>)}
-      </View>
-    </PlatformModal> : null}
-  </>;
+  );
+  const details = visible ? (
+    <View nativeID={panelId} testID="desktop-today-details" style={styles.panel}>
+      {query.loading && !query.data ? <Text accessibilityLiveRegion="polite" style={[styles.copy, bodySize]}>Tagesübersicht wird geladen.</Text> : null}
+      {query.error ? <Text accessibilityRole="alert" style={[styles.copy, bodySize]}>Die Tagesübersicht konnte nicht geladen werden.</Text> : null}
+      {items.map(({ label, text, route }) => <View key={label} style={styles.item}>
+        <Text style={[styles.title, bodySize]}>{label}</Text>
+        <Text style={[styles.copy, bodySize]}>{text}</Text>
+        {route ? <Pressable accessibilityRole="button" style={styles.link}
+          onPress={() => { setVisible(false); onOpenRoute(route); }}>
+          <Text style={[styles.linkText, bodySize]}>{label} öffnen</Text>
+        </Pressable> : null}
+      </View>)}
+    </View>
+  ) : null;
+  return children(trigger, details);
 }
 
 const styles = StyleSheet.create({
   trigger: { minHeight: 44, minWidth: 0, justifyContent: 'center', paddingHorizontal: 8, paddingVertical: 3 },
-  panel: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, backgroundColor: '#102540' },
+  panel: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12, borderWidth: 1, borderColor: 'rgba(139,211,255,0.30)', backgroundColor: '#102540' },
   title: { color: '#F4F8FF', fontFamily: careSuiteAppFontFamily, fontWeight: '700' },
   triggerTitle: { textDecorationLine: 'underline' },
   summary: { color: '#BCD4EC', fontFamily: careSuiteAppFontFamily, marginTop: 2 },

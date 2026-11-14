@@ -1,8 +1,9 @@
 import { useState, type ReactNode } from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';
 import { CareSuiteImage } from '@/components/images/CareSuiteImage';
 import { careSuiteAppFontFamily } from '@/design/tokens/appFontFamily';
 import type { WeatherData, WeatherPlace } from '@/lib/platform/desktopWeatherModel';
+import { DesktopToday, type DesktopTodayOptions } from './DesktopToday';
 import { desktopWeatherArtwork } from './desktopWeatherArtwork';
 
 type Weather = {
@@ -22,69 +23,96 @@ export function DesktopClockWeather({ now, weather, onChoosePlace, availableWidt
   availableWidth: number;
   renderedFontScale?: number;
   layoutFontScale?: number;
-  today?: ReactNode;
+  today?: DesktopTodayOptions;
   style?: StyleProp<ViewStyle>;
 }) {
   const [measuredWidth, setMeasuredWidth] = useState(0);
-  const width = (measuredWidth || availableWidth) / Math.max(1, layoutFontScale);
-  const todayInline = Boolean(today) && width >= 590;
-  const weatherWidth = width - (todayInline ? 140 : 0);
-  const stack = weatherWidth < 220;
-  const artworkBelow = !stack && weatherWidth < 370;
-  const largeArtwork = weatherWidth >= 440 || artworkBelow;
-  const displaySize = weatherWidth >= 440 ? 34 : weatherWidth >= 370 ? 28 : 24;
+  const width = measuredWidth || availableWidth;
+  const scale = Math.max(0.9, layoutFontScale);
+  const compactToday = width / scale < 530;
+  const todayWidth = Math.ceil((compactToday ? 60 : 172) * scale);
+  const weatherWidth = (width - (today ? todayWidth + 8 : 0)) / scale;
+  const compactWeather = weatherWidth < 350;
+  const roomyWeather = weatherWidth >= 460;
+  const displaySize = roomyWeather ? 34 : weatherWidth >= 350 ? 28 : weatherWidth >= 275 ? 23 : weatherWidth >= 195 ? 18 : 16;
   const display = { fontSize: displaySize * renderedFontScale, lineHeight: (displaySize + 5) * renderedFontScale };
-  const detailStyle = { fontSize: 15 * renderedFontScale, lineHeight: 20 * renderedFontScale };
+  const detailStyle = {
+    fontSize: (compactWeather ? 12 : 15) * renderedFontScale,
+    lineHeight: (compactWeather ? 16 : 20) * renderedFontScale,
+  };
+  const artworkSize = roomyWeather ? styles.artworkLarge : compactWeather ? styles.artworkCompact : styles.artworkMedium;
   const place = weather.place?.name ?? (weather.data ? 'Aktueller Standort' : 'Ort wählen');
   const status = weather.status === 'loading' ? 'Wetter wird geladen' : weather.status === 'error' ? 'Wetter nicht verfügbar' : 'Wetter';
   const artwork = weather.data?.icon ? desktopWeatherArtwork[weather.data.icon] : null;
+  const temperature = weather.data ? `${weather.data.temperature}\u00a0°C` : null;
+  const condition = weather.data?.label ?? '';
+  const forecast = temperature ? `${temperature}\u00a0· ${condition}` : status;
+  const shortForecast = Boolean(temperature && temperature.length + condition.length <= 12);
+  const largeCondition = weatherWidth >= 620 || (weatherWidth >= (roomyWeather ? 470 : 350) && shortForecast);
+  const secondaryCondition = temperature && !largeCondition && weatherWidth >= 215 ? condition : '';
 
-  return (
-    <View testID="desktop-clock-weather" style={[styles.card, todayInline && styles.cardInline, style]}
-      onLayout={({ nativeEvent: { layout } }) => setMeasuredWidth(layout.width)}>
-      <View style={[styles.readings, stack && styles.readingsStacked]}>
-        <View style={[styles.clock, stack && styles.clockStacked]}>
-          <Text testID="desktop-clock-time" style={[styles.display, styles.clockDigits, display]}>{now ? clockFormat.format(now) : '\u00a0'}</Text>
-          <Text style={[styles.detail, detailStyle]}>{now ? now.toLocaleDateString('de-DE', weatherWidth >= 400 ? roomyDate : compactDate) : '\u00a0'}</Text>
+  const renderReadings = (todayTrigger?: ReactNode, details?: ReactNode) => (
+    <View style={[styles.container, style]} onLayout={({ nativeEvent: { layout } }) => setMeasuredWidth(layout.width)}>
+      <View testID="desktop-clock-weather" style={[styles.card, compactWeather && styles.cardCompact]}>
+        <View style={[styles.clock, compactWeather && styles.clockCompact]}>
+          <Text testID="desktop-clock-time" numberOfLines={1} style={[styles.display, styles.clockDigits, display]}>{now ? clockFormat.format(now) : '\u00a0'}</Text>
+          <View style={styles.detailRow}>
+            <Text numberOfLines={1} style={[styles.detail, detailStyle]}>{now ? now.toLocaleDateString('de-DE', roomyWeather ? roomyDate : compactDate) : '\u00a0'}</Text>
+          </View>
         </View>
-        <View testID="desktop-weather" style={[styles.weather, artworkBelow && styles.artworkBelow]}>
+        <View testID="desktop-weather" style={[styles.weather, compactWeather && styles.weatherCompact]}>
           {artwork ? <CareSuiteImage source={artwork} resizeMode="contain" accessible={false}
-            style={[styles.artwork, largeArtwork && styles.artworkLarge]} /> : null}
+            style={[styles.artwork, artworkSize]} /> : null}
           <View style={styles.weatherCopy}>
-            <Text testID="desktop-weather-title" accessibilityLiveRegion="polite"
-              style={[styles.display, display, !weather.data && detailStyle]}>
-              {weather.data ? `${weather.data.temperature}\u00a0°C\u00a0· ${weather.data.label}` : status}
-            </Text>
+            <View style={styles.forecastLine}>
+              <Text testID="desktop-weather-title" accessibilityLiveRegion="polite" accessibilityLabel={forecast} numberOfLines={1}
+                style={[styles.display, styles.forecastTitle, display, !weather.data && detailStyle]}>
+                {temperature && !largeCondition ? temperature : forecast}
+              </Text>
+              {secondaryCondition ? <Text accessible={false} aria-hidden numberOfLines={1} style={[styles.detail, detailStyle, styles.forecastCondition]}>{secondaryCondition}</Text> : null}
+            </View>
             <Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" accessibilityHint={place}
-              onPress={onChoosePlace} style={styles.placeButton} hitSlop={{ top: 4, bottom: 10, left: 3, right: 8 }}>
-              <Text testID="desktop-weather-place" style={[styles.detail, detailStyle, styles.place]}>{place}</Text>
+              onPress={onChoosePlace} style={[styles.detailRow, styles.placeButton]} hitSlop={{ top: 4, bottom: 10, left: 3, right: 8 }}>
+              <Text testID="desktop-weather-place" numberOfLines={1} style={[styles.detail, detailStyle, styles.place]}>{place}</Text>
             </Pressable>
           </View>
         </View>
+        {todayTrigger ? <View style={[styles.today, { width: todayWidth }]}>{todayTrigger}</View> : null}
       </View>
-      {today ? <View style={todayInline ? styles.todayInline : styles.todayBelow}>{today}</View> : null}
+      {details ? <View style={[styles.todayDetails, { width: Math.min(width, 300 * scale) }, Platform.OS === 'web' && styles.todayDetailsWeb]}>{details}</View> : null}
     </View>
   );
+  return today && now ? (
+    <DesktopToday {...today} now={now} compact={compactToday} fontScale={renderedFontScale}>
+      {renderReadings}
+    </DesktopToday>
+  ) : renderReadings();
 }
 
 const divider = 'rgba(139,211,255,0.22)';
 const styles = StyleSheet.create({
-  card: { minWidth: 0, flexShrink: 1, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 13, borderWidth: 1, borderColor: divider, backgroundColor: 'rgba(6,27,51,0.46)' },
-  cardInline: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  readings: { flexGrow: 1, flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'stretch', gap: 8 },
-  readingsStacked: { flexDirection: 'column' },
-  clock: { flexShrink: 0, paddingRight: 8, borderRightWidth: 1, borderRightColor: divider },
-  clockStacked: { borderRightWidth: 0, borderBottomWidth: 1, borderBottomColor: divider, paddingBottom: 6 },
+  container: { minWidth: 0, flexShrink: 1 },
+  card: { flexDirection: 'row', alignItems: 'stretch', gap: 8, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 13, borderWidth: 1, borderColor: divider, backgroundColor: 'rgba(6,27,51,0.46)' },
+  cardCompact: { paddingHorizontal: 6, gap: 6 },
+  clock: { justifyContent: 'center', flexShrink: 0, paddingRight: 8, borderRightWidth: 1, borderRightColor: divider },
+  clockCompact: { paddingRight: 5 },
   display: { color: '#FFF', fontFamily: careSuiteAppFontFamily, fontWeight: '700', includeFontPadding: false, letterSpacing: -0.8, marginTop: 4 },
   clockDigits: { fontVariant: ['tabular-nums'] },
   detail: { color: '#D8EAFF', fontFamily: careSuiteAppFontFamily, fontWeight: '700', includeFontPadding: false },
-  weather: { flexGrow: 1, flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'flex-start', gap: 6 },
-  artworkBelow: { flexDirection: 'column-reverse', alignItems: 'flex-start', gap: 0 },
-  artwork: { width: 57, height: 49, alignSelf: 'center', flexShrink: 0 },
+  detailRow: { minHeight: 24, justifyContent: 'center' },
+  weather: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 6 },
+  weatherCompact: { gap: 4 },
+  artwork: { flexShrink: 0 },
   artworkLarge: { width: 80, height: 62 },
-  weatherCopy: { flex: 1, minWidth: 0, alignSelf: 'stretch' },
-  placeButton: { alignSelf: 'flex-start', justifyContent: 'flex-start', minHeight: 24, maxWidth: '100%' },
+  artworkMedium: { width: 57, height: 49 },
+  artworkCompact: { width: 38, height: 40 },
+  weatherCopy: { flex: 1, minWidth: 0 },
+  forecastLine: { flexDirection: 'row', alignItems: 'baseline', gap: 5 },
+  forecastTitle: { flexShrink: 1 },
+  forecastCondition: { flexShrink: 1 },
+  placeButton: { alignSelf: 'flex-start', maxWidth: '100%' },
   place: { color: '#8FE4FF', textDecorationLine: 'underline' },
-  todayInline: { width: 132, borderLeftColor: divider, borderLeftWidth: 1, paddingLeft: 8 },
-  todayBelow: { borderTopColor: divider, borderTopWidth: 1, marginTop: 5, paddingTop: 1 },
+  today: { justifyContent: 'center', flexShrink: 0, borderLeftColor: divider, borderLeftWidth: 1 },
+  todayDetails: { alignSelf: 'flex-end', marginTop: 6 },
+  todayDetailsWeb: { position: 'absolute', top: '100%', right: 0 },
 });

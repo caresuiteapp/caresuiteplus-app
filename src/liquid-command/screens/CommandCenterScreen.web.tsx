@@ -19,7 +19,6 @@ import { DesktopAppsWidgetsCenter } from "./DesktopAppsWidgetsCenter.web";
 import { DesktopCatalogArtwork } from "../components/DesktopCatalogArtwork.web";
 import { DesktopWidgetSuggestion } from "../components/DesktopWidgetSuggestion.web";
 import { DesktopClockWeather } from '../components/DesktopClockWeather';
-import { DesktopToday } from '../components/DesktopToday';
 import { desktopWidgetSuggestionCss } from "../components/desktopWidgetSuggestionCss.web";
 import { canonicalDesktopCatalogRoute, desktopCatalogAreaForRoute, filterDesktopCatalogEntries, isDesktopCatalogRouteAvailableInArea } from "../navigation/appsWidgetsCatalogModel.web";
 import {
@@ -401,10 +400,11 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
         </View>
         <DesktopClockWeather now={now} weather={weather} onChoosePlace={() => setWeatherLocationOpen(true)}
           availableWidth={header.wide ? 500 : header.phone ? width - 44 : 300} layoutFontScale={effectiveScale} renderedFontScale={effectiveScale}
-          today={now && (canReview || canReadCalendar || employeeId) ? <DesktopToday now={now} owner={owner} tenantId={tenantId}
-            roleKey={permissions.roleKey} canReview={canReview} canReadCalendar={canReadCalendar} employeeId={employeeId}
-            calendarRoute={canOpenAssignments ? '/assist/calendar' : undefined} canOpenAssignments={canOpenAssignments}
-            fontScale={effectiveScale} onOpenRoute={route => openWidget({ route })} /> : undefined} />
+          today={canReview || canReadCalendar || employeeId ? {
+            owner, tenantId, roleKey: permissions.roleKey, canReview, canReadCalendar, employeeId, canOpenAssignments,
+            calendarRoute: canOpenAssignments ? '/assist/calendar' : undefined,
+            onOpenRoute: route => openWidget({ route }),
+          } : undefined} />
         <View style={styles.actions} testID="desktop-topbar-actions">
           {compact && <Pressable ref={menuToggleRef} accessibilityRole="button" accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => setMobileSidebarOpen(value => !value)} style={[styles.iconButton, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>}
           <PortalTextSizeControls compact={header.compactTextControls} dense={!header.wide} appearance="desktop-header" />

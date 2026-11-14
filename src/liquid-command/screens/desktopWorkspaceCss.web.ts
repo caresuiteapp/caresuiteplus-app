@@ -13,7 +13,7 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
       gap: 8px;
     }
     [data-cs-desktop-header="wide"] {
-      grid-template-columns: max-content minmax(290px, 624px) max-content;
+      grid-template-columns: max-content minmax(290px, 650px) max-content;
       justify-content: space-between;
       gap: 14px;
     }

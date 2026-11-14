@@ -20,7 +20,6 @@ import { MobileButton, MobileSheet, MobileIconButton, MobileIcon, m } from '@/co
 import { DESKTOP_AREAS, desktopAreaStorageKey, type DesktopAreaKey } from '../navigation/desktopAreas';
 import { DesktopCatalogArtwork } from '../components/DesktopCatalogArtwork';
 import { DesktopClockWeather } from '../components/DesktopClockWeather';
-import { DesktopToday } from '../components/DesktopToday';
 import { buildDesktopAreaNavigation } from '../navigation/moduleDesktopModel';
 import { nativeAdministrationRoute } from '../navigation/nativeAdministrationModel';
 import { filterDesktopCatalogEntries, desktopCatalogAreaForRoute, isDesktopCatalogRouteAvailableInArea } from '../navigation/appsWidgetsCatalogModel.shared';
@@ -282,10 +281,11 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const clockWeather = <DesktopClockWeather now={now} weather={weather} onChoosePlace={() => setWeatherOpen(true)}
     availableWidth={weatherInline ? 500 : viewportWidth - 2 * layout.framePadding - 20} layoutFontScale={fontScale}
     style={weatherInline ? styles.inlineClockWeather : undefined}
-    today={now && (canReview || canReadCalendar || employeeId) ? <DesktopToday now={now} owner={owner} tenantId={tenantId}
-      roleKey={permissions.roleKey} canReview={canReview} canReadCalendar={canReadCalendar} employeeId={employeeId}
-      calendarRoute={canOpenAssignments ? '/assist/calendar' : undefined} canOpenAssignments={canOpenAssignments}
-      onOpenRoute={route => open({ route })} /> : undefined} />;
+    today={canReview || canReadCalendar || employeeId ? {
+      owner, tenantId, roleKey: permissions.roleKey, canReview, canReadCalendar, employeeId, canOpenAssignments,
+      calendarRoute: canOpenAssignments ? '/assist/calendar' : undefined,
+      onOpenRoute: route => open({ route }),
+    } : undefined} />;
   const headerActions = (
     <View style={[styles.headerActions, actionsInline && styles.headerHalf]} testID="desktop-topbar-actions">
       {!layout.sidebar ? <MobileIconButton label="Navigation" icon="menu" dark onPress={() => setNavigationOpen(true)} /> : null}

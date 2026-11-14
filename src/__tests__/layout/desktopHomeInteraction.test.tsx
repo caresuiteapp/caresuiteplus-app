@@ -11,10 +11,16 @@ import { desktopHeaderLayout } from '@/liquid-command/navigation/desktopLayoutMo
 const memory = new Map<string, string>();
 const openWeather = vi.fn();
 const countPendingProofs = vi.fn();
-const api = { owner: 'a', width: 1440, scale: 1, push: vi.fn(), getItem: vi.fn(), multiSet: vi.fn(), setItem: vi.fn() };
+const api = { owner: 'a', width: 1440, scale: 1, clockWeatherWidth: 0, push: vi.fn(), getItem: vi.fn(), multiSet: vi.fn(), setItem: vi.fn() };
 const flatten = (style: any): any => Array.isArray(style) ? Object.assign({}, ...style.map(flatten)) : style ?? {};
-const Box = (p: any) => <div data-testid={p.testID} id={p.nativeID} aria-label={p.accessibilityLabel} aria-hidden={p['aria-hidden']} style={flatten(p.style)}>{p.children}</div>;
-const Pressable = (p: any) => <div role={p.accessibilityRole ?? "button"} aria-label={p.accessibilityLabel} aria-selected={p['aria-selected'] ?? p.accessibilityState?.selected} aria-expanded={p.accessibilityState?.expanded} aria-disabled={p.disabled} onClick={p.disabled ? undefined : p.onPress}>{p.children}</div>;
+const Box = (p: any) => {
+  const isClockWeather = React.Children.toArray(p.children).some(child => React.isValidElement<{ testID?: string }>(child) && child.props.testID === 'desktop-clock-weather');
+  React.useLayoutEffect(() => {
+    if (isClockWeather && api.clockWeatherWidth) p.onLayout?.({ nativeEvent: { layout: { width: api.clockWeatherWidth } } });
+  }, [isClockWeather, api.clockWeatherWidth]);
+  return <div data-testid={p.testID} id={p.nativeID} aria-label={p.accessibilityLabel} aria-hidden={p['aria-hidden']} style={flatten(p.style)}>{p.children}</div>;
+};
+const Pressable = (p: any) => <div id={p.nativeID} tabIndex={0} role={p.accessibilityRole ?? "button"} aria-label={p.accessibilityLabel} aria-controls={p['aria-controls']} aria-selected={p['aria-selected'] ?? p.accessibilityState?.selected} aria-expanded={p.accessibilityState?.expanded} aria-disabled={p.disabled} onClick={p.disabled ? undefined : p.onPress}>{p.children}</div>;
 class Value {
   constructor(public value: number) {}
   setValue(value: number) { this.value = value; }
@@ -22,7 +28,7 @@ class Value {
 }
 const native = {
   View: Box, ScrollView: Box, ImageBackground: (p: any) => <div data-testid={p.testID}>{p.children}</div>,
-  Text: (p: any) => <span>{p.children}</span>, Image: () => null, Pressable,
+  Text: (p: any) => <span data-testid={p.testID} style={flatten(p.style)}>{p.children}</span>, Image: () => null, Pressable,
   TextInput: (p: any) => <input aria-label={p.accessibilityLabel} value={p.value} onInput={e => p.onChangeText(e.currentTarget.value)} />,
   Modal: (p: any) => p.visible ? <div role="dialog">{p.children}</div> : null,
   Platform: { OS: 'web' }, StyleSheet: { create: (s: any) => s, flatten, absoluteFill: {} },
@@ -70,7 +76,7 @@ const render = async () => { await act(async () => root.render(<Desktop />)); };
 const click = async (b: HTMLElement | null | undefined) => { expect(b).toBeTruthy(); await act(async () => b!.click()); };
 beforeEach(() => {
   (globalThis as any).IS_REACT_ACT_ENVIRONMENT = true;
-  memory.clear(); api.owner = 'a'; api.width = 1440; api.scale = 1; vi.clearAllMocks();
+  memory.clear(); api.owner = 'a'; api.width = 1440; api.scale = 1; api.clockWeatherWidth = 0; vi.clearAllMocks();
   // Catalogue introductions have dedicated interaction tests. These cases
   // exercise established preferences after those introductions were seen.
   for (const owner of ['a', 'b']) { memory.set(`${key(owner)}.notes.v1`, '1'); memory.set(`${key(owner)}.document-catalog.v1`, '1'); }
@@ -139,19 +145,54 @@ describe('Web desktop preferences and navigation', () => {
     expect(host.textContent).toContain('Apps für Office');
   });
 
-  it('shows the weather on the live desktop and opens the location and daily overview', async () => {
-    countPendingProofs.mockResolvedValue({ ok: true, data: 3 });
+  it('keeps Heute beside the weather and toggles its inline details without a modal', async () => {
+    api.width = 1882;
+    api.clockWeatherWidth = 550;
+    countPendingProofs.mockResolvedValue({ ok: true, data: 21 });
     await render();
     const weather = host.querySelector('[data-testid=desktop-weather]')!;
-    expect(weather.textContent).toMatch(/8\s°C\s· Wolkig/);
+    const weatherTitle = weather.querySelector<HTMLElement>('[data-testid=desktop-weather-title]')!;
+    const clockTime = host.querySelector<HTMLElement>('[data-testid=desktop-clock-time]')!;
+    expect(weatherTitle.textContent).toBe('8\u00a0°C\u00a0· Wolkig');
+    expect(weatherTitle.style.fontSize).toBe(clockTime.style.fontSize);
     expect(weather.textContent).toContain('Herne');
     expect(weather.textContent).not.toContain('12:10');
     expect(weather.textContent).not.toContain('Ort ändern');
     expect(label('Wetter aktualisieren')).toBeNull();
     await click(label('Wetterort ändern'));
     expect(openWeather).toHaveBeenCalled();
-    await click(label('Tagesübersicht öffnen'));
-    expect(host.querySelector('[role=dialog][aria-label=Heute]')?.textContent).toContain('3 Nachweise zur Prüfung');
+    const trigger = label('Tagesübersicht öffnen')!;
+    const readings = host.querySelector('[data-testid=desktop-clock-weather]') as HTMLElement;
+    expect(readings.style.flexDirection).toBe('row');
+    expect(weather.nextElementSibling?.contains(trigger)).toBe(true);
+    expect(trigger.textContent).toContain('21 Nachweise zur Prüfung');
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+    await click(trigger);
+    let details = host.querySelector('[data-testid=desktop-today-details]')!;
+    expect(readings.nextElementSibling?.contains(details)).toBe(true);
+    expect(details.textContent).toContain('21 Nachweise zur Prüfung');
+    expect(trigger.getAttribute('aria-controls')).toBe(details.id);
+    expect(host.querySelector('[role=dialog]')).toBeNull();
+
+    trigger.focus();
+    await act(async () => trigger.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })));
+    expect(host.querySelector('[data-testid=desktop-today-details]')).toBeNull();
+    expect(document.activeElement).toBe(trigger);
+    await click(trigger);
+    await act(async () => weather.dispatchEvent(new Event('pointerdown', { bubbles: true })));
+    expect(trigger.getAttribute('aria-expanded')).toBe('false');
+
+    api.width = 390;
+    api.clockWeatherWidth = 348;
+    await render();
+    expect(readings.style.flexDirection).toBe('row');
+    expect(weather.nextElementSibling?.contains(trigger)).toBe(true);
+    expect(trigger.textContent).toBe('Heute');
+    await click(trigger);
+    details = host.querySelector('[data-testid=desktop-today-details]')!;
+    expect(details.textContent).toContain('21 Nachweise zur Prüfung');
+    await click(trigger);
+    expect(host.querySelector('[data-testid=desktop-today-details]')).toBeNull();
     expect(countPendingProofs).toHaveBeenCalledWith('tenant', 'business_admin');
   });
 });
