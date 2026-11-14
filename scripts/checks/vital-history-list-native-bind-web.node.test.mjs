@@ -45,6 +45,20 @@ test('Explicit fresh history fetch after technical SDKsession error keeps own or
 
 test('Only actual own stored comparison/completeness metadata reaches neutral display, no recomputed normal/clinical fact',async()=>{const h=fixture();h.tables.vital_sign_measurements[0].flag_status='outside_configured_range';h.tables.vital_sign_measurements[0].vital_key='fluid_balance';h.tables.vital_sign_measurements[0].context={completeness:'incomplete',original:'Untouched'};const d=await h.selected(),row=h.viewRuntime.vitalHistoryViewRowsWeb(h.view)[0];assert.equal(row.flagStatus,'outside_configured_range');assert.equal(row.collectionExtent,'incomplete');assert.equal(row.clinicalCompletion,undefined);assert.equal(h.tables.vital_sign_measurements[0].context.original,'Untouched');delete h.tables.vital_sign_measurements[1].flag_status;delete h.tables.vital_sign_measurements[1].context.completeness;const old=Object.getOwnPropertyDescriptor(Object.prototype,'flag_status');Object.defineProperty(Object.prototype,'flag_status',{value:'within_configured_range',configurable:true});try{const other=h.viewRuntime.vitalHistoryViewRowsWeb(h.view)[1];assert.equal(other.flagStatus,null);assert.equal(other.collectionExtent,undefined);}finally{if(old)Object.defineProperty(Object.prototype,'flag_status',old);else delete Object.prototype.flag_status;}});
 
-test('History Web picker accepts actual German aktiv under distinct raw Auth/internal profile IDs',async()=>{const h=fixture(id(500));h.tables.clients[0].status='aktiv';const receipt=await h.choices(),raw=h.choiceReader.vitalHistoryClientChoiceOriginalsWeb(receipt,h.lease);assert.deepEqual(raw.people,[{id:id(4),name:'Native Original'}]);assert.equal(raw.clients[0].status,'aktiv');assert.ok(h.state.reads.filter(x=>x.table==='clients').every(x=>JSON.stringify(x.filters.status)==='["active","aktiv"]'));const selected=await h.selected();assert.ok(h.viewRuntime.vitalHistoryViewRowsWeb(h.view));assert.ok(h.state.authorityCalls.some(x=>x.name==='resolve_current_profile_id'));});
+test('History picker uses the active client enum under distinct raw Auth/internal profile IDs',async()=>{
+ const h=fixture(id(500));
+ h.tables.client_module_assignments[0].status='aktiv';
+ h.state.response=(table,_rows,q)=>{
+  if(table==='clients'&&q.columns!=='id,tenant_id'&&h.state.reads.at(-1).filters.status!=='active')return{data:null,error:{code:'22P02'},status:400};
+  return undefined;
+ };
+ const receipt=await h.choices(),raw=h.choiceReader.vitalHistoryClientChoiceOriginalsWeb(receipt,h.lease);
+ assert.deepEqual(raw.people,[{id:id(4),name:'Native Original'}]);
+ assert.equal(raw.clients[0].status,'active');
+ assert.deepEqual(h.state.reads.filter(x=>x.table==='clients').map(x=>x.filters.status),['active','active']);
+ await h.selected();
+ assert.ok(h.viewRuntime.vitalHistoryViewRowsWeb(h.view));
+ assert.ok(h.state.authorityCalls.some(x=>x.name==='resolve_current_profile_id'));
+});
 for(const attack of ['verifiedAccount','internalProfile','tenant'])test(`History picker rejects ${attack} without native choices`,async()=>{const h=fixture(id(500));if(attack==='verifiedAccount')h.state.userResponse={data:{user:{id:id(999)}},error:null};if(attack==='internalProfile')h.state.authorityResponse=name=>({data:name==='resolve_current_profile_id'?id(999):id(1),error:null});if(attack==='tenant')h.state.authorityResponse=name=>({data:name==='resolve_current_profile_id'?id(2):id(999),error:null});await assert.rejects(h.choices());assert.equal(h.state.reads.length,0);assert.equal(h.viewRuntime.vitalHistoryViewPeopleWeb(h.view),null);});
-for(const status of ['pausiert','archiviert','interessent','ACTIVE'])test(`History picker rejects injected ${status} despite its inclusive active server filter`,async()=>{const h=fixture();h.state.response=(table,rows,q)=>({data:table==='clients'&&rows.length?[{...rows[0],status}]:rows,error:null,status:200});await assert.rejects(h.choices());assert.equal(h.viewRuntime.vitalHistoryViewPeopleWeb(h.view),null);});
+for(const status of ['paused','archived','lead','aktiv','ACTIVE'])test(`History picker rejects returned client status ${status} despite its active server filter`,async()=>{const h=fixture();h.state.response=(table,rows)=>({data:table==='clients'&&rows.length?[{...rows[0],status}]:rows,error:null,status:200});await assert.rejects(h.choices());assert.equal(h.viewRuntime.vitalHistoryViewPeopleWeb(h.view),null);});

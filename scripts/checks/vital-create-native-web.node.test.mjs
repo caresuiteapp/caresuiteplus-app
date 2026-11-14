@@ -112,6 +112,20 @@ test('Verified raw account stays pinned between measurement write and own retain
 test('Post-write internal profile change cannot read another own confirmation',async()=>{const h=await loaded();h.state.authorityRpcResult=name=>({data:name==='resolve_current_profile_id'&&h.state.rpcCalls.length===1?id(99):name==='resolve_current_profile_id'?id(2):id(1),error:null});const result=await execute(h);assert.equal(result.uncertain,true);assert.equal(h.state.rpcCalls.length,1);assert.equal(h.state.confirmCalls.length,0);});
 
 
-test('Native German aktiv client remains selectable and preserves its original status',async()=>{const h=fixture();h.tables.clients[0].status='aktiv';const r=await h.reader.fetchVitalCreateClientsWeb(h.runtime,h.runtime.captureReadScope());assert.equal(r.ok,true,r.error);assert.deepEqual(r.data.view.map(x=>x.id),[id(4)]);assert.equal(h.runtime.receipts.get('clients').original.clients[0].status,'aktiv');assert.ok(h.state.calls.filter(x=>x.table==='clients').every(x=>x.filters.some(([op,k,v])=>op==='in'&&k==='status'&&JSON.stringify(v)==='["active","aktiv"]')));});
-test('German active client on a later native page is included without inactive or unassigned clients',async()=>{const h=fixture();h.state.pageCap=1;h.tables.clients.push(h.row(6,{status:'aktiv',deleted_at:null,first_name:'Zweite',last_name:'Akte'}),h.row(7,{status:'pausiert',deleted_at:null}),h.row(8,{status:'aktiv',deleted_at:null}));h.tables.client_module_assignments.push(h.row(9,{client_id:id(6),module_key:'pflege',is_active:true,status:'active'}));const r=await h.reader.fetchVitalCreateClientsWeb(h.runtime,h.runtime.captureReadScope());assert.equal(r.ok,true,r.error);assert.deepEqual(r.data.view.map(x=>x.id),[id(4),id(6)]);assert.equal(h.runtime.receipts.get('clients').original.clients.length,3);assert.ok(h.state.calls.some(x=>x.table==='clients'&&x.filters.some(([op,k,v])=>op==='gt'&&k==='id'&&v===id(4))));});
-for(const status of ['pausiert','archiviert','interessent','ACTIVE'])test(`Unexpected native client status ${status} cannot bypass the actual server filter`,async()=>{const h=fixture();h.state.response=(table,rows)=>({data:table==='clients'&&rows.length?[{...rows[0],status}]:rows,error:null,status:200});const r=await h.reader.fetchVitalCreateClientsWeb(h.runtime,h.runtime.captureReadScope());assert.equal(r.ok,false);assert.equal(h.runtime.receipts.has('clients'),false);assert.equal(h.state.rpcCalls.length,0);});
+test('Vital creation uses the active client enum and retains textual Pflege assignment status',async()=>{
+ const h=fixture();
+ h.tables.client_module_assignments[0].status='aktiv';
+ h.state.response=(table,rows)=>{
+  const statusFilters=h.state.calls.at(-1).filters.filter(([,key])=>key==='status');
+  if(table==='clients'&&JSON.stringify(statusFilters)!=='[["eq","status","active"]]')return{data:null,error:{code:'22P02'},status:400};
+  return {data:rows,error:null,status:200};
+ };
+ const r=await h.reader.fetchVitalCreateClientsWeb(h.runtime,h.runtime.captureReadScope());
+ assert.equal(r.ok,true,r.error);
+ assert.deepEqual(r.data.view.map(x=>x.id),[id(4)]);
+ assert.equal(h.runtime.receipts.get('clients').original.clients[0].status,'active');
+ assert.deepEqual(h.state.calls.filter(x=>x.table==='clients').map(x=>x.filters.filter(([,key])=>key==='status')),
+  [[['eq','status','active']],[['eq','status','active']]]);
+});
+test('Active client on a later native page is included without inactive or unassigned clients',async()=>{const h=fixture();h.state.pageCap=1;h.tables.clients.push(h.row(6,{status:'active',deleted_at:null,first_name:'Zweite',last_name:'Akte'}),h.row(7,{status:'paused',deleted_at:null}),h.row(8,{status:'active',deleted_at:null}));h.tables.client_module_assignments.push(h.row(9,{client_id:id(6),module_key:'pflege',is_active:true,status:'active'}));const r=await h.reader.fetchVitalCreateClientsWeb(h.runtime,h.runtime.captureReadScope());assert.equal(r.ok,true,r.error);assert.deepEqual(r.data.view.map(x=>x.id),[id(4),id(6)]);assert.equal(h.runtime.receipts.get('clients').original.clients.length,3);assert.ok(h.state.calls.some(x=>x.table==='clients'&&x.filters.some(([op,k,v])=>op==='gt'&&k==='id'&&v===id(4))));});
+for(const status of ['paused','archived','lead','aktiv','ACTIVE'])test(`Unexpected native client status ${status} cannot bypass the actual server filter`,async()=>{const h=fixture();h.state.response=(table,rows)=>({data:table==='clients'&&rows.length?[{...rows[0],status}]:rows,error:null,status:200});const r=await h.reader.fetchVitalCreateClientsWeb(h.runtime,h.runtime.captureReadScope());assert.equal(r.ok,false);assert.equal(h.runtime.receipts.has('clients'),false);assert.equal(h.state.rpcCalls.length,0);});
