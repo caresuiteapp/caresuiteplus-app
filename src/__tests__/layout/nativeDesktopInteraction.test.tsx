@@ -56,6 +56,7 @@ const dependencies: Record<string, unknown> = {
   '@/hooks/useModuleAccess': { useModuleAccess: () => ({ hasGate: (key: string) => api.modules.includes(key) }) },
   '@/hooks/useDesktopWeather.native': { useDesktopWeather: () => ({ data: null, place: null, message: 'Ort wählen', choosePlace: vi.fn() }) },
   './DesktopWeatherLocationDialog.native': { DesktopWeatherLocationDialog: () => null },
+  '../components/DesktopToday': { DesktopToday: () => null },
   '@/components/googleWorkspace/GoogleWorkspaceWidget.native': { GoogleWorkspaceWidget: (p: any) => <span>{p.service}</span> },
 };
 const compiled = buildSync({ entryPoints: ['src/liquid-command/screens/CommandCenterScreen.native.tsx'], bundle: true, write: false, format: 'cjs', platform: 'node', jsx: 'automatic', loader: { '.png': 'empty', '.jpg': 'empty' }, external: Object.keys(dependencies) }).outputFiles[0].text;

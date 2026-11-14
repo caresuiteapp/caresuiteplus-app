@@ -15,9 +15,12 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { usePrefersReducedMotion } from '@/hooks/useprefersreducedmotion';
 import { useDesktopWeather } from '@/hooks/useDesktopWeather.native';
+import { useLocalMinute } from '@/hooks/useLocalMinute';
 import { MobileButton, MobileSheet, MobileIconButton, MobileIcon, m } from '@/components/mobile/MobileWorkspace';
 import { DESKTOP_AREAS, desktopAreaStorageKey, type DesktopAreaKey } from '../navigation/desktopAreas';
 import { DesktopCatalogArtwork } from '../components/DesktopCatalogArtwork';
+import { DesktopClockWeather } from '../components/DesktopClockWeather';
+import { DesktopToday } from '../components/DesktopToday';
 import { buildDesktopAreaNavigation } from '../navigation/moduleDesktopModel';
 import { nativeAdministrationRoute } from '../navigation/nativeAdministrationModel';
 import { filterDesktopCatalogEntries, desktopCatalogAreaForRoute, isDesktopCatalogRouteAvailableInArea } from '../navigation/appsWidgetsCatalogModel.shared';
@@ -128,7 +131,11 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
   const areaStripRef = useRef<ScrollView>(null);
   const [navQuery, setNavQuery] = useState('');
   const [weatherOpen, setWeatherOpen] = useState(false); const weather = useDesktopWeather(scope);
-  const [now, setNow] = useState(new Date());
+  const canOpenAssignments = availableKeys.includes('assist') && permissions.can('assist.assignments.view');
+  const canReview = availableKeys.includes('assist') && permissions.can('assist.records.view');
+  const canReadCalendar = availableKeys.includes('office') && permissions.can('office.appointments.view');
+  const employeeId = canOpenAssignments && auth.profile?.tenantId === tenantId ? auth.profile.employeeId ?? undefined : undefined;
+  const now = useLocalMinute();
   const ids = useMemo(() => desktopWidgetIds(preferences.slots, allowed), [preferences.slots, allowed]);
   const pages = desktopPageCount(preferences.slots);
   const visiblePage = Math.min(page, pages - 1);
@@ -140,10 +147,9 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
     widgets.filter(widget => isDesktopCatalogRouteAvailableInArea(widget.route, selectedArea)), ids, selectedArea, desktopCatalogAreaForRoute,
   ) : [], [widgets, ids, selectedArea, areaAllowed, edit]);
   const layout = nativeDesktopLayout(viewportWidth, fontScale);
-  const weatherInline = viewportWidth >= 1060 * Math.max(1, fontScale);
+  const weatherInline = viewportWidth >= 1360 * Math.max(1, fontScale);
   const actionsInline = viewportWidth >= 600 && !header.phone;
   const logoWidth = Math.min(header.wide ? 234 : 182, Math.max(1, (viewportWidth - 2 * layout.framePadding - 88) / 2));
-  useEffect(() => { const timer = setInterval(() => setNow(new Date()), 60_000); return () => clearInterval(timer); }, []);
   useEffect(() => { setNavigationOpen(false); }, [layout.sidebar]);
   useEffect(() => {
     if (areaStripWidth && selectedTabBounds) {
@@ -273,25 +279,13 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
       <TopbarProfileAvatar name={profileName} avatarUrl={auth.profile?.avatarUrl} avatarVersion={auth.profile?.updatedAt ?? auth.profile?.avatarUrl} accentColor="#56C7FF" size={header.wide ? 'lg' : 'sm'} />
     </Pressable>
   );
-  const clockWeather = (
-    <View style={[styles.headerInfo, header.stackWeather && styles.headerInfoStacked]} testID="desktop-clock-weather">
-      <View style={[styles.timeBlock, header.stackWeather && styles.timeBlockStacked]}>
-        <Text style={[styles.clock, !header.wide && styles.clockCompact]}>{now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })}</Text>
-        <Text style={styles.desktopDate}>{now.toLocaleDateString('de-DE', header.compactDate ? { day: '2-digit', month: '2-digit', year: 'numeric' } : { weekday: 'short', day: '2-digit', month: 'short', year: 'numeric' })}</Text>
-      </View>
-      <View style={[styles.weatherGroup, header.stackWeather && styles.weatherGroupStacked]}>
-        {header.showWeatherIcon ? <Text style={styles.weatherIcon}>{weather.data?.glyph ?? '☁'}</Text> : null}
-        <Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherOpen(true)} style={styles.weather}>
-          <Text style={styles.weatherText}>{weather.data ? `${weather.data.temperature}\u00a0°C · ${weather.data.label}` : 'Wetter'}</Text>
-          <Text style={styles.weatherPlace}>{weather.message}</Text>
-          <Text style={styles.weatherEdit}>Ort ändern</Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" accessibilityLabel="Wetter aktualisieren" disabled={weather.status === 'loading'} onPress={weather.refresh} style={styles.weatherRefresh}>
-          <MobileIcon name="rotate-cw" color="#8FE4FF" size={16} />
-        </Pressable>
-      </View>
-    </View>
-  );
+  const clockWeather = <DesktopClockWeather now={now} weather={weather} onChoosePlace={() => setWeatherOpen(true)}
+    availableWidth={weatherInline ? 500 : viewportWidth - 2 * layout.framePadding - 20} layoutFontScale={fontScale}
+    style={weatherInline ? styles.inlineClockWeather : undefined}
+    today={now && (canReview || canReadCalendar || employeeId) ? <DesktopToday now={now} owner={owner} tenantId={tenantId}
+      roleKey={permissions.roleKey} canReview={canReview} canReadCalendar={canReadCalendar} employeeId={employeeId}
+      calendarRoute={canOpenAssignments ? '/assist/calendar' : undefined} canOpenAssignments={canOpenAssignments}
+      onOpenRoute={route => open({ route })} /> : undefined} />;
   const headerActions = (
     <View style={[styles.headerActions, actionsInline && styles.headerHalf]} testID="desktop-topbar-actions">
       {!layout.sidebar ? <MobileIconButton label="Navigation" icon="menu" dark onPress={() => setNavigationOpen(true)} /> : null}
@@ -445,7 +439,8 @@ function NativeModuleDesktop({ tenantId, availableSignature, selectedArea, onSel
       <Text style={ui.title}>{auth.profile?.displayName || auth.user?.displayName}</Text><Text style={ui.body}>{auth.user?.email}</Text><Text style={ui.muted}>{permissions.roleLabel ?? 'Verwaltung'}</Text>
       <NativeAction label="Kontoeinstellungen" onPress={() => open({ route: '/settings/profile' })} /><NativeAction label="Hilfe & Anleitungen" onPress={() => open({ route: '/hilfe' })} /><NativeAction label="Abmelden" onPress={() => { setProfileOpen(false); void auth.signOut(); }} />
     </NativeWorkspaceDialog>
-    <DesktopWeatherLocationDialog visible={weatherOpen} place={weather.place} preferenceError={weather.preferenceError} onChoose={weather.choosePlace} onClose={() => setWeatherOpen(false)} />
+    <DesktopWeatherLocationDialog visible={weatherOpen} place={weather.place} preferenceError={weather.preferenceError}
+      onChoose={weather.choosePlace} onRetryWeather={weather.status === 'error' ? weather.refresh : undefined} onClose={() => setWeatherOpen(false)} />
   </ImageBackground>;
 }
 
@@ -480,21 +475,7 @@ const styles = StyleSheet.create({
   brandAccent: { color: '#8FE4FF' },
   assistantDock: { width: 68, height: 74, flexShrink: 0, alignSelf: 'flex-start' },
   headerProfile: { flex: 1, minWidth: 0, alignItems: 'flex-end' },
-  headerInfo: { flexShrink: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 8, paddingHorizontal: 9, paddingVertical: 5, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(139,211,255,0.2)', backgroundColor: 'rgba(6,27,51,0.46)' },
-  headerInfoStacked: { flexDirection: 'column', alignItems: 'stretch' },
-  timeBlock: { minWidth: 0, flexShrink: 0, paddingRight: 8, borderRightWidth: 1, borderRightColor: 'rgba(139,211,255,0.22)' },
-  timeBlockStacked: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'baseline', gap: 10, paddingRight: 0, paddingBottom: 4, borderRightWidth: 0, borderBottomWidth: 1, borderBottomColor: 'rgba(139,211,255,0.22)' },
-  clock: { color: '#FFF', fontFamily: careSuiteAppFontFamily, fontSize: 34, lineHeight: 39, fontWeight: '900', fontVariant: ['tabular-nums'] },
-  clockCompact: { fontSize: 27, lineHeight: 31 },
-  desktopDate: { color: '#D8EAFF', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 17, fontWeight: '700' },
-  weatherGroup: { flex: 1, minWidth: 0, flexDirection: 'row', alignItems: 'center', gap: 5 },
-  weatherGroupStacked: { flex: 0 },
-  weather: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: 'center' },
-  weatherIcon: { color: '#8FE4FF', fontSize: 20, flexShrink: 0 },
-  weatherText: { color: '#FFF', fontFamily: careSuiteAppFontFamily, fontSize: 15, lineHeight: 19, fontWeight: '700' },
-  weatherPlace: { color: '#BCD4EC', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 16 },
-  weatherEdit: { color: '#8FE4FF', fontFamily: careSuiteAppFontFamily, fontSize: 12, lineHeight: 16, fontWeight: '700' },
-  weatherRefresh: { minHeight: 44, minWidth: 44, flexShrink: 0, alignItems: 'center', justifyContent: 'center' },
+  inlineClockWeather: { flex: 1 },
   headerActions: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'flex-end', gap: 6, minWidth: 0 },
   headerControl: { minHeight: 44, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, borderRadius: 13, borderWidth: 1, borderColor: 'rgba(126,214,255,0.28)', backgroundColor: 'rgba(7,36,67,0.7)', paddingHorizontal: 11, paddingVertical: 8 },
   headerControlCompact: { minWidth: 44, paddingHorizontal: 0 },

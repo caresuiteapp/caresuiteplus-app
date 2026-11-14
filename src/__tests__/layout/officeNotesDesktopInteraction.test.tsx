@@ -32,6 +32,8 @@ const dependencies: Record<string, unknown> = {
   '@/components/googleWorkspace/GoogleWorkspaceWidget.web': { GoogleWorkspaceWidget: () => null },
   '@/components/layout/platform/platformmodal': { PlatformModal: (props: any) => props.visible ? <div role="dialog" aria-label={props.title}>{props.children}{props.footerContent}</div> : null },
   './DesktopWeatherLocationDialog.web': { DesktopWeatherLocationDialog: () => null },
+  '../components/DesktopClockWeather': { DesktopClockWeather: () => null },
+  '../components/DesktopToday': { DesktopToday: () => null },
 };
 const bundle = buildSync({ entryPoints: ['src/liquid-command/screens/CommandCenterScreen.web.tsx'], bundle: true, write: false, platform: 'node', format: 'cjs', jsx: 'automatic', loader: { '.png': 'empty', '.jpg': 'empty' }, external: Object.keys(dependencies) }).outputFiles[0].text;
 const loaded = { exports: {} as any };

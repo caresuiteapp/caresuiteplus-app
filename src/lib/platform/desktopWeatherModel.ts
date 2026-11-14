@@ -1,12 +1,13 @@
 export type WeatherPlace = { name: string; postcode: string; region: string; district: string; latitude: number; longitude: number };
-export type WeatherData = { temperature: number; label: string; glyph: string; station: string; time: string };
-const icons: Record<string, [string, string]> = {
+export type WeatherData = { temperature: number; label: string; glyph: string; icon: DesktopWeatherIcon | null; station: string; time: string };
+const icons = {
   'clear-day': ['Sonnig', '☀'], 'clear-night': ['Klar', '☾'],
   'partly-cloudy-day': ['Wolkig', '⛅'], 'partly-cloudy-night': ['Wolkig', '☁'],
   cloudy: ['Bedeckt', '☁'], fog: ['Nebel', '≋'], wind: ['Windig', '≋'],
   rain: ['Regen', '☂'], sleet: ['Schneeregen', '❄'], snow: ['Schnee', '❄'],
   hail: ['Hagel', '❄'], thunderstorm: ['Gewitter', 'ϟ'],
-};
+} as const;
+export type DesktopWeatherIcon = keyof typeof icons;
 
 /** DWD observations, never a fabricated temperature or an assumed user location. */
 export function parseDesktopWeather(payload: unknown, now = Date.now()): WeatherData {
@@ -17,10 +18,11 @@ export function parseDesktopWeather(payload: unknown, now = Date.now()): Weather
     || !Number.isFinite(timestamp) || now - timestamp > 90 * 60_000 || timestamp - now > 5 * 60_000) {
     throw new Error('No current observation');
   }
-  const [label, glyph] = icons[weather.icon ?? ''] ?? ['Wetter', '☁'];
+  const icon = typeof weather.icon === 'string' && Object.hasOwn(icons, weather.icon) ? weather.icon as DesktopWeatherIcon : null;
+  const [label, glyph] = icon ? icons[icon] : ['Wetter', '☁'];
   const sourceId = weather.source_ids?.temperature ?? weather.source_id;
   const source = Array.isArray(body.sources) ? body.sources.find(item => item.id === sourceId) : undefined;
-  return { temperature: Math.round(weather.temperature), label, glyph,
+  return { temperature: Math.round(weather.temperature), label, glyph, icon,
     station: source?.station_name || 'DWD-Messstation',
     time: new Date(timestamp).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }) };
 }

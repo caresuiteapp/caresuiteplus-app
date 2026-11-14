@@ -5,7 +5,7 @@
  * Privacy: client portal sees approved proofs only; raw drafts are tenant-internal.
  */
 
-import type { ServiceResult } from '@/types';
+import type { RoleKey, ServiceResult } from '@/types';
 import type {
   AssistVisitProofInsert,
   AssistVisitProofPortalReleaseStatus,
@@ -25,6 +25,8 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { ASSIST_EXECUTION_TABLES } from '@/types/assistExecutionPersistence';
 import { resolveAuthenticatedProfileId } from '@/lib/auth/resolveAuthenticatedProfile';
+import { enforcePermission } from '@/lib/permissions';
+import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 
 type ProofDbRow = {
   id: string;
@@ -270,6 +272,21 @@ export async function listVisitProofs(
   }
 
   return { ok: true, data: (data ?? []).map((row) => mapProofRow(row as ProofDbRow)) };
+}
+
+export async function countVisitProofsPendingReview(tenantId: string, roleKey: RoleKey | null): Promise<ServiceResult<number>> {
+  const denied = enforcePermission<number>(roleKey, 'assist.records.view') ?? guardServiceTenant(tenantId);
+  if (denied) return denied;
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { count, error } = await fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.proofs)
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .eq('status', 'pending_review');
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  return typeof count === 'number' ? { ok: true, data: count } : { ok: false, error: 'Die offenen Nachweise konnten nicht gezählt werden.' };
 }
 
 /** Patch proof row — internal helper for approval/PDF services. */

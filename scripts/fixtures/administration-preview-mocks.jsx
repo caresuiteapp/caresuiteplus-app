@@ -20,7 +20,15 @@ export const saveNote=async()=>({ok:false,error:'Die Vorschau speichert keine Da
 export const useAuth=()=>({authReady:true,isAuthenticated:true,portalSession:{accountId:'visual-person',tenantId,roleKey:'employee_portal',mustChangePassword:true,displayName:'Marlene Beispiel'},signInWithSupabaseSession:noop,signInPortalSession:noop,updatePortalSession:noop,user:{id:'visual-person',email:'vorschau@example.invalid'},profile:{id:'visual-person',displayName:'Marlene Beispiel',roleKey:new URLSearchParams(location.search).get('screen')==='family-home'?'family_portal':'business_admin'},signOut:noop});
 export const usePermissions=()=>({tenantId,roleKey:'business_admin',can:()=>true,check:()=>({allowed:true}),roleLabel:'Verwaltung',permissions,isReadOnly:false,hasModuleGate:key=>['office','assist'].includes(key)});
 export const useModuleAccess=()=>({hasGate:key=>['office','assist'].includes(key)});
-export const useDesktopWeather=()=>({data:null,place:null,message:'Wetter nicht verfügbar',choosePlace:noop});
+export const useDesktopWeather=()=>({
+ ...(new URLSearchParams(location.search).has('test-weather')
+  ? {status:'ready',data:{temperature:8,label:'Wolkig',icon:'partly-cloudy-day'},place:{name:'Herne'},message:'Herne · 12:10'}
+  : {status:'error',data:null,place:null,message:'Wetter nicht verfügbar'}),choosePlace:noop,
+});
+export const countVisitProofsPendingReview=async()=>({ok:true,data:3});
+export const buildOfficeCalendarConfig=()=>({});
+export const getWorkspaceCalendarEvents=async()=>({ok:true,data:[]});
+export const getEmployeeAssignedVisitsProjection=async()=>({ok:true,data:[]});
 export const DesktopWeatherLocationDialog=()=>null;
 export const GoogleWorkspaceWidget=()=>null;
 export const useRouter=()=>({push:route=>{window.__previewRoute=route;},replace:route=>{window.__previewRoute=route;},back:noop,setParams:noop});
@@ -46,11 +54,12 @@ export const checkCompanyInventoryOffboarding=async()=>({ok:true,data:{openAssig
 const deny=async()=>({ok:false,error:'Diese Ansicht verwendet ausschließlich lokale Prüfdaten.'});
 export const acknowledgeCompanyInventoryAssignment=deny,requestCompanyInventoryReturn=deny,saveCompanyInventoryItem=deny,saveCompanyInventoryCategory=deny,saveCompanyInventoryLocation=deny,issueCompanyInventoryItem=deny,returnCompanyInventoryItem=deny,reportCompanyInventoryDamage=deny,resolveCompanyInventoryDamage=deny;
 export const useAsyncQuery=(_fetch,_deps,options)=>{
+ if(options?.queryKey?.startsWith('["desktop-today"'))return {data:{proofs:{ok:true,data:3},calendar:{ok:true,data:[]},visits:null},loading:false,error:null,silentRefresh:noop,refresh:noop};
  const notices=new URLSearchParams(location.search).get('screen')?.endsWith('employee-notices') && String(options?.queryKey).includes('employee-assignment-notices')
   ? ['created','changed','cancelled','removed'].map((changeKind,index)=>({id:`visual-notice-${index}`,visitId:`visual-visit-${index}`,changeKind,
     title:['Neuer Einsatz','Einsatz geändert','Einsatz abgesagt','Einsatz nicht mehr zugeordnet'][index],
     body:`Hauswirtschaftliche Unterstützung · Helene Musterfrau · 29.10.2026, ${13+index}:00–${14+index}:00 Uhr`,createdAt:'2026-10-29T08:00:00Z'})):null;
- return {data:notices?{notices,total:notices.length}:null,loading:false,error:null,refresh:noop,setData:noop};
+ return {data:notices?{notices,total:notices.length}:null,loading:false,error:null,refresh:noop,silentRefresh:noop,setData:noop};
 };
 export const RequireAuth=({children})=>children,RequireRole=RequireAuth,RequireEmployeePasswordSetup=RequireAuth;
 export const Stack=()=> <View style={{flex:1,minHeight:0}}><Text>Geprüfte Portalnavigation</Text></View>;

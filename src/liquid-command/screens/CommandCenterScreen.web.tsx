@@ -18,6 +18,8 @@ import { useDesktopPreferences, desktopPreferenceStorage } from "@/hooks/useDesk
 import { DesktopAppsWidgetsCenter } from "./DesktopAppsWidgetsCenter.web";
 import { DesktopCatalogArtwork } from "../components/DesktopCatalogArtwork.web";
 import { DesktopWidgetSuggestion } from "../components/DesktopWidgetSuggestion.web";
+import { DesktopClockWeather } from '../components/DesktopClockWeather';
+import { DesktopToday } from '../components/DesktopToday';
 import { desktopWidgetSuggestionCss } from "../components/desktopWidgetSuggestionCss.web";
 import { canonicalDesktopCatalogRoute, desktopCatalogAreaForRoute, filterDesktopCatalogEntries, isDesktopCatalogRouteAvailableInArea } from "../navigation/appsWidgetsCatalogModel.web";
 import {
@@ -34,6 +36,7 @@ import { PortalTextSizeControls } from "@/components/portal/accessibility/Portal
 import { HelpButton } from '@/components/help/HelpButton.web';
 import { TopbarProfileAvatar } from "@/components/layout/TopbarProfileAvatar";
 import { useDesktopWeather } from "@/hooks/useDesktopWeather.web";
+import { useLocalMinute } from '@/hooks/useLocalMinute';
 import { desktopWorkspaceCss } from "./desktopWorkspaceCss.web";
 import { DesktopWeatherLocationDialog } from "./DesktopWeatherLocationDialog.web";
 import { useWebFontScale } from "@/design/web/WebFontScaleProvider";
@@ -160,8 +163,12 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const owner = auth.user?.id ?? "local";
   const weather = useDesktopWeather(owner);
   const [weatherLocationOpen, setWeatherLocationOpen] = useState(false);
+  const canOpenAssignments = availableKeys.includes('assist') && permissions.can('assist.assignments.view');
+  const canReview = availableKeys.includes('assist') && permissions.can('assist.records.view');
+  const canReadCalendar = availableKeys.includes('office') && permissions.can('office.appointments.view');
+  const employeeId = canOpenAssignments && auth.profile?.tenantId === tenantId ? auth.profile.employeeId ?? undefined : undefined;
   const moduleLabel = DESKTOP_AREAS.find(area => area.key === selectedArea)!.label;
-  const [now, setNow] = useState(new Date());
+  const now = useLocalMinute();
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopPage, setDesktopPage] = useState(0);
   const [editMode, setEditMode] = useState(false);
@@ -232,7 +239,6 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
     if (button) { button.focus(); dismissedSlot.current = null; }
   }, [dismissedSuggestionRoutes, tenantId, owner, selectedArea]);
 
-  useEffect(() => { const timer = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(timer); }, []);
   useEffect(() => setMobileSidebarOpen(false), [compact]);
   useEffect(() => {
     const strip = areaStripRef.current as unknown as HTMLDivElement | null;
@@ -384,7 +390,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
       <span role="status" style={{ position: 'absolute', width: 1, height: 1, padding: 0, margin: -1, overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap', border: 0 }}>{suggestionAnnouncement}</span>
       <View style={[styles.desktopFrame, compact && styles.desktopFrameCompact, shortViewport && { flexGrow: 0, flexShrink: 0, flexBasis: "auto", minHeight: "100%" }]}>
       <View style={styles.atmosphere} />
-      <View style={[styles.glass, styles.topbar]} dataSet={{ csDesktopHeader: header.mode, csDesktopHeaderShort: header.short ? "true" : undefined, csDesktopWeatherStacked: header.stackWeather ? "true" : undefined }} testID="desktop-full-width-header" onLayout={(event) => {
+      <View style={[styles.glass, styles.topbar]} dataSet={{ csDesktopHeader: header.mode, csDesktopHeaderShort: header.short ? "true" : undefined }} testID="desktop-full-width-header" onLayout={(event) => {
         const next = Math.ceil(event.nativeEvent.layout.height);
         setTopbarHeight(current => current === next ? current : next);
         if (typeof window !== "undefined") window.dispatchEvent(new Event("caresuite:neo-dock-layout"));
@@ -393,21 +399,12 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
           <Image accessibilityLabel="CareSuite HealthOS" source={BRAND} resizeMode="contain" style={[styles.logo, { width: headerLogoWidth, height: headerLogoWidth / 8 }]} />
           <View style={styles.neoDock} dataSet={{ csNeoDock: "true" }} />
         </View>
-        <View style={styles.infoCard} testID="desktop-clock-weather">
-          <View style={styles.clock}>
-            <Text style={[styles.time, !header.wide && styles.timeCompact]}>{now.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })}</Text>
-            <Text style={styles.date}>{now.toLocaleDateString("de-DE", header.compactDate ? { day: "2-digit", month: "2-digit", year: "numeric" } : { weekday: "short", day: "2-digit", month: "short", year: "numeric" })}</Text>
-          </View>
-          <View style={styles.weather} testID="desktop-weather">
-            {header.showWeatherIcon ? <Text style={styles.weatherIcon}>{weather.data?.glyph ?? "☁"}</Text> : null}
-            <Pressable accessibilityRole="button" accessibilityLabel="Wetterort ändern" onPress={() => setWeatherLocationOpen(true)} style={styles.weatherCopy}>
-              <Text style={styles.weatherTitle}>{weather.data ? `${weather.data.temperature}\u00a0°C · ${weather.data.label}` : "Wetter"}</Text>
-              <Text testID="desktop-weather-place" style={styles.weatherPlace}>{weather.message}</Text>
-              <Text style={styles.weatherEdit}>Ort ändern</Text>
-            </Pressable>
-            <Pressable accessibilityRole="button" accessibilityLabel={weather.status === "idle" ? "Standort für Wetter verwenden" : "Wetter aktualisieren"} disabled={weather.status === "loading"} onPress={weather.refresh} style={styles.weatherRefresh}><Text style={styles.weatherLink}>{weather.status === "loading" ? "…" : weather.status === "idle" ? "⌖" : "↻"}</Text></Pressable>
-          </View>
-        </View>
+        <DesktopClockWeather now={now} weather={weather} onChoosePlace={() => setWeatherLocationOpen(true)}
+          availableWidth={header.wide ? 500 : header.phone ? width - 44 : 300} layoutFontScale={effectiveScale} renderedFontScale={effectiveScale}
+          today={now && (canReview || canReadCalendar || employeeId) ? <DesktopToday now={now} owner={owner} tenantId={tenantId}
+            roleKey={permissions.roleKey} canReview={canReview} canReadCalendar={canReadCalendar} employeeId={employeeId}
+            calendarRoute={canOpenAssignments ? '/assist/calendar' : undefined} canOpenAssignments={canOpenAssignments}
+            fontScale={effectiveScale} onOpenRoute={route => openWidget({ route })} /> : undefined} />
         <View style={styles.actions} testID="desktop-topbar-actions">
           {compact && <Pressable ref={menuToggleRef} accessibilityRole="button" accessibilityLabel={navigationOpen ? "Navigation schließen" : "Navigation öffnen"} accessibilityState={{ expanded: navigationOpen }} onPress={() => setMobileSidebarOpen(value => !value)} style={[styles.iconButton, navigationOpen && styles.iconButtonActive]}><Text style={styles.iconGlyph}>{navigationOpen ? "‹" : "☰"}</Text></Pressable>}
           <PortalTextSizeControls compact={header.compactTextControls} dense={!header.wide} appearance="desktop-header" />
@@ -547,7 +544,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
       </View>
 
       <DesktopWeatherLocationDialog visible={weatherLocationOpen} place={weather.place} preferenceError={weather.preferenceError}
-        onChoose={weather.choosePlace} onClose={() => setWeatherLocationOpen(false)} />
+        onChoose={weather.choosePlace} onRetryWeather={weather.status === 'error' ? weather.refresh : undefined} onClose={() => setWeatherLocationOpen(false)} />
       <Modal transparent animationType="fade" visible={compact && mobileSidebarOpen} onRequestClose={() => setMobileSidebarOpen(false)}>
         <Pressable onPress={() => setMobileSidebarOpen(false)} style={styles.navigationBackdrop}>
           <Pressable onPress={event => event.stopPropagation()} style={[styles.glass, styles.sidebar, styles.sidebarDrawer, { width: Math.min(width - 24, 300 * fontScale) }]}>{sidebarContent}</Pressable>
@@ -583,7 +580,6 @@ const styles = StyleSheet.create({
   tabTextActive: { color: "#FFF" },
   appsButtonCompact: { width: 46, paddingHorizontal: 0, borderRadius: 13 },
   profileTriggerCompact: { minHeight: 46, minWidth: 46, paddingHorizontal: 0, justifyContent: "center" },
-  timeCompact: { fontSize: 27, lineHeight: 31 },
   countTextMobile: { fontSize: 12 },
   countPillMobile: { minHeight: 36, paddingHorizontal: 6, paddingVertical: 6, alignSelf: "center", gap: 4 },
   editButtonMobile: { minHeight: 44, paddingHorizontal: 8, paddingVertical: 6 },
@@ -598,13 +594,6 @@ const styles = StyleSheet.create({
   desktopFrame: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, width: "100%", padding: 20, gap: 16 }, desktopFrameCompact: { padding: 12, gap: 12 }, loadingHost: { justifyContent: "center", alignItems: "center", padding: 24 }, loadingCard: { width: "100%", maxWidth: 600, borderRadius: 24, padding: 24, gap: 18 },
   topbar: { zIndex: 20, width: "100%", minWidth: 0, flexShrink: 0, padding: 9, borderRadius: 18 },
   logo: { maxWidth: "100%", flexShrink: 1 },
-  infoCard: { minWidth: 0, width: "100%", borderRadius: 13, borderWidth: 1, borderColor: "rgba(139,211,255,0.2)", backgroundColor: "rgba(6,27,51,0.46)", paddingHorizontal: 9, paddingVertical: 5, flexDirection: "row", alignItems: "center", gap: 8 },
-  clock: { flexShrink: 0, minWidth: 0, paddingRight: 8, borderRightWidth: 1, borderRightColor: "rgba(139,211,255,0.22)" },
-  time: { color: "#FFF", fontSize: 34, lineHeight: 39, fontWeight: "900", letterSpacing: -1, fontVariant: ["tabular-nums"] }, date: { color: "#D8EAFF", fontSize: 13, lineHeight: 17, fontWeight: "700" },
-  weather: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 5 },
-  weatherCopy: { flex: 1, minWidth: 0, minHeight: 44, justifyContent: "center" },
-  weatherIcon: { color: "#8FE4FF", fontSize: 21, flexShrink: 0 }, weatherTitle: { color: "#FFF", fontSize: 16, lineHeight: 19, fontWeight: "800" }, weatherPlace: { color: "#BCD4EC", fontSize: 13, lineHeight: 16 },
-  weatherRefresh: { minHeight: 44, minWidth: 44, flexShrink: 0, alignItems: "center", justifyContent: "center" }, weatherLink: { color: "#8FE4FF", fontSize: 17, lineHeight: 22 }, weatherEdit: { color: "#8FE4FF", fontSize: 13, lineHeight: 16, fontWeight: "700" },
   actions: { minWidth: 0, maxWidth: "100%", flexDirection: "row", alignItems: "center", justifyContent: "flex-end", flexWrap: "wrap", gap: 6 },
   iconButton: { width: 46, height: 46, borderRadius: 15, borderWidth: 1, borderColor: "rgba(146,205,255,0.25)", backgroundColor: "rgba(8,29,59,0.64)", alignItems: "center", justifyContent: "center" }, iconButtonActive: { borderColor: "rgba(102,224,255,0.72)", backgroundColor: "rgba(13,91,130,0.76)" }, iconGlyph: { color: "#FFF", fontSize: 20 },
   livePill: { ...desktopHeaderControl, flexShrink: 0, justifyContent: "center", paddingHorizontal: 13, flexDirection: "row", alignItems: "center", gap: 7 }, liveDot: { width: 8, height: 8, borderRadius: 4, backgroundColor: "#58D8C1", ...(Platform.OS === "web" ? ({ boxShadow: "0 0 8px rgba(88,216,193,0.9)" } as const) : ({ shadowColor: "#58D8C1", shadowOpacity: 0.9, shadowRadius: 8 } as const)) }, liveText: { color: desktopHeaderControlColors.text, fontSize: 16, fontWeight: "800" },

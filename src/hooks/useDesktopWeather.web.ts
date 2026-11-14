@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
-import { parseDesktopWeather, isWeatherPlace } from '@/lib/platform/desktopWeatherModel';
+import { parseDesktopWeather, isWeatherPlace, type WeatherData, type WeatherPlace } from '@/lib/platform/desktopWeatherModel';
 
-export type WeatherPlace = { name: string; postcode: string; region: string; district: string; latitude: number; longitude: number };
-type WeatherData = { temperature: number; label: string; glyph: string; station: string; time: string };
+export type { WeatherPlace } from '@/lib/platform/desktopWeatherModel';
 type WeatherState = { status: 'idle' | 'loading' | 'ready' | 'error'; message: string; data: WeatherData | null };
 const initial: WeatherState = { status: 'idle', message: 'Ort wählen', data: null };
 const storagePrefix = 'caresuite.desktop.weather-place.v1.';

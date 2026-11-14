@@ -13,7 +13,7 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
       gap: 8px;
     }
     [data-cs-desktop-header="wide"] {
-      grid-template-columns: max-content minmax(290px, 440px) max-content;
+      grid-template-columns: max-content minmax(290px, 624px) max-content;
       justify-content: space-between;
       gap: 14px;
     }
@@ -48,42 +48,8 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false) {
       width: 100%;
       height: 100%;
     }
-    [data-cs-desktop-header] [data-testid="desktop-weather"] [role="button"] {
+    [data-cs-desktop-header] [data-testid="desktop-weather-place"] {
       overflow-wrap: anywhere;
-    }
-    [data-cs-desktop-header="phone"] [data-testid="desktop-weather"] {
-      display: grid;
-      grid-template-columns: minmax(0, 1fr) 44px;
-    }
-    [data-cs-desktop-header="phone"] [aria-label="Wetterort ändern"] {
-      grid-column: 1 / -1;
-      grid-row: 1;
-      padding-right: 39px;
-    }
-    [data-cs-desktop-header="phone"] [data-testid="desktop-weather-place"] {
-      margin-right: -39px;
-    }
-    [data-cs-desktop-header="phone"] [data-testid="desktop-weather"] > [role="button"]:last-child {
-      grid-row: 1;
-      grid-column: 2;
-      align-self: start;
-    }
-    [data-cs-desktop-weather-stacked] [data-testid="desktop-clock-weather"] {
-      flex-direction: column;
-      align-items: stretch;
-    }
-    [data-cs-desktop-weather-stacked] [data-testid="desktop-clock-weather"] > :first-child {
-      flex-direction: row;
-      flex-wrap: wrap;
-      align-items: baseline;
-      gap: 10px;
-      padding-right: 0;
-      padding-bottom: 4px;
-      border-right: 0;
-      border-bottom: 1px solid rgba(139,211,255,0.22);
-    }
-    [data-cs-desktop-weather-stacked] [data-testid="desktop-weather"] {
-      flex: 0 0 auto;
     }
     [data-testid="desktop-workspace-header"] [role="heading"] {
       text-shadow: 0 1px 3px #03132b, 0 2px 12px #03132b;

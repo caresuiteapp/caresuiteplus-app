@@ -29,12 +29,13 @@ function loadPlaces() {
   return placesPromise;
 }
 
-export function DesktopWeatherLocationDialog({ visible, place, preferenceError, onChoose, onClose, eyebrow = 'IHR DESKTOP' }: {
+export function DesktopWeatherLocationDialog({ visible, place, preferenceError, onChoose, onClose, onRetryWeather, eyebrow = 'IHR DESKTOP' }: {
   visible: boolean;
   place: WeatherPlace | null;
   preferenceError: string | null;
   onChoose: (place: WeatherPlace | null) => boolean;
   onClose: () => void;
+  onRetryWeather?: () => void;
   eyebrow?: string;
 }) {
   const { width, height } = useWindowDimensions();
@@ -113,9 +114,12 @@ export function DesktopWeatherLocationDialog({ visible, place, preferenceError, 
             <Text style={[styles.link, body, styles.automaticText]}>Aktuellen Standort verwenden</Text>
           </Pressable>
           <Text style={[styles.muted, small]}>Der Browser kann dafür nach Ihrer Standortfreigabe fragen.</Text>
+          {onRetryWeather ? <Pressable accessibilityRole="button" onPress={() => { onRetryWeather(); onClose(); }} style={styles.automatic}>
+            <Text style={[styles.link, body]}>Wetter erneut abrufen</Text>
+          </Pressable> : null}
           <details style={{ color: '#BED1E1', fontSize: 12 * scale, lineHeight: 1.5, paddingTop: 8 }}>
             <summary style={{ cursor: 'pointer', minHeight: 36 }}>Wetterinformationen</summary>
-            <p>Das Wetter stammt von einer verfügbaren Messstation in der Umgebung des gewählten Orts. Die Uhrzeit neben dem Ort zeigt den Stand der Messung.</p>
+            <p>Das Wetter stammt von einer verfügbaren Messstation in der Umgebung des gewählten Orts. CareSuite ruft die Messwerte automatisch alle 15 Minuten ab, solange der Desktop geöffnet ist.</p>
             <p>Wetterdaten: <a href="https://www.dwd.de/EN/service/legal_notice/legal_notice.html" target="_blank" rel="noopener noreferrer" style={{ color: '#8BDFFF' }}>Deutscher Wetterdienst</a>, bereitgestellt über Bright Sky.</p>
             <p>Ortsverzeichnis: <a href="https://www.geonames.org/" target="_blank" rel="noopener noreferrer" style={{ color: '#8BDFFF' }}>GeoNames</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer" style={{ color: '#8BDFFF' }}>CC BY 4.0</a>. Für die Ortssuche aufbereitet, Stand September 2026.</p>
           </details>

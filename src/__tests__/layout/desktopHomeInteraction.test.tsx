@@ -9,6 +9,8 @@ import { desktopAreaStorageKey } from '@/liquid-command/navigation/desktopAreas'
 import { desktopHeaderLayout } from '@/liquid-command/navigation/desktopLayoutModel';
 
 const memory = new Map<string, string>();
+const openWeather = vi.fn();
+const countPendingProofs = vi.fn();
 const api = { owner: 'a', width: 1440, scale: 1, push: vi.fn(), getItem: vi.fn(), multiSet: vi.fn(), setItem: vi.fn() };
 const flatten = (style: any): any => Array.isArray(style) ? Object.assign({}, ...style.map(flatten)) : style ?? {};
 const Box = (p: any) => <div data-testid={p.testID} id={p.nativeID} aria-label={p.accessibilityLabel} aria-hidden={p['aria-hidden']} style={flatten(p.style)}>{p.children}</div>;
@@ -35,7 +37,7 @@ const dependencies: Record<string, unknown> = {
   'expo-router': { usePathname: () => '/', useLocalSearchParams: () => ({}), useRouter: () => ({ push: api.push, setParams: vi.fn() }) },
   '@react-native-async-storage/async-storage': { getItem: api.getItem, multiSet: api.multiSet, setItem: api.setItem },
   '@/components/googleWorkspace/GoogleWorkspaceWidget.web': { GoogleWorkspaceWidget: (p: any) => <div data-preview={p.preview}>{p.service}</div> },
-  './DesktopWeatherLocationDialog.web': { DesktopWeatherLocationDialog: () => null },
+  './DesktopWeatherLocationDialog.web': { DesktopWeatherLocationDialog: ({ visible }: { visible: boolean }) => { if (visible) openWeather(); return null; } },
   '@/hooks/usePermissions': { usePermissions: () => ({ tenantId: 'tenant', roleKey: 'business_admin', can: () => true, hasModuleGate: (module: string) => ['office', 'assist'].includes(module) }) },
   '@/hooks/useModuleAccess': { useModuleAccess: () => ({}) },
   '@/lib/auth': { useAuth: () => ({ authReady: true, isAuthenticated: true, user: { id: api.owner }, profile: { displayName: 'Testverwaltung', roleKey: 'business_admin' }, signOut: vi.fn() }) },
@@ -43,7 +45,12 @@ const dependencies: Record<string, unknown> = {
   '@/components/layout/TopbarProfileAvatar': { TopbarProfileAvatar: () => null },
   '@/design/web/WebFontScaleProvider': { useWebFontScale: () => ({ scale: api.scale, effectiveScale: api.scale * (api.width < 900 ? 0.9 : 1) }) },
   '@/lib/platform/desktopGridLayout': { resolveDesktopGridLayout },
-  '@/hooks/useDesktopWeather.web': { useDesktopWeather: () => ({ status: 'idle', data: null, place: null, message: 'Standort verwenden', refresh: vi.fn() }) },
+  '@/hooks/useDesktopWeather.web': { useDesktopWeather: () => ({ status: 'ready', data: { temperature: 8, label: 'Wolkig', icon: 'partly-cloudy-day', time: '12:10' }, place: { name: 'Herne' }, message: 'Herne · 12:10', refresh: vi.fn() }) },
+  '@/lib/assist/assistVisitProofPersistenceService': { countVisitProofsPendingReview: countPendingProofs },
+  '@/lib/calendar/calendarEventService': { buildOfficeCalendarConfig: () => ({}) },
+  '@/lib/calendar/calendarWorkspaceService': { getWorkspaceCalendarEvents: async () => ({ ok: true, data: [] }) },
+  '@/lib/portal/employeePortalProjectionService': { getEmployeeAssignedVisitsProjection: async () => ({ ok: true, data: [] }) },
+  '@/hooks/core/useLiveRefresh': { useLiveRefresh: () => ({ isLiveConnected: false }) },
   '@/components/layout/platform/platformmodal': { PlatformModal: (p: any) => p.visible ? <div role="dialog" aria-label={p.title}>{p.headerActions}{p.children}{p.footerContent}</div> : null },
 };
 // Compile the actual Web component; images are omitted and service/host boundaries are simulated.
@@ -130,6 +137,22 @@ describe('Web desktop preferences and navigation', () => {
     expect(host.textContent).toContain('Keine passenden Apps');
     await click(button('Filter zurücksetzen')); expect(field.value).toBe('');
     expect(host.textContent).toContain('Apps für Office');
+  });
+
+  it('shows the weather on the live desktop and opens the location and daily overview', async () => {
+    countPendingProofs.mockResolvedValue({ ok: true, data: 3 });
+    await render();
+    const weather = host.querySelector('[data-testid=desktop-weather]')!;
+    expect(weather.textContent).toMatch(/8\s°C\s· Wolkig/);
+    expect(weather.textContent).toContain('Herne');
+    expect(weather.textContent).not.toContain('12:10');
+    expect(weather.textContent).not.toContain('Ort ändern');
+    expect(label('Wetter aktualisieren')).toBeNull();
+    await click(label('Wetterort ändern'));
+    expect(openWeather).toHaveBeenCalled();
+    await click(label('Tagesübersicht öffnen'));
+    expect(host.querySelector('[role=dialog][aria-label=Heute]')?.textContent).toContain('3 Nachweise zur Prüfung');
+    expect(countPendingProofs).toHaveBeenCalledWith('tenant', 'business_admin');
   });
 });
 
