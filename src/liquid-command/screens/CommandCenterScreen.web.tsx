@@ -1,6 +1,7 @@
 import { defaultDesktopWidgetIds, desktopHeaderLayout } from '../navigation/desktopLayoutModel';
 import { WebView as View, WebPressable as Pressable, WebScrollView as ScrollView } from '@/lib/platform/reactNativeWebCompat.web';
 import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import {
   Image,
   ImageBackground,
@@ -19,6 +20,11 @@ import { DesktopCatalogArtwork } from "../components/DesktopCatalogArtwork.web";
 import { DesktopWidgetSuggestion } from "../components/DesktopWidgetSuggestion.web";
 import { desktopWidgetSuggestionCss } from "../components/desktopWidgetSuggestionCss.web";
 import { canonicalDesktopCatalogRoute, desktopCatalogAreaForRoute, filterDesktopCatalogEntries, isDesktopCatalogRouteAvailableInArea } from "../navigation/appsWidgetsCatalogModel.web";
+import {
+  addDesktopPage, addDesktopWidgets, desktopPageCount, desktopPageSlots, desktopWidgetIds,
+  firstFreeDesktopSlot, moveDesktopWidgetInOrder, placeDesktopWidget, removeDesktopWidget, removeEmptyDesktopPage,
+} from '../navigation/desktopSlots';
+import { useDesktopPointerPlacement } from '../components/useDesktopPointerPlacement.web';
 import { suggestDesktopWidgets } from "../navigation/desktopWidgetSuggestions";
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { useLocalSearchParams, usePathname, useRouter } from "expo-router";
@@ -144,7 +150,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const areaStripRef = useRef<View>(null);
   const navigationRailRef = useRef<View>(null);
   const navigationCloseRef = useRef<View>(null);
-  const widgetButtonRefs = useRef(new Map<string, View>());
+  const widgetButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const emptySlotButtonRefs = useRef(new Map<number, View>());
   const dismissedSlot = useRef<{ index: number; tenantId: string; owner: string; area: DesktopAreaKey } | null>(null);
   const acceptedWidgetId = useRef<string | null>(null);
@@ -159,6 +165,8 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [desktopPage, setDesktopPage] = useState(0);
   const [editMode, setEditMode] = useState(false);
+  const [placementSlot, setPlacementSlot] = useState<number | null>(null);
+  const [placingId, setPlacingId] = useState<string | null>(null);
   const [suggestionAnnouncement, setSuggestionAnnouncement] = useState("");
   const [navigationQuery, setNavigationQuery] = useState("");
   const [profileOpen, setProfileOpen] = useState(false);
@@ -199,7 +207,7 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const moduleWorkflows = useMemo(() => areaAllowed ? filterDesktopCatalogEntries(WORKFLOWS.map(workflow => ({
     ...workflow, permission: workflow.id === 'assignment' ? 'assist.assignments.manage' as PermissionKey : undefined,
   })), selectedArea, permissions) : [], [areaAllowed, selectedArea, permissions]);
-  const { ready, loadError, saveStatus, desktopIds, setDesktopIds, sidebarOpen, setSidebarOpen,
+  const { ready, loadError, saveStatus, desktopIds, desktopSlots, setDesktopSlots, sidebarOpen, setSidebarOpen,
     backgroundId, setBackgroundId, recoverableWidgetIds, dismissedSuggestionRoutes, dismissSuggestion, retry } = useDesktopPreferences({
     tenantId, owner, selectedArea, availableWidgetIds: moduleWidgetIds, defaultWidgetIds: moduleDefaults, migrationWidgetIds,
   });
@@ -208,10 +216,10 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
 
   useEffect(() => {
     const id = acceptedWidgetId.current;
-    if (!id || !desktopIds.includes(id)) return;
+    if (centerOpen || !id || !desktopIds.includes(id)) return;
     const button = widgetButtonRefs.current.get(id);
     if (button) { button.focus(); acceptedWidgetId.current = null; }
-  }, [desktopIds]);
+  }, [desktopIds, desktopSlots, centerOpen, desktopPage]);
 
   useEffect(() => {
     const target = dismissedSlot.current;
@@ -237,10 +245,6 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
     }
   }, [ready, selectedArea, width, effectiveScale, sidebarOpen]);
   useEffect(() => {
-    setDesktopPage(0); setProfileOpen(false); setEditMode(false);
-    setMobileSidebarOpen(false); setNavigationQuery('');
-  }, [tenantId, owner, selectedArea]);
-  useEffect(() => {
     if (saveStatus !== 'saving' && saveStatus !== 'error') return;
     const warn = (event: BeforeUnloadEvent) => { event.preventDefault(); event.returnValue = ''; };
     window.addEventListener('beforeunload', warn);
@@ -251,7 +255,12 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
     if (compact) setMobileSidebarOpen(false);
     else { setSidebarOpen(false); requestAnimationFrame(() => navigationRailRef.current?.focus()); }
   };
-  const openCenter = (tab: CenterTab = "apps") => { setMobileSidebarOpen(false); onOpenCenter(tab); };
+  const openCenter = (tab: CenterTab = "apps", slot: number | null = null) => {
+    setPlacementSlot(slot);
+    setMobileSidebarOpen(false);
+    onOpenCenter(tab);
+  };
+  const closeCenter = () => { setPlacementSlot(null); onCloseCenter(); };
   const leaveDesktop = async (action: () => void | Promise<void>) => {
     if (saveStatus === 'error' && !await confirmAction({ title: 'Auswahl noch nicht gespeichert', message: 'Die letzte Desktop-Auswahl konnte nicht gespeichert werden. Möchten Sie den Bereich trotzdem verlassen? Sie können abbrechen und das Speichern erneut versuchen.', confirmLabel: 'Trotzdem verlassen' })) return;
     await action();
@@ -261,47 +270,73 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
     void leaveDesktop(() => onSelectArea(area));
   };
   const openWidget = (widget: Pick<DesktopApp, "route">) => { void leaveDesktop(() => { onCloseCenter(); setMobileSidebarOpen(false); router.push(widget.route as never); }); };
-  const togglePinned = (id: string) => moduleWidgetIds.includes(id) && setDesktopIds(current => current.includes(id) ? current.filter(item => item !== id) : [...current, id]);
-  const acceptSuggestion = (id: string) => {
+  const desktopPages = desktopPageCount(desktopSlots);
+  const visiblePage = Math.min(desktopPage, desktopPages - 1);
+  const useEditor = editMode && areaAllowed;
+  const pageSlots = desktopPageSlots(desktopSlots, visiblePage);
+  const firstSlot = visiblePage * DESKTOP_SLOT_COUNT;
+  const lastWidget = pageSlots.findLastIndex(id => Boolean(id && areaWidgetById.has(id)));
+  const renderedSlots = useEditor ? pageSlots : pageSlots.slice(0, lastWidget + 1);
+  const changePage = (page: number) => {
+    if (page === visiblePage) return;
+    setDesktopPage(page);
+    const viewport = pointer.frame.current?.querySelector<HTMLElement>('[data-cs-desktop-widget-viewport]');
+    if (viewport) viewport.scrollTop = 0;
+  };
+  const moveWidget = (id: string, slot: number) => {
+    const widget = areaWidgetById.get(id);
+    if (!useEditor || !widget || !desktopIds.includes(id)) return;
+    acceptedWidgetId.current = id;
+    setDesktopSlots(current => placeDesktopWidget(current, id, slot));
+    setPlacingId(null);
+    setSuggestionAnnouncement(`${widget.label} auf Seite ${visiblePage + 1}, Platz ${slot - firstSlot + 1} verschoben.`);
+  };
+  const pointer = useDesktopPointerPlacement(moveWidget);
+  const addWidget = (id: string, slot: number | null = null) => {
     const widget = areaWidgetById.get(id);
     if (!ready || !areaAllowed || !widget) return;
-    acceptedWidgetId.current = id;
-    // Adding is deliberately idempotent: a repeated click must never remove a widget.
-    setDesktopIds(current => current.some(currentId => currentId === id || areaWidgetById.get(currentId)?.route === widget.route)
-      ? current : [...current, id]);
+    if (useEditor) acceptedWidgetId.current = id;
+    const target = slot ?? firstFreeDesktopSlot(desktopSlots, visiblePage);
+    setDesktopSlots(current => current.includes(id) ? current : placeDesktopWidget(current, id, target));
+    if (useEditor) changePage(Math.floor(target / DESKTOP_SLOT_COUNT));
     setSuggestionAnnouncement(`${widget.label} auf ${moduleLabel} übernommen.`);
+  };
+  const togglePinned = (id: string) => {
+    if (!areaWidgetById.has(id)) return;
+    if (desktopIds.includes(id)) setDesktopSlots(current => removeDesktopWidget(current, id));
+    else {
+      addWidget(id, placementSlot);
+      if (placementSlot !== null) closeCenter();
+    }
+  };
+  const selectPosition = (slot: number, id?: string) => {
+    if (placingId && placingId !== id) moveWidget(placingId, slot);
+    else if (id) setPlacingId(placingId === id ? null : id);
+    else openCenter('widgets', slot);
   };
   const dismissWidgetSuggestion = (id: string, index: number) => {
     const widget = areaWidgetById.get(id);
-    if (!ready || !areaAllowed || !widget) return;
+    if (!ready || !useEditor || !widget) return;
     dismissedSlot.current = { index, tenantId, owner, area: selectedArea };
     dismissSuggestion(widget.route);
     setSuggestionAnnouncement(`${widget.label} als Vorschlag auf ${moduleLabel} ausgeblendet.`);
   };
-  const movePinned = (id: string, direction: -1 | 1) => setDesktopIds(current => {
-    const index = current.indexOf(id), target = index + direction;
-    if (index < 0 || target < 0 || target >= current.length) return current;
-    const next = [...current]; [next[index], next[target]] = [next[target], next[index]];
-    return next;
-  });
+  const movePinned = (id: string, direction: -1 | 1) => setDesktopSlots(current =>
+    moveDesktopWidgetInOrder(current, desktopWidgetIds(current, moduleWidgetIds), id, direction));
   const signOut = async () => leaveDesktop(async () => { setProfileOpen(false); await auth.signOut(); });
-  const desktopPages = Math.max(1, Math.ceil(desktopIds.length / DESKTOP_SLOT_COUNT));
-  const visiblePage = Math.min(desktopPage, desktopPages - 1);
-  const slots = Array.from({ length: DESKTOP_SLOT_COUNT }, (_, index) => areaWidgetById.get(desktopIds[visiblePage * DESKTOP_SLOT_COUNT + index] ?? ""));
-  const suggestedWidgets = useMemo(() => suggestDesktopWidgets(moduleWidgets, desktopIds, selectedArea, desktopCatalogAreaForRoute),
-    [moduleWidgets, desktopIds, selectedArea]);
+  const suggestedWidgets = useMemo(() => useEditor ? suggestDesktopWidgets(moduleWidgets, desktopIds, selectedArea, desktopCatalogAreaForRoute) : [],
+    [useEditor, moduleWidgets, desktopIds, selectedArea]);
   const suggestedSlots = new Map<number, WidgetDefinition>();
-  const dismissedRoutes = new Set(dismissedSuggestionRoutes);
-  let suggestionIndex = 0;
-  slots.forEach((widget, index) => {
-    if (widget) return;
-    // A dismissed recommendation leaves its slot empty; do not immediately fill
-    // it with another one or move the remaining close buttons under the pointer.
-    const suggestion = suggestedWidgets[suggestionIndex++];
-    if (suggestion && !dismissedRoutes.has(suggestion.route)) suggestedSlots.set(index, suggestion);
-  });
+  if (useEditor && !placingId && !pointer.drag) {
+    let suggestionIndex = 0;
+    for (const [index, id] of pageSlots.entries()) {
+      if (id && areaWidgetById.has(id)) continue;
+      const suggestion = suggestedWidgets[suggestionIndex++];
+      if (suggestion && !dismissedSuggestionRoutes.includes(suggestion.route)) suggestedSlots.set(index, suggestion);
+    }
+  }
   const hasSuggestions = suggestedSlots.size > 0;
-  const workspaceCss = useMemo(() => desktopWorkspaceCss(effectiveScale, mobile, hasSuggestions), [effectiveScale, mobile, hasSuggestions]);
+  const workspaceCss = useMemo(() => desktopWorkspaceCss(effectiveScale, mobile), [effectiveScale, mobile]);
   const missingSavedWidgets = recoverableWidgetIds.filter(id => !desktopIds.includes(id));
 
   const sidebarContent = (
@@ -420,13 +455,8 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
             <View style={styles.desktopTitleRow}>
               <Text accessibilityRole="header" style={[styles.desktopTitle, header.phone && styles.desktopTitlePhone]}>Mein Desktop · {moduleLabel}</Text>
               <View style={styles.desktopActions}>
-                {desktopPages > 1 ? <View style={styles.desktopActions}>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Vorherige Desktop-Seite" disabled={visiblePage === 0} onPress={() => setDesktopPage(visiblePage - 1)} style={[styles.editButton, styles.pageButton]}><Text style={styles.editText}>‹</Text></Pressable>
-                  <Text accessibilityLiveRegion="polite" style={styles.countText}>{visiblePage + 1}/{desktopPages}</Text>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Nächste Desktop-Seite" disabled={visiblePage === desktopPages - 1} onPress={() => setDesktopPage(visiblePage + 1)} style={[styles.editButton, styles.pageButton]}><Text style={styles.editText}>›</Text></Pressable>
-                </View> : null}
                 <View style={[styles.countPill, mobile && styles.countPillMobile]}><View style={styles.liveDot} /><Text style={[styles.countText, mobile && styles.countTextMobile]}>{desktopPages > 1 ? `${desktopIds.length} Widgets` : mobile ? `${desktopIds.length} aktiv` : `${desktopIds.length}/${DESKTOP_SLOT_COUNT} aktiv`}</Text></View>
-                <Pressable accessibilityRole="button" accessibilityLabel={editMode ? "Desktop-Bearbeitung abschließen" : "Desktop bearbeiten"} accessibilityState={{ selected: editMode }} onPress={() => setEditMode((value) => !value)} style={[styles.editButton, mobile && styles.editButtonMobile, editMode && styles.editButtonActive]}>
+                <Pressable accessibilityRole="button" accessibilityLabel={editMode ? "Desktop-Bearbeitung abschließen" : "Desktop bearbeiten"} accessibilityState={{ selected: useEditor }} disabled={!areaAllowed} onPress={() => { setPlacingId(null); setEditMode(value => !value); }} style={[styles.editButton, mobile && styles.editButtonMobile, editMode && styles.editButtonActive]}>
                   <Text style={[styles.editText, mobile && styles.editTextMobile]}>{editMode ? "✓ Fertig" : "✎ Bearbeiten"}</Text>
                 </Pressable>
               </View>
@@ -441,33 +471,79 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
                 </Pressable>;
               })}
             </View>
+            {!areaAllowed ? <Text accessibilityRole="alert" style={styles.desktopSubtitle}>Dieser Bereich ist für Ihr Konto noch nicht freigegeben.</Text> : null}
+            {saveStatus === 'error' ? <View style={styles.desktopActions}><Text accessibilityRole="alert" style={styles.desktopSubtitle}>Ihre letzte Auswahl wurde noch nicht gespeichert.</Text><Pressable accessibilityRole="button" onPress={retry} style={styles.editButton}><Text style={styles.editText}>Erneut speichern</Text></Pressable></View> : null}
           </View>
-          {!areaAllowed ? <Text accessibilityRole="alert" style={styles.desktopSubtitle}>Dieser Bereich ist für Ihr Konto noch nicht freigegeben.</Text> : null}
-          {saveStatus === 'error' ? <View style={styles.desktopActions}><Text accessibilityRole="alert" style={styles.desktopSubtitle}>Ihre letzte Auswahl wurde noch nicht gespeichert.</Text><Pressable accessibilityRole="button" onPress={retry} style={styles.editButton}><Text style={styles.editText}>Erneut speichern</Text></Pressable></View> : null}
-          <ScrollView style={styles.gridScroll} {...{ dataSet: { csDesktopWidgetViewport: "true" } }} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
-            <View style={styles.grid} {...{ dataSet: { csDesktopWidgetGrid: "true", csDesktopHasSuggestions: String(hasSuggestions) } }} testID="desktop-widget-grid">
-              {slots.map((widget, index) => (
-                <View key={widget?.id ?? `empty-${index}`} style={styles.cell}>
-                  {widget ? (
-                    <Pressable ref={node => { if (node) widgetButtonRefs.current.set(widget.id, node); else widgetButtonRefs.current.delete(widget.id); }} accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={() => !editMode && openWidget(widget)} style={({ pressed }) => [styles.widgetCard, pressed && !editMode && styles.widgetPressed, editMode && styles.widgetEditing]}>
-                      <View style={styles.labelBar} {...{ dataSet: { csDesktopWidgetLabel: "true" } }}>{widget.workspaceService ? <DesktopCatalogArtwork route={widget.route} label={widget.label} size={26}/> : null}<Text accessibilityRole="header" style={styles.widgetLabel}>{widget.label}</Text><Text style={styles.arrow}>↗</Text></View>
-                      <View style={styles.imageStage} {...{ dataSet: { csDesktopWidgetArtwork: "true" } }}>
-                        {widget.workspaceService ? <GoogleWorkspaceWidget service={widget.workspaceService} fontScale={effectiveScale}/> : <DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images} style={{ maxWidth: 400 }}/>}
-                        {!widget.workspaceService && <View style={styles.categoryPill}><Text style={styles.categoryText}>{widget.category}</Text></View>}
-                        {editMode ? <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} entfernen`} onPress={(event) => { event.stopPropagation(); togglePinned(widget.id); }} style={styles.removeButton}><Text style={styles.removeText}>×</Text></Pressable> : null}
-                      </View>
-                    </Pressable>
-                  ) : suggestedSlots.has(index) ? (
-                    <DesktopWidgetSuggestion widget={suggestedSlots.get(index)!} areaLabel={moduleLabel} fontScale={effectiveScale}
-                      onAccept={() => acceptSuggestion(suggestedSlots.get(index)!.id)} onChooseOther={() => openCenter("widgets")}
-                      onDismiss={() => dismissWidgetSuggestion(suggestedSlots.get(index)!.id, index)} />
-                  ) : (
-                    <Pressable ref={node => { if (node) emptySlotButtonRefs.current.set(index, node); else emptySlotButtonRefs.current.delete(index); }} accessibilityRole="button" accessibilityLabel="Widget hinzufügen" onPress={() => openCenter("widgets")} style={styles.emptyCard} {...{ dataSet: { csDesktopWidgetEmpty: "true" } }}><Text style={styles.emptyPlus}>＋</Text><Text style={styles.emptyTitle}>Hinzufügen</Text><Text style={styles.emptyCopy}>Desktop-Widget auswählen</Text></Pressable>
-                  )}
-                </View>
-              ))}
-            </View>
-          </ScrollView>
+          <div className="cs-desktop-page-frame" ref={pointer.frame}
+            onPointerMove={pointer.move} onPointerLeave={pointer.leave}
+            onPointerUp={event => pointer.finish(event, true)} onPointerCancel={event => pointer.finish(event, false)}
+            onLostPointerCapture={event => { if (event.target === event.currentTarget) pointer.finish(event, false); }}
+            onKeyDown={event => { if (event.key === 'Escape') setPlacingId(null); }}>
+            {desktopPages > 1 ? <button type="button" className="cs-desktop-page-arrow" data-cs-desktop-page-arrow="previous"
+              aria-label="Vorherige Desktop-Seite" disabled={visiblePage === 0} onClick={() => changePage(visiblePage - 1)}><span aria-hidden="true">‹</span></button> : null}
+            <ScrollView style={styles.gridScroll} dataSet={{ csDesktopWidgetViewport: "true" }} contentContainerStyle={styles.gridScrollContent} showsVerticalScrollIndicator keyboardShouldPersistTaps="handled">
+              <View style={styles.grid} dataSet={{ csDesktopWidgetGrid: "true", csDesktopHasSuggestions: String(hasSuggestions) }} testID="desktop-widget-grid">
+                {renderedSlots.map((id, index) => {
+                  const widget = id ? areaWidgetById.get(id) : undefined;
+                  const suggestion = suggestedSlots.get(index);
+                  const slot = firstSlot + index;
+                  const body = widget ? <>
+                    <View style={styles.labelBar} dataSet={{ csDesktopWidgetLabel: "true" }}>{widget.workspaceService ? <DesktopCatalogArtwork route={widget.route} label={widget.label} size={26}/> : null}<Text accessibilityRole="header" style={styles.widgetLabel}>{widget.label}</Text>{!useEditor ? <Text style={styles.arrow}>↗</Text> : null}</View>
+                    <View style={styles.imageStage} dataSet={{ csDesktopWidgetArtwork: "true" }}>
+                      {widget.workspaceService && !useEditor ? <GoogleWorkspaceWidget service={widget.workspaceService} fontScale={effectiveScale}/> : <DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images} style={{ maxWidth: 400 }}/>}
+                      {!widget.workspaceService && <View style={styles.categoryPill}><Text style={styles.categoryText}>{widget.category}</Text></View>}
+                    </View>
+                  </> : null;
+                  return <div key={index} className="cs-desktop-cell" data-cs-desktop-slot={slot}
+                    data-target={useEditor && pointer.drag?.slot === slot}
+                    data-moving={useEditor && Boolean(widget && pointer.drag?.id === widget.id)}>
+                    {widget && !useEditor ? <Pressable accessibilityRole="button" accessibilityLabel={`${widget.label} öffnen`} onPress={() => openWidget(widget)} style={({ pressed }) => [styles.widgetCard, pressed && styles.widgetPressed]}>{body}</Pressable>
+                    : widget ? <div className="cs-desktop-edit-card">
+                      <View style={[styles.widgetCard, styles.widgetEditing]}>{body}</View>
+                      <button type="button" className="cs-desktop-move-widget" ref={node => { if (node) widgetButtonRefs.current.set(widget.id, node); else widgetButtonRefs.current.delete(widget.id); }}
+                        aria-label={placingId && placingId !== widget.id ? `Mit ${widget.label} tauschen` : `${widget.label} verschieben`} title={`Platz ${index + 1}`} aria-pressed={placingId === widget.id}
+                        onPointerDown={event => pointer.begin(event, widget.id)} onClick={() => selectPosition(slot, widget.id)}>
+                        <span aria-hidden="true">⠿</span>
+                      </button>
+                      <button type="button" className="cs-desktop-remove-widget" aria-label={`${widget.label} entfernen`} onClick={() => {
+                        if (placingId === widget.id) setPlacingId(null);
+                        togglePinned(widget.id);
+                      }}><span aria-hidden="true">×</span></button>
+                    </div>
+                    : suggestion ? <DesktopWidgetSuggestion widget={suggestion} areaLabel={moduleLabel} fontScale={effectiveScale}
+                      onAccept={() => addWidget(suggestion.id, slot)} onChooseOther={() => openCenter("widgets", slot)}
+                      onDismiss={() => dismissWidgetSuggestion(suggestion.id, index)} />
+                    : useEditor ? <Pressable ref={node => { if (node) emptySlotButtonRefs.current.set(index, node); else emptySlotButtonRefs.current.delete(index); }}
+                      accessibilityRole="button" accessibilityLabel={placingId ? `Auf Platz ${index + 1} ablegen` : 'Widget hinzufügen'}
+                      accessibilityHint={placingId ? undefined : `Platz ${index + 1}`} onPress={() => selectPosition(slot)}
+                      style={styles.emptyCard} dataSet={{ csDesktopWidgetEmpty: "true" }}>
+                      <Text style={styles.emptyPlus}>{placingId || pointer.drag ? "⊕" : "＋"}</Text>
+                      <Text style={styles.emptyTitle}>{placingId || pointer.drag ? "Hier ablegen" : "Hinzufügen"}</Text>
+                    </Pressable> : null}
+                  </div>;
+                })}
+              </View>
+            </ScrollView>
+            {desktopPages > 1 ? <button type="button" className="cs-desktop-page-arrow" data-cs-desktop-page-arrow="next"
+              aria-label="Nächste Desktop-Seite" disabled={visiblePage + 1 === desktopPages} onClick={() => changePage(visiblePage + 1)}><span aria-hidden="true">›</span></button> : null}
+          </div>
+          {useEditor || desktopPages > 1 ? <div className="cs-desktop-page-footer">
+            <span className="cs-desktop-page-count" role="status" aria-label="Desktop-Seite">Seite {visiblePage + 1} von {desktopPages}</span>
+            {useEditor ? <>
+              <button type="button" className="cs-desktop-page-action" onClick={() => {
+                setDesktopSlots(addDesktopPage);
+                changePage(desktopPages);
+              }}>＋ Seite hinzufügen</button>
+              {desktopPages > 1 && !pageSlots.some(Boolean) ? <button type="button" className="cs-desktop-page-action"
+                onClick={() => {
+                  setDesktopSlots(current => removeEmptyDesktopPage(current, visiblePage));
+                  changePage(Math.min(visiblePage, desktopPages - 2));
+                }}>Leere Seite entfernen</button> : null}
+              <span className="cs-desktop-edit-hint">{placingId ? "Zielplatz wählen" : "Kacheln ziehen oder antippen"}</span>
+            </> : null}
+          </div> : null}
+          {pointer.drag ? createPortal(<div className="cs-desktop-drag-preview" aria-hidden="true"
+            style={{ left: pointer.drag.x, top: pointer.drag.y }}><span>⠿</span>{areaWidgetById.get(pointer.drag.id)?.label}</div>, document.body) : null}
         </View>
       </View>
 
@@ -478,11 +554,11 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
           <Pressable onPress={event => event.stopPropagation()} style={[styles.glass, styles.sidebar, styles.sidebarDrawer, { width: Math.min(width - 24, 300 * fontScale) }]}>{sidebarContent}</Pressable>
         </Pressable>
       </Modal>
-      <DesktopAppsWidgetsCenter visible={centerOpen} onClose={onCloseCenter} areaLabel={moduleLabel} initialTab={centerTab}
+      <DesktopAppsWidgetsCenter visible={centerOpen} onClose={closeCenter} areaLabel={moduleLabel} initialTab={centerTab}
         selectedArea={selectedArea} areas={desktopAreas} onSelectArea={selectDesktop} onTabChange={onOpenCenter}
         apps={catalogApps} widgets={catalogWidgets} workflows={moduleWorkflows} backgrounds={BACKGROUNDS}
-        desktopIds={desktopIds} backgroundId={backgroundId} recoverableCount={missingSavedWidgets.length}
-        onRecover={() => setDesktopIds(ids => [...new Set([...ids, ...missingSavedWidgets])])}
+        desktopIds={desktopIds} desktopSlots={desktopSlots} placementSlot={placementSlot} backgroundId={backgroundId} recoverableCount={missingSavedWidgets.length}
+        onRecover={() => setDesktopSlots(current => addDesktopWidgets(current, missingSavedWidgets, visiblePage))}
         onOpen={route => openWidget({ route })} onToggleWidget={togglePinned} onMoveWidget={movePinned}
         onBackground={setBackgroundId} saveStatus={saveStatus} onRetrySave={retry} />
 
@@ -549,7 +625,7 @@ const styles = StyleSheet.create({
   navItem: { minHeight: 44, paddingVertical: 6, borderRadius: 14, paddingHorizontal: 7, flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 3, borderWidth: 1, borderColor: "transparent" }, navItemActive: { backgroundColor: "rgba(18,101,145,0.55)", borderColor: "rgba(104,222,255,0.38)" }, navIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: "transparent", alignItems: "center", justifyContent: "center" }, navGlyph: { color: "#93E7FF", fontSize: 14 }, navLabel: { flex: 1, minWidth: 0, color: "#E6F1FA", fontSize: 13, lineHeight: 19, fontWeight: "800" }, navArrow: { color: "rgba(137,216,245,0.56)", fontSize: 19 },
   sidebarCenter: { minHeight: 64, paddingVertical: 10, marginTop: 8, borderRadius: 17, borderWidth: 1, borderColor: "rgba(100,222,255,0.38)", backgroundColor: "rgba(10,74,108,0.56)", paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 10 }, sidebarCenterPlus: { color: "#78E5FF", fontSize: 23 }, sidebarCenterTitle: { color: "#FFF", fontSize: 16, fontWeight: "900" }, sidebarCenterCopy: { color: "#A9CBE0", fontSize: 13 },
   sidebarBackground: { minHeight: 64, paddingVertical: 10, marginTop: 7, borderRadius: 16, borderWidth: 1, borderColor: "rgba(152,190,255,0.28)", backgroundColor: "rgba(26,47,91,0.62)", paddingHorizontal: 11, flexDirection: "row", alignItems: "center", gap: 10 }, sidebarBackgroundGlyph: { color: "#A8CFFF", fontSize: 21 },
-  desktopPanel: { minHeight: 0, minWidth: 0, height: "100%", alignSelf: "stretch", display: "grid", gridTemplateRows: "auto minmax(0, 1fr)", alignContent: "stretch" } as unknown as ViewStyle,
+  desktopPanel: { minHeight: 0, minWidth: 0, height: "100%", alignSelf: "stretch", display: "grid", gridTemplateRows: "auto minmax(0, 1fr) auto", alignContent: "stretch" } as unknown as ViewStyle,
   desktopHeader: { alignSelf: "center", width: "100%", maxWidth: 2400, paddingHorizontal: 2, flexShrink: 0, gap: 6 },
   desktopTitleRow: { flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 6 },
   desktopTitle: { color: "#F7FCFF", fontSize: 22, lineHeight: 28, fontWeight: "700", letterSpacing: -0.3, minWidth: 0, flexShrink: 1 },
@@ -559,14 +635,13 @@ const styles = StyleSheet.create({
   countPill: { minHeight: 42, paddingVertical: 8, borderRadius: 13, paddingHorizontal: 10, borderWidth: 1, borderColor: "rgba(105,207,242,0.22)", flexDirection: "row", alignItems: "center", gap: 6 },
   countText: { color: "#CEE6F3", fontSize: 13, fontWeight: "900" },
   editButton: { minHeight: 44, paddingVertical: 8, borderRadius: 13, paddingHorizontal: 11, borderWidth: 1, borderColor: "rgba(126,214,255,0.28)", backgroundColor: "rgba(7,36,67,0.7)", justifyContent: "center" },
-  pageButton: { minWidth: 44, alignItems: "center" },
   editButtonActive: { borderColor: "rgba(103,230,197,0.62)", backgroundColor: "rgba(24,107,91,0.68)" },
   editText: { color: "#EAF8FF", fontSize: 16, fontWeight: "900" },
-  gridScroll: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, minWidth: 0 }, gridScrollContent: { paddingTop: 12, paddingBottom: 12 }, grid: { width: "100%", maxWidth: 2400, alignSelf: "center", minWidth: 0 }, cell: { minWidth: 0, maxWidth: "100%" },
+  gridScroll: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, minWidth: 0 }, gridScrollContent: { paddingTop: 10, paddingBottom: 10 }, grid: { width: "100%", maxWidth: 2400, alignSelf: "center", minWidth: 0 },
   widgetCard: { flex: 1, borderRadius: 18, borderWidth: 1, borderColor: "rgba(131,203,245,0.22)", backgroundColor: "rgba(1,12,29,0.78)", overflow: "hidden", ...transitionWeb }, widgetPressed: { transform: [{ scale: 0.988 }] }, widgetEditing: { borderColor: "rgba(96,225,194,0.46)", backgroundColor: "rgba(4,35,45,0.82)" },
-  imageStage: { height: 178, margin: 10, marginTop: 0, marginBottom: 10, borderRadius: 13, backgroundColor: "rgba(4,23,47,0.5)", alignItems: "center", justifyContent: "center", overflow: "hidden" }, categoryPill: { position: "absolute", top: 7, left: 7, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 4, backgroundColor: "rgba(1,14,31,0.78)" }, categoryText: { color: "#B9DCEB", fontSize: 11, fontWeight: "900", textTransform: "uppercase" }, removeButton: { position: "absolute", top: 7, right: 7, width: 44, height: 44, borderRadius: 14, borderWidth: 1, borderColor: "rgba(255,159,176,0.52)", backgroundColor: "rgba(91,15,33,0.9)", alignItems: "center", justifyContent: "center" }, removeText: { color: "#FFD4DC", fontSize: 20 },
+  imageStage: { height: 178, margin: 10, marginTop: 0, marginBottom: 10, borderRadius: 13, backgroundColor: "rgba(4,23,47,0.5)", alignItems: "center", justifyContent: "center", overflow: "hidden" }, categoryPill: { position: "absolute", top: 7, left: 7, borderRadius: 9, paddingHorizontal: 7, paddingVertical: 4, backgroundColor: "rgba(1,14,31,0.78)" }, categoryText: { color: "#B9DCEB", fontSize: 11, fontWeight: "900", textTransform: "uppercase" },
   labelBar: { minHeight: 64, paddingVertical: 8, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", gap: 12 }, widgetLabel: { flex: 1, minWidth: 0, color: "#F3FBFF", fontSize: 18, lineHeight: 24, fontWeight: "700" }, arrow: { color: "#77DFFF", fontSize: 13, fontWeight: "900" },
-  emptyCard: { borderRadius: 18, borderWidth: 1, borderStyle: "dashed", borderColor: "rgba(126,208,244,0.25)", backgroundColor: "rgba(4,23,44,0.34)", alignItems: "center", justifyContent: "center" }, emptyPlus: { color: "#78E4FF", fontSize: 24 }, emptyTitle: { color: "#E9F8FF", fontSize: 13, fontWeight: "900" }, emptyCopy: { color: "#91B5CA", fontSize: 11, marginTop: 2 },
+  emptyCard: { borderRadius: 18, borderWidth: 1, borderStyle: "dashed", borderColor: "rgba(126,208,244,0.25)", backgroundColor: "rgba(4,23,44,0.34)", alignItems: "center", justifyContent: "center" }, emptyPlus: { color: "#78E4FF", fontSize: 24 }, emptyTitle: { color: "#E9F8FF", fontSize: 13, fontWeight: "900" },
   backdrop: { flex: 1, backgroundColor: "rgba(0,5,16,0.8)", alignItems: "center", justifyContent: "center", padding: 18 }, centerSubtitle: { color: "#AFC9DC", fontSize: 13, marginTop: 3 }, closeButton: { width: 38, height: 38, borderRadius: 14, borderWidth: 1, borderColor: "rgba(145,211,245,0.2)", backgroundColor: "rgba(255,255,255,0.07)", alignItems: "center", justifyContent: "center" }, closeText: { color: "#FFF", fontSize: 27 }, searchInput: { backgroundColor: "transparent", borderWidth: 0, flex: 1, minWidth: 0, minHeight: 42, color: "#FFF", fontSize: 16 }, pinButton: { minHeight: 40, paddingVertical: 8, borderRadius: 11, paddingHorizontal: 10, borderWidth: 1, borderColor: "rgba(104,218,255,0.32)", backgroundColor: "rgba(9,61,91,0.64)", justifyContent: "center" }, pinText: { color: "#BEEBFA", fontSize: 11, fontWeight: "900" },
   profilePanel: { width: "100%", maxWidth: 520, borderRadius: 27, padding: 20 }, profileHeader: { flexDirection: "row", alignItems: "center", gap: 13 }, profileIdentity: { flex: 1 }, profilePanelName: { color: "#FFF", fontSize: 18, fontWeight: "900" }, profilePanelRole: { color: "#9DDFFF", fontSize: 13, fontWeight: "800", marginTop: 2 }, profileDivider: { height: 1, backgroundColor: "rgba(138,211,255,0.2)", marginVertical: 13 }, profileRow: { minHeight: 62, borderRadius: 15, borderWidth: 1, borderColor: "rgba(122,202,255,0.18)", backgroundColor: "rgba(6,27,57,0.72)", paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "space-between" }, profileRowTitle: { color: "#FFF", fontSize: 12, fontWeight: "900" }, profileRowCopy: { color: "#AAC4DE", fontSize: 13, marginTop: 2 }, logout: { minHeight: 48, borderRadius: 15, borderWidth: 1, borderColor: "rgba(255,120,143,0.46)", backgroundColor: "rgba(145,25,48,0.26)", alignItems: "center", justifyContent: "center" }, logoutText: { color: "#FFDCE2", fontSize: 12, fontWeight: "900" },
 });

@@ -155,6 +155,22 @@ export const desktopWidgetSuggestionCss = `
     text-decoration: underline;
     text-underline-offset: 3px;
   }
+  @container caresuite-desktop-cell (max-width: 185px) {
+    .cs-desktop-suggestion { padding: 6px; }
+    .cs-desktop-suggestion-heading { padding-right: 30px; }
+    .cs-desktop-suggestion-dismiss { width: 28px; height: 28px; top: 4px; right: 4px; }
+    .cs-desktop-suggestion-actions { grid-template-columns: 1fr; gap: 1px; }
+    .cs-desktop-suggestion-other { min-height: 30px; }
+    .cs-desktop-suggestion-body { grid-template-columns: 1fr; }
+    .cs-desktop-suggestion-artwork { grid-column: 1; }
+    .cs-desktop-suggestion-description {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      clip-path: inset(50%);
+      white-space: nowrap;
+    }
+  }
   @container desktop-suggestion-body (max-height: 2.75em) {
     .cs-desktop-suggestion-description {
       position: absolute;

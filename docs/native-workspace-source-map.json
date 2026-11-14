@@ -6870,7 +6870,7 @@
     {
       "web": "src/liquid-command/screens/DesktopAppsWidgetsCenter.web.tsx",
       "native": "src/liquid-command/screens/DesktopAppsWidgetsCenter.native.tsx",
-      "sourceHash": "1a68eef792287dfad37b16019e82646ddf60f5e95d32ffc943882225d4a0e0ab",
+      "sourceHash": "8956601597824870e97f75801e13bdeb5102eeaa63b7ae955dcb83a71482edf4",
       "environment": []
     },
     {

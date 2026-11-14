@@ -110,7 +110,12 @@ const expectSelectedDesktop = (area: DesktopAreaKey) => {
   expect(desktopChoice(area).getAttribute('aria-pressed')).toBe('true');
 };
 const open = async (name = 'Apps') => { await clickLabel('Apps und Widgets öffnen'); if (name !== 'Apps') await click(tab(name)); };
-const savedIds = (area: DesktopAreaKey = 'office') => JSON.parse(memory.get(key(area))!) as string[];
+const enterEditor = async () => {
+  const button = label('Desktop bearbeiten');
+  if (button) await click(button);
+};
+const savedSlots = (area: DesktopAreaKey = 'office') => JSON.parse(memory.get(key(area))!) as (string | null)[];
+const savedIds = (area: DesktopAreaKey = 'office') => savedSlots(area).filter((id): id is string => id !== null);
 const catalogRoute = (catalog: 'app' | 'widget', route: string) => dialog().querySelector<HTMLElement>(`[data-testid="center-${catalog}-catalog"] [data-artwork-route="${route}"]`);
 const officeClientAction = (name: string) => catalogRoute('widget', '/business/office/clients')?.closest('article')?.querySelector<HTMLElement>(`[aria-label="${name}"]`);
 const suggestions = () => [...host.querySelectorAll<HTMLElement>('[data-testid="desktop-widget-suggestion"]')];
@@ -218,9 +223,87 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     }
   });
 
+  it('shows only placed apps in live view and restores sparse positions on separate module pages', async () => {
+    seed(['notes', 'clients']); seed([], 'assist');
+    await render();
+    expect(suggestions()).toHaveLength(0);
+    expect(label('Widget hinzufügen')).toBeNull();
+    await enterEditor();
+    expect(suggestions().length).toBeGreaterThan(0);
+    await clickLabel('Notizen verschieben');
+    await clickLabel('Auf Platz 9 ablegen');
+    await click(button('＋ Seite hinzufügen', host));
+    await clickLabel('Vorherige Desktop-Seite');
+    await clickLabel('Notizen verschieben');
+    await clickLabel('Nächste Desktop-Seite');
+    await clickLabel('Auf Platz 8 ablegen');
+    await clickLabel('Desktop-Bearbeitung abschließen');
+    expect(host.querySelector('[data-cs-desktop-slot="19"] [aria-label="Notizen öffnen"]')).toBeTruthy();
+    expect(host.querySelector('[data-cs-desktop-slot="18"]')?.children).toHaveLength(0);
+    expect(suggestions()).toHaveLength(0);
+    expect(label('Widget hinzufügen')).toBeNull();
+    expect(savedSlots()[19]).toBe('notes');
+    expect(savedSlots()[1]).toBe('clients');
+
+    await click(tab('Assist', workspaceHeader()));
+    expect(label('Nächste Desktop-Seite')).toBeNull();
+    expect(savedSlots('assist')).toEqual([]);
+    await remount();
+    await click(tab('Office', workspaceHeader()));
+    await clickLabel('Nächste Desktop-Seite');
+    expect(host.querySelector('[data-cs-desktop-slot="19"] [aria-label="Notizen öffnen"]')).toBeTruthy();
+  });
+
+  it('drops a dragged app on another page after hovering over the page arrow', async () => {
+    seed(['notes', 'clients']); await render();
+    await enterEditor();
+    await click(button('＋ Seite hinzufügen', host));
+    await clickLabel('Vorherige Desktop-Seite');
+    const frame = host.querySelector<HTMLElement>('.cs-desktop-page-frame')!;
+    const hit = vi.spyOn(document, 'elementFromPoint');
+    const capture = vi.spyOn(frame, 'setPointerCapture').mockImplementation(() => {});
+    const send = (target: HTMLElement, name: string, x: number) => target.dispatchEvent(new PointerEvent(name, {
+      bubbles: true, pointerId: 1, pointerType: 'mouse', clientX: x, clientY: 10, button: 0,
+    }));
+    try {
+      vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'setInterval', 'clearInterval'] });
+      hit.mockReturnValue(label('Nächste Desktop-Seite'));
+      await act(async () => {
+        send(label('Notizen verschieben')!, 'pointerdown', 5);
+        send(frame, 'pointermove', 25);
+        vi.advanceTimersByTime(550);
+      });
+      expect(capture).toHaveBeenCalledWith(1);
+      expect(host.querySelector('[aria-label="Desktop-Seite"]')?.textContent).toBe('Seite 2 von 2');
+      const destination = host.querySelector<HTMLElement>('[data-cs-desktop-slot="21"]')!;
+      hit.mockReturnValue(destination);
+      await act(async () => { send(frame, 'pointermove', 50); });
+      expect(destination.dataset.target).toBe('true');
+      await act(async () => { send(frame, 'pointerup', 50); });
+      expect(destination.querySelector('[aria-label="Notizen verschieben"]')).toBeTruthy();
+      expect(savedSlots()[21]).toBe('notes');
+      expect(savedSlots()[1]).toBe('clients');
+    } finally {
+      vi.useRealTimers();
+      hit.mockRestore();
+      capture.mockRestore();
+    }
+  });
+
+  it('places a manually chosen widget into the specific empty position', async () => {
+    seed([]); await render(); await enterEditor();
+    const slot = host.querySelector('[data-cs-desktop-slot="10"]')!;
+    await click(slot.querySelector<HTMLButtonElement>('[aria-label="Widget hinzufügen"]'));
+    expect(dialog().textContent).toContain('Seite 1, Platz 11');
+    await click(officeClientAction('Klient:innen zum Desktop hinzufügen'));
+    expect(dialog()).toBeNull();
+    expect(savedSlots()[10]).toBe('clients');
+    expect(slot.querySelector('[aria-label="Klient:innen verschieben"]')).toBeTruthy();
+  });
+
   it.each(DESKTOP_AREAS)('offers optional recommendations on the $label desktop and saves a one-click selection', async area => {
     api.modules.add(area.key); chooseArea(area.key); seed([], area.key);
-    await render();
+    await render(); await enterEditor();
     const cards = suggestions();
     expect(cards.length).toBeGreaterThan(0);
     expect(cards.length).toBeLessThanOrEqual(6);
@@ -240,13 +323,13 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(suggestions().some(card => card.dataset.widgetId === id)).toBe(false);
     expect(host.querySelector('[role="dialog"]')).toBeNull();
     expect(api.push).not.toHaveBeenCalled();
-    await remount();
+    await remount(); await enterEditor();
     expect(savedIds(area.key)).toEqual([id]);
     expect(suggestions().some(card => card.dataset.widgetId === id)).toBe(false);
   });
 
   it('dismisses only the chosen recommendation, keeps its slot empty and still allows a manual placement', async () => {
-    seed(['notes']); await render();
+    seed(['notes']); await render(); await enterEditor();
     const route = '/business/office/clients';
     const card = suggestedRoute(route)!;
     expect(card).toBeTruthy();
@@ -270,7 +353,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(api.push).not.toHaveBeenCalled();
     expect(dialog()).toBeNull();
 
-    await remount();
+    await remount(); await enterEditor();
     expect(suggestedRoute(route)).toBeUndefined();
     expect(suggestions()).toHaveLength(count - 1);
     expect(savedIds()).toEqual(['notes']);
@@ -283,36 +366,36 @@ describe('Apps and Widgets in the actual Web desktop', () => {
   it('keeps dismissals separate by desktop, tenant and person and retains them through permission changes', async () => {
     const route = '/business/office/clients';
     api.modules.add('beratung'); chooseArea('beratung'); seed([], 'beratung'); seed([]);
-    await render();
+    await render(); await enterEditor();
     await click(dismissSuggestion(suggestedRoute(route)));
     const originalKey = `${key('beratung')}.dismissed-suggestions.v1`;
     expect(savedDismissals('beratung')).toEqual([route]);
-    await click(tab('Office', workspaceHeader()));
+    await click(tab('Office', workspaceHeader())); await enterEditor();
     expect(suggestedRoute(route)).toBeTruthy();
     expect(savedDismissals()).toEqual([]);
-    await click(tab('Beratung', workspaceHeader()));
+    await click(tab('Beratung', workspaceHeader())); await enterEditor();
     expect(suggestedRoute(route)).toBeUndefined();
 
-    api.tenant = 'tenant-b'; chooseArea('beratung'); seed([], 'beratung'); await render();
+    api.tenant = 'tenant-b'; chooseArea('beratung'); seed([], 'beratung'); await render(); await enterEditor();
     expect(suggestedRoute(route)).toBeTruthy();
     expect(savedDismissals('beratung')).toEqual([]);
-    api.tenant = 'tenant-a'; api.user = 'user-b'; chooseArea('beratung'); seed([], 'beratung'); await render();
+    api.tenant = 'tenant-a'; api.user = 'user-b'; chooseArea('beratung'); seed([], 'beratung'); await render(); await enterEditor();
     expect(suggestedRoute(route)).toBeTruthy();
     expect(savedDismissals('beratung')).toEqual([]);
     expect(JSON.parse(memory.get(originalKey)!)).toEqual([route]);
 
-    api.user = 'user-a'; chooseArea('beratung'); await render();
+    api.user = 'user-a'; chooseArea('beratung'); await render(); await enterEditor();
     expect(suggestedRoute(route)).toBeUndefined();
-    api.denied.add('office.clients.view'); await render();
+    api.denied.add('office.clients.view'); await render(); await enterEditor();
     expect(savedDismissals('beratung')).toEqual([route]);
-    api.denied.delete('office.clients.view'); await render();
+    api.denied.delete('office.clients.view'); await render(); await enterEditor();
     expect(suggestedRoute(route)).toBeUndefined();
     expect(savedDismissals('beratung')).toEqual([route]);
     expect(savedIds('beratung')).toEqual([]);
   });
 
   it('keeps a recommendation hidden after a failed save and persists the dismissal on retry', async () => {
-    seed([]); await render();
+    seed([]); await render(); await enterEditor();
     const route = '/business/office/clients';
     api.multiSet.mockRejectedValueOnce(new Error('Storage unavailable'));
     await click(dismissSuggestion(suggestedRoute(route)));
@@ -323,13 +406,13 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     await click(button('Erneut speichern', host));
     expect(savedDismissals()).toEqual([route]);
     expect(host.textContent).not.toContain('Ihre letzte Auswahl wurde noch nicht gespeichert.');
-    await remount();
+    await remount(); await enterEditor();
     expect(suggestedRoute(route)).toBeUndefined();
     expect(savedIds()).toEqual([]);
   });
 
   it('adds a recommendation only once on rapid repeated clicks and still opens the full widget chooser', async () => {
-    seed([]); await render();
+    seed([]); await render(); await enterEditor();
     const first = suggestions()[0];
     const id = first.dataset.widgetId!;
     const title = first.querySelector('h3')!.textContent!;
@@ -340,7 +423,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     expect(savedIds()).toEqual([id]);
     expect(workspaceHeader().textContent).toContain('1/12 aktiv');
     expect(suggestions().some(card => card.dataset.widgetId === id)).toBe(false);
-    expect(document.activeElement).toBe(label(`${title} öffnen`));
+    expect(document.activeElement).toBe(label(`${title} verschieben`));
     expect(host.querySelector('[role="status"]')?.textContent).toBe(`${title} auf Office übernommen.`);
     const other = suggestions()[0].querySelector<HTMLElement>('[aria-label="Andere Widgets für Office auswählen"]');
     await click(other);
@@ -352,32 +435,32 @@ describe('Apps and Widgets in the actual Web desktop', () => {
 
   it('keeps accepted shared recommendations separate for each desktop, tenant and person', async () => {
     api.modules.add('beratung'); chooseArea('beratung'); seed([], 'beratung'); seed([]);
-    await render();
+    await render(); await enterEditor();
     await click(acceptSuggestion(suggestedRoute('/business/office/clients')));
     expect(savedIds('beratung')).toEqual(['clients']);
     expect(savedIds()).toEqual([]);
-    await click(tab('Office', workspaceHeader()));
+    await click(tab('Office', workspaceHeader())); await enterEditor();
     await click(acceptSuggestion(suggestedRoute('/business/office/clients')));
     expect(savedIds()).toEqual(['clients']);
     expect(savedIds('beratung')).toEqual(['clients']);
-    await click(tab('Beratung', workspaceHeader()));
-    await remount();
-    expect(label('Klient:innen öffnen')).toBeTruthy();
+    await click(tab('Beratung', workspaceHeader())); await enterEditor();
+    await remount(); await enterEditor();
+    expect(label('Klient:innen verschieben')).toBeTruthy();
     expect(suggestedRoute('/business/office/clients')).toBeUndefined();
     const originalKey = key('beratung');
 
-    api.tenant = 'tenant-b'; chooseArea('beratung'); seed([], 'beratung'); await render();
+    api.tenant = 'tenant-b'; chooseArea('beratung'); seed([], 'beratung'); await render(); await enterEditor();
     expect(label('Klient:innen öffnen')).toBeNull();
     expect(suggestedRoute('/business/office/clients')).toBeTruthy();
     expect(savedIds('beratung')).toEqual([]);
-    api.user = 'user-b'; chooseArea('beratung'); seed([], 'beratung'); await render();
+    api.user = 'user-b'; chooseArea('beratung'); seed([], 'beratung'); await render(); await enterEditor();
     expect(label('Klient:innen öffnen')).toBeNull();
     expect(savedIds('beratung')).toEqual([]);
     expect(memory.get(originalKey)).toBe('["clients"]');
   });
 
   it('retains an accepted recommendation after a failed save and retries the existing preference write', async () => {
-    seed([]); await render();
+    seed([]); await render(); await enterEditor();
     const first = suggestions()[0];
     const id = first.dataset.widgetId!;
     api.multiSet.mockRejectedValueOnce(new Error('Storage unavailable'));
@@ -389,15 +472,15 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     await click(button('Erneut speichern', host));
     expect(savedIds()).toEqual([id]);
     expect(host.textContent).not.toContain('Ihre letzte Auswahl wurde noch nicht gespeichert.');
-    await remount();
+    await remount(); await enterEditor();
     expect(savedIds()).toEqual([id]);
   });
 
   it('removes forbidden recommendations immediately and offers none on a blocked desktop', async () => {
-    seed([]); await render();
+    seed([]); await render(); await enterEditor();
     expect(suggestedRoute('/business/office/clients')).toBeTruthy();
     api.denied.add('office.clients.view'); api.denied.add('office.documents.view');
-    await render();
+    await render(); await enterEditor();
     expect(suggestedRoute('/business/office/clients')).toBeUndefined();
     expect(suggestedRoute('/business/office/document-catalog')).toBeUndefined();
     expect(suggestedRoute('/business/office/documents')).toBeUndefined();
@@ -412,7 +495,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
 
   it('uses only empty slots on the final page and never recommends a widget pinned on another page', async () => {
     const ids = ['clients', 'people', 'logbook', 'time', 'salary', 'billing', 'documents', 'messages', 'access', 'inventory', 'audit', 'notes', 'google-gmail'];
-    seed(ids); await render();
+    seed(ids); await render(); await enterEditor();
     expect(suggestions()).toHaveLength(0);
     await clickLabel('Nächste Desktop-Seite');
     const cards = suggestions();
@@ -421,7 +504,7 @@ describe('Apps and Widgets in the actual Web desktop', () => {
     const id = cards[0].dataset.widgetId!;
     await click(acceptSuggestion(cards[0]));
     expect(savedIds()).toEqual([...ids, id]);
-    expect(label('Gmail öffnen')).toBeTruthy();
+    expect(label('Gmail verschieben')).toBeTruthy();
     expect(workspaceHeader().textContent).toContain('14 Widgets');
     expect(api.push).not.toHaveBeenCalled();
   });

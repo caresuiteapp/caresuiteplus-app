@@ -1,5 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createDesktopPreferenceStorage, mergeDesktopWidgetPreferences, readDismissedDesktopSuggestionRoutes, readSavedDesktopWidgetIds } from '@/lib/preferences/desktopPreferenceStorage.web';
+import { createDesktopPreferenceStorage, readDismissedDesktopSuggestionRoutes } from '@/lib/preferences/desktopPreferenceStorage';
+
+import { addDesktopPage, desktopPageCount, desktopPageSlots, desktopWidgetIds, placeDesktopWidget, readDesktopSlots, removeDesktopWidget, removeEmptyDesktopPage, restoreDesktopSlots } from '@/liquid-command/navigation/desktopSlots';
 
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -100,36 +102,45 @@ describe('Web desktop preference storage ordering', () => {
   });
 });
 
-describe('current area widget preferences with temporarily unavailable widgets', () => {
-  it('retains hidden choices through edits and restores them when permissions return', () => {
-    const saved = readSavedDesktopWidgetIds('["clients","restricted","messages","old-widget"]')!;
+describe('saved desktop positions', () => {
+  it('restores dense preferences and preserves hidden widgets at their positions', () => {
+    const saved = readDesktopSlots('["clients","restricted","messages","old-widget"]')!;
     const allowed = ['clients', 'messages', 'notes'];
-    const visible = saved.filter(id => allowed.includes(id));
-    expect(visible).toEqual(['clients', 'messages']);
-    expect(mergeDesktopWidgetPreferences(visible, saved, allowed)).toEqual(saved);
+    expect(desktopWidgetIds(saved, allowed)).toEqual(['clients', 'messages']);
+    expect(restoreDesktopSlots(saved, ['clients', 'messages'])).toEqual(saved);
 
-    // Remove Clients and add Notes while Restricted is unavailable.
-    const written = mergeDesktopWidgetPreferences(['messages', 'notes'], saved, allowed);
-    expect(written).toEqual(['messages', 'restricted', 'notes', 'old-widget']);
-    const restored = readSavedDesktopWidgetIds(JSON.stringify(written))!;
-    const regained = [...allowed, 'restricted'];
-    expect(restored.filter(id => regained.includes(id))).toEqual(['messages', 'restricted', 'notes']);
-    expect(restored).not.toContain('clients');
-    expect(restored).toContain('old-widget');
+    const empty = removeDesktopWidget(saved, 'clients');
+    const written = placeDesktopWidget(empty, 'notes', 0);
+    expect(written).toEqual(['notes', 'restricted', 'messages', 'old-widget']);
+    expect(desktopWidgetIds(written, [...allowed, 'restricted'])).toEqual(['notes', 'restricted', 'messages']);
   });
 
-  it('keeps hidden preferences when the visible desktop or available catalogue is empty', () => {
-    expect(mergeDesktopWidgetPreferences([], ['clients', 'hidden'], ['clients'])).toEqual(['hidden']);
-    expect(mergeDesktopWidgetPreferences([], ['clients', 'hidden'], [])).toEqual(['clients', 'hidden']);
-    expect(mergeDesktopWidgetPreferences([], [], ['clients'])).toEqual([]);
-    expect(mergeDesktopWidgetPreferences(['not-allowed'], [], ['clients'])).toEqual([]);
+  it('keeps a hidden app when placing a new one in its apparent gap', () => {
+    const slots = placeDesktopWidget(['hidden', null, 'visible'], 'new', 0);
+    expect(slots).toEqual(['new', 'hidden', 'visible']);
+    expect(desktopWidgetIds(slots, [])).toEqual([]);
   });
 
-  it('distinguishes missing and intentionally empty preferences and rejects corrupted records', () => {
-    expect(readSavedDesktopWidgetIds(null)).toBeNull();
-    expect(readSavedDesktopWidgetIds('[]')).toEqual([]);
-    expect(readSavedDesktopWidgetIds('["hidden",7,"hidden",null,"clients"]')).toEqual(['hidden', 'clients']);
-    for (const value of ['broken', '{}', 'null']) expect(() => readSavedDesktopWidgetIds(value)).toThrow();
+  it('persists empty pages, swaps across pages and removes pages only when empty', () => {
+    const start = addDesktopPage(['first', 'second']);
+    expect(desktopPageCount(start)).toBe(2);
+    expect(desktopPageSlots(start, 1)).toEqual(Array(12).fill(null));
+    const placed = placeDesktopWidget(start, 'first', 16);
+    const swapped = placeDesktopWidget(placed, 'second', 16);
+    const restored = readDesktopSlots(JSON.stringify(swapped))!;
+    expect(restored[0]).toBeNull();
+    expect(restored[1]).toBe('first');
+    expect(restored[16]).toBe('second');
+    expect(removeEmptyDesktopPage(restored, 1)).toBe(restored);
+    expect(removeEmptyDesktopPage(removeDesktopWidget(restored, 'second'), 1)).toEqual([null, 'first']);
+  });
+
+  it('distinguishes missing and intentionally empty preferences from malformed records', () => {
+    expect(readDesktopSlots(null)).toBeNull();
+    expect(readDesktopSlots('[]')).toEqual([]);
+    expect(readDesktopSlots('["hidden","hidden","clients"]')).toEqual(['hidden', 'clients']);
+    expect(readDesktopSlots('["hidden",7,"hidden",null,"clients"]')).toEqual(['hidden', null, null, null, 'clients']);
+    for (const value of ['broken', '{}', 'null']) expect(() => readDesktopSlots(value)).toThrow();
   });
 });
 

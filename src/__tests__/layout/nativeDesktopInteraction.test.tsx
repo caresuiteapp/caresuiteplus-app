@@ -8,12 +8,19 @@ import { DESKTOP_AREAS, desktopAreaForRoute, desktopAreaStorageKey } from '@/liq
 import { nativeAdministrationRoute } from '@/liquid-command/navigation/nativeAdministrationModel';
 import type { DesktopApp } from '@/liquid-command/navigation/desktopAppCatalogModel';
 import { canShowDesktopCatalogRoute, desktopCatalogAreaForRoute, filterDesktopCatalogEntries } from '@/liquid-command/navigation/appsWidgetsCatalogModel.shared';
-import { moveNativeDesktopWidget, nativeDesktopLayout } from '@/liquid-command/navigation/nativeDesktopLayout';
+import { nativeDesktopLayout } from '@/liquid-command/navigation/nativeDesktopLayout';
 const memory = new Map<string, string>();
 const api = { owner: 'a', tenant: 'tenant-a', width: 390, scale: 1, modules: ['office', 'assist'], push: vi.fn(), signOut: vi.fn(), getItem: vi.fn(), multiGet: vi.fn(), multiSet: vi.fn(), setItem: vi.fn() };
 const flatten = (style: any): any => Array.isArray(style) ? Object.assign({}, ...style.map(flatten)) : style ?? {};
 const Box = (p: any) => <div data-testid={p.testID}>{p.children}</div>;
+class AnimatedValue {
+  interpolate() { return '0deg'; }
+  setValue() {}
+}
 const native = {
+  Animated: { Value: AnimatedValue, View: Box, loop: () => ({ start() {}, stop() {} }), sequence() {}, timing() {} },
+  PanResponder: { create: () => ({ panHandlers: {} }) },
+  AccessibilityInfo: { isReduceMotionEnabled: async () => false, addEventListener: () => ({ remove() {} }) },
   View: Box, ScrollView: Box, ImageBackground: Box, SafeAreaView: Box, KeyboardAvoidingView: Box, Image: () => null, ActivityIndicator: () => <span>Loading</span>,
   Text: (p: any) => <span>{p.children}</span>, TextInput: (p: any) => <input aria-label={p.accessibilityLabel} value={p.value} onInput={e => p.onChangeText(e.currentTarget.value)} />,
   Pressable: (p: any) => <button data-testid={p.testID} aria-label={p.accessibilityLabel} aria-selected={p.accessibilityState?.selected} disabled={p.disabled} onClick={p.onPress}>{p.children}</button>,
@@ -84,9 +91,9 @@ describe('Native administration desktop interactions', () => {
     expect(host.querySelector('[role="dialog"]')).toBeNull();
   });
   it('opens the current native desktop and searches its module navigation', async () => { await render(); expect(host.querySelector('[data-testid="native-administration-desktop"]')).toBeTruthy(); await click('Navigation'); const input = host.querySelector<HTMLInputElement>('[aria-label="Seiten suchen"]')!; await act(async () => { input.value = 'Rechnungen'; input.dispatchEvent(new Event('input', { bubbles: true })); }); await click('Rechnungen öffnen'); expect(api.push).toHaveBeenCalledWith('/business/office/invoices'); });
-  it('preserves a deliberately empty desktop', async () => { memory.set(key(), '[]'); await render(); expect(host.textContent).toContain('Ihr Desktop ist frei'); expect(api.multiSet).not.toHaveBeenCalled(); });
-  it('does not overwrite saved selections after a storage failure and supports retry', async () => { memory.set(key(), '["clients"]'); api.multiGet.mockRejectedValueOnce(new Error('storage locked')); await render(); expect(host.textContent).toContain('gespeicherte Auswahl bleibt erhalten'); expect(api.multiSet).not.toHaveBeenCalled(); await click('Erneut laden'); expect(host.querySelector('[data-testid="native-administration-desktop"]')).toBeTruthy(); expect(memory.get(key())).toBe('["clients"]'); });
-  it('stores widget removal and ordering under the current tenant and account', async () => { memory.set(key(), '["clients","people","billing"]'); await render(); await click('Desktop bearbeiten'); await click('Personal nach vorne verschieben'); expect(JSON.parse(memory.get(key())!)).toEqual(['people', 'clients', 'billing']); await click('Klient:innen vom Desktop entfernen'); expect(JSON.parse(memory.get(key())!)).toEqual(['people', 'billing']); });
+  it('preserves a deliberately empty desktop', async () => { memory.set(key(), '[]'); await render(); expect(host.textContent).toContain('0 aktiv'); expect(button('Klient:innen öffnen')).toBeUndefined(); expect(api.multiSet).not.toHaveBeenCalled(); });
+  it('does not overwrite saved selections after a storage failure and supports retry', async () => { memory.set(key(), '["clients"]'); api.getItem.mockImplementationOnce(async () => null).mockRejectedValueOnce(new Error('storage locked')); await render(); expect(host.textContent).toContain('gespeicherte Auswahl bleibt erhalten'); expect(api.multiSet).not.toHaveBeenCalled(); await click('Erneut laden'); expect(host.querySelector('[data-testid="native-administration-desktop"]')).toBeTruthy(); expect(memory.get(key())).toBe('["clients"]'); });
+  it('stores widget removal and ordering under the current tenant and account', async () => { memory.set(key(), '["clients","people","billing"]'); await render(); await click('Desktop bearbeiten'); await click('Personal verschieben'); await click('Mit Klient:innen tauschen'); expect(JSON.parse(memory.get(key())!)).toEqual(['people', 'clients', 'billing']); await click('Klient:innen vom Desktop entfernen'); expect(JSON.parse(memory.get(key())!)).toEqual(['people', null, 'billing']); });
   it('migrates old widgets into separate areas without modifying the legacy selection', async () => {
     const office=moduleDesktopStorageKey(api.tenant, api.owner, 'office'); const assist=moduleDesktopStorageKey(api.tenant, api.owner, 'assist');
     memory.set(office, '["clients"]'); memory.set(assist, '["proofs"]'); await render();
@@ -107,15 +114,13 @@ describe('Native administration desktop interactions', () => {
     expect(host.querySelector('[data-testid="native-administration-desktop"]')).toBeTruthy();
     expect(memory.get(key())).toBe('["document-catalog","clients"]');
   });
-  it('clears the previous desktop on a tenant or account switch', async () => { memory.set(key(), '["clients"]'); await render(); api.owner = 'b'; api.tenant = 'tenant-b'; memory.set(key(), '[]'); await render(); expect(host.textContent).toContain('Ihr Desktop ist frei'); expect(memory.get(desktopAreaStorageKey('tenant-a', 'a', 'office'))).toBe('["clients"]'); });
+  it('clears the previous desktop on a tenant or account switch', async () => { memory.set(key(), '["clients"]'); await render(); api.owner = 'b'; api.tenant = 'tenant-b'; memory.set(key(), '[]'); await render(); expect(host.textContent).toContain('0 aktiv'); expect(button('Klient:innen öffnen')).toBeUndefined(); expect(memory.get(desktopAreaStorageKey('tenant-a', 'a', 'office'))).toBe('["clients"]'); });
   it('pins an Office widget on Assist without changing the Office desktop', async () => {
     memory.set(key(), '["people"]'); memory.set(key('assist'), '[]');
-    await render(); await click('Assist'); await click('Apps und Widgets öffnen'); await click('Widgets');
+    await render(); await click('Assist'); await click('Apps und Widgets öffnen'); await click('Widgets'); await click('Alle Bereiche anzeigen');
     const dialog = host.querySelector('[role="dialog"]')!;
-    const title = [...dialog.querySelectorAll('h3')].find(item => item.textContent === 'Klient:innen');
-    expect(title).toBeTruthy();
-    const card = title!.closest('article')!;
-    const add = [...card.querySelectorAll<HTMLButtonElement>('button')].find(item => item.getAttribute('aria-label') === 'Klient:innen zum Desktop hinzufügen');
+    const card = dialog.querySelector('[data-catalog-artwork="/business/office/clients"]')?.closest('article');
+    const add = card?.querySelector<HTMLButtonElement>('[aria-label="Klient:innen zum Desktop hinzufügen"]');
     expect(add).toBeTruthy(); await act(async () => add!.click());
     expect(JSON.parse(memory.get(key('assist'))!)).toContain('clients');
     expect(memory.get(key())).toBe('["people"]');
@@ -139,27 +144,47 @@ describe('Native administration desktop interactions', () => {
     await click('Assist-Desktop auswählen');
     expect(host.querySelector('[data-testid="desktop-apps-widgets-center"]')).toBeTruthy();
     await click('Widgets');
+    await click('Alle Bereiche anzeigen');
+    const add = host.querySelector('[role="dialog"] [data-catalog-artwork="/business/office/clients"]')!
+      .closest('article')!.querySelector<HTMLButtonElement>('[aria-label="Klient:innen zum Desktop hinzufügen"]')!;
     api.multiSet.mockRejectedValueOnce(new Error('storage locked'));
-    await click('Klient:innen zum Desktop hinzufügen');
+    await act(async () => add.click());
     expect(host.textContent).toContain('Die Auswahl konnte nicht gespeichert werden.');
     await click('Speichern erneut versuchen');
     expect(JSON.parse(memory.get(key('assist'))!)).toContain('clients');
     expect(memory.get(key())).toBe('["people"]');
   });
+  it('adds a page and saves the exact position after changing pages in edit mode', async () => {
+    memory.set(key(), '["clients","people"]'); await render();
+    await click('Desktop bearbeiten');
+    await click('＋ Seite hinzufügen');
+    await click('Vorherige Desktop-Seite');
+    await click('Personal verschieben');
+    await click('Nächste Desktop-Seite');
+    await click('Auf Platz 10 ablegen');
+    await click('Bearbeitung beenden');
+    expect(JSON.parse(memory.get(key())!)[21]).toBe('people');
+    expect(host.querySelector('[data-testid="native-desktop-slot-10"] [aria-label="Personal öffnen"]')).toBeTruthy();
+    expect(button('Widget hinzufügen')).toBeUndefined();
+    await act(async () => root.unmount()); root = createRoot(host); await render();
+    await click('Nächste Desktop-Seite');
+    expect(host.querySelector('[data-testid="native-desktop-slot-10"] [aria-label="Personal öffnen"]')).toBeTruthy();
+  });
   it('keeps dismissed widget suggestions hidden after reopening the desktop', async () => {
     memory.set(key(), '[]'); await render();
+    expect(button('Widget hinzufügen')).toBeUndefined();
+    await click('Desktop bearbeiten');
     const dismiss = [...host.querySelectorAll<HTMLButtonElement>('button')].find(item => item.getAttribute('aria-label')?.endsWith('als Vorschlag ausblenden'));
     expect(dismiss).toBeTruthy(); const label = dismiss!.getAttribute('aria-label')!;
     await act(async () => dismiss!.click());
     expect(button(label)).toBeUndefined(); expect(JSON.parse(memory.get(`${key()}.dismissed-suggestions.v1`)!)).toHaveLength(1);
-    await act(async () => root.unmount()); root = createRoot(host); await render();
+    await act(async () => root.unmount()); root = createRoot(host); await render(); await click('Desktop bearbeiten');
     expect(button(label)).toBeUndefined(); expect(memory.get(key())).toBe('[]');
   });
 });
 describe('Native desktop geometry', () => {
-  it.each([[320,2],[360,2],[390,2],[412,2],[480,3]])('matches Web card thresholds at %d pixels', (width, columns) => { expect(nativeDesktopLayout(width).columns).toBe(columns); });
+  it.each([[320,1],[360,2],[390,2],[412,2],[480,2]])('matches Web card thresholds at %d pixels', (width, columns) => { expect(nativeDesktopLayout(width).columns).toBe(columns); });
   it('reserves the same readable width for suggestions as Web', () => { expect(nativeDesktopLayout(390, 1, true).columns).toBe(1); expect(nativeDesktopLayout(1280, 1, true).columns).toBe(3); });
   it('provides a single column for enlarged accessibility text', () => { expect(nativeDesktopLayout(360, 2).columns).toBe(1); });
   it.each([320, 360, 390, 600, 768, 844, 1024, 1280, 1920].flatMap(width => [1, 1.3, 1.6, 2].map(scale => [width, scale])))('fits width %d with font scale %d without clipping the grid', (width, scale) => { const layout = nativeDesktopLayout(width, scale); const occupied = layout.cardWidth * layout.columns + layout.gap * (layout.columns - 1) + 2 * layout.padding + (layout.sidebar ? layout.sidebarWidth + layout.gap : 0); expect(occupied).toBeLessThanOrEqual(width + 0.001); expect(layout.cardWidth).toBeGreaterThan(0); if (width < 900 * scale) expect(layout.sidebar).toBe(false); });
-  it('keeps widget ordering intact at both boundaries', () => { expect(moveNativeDesktopWidget(['a', 'b'], 'a', -1)).toEqual(['a', 'b']); expect(moveNativeDesktopWidget(['a', 'b'], 'b', 1)).toEqual(['a', 'b']); });
 });

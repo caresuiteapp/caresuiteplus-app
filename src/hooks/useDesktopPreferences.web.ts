@@ -1,9 +1,10 @@
-import { useCallback, useEffect, useState, type SetStateAction } from 'react';
+import { useCallback, useEffect, useMemo, useState, type SetStateAction } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { createDesktopPreferenceStorage, mergeDesktopWidgetPreferences, readDismissedDesktopSuggestionRoutes, readSavedDesktopWidgetIds } from '@/lib/preferences/desktopPreferenceStorage.web';
+import { createDesktopPreferenceStorage, readDismissedDesktopSuggestionRoutes } from '@/lib/preferences/desktopPreferenceStorage';
 import { desktopStorageKey, moduleDesktopStorageKey, previousDesktopWidgetIds, restoreDesktopWidgetIds } from '@/liquid-command/navigation/moduleDesktop.web';
 import { desktopAreaStorageKey, introduceOfficeDocumentCatalogWidget, introduceOfficeNotesWidget, type DesktopAreaKey } from '@/liquid-command/navigation/desktopAreas';
 import { BACKGROUNDS, BACKGROUND_STORAGE_KEY, DEFAULT_DESKTOP_IDS, DESKTOP_SLOT_COUNT, DESKTOP_WIDGETS_STORAGE_KEY, LEGACY_FAVORITES_STORAGE_KEY, PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY, SIDEBAR_STORAGE_KEY, WIDGET_BY_ID } from '@/liquid-command/screens/administrationDesktopCatalog';
+import { desktopWidgetIds, readDesktopSlots, restoreDesktopSlots, type DesktopSlot } from '@/liquid-command/navigation/desktopSlots';
 import type { ProductKey } from '@/types';
 
 export const desktopPreferenceStorage = createDesktopPreferenceStorage(AsyncStorage);
@@ -19,8 +20,7 @@ type Options = {
 };
 type PreferenceState = {
   scope: string;
-  desktopIds: string[];
-  savedDesktopIds: string[];
+  desktopSlots: readonly DesktopSlot[];
   dismissedSuggestionRoutes: string[];
   sidebarOpen: boolean;
   backgroundId: string;
@@ -74,16 +74,15 @@ export function useDesktopPreferences({ tenantId, owner, selectedArea, available
       // Shared Office apps are opt-in on other areas. Keep the legacy automatic
       // migration area-specific; current placements and explicit recovery use the full catalogue.
       const restoreIds = desktop === null && previous.length > 0 ? migrationIds : allowedIds;
-      const restored = restoreDesktopWidgetIds(desktop, previous, restoreIds, defaults);
-      const savedDesktopIds = readSavedDesktopWidgetIds(desktop) ?? [];
+      const savedSlots = readDesktopSlots(desktop);
+      const restored = savedSlots ? desktopWidgetIds(savedSlots, allowedIds) : restoreDesktopWidgetIds(null, previous, restoreIds, defaults);
       // An explicitly empty current or migrated list is a choice, not a missing setup.
       const explicitlyEmpty = restored.length === 0 && (desktop !== null || previous.length > 0);
       const withNotes = area === 'office' && !explicitlyEmpty ? introduceOfficeNotesWidget(restored, allowedIds, notesIntroduction === '1') : restored;
       const desktopIds = area === 'office' && !explicitlyEmpty ? introduceOfficeDocumentCatalogWidget(withNotes, allowedIds, catalogIntroduction === '1') : withNotes;
       setState({
         scope,
-        desktopIds,
-        savedDesktopIds,
+        desktopSlots: restoreDesktopSlots(savedSlots, desktopIds),
         // Preserve unavailable routes so a restored permission does not undo a dismissal.
         dismissedSuggestionRoutes: readDismissedDesktopSuggestionRoutes(dismissedSuggestions),
         sidebarOpen: sidebar !== 'false',
@@ -100,8 +99,7 @@ export function useDesktopPreferences({ tenantId, owner, selectedArea, available
     if (!state || state.scope !== scope) return;
     let active = true;
     const [, , area, allowedIds] = JSON.parse(scope) as [string, string, DesktopAreaKey, string[]];
-    const storedIds = mergeDesktopWidgetPreferences(state.desktopIds, state.savedDesktopIds, allowedIds);
-    const values: [string, string][] = [[desktopKey, JSON.stringify(storedIds)], [sidebarKey, String(state.sidebarOpen)], [backgroundKey, state.backgroundId], [dismissedSuggestionsKey, JSON.stringify(state.dismissedSuggestionRoutes)]];
+    const values: [string, string][] = [[desktopKey, JSON.stringify(state.desktopSlots)], [sidebarKey, String(state.sidebarOpen)], [backgroundKey, state.backgroundId], [dismissedSuggestionsKey, JSON.stringify(state.dismissedSuggestionRoutes)]];
     if (area === 'office' && allowedIds.includes('document-catalog')) values.push([catalogIntroductionKey, '1']);
     if (area === 'office' && allowedIds.includes('notes')) values.push([notesIntroductionKey, '1']);
     setSaveState({ snapshot: state, status: 'saving' });
@@ -111,11 +109,15 @@ export function useDesktopPreferences({ tenantId, owner, selectedArea, available
     return () => { active = false; };
   }, [state, scope, desktopKey, sidebarKey, backgroundKey, catalogIntroductionKey, notesIntroductionKey, dismissedSuggestionsKey, saveAttempt]);
 
-  const setDesktopIds = useCallback((action: SetStateAction<string[]>) => {
-    const [, , , allowedIds] = JSON.parse(scope) as [string, string, DesktopAreaKey, string[]];
-    const allowed = new Set(allowedIds);
-    setState(current => current?.scope === scope ? { ...current, desktopIds: [...new Set(resolveUpdate(action, current.desktopIds).filter(id => allowed.has(id)))] } : current);
+  const setDesktopSlots = useCallback((update: (slots: readonly DesktopSlot[]) => readonly DesktopSlot[]) => {
+    setState(current => {
+      if (current?.scope !== scope) return current;
+      const desktopSlots = update(current.desktopSlots);
+      return desktopSlots === current.desktopSlots ? current : { ...current, desktopSlots };
+    });
   }, [scope]);
+  const slots = currentState?.desktopSlots ?? DEFAULT_DESKTOP_IDS;
+  const desktopIds = useMemo(() => desktopWidgetIds(slots, availableWidgetIds), [slots, availableWidgetIds]);
   const setSidebarOpen = useCallback((action: SetStateAction<boolean>) => {
     setState(current => current?.scope === scope ? { ...current, sidebarOpen: resolveUpdate(action, current.sidebarOpen) } : current);
   }, [scope]);
@@ -138,12 +140,13 @@ export function useDesktopPreferences({ tenantId, owner, selectedArea, available
     ready,
     loadError: loadFailure === scope,
     saveStatus: (ready ? saveState?.snapshot === state ? saveState.status : 'saving' : 'idle') as DesktopPreferenceSaveStatus,
-    desktopIds: currentState ? currentState.desktopIds : [...DEFAULT_DESKTOP_IDS],
+    desktopIds,
+    desktopSlots: slots,
     dismissedSuggestionRoutes: currentState ? currentState.dismissedSuggestionRoutes : [],
     sidebarOpen: currentState ? currentState.sidebarOpen : true,
     backgroundId: currentState ? currentState.backgroundId : BACKGROUNDS[0].id,
     recoverableWidgetIds: currentState ? currentState.recoverableWidgetIds : [],
-    setDesktopIds,
+    setDesktopSlots,
     dismissSuggestion,
     setSidebarOpen,
     setBackgroundId,

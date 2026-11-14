@@ -5,14 +5,6 @@ export type DesktopPreferenceStorage = {
   multiSet(entries: PreferenceEntry[]): Promise<void>;
 };
 
-/** Keep current area preferences even when a widget is temporarily unavailable. */
-export function readSavedDesktopWidgetIds(value: string | null): string[] | null {
-  if (value === null) return null;
-  const parsed: unknown = JSON.parse(value);
-  if (!Array.isArray(parsed)) throw new Error('Invalid saved desktop widgets');
-  return [...new Set(parsed.filter((id): id is string => typeof id === 'string'))];
-}
-
 /** Optional recommendation preferences must not block restoration of the desktop. */
 export function readDismissedDesktopSuggestionRoutes(value: string | null): string[] {
   if (value === null) return [];
@@ -28,20 +20,7 @@ export function readDismissedDesktopSuggestionRoutes(value: string | null): stri
   }
 }
 
-/** Replace visible placements while retaining hidden saved IDs in their existing order. */
-export function mergeDesktopWidgetPreferences(visibleIds: readonly string[], savedIds: readonly string[], availableIds: readonly string[]): string[] {
-  const allowed = new Set(availableIds);
-  const visible = [...new Set(visibleIds.filter(id => allowed.has(id)))];
-  const merged: string[] = [];
-  let nextVisible = 0;
-  for (const id of new Set(savedIds)) {
-    if (!allowed.has(id)) merged.push(id);
-    else if (nextVisible < visible.length) merged.push(visible[nextVisible++]);
-  }
-  return [...merged, ...visible.slice(nextVisible)];
-}
-
-/** Orders writes and reads in this document, including when an area remounts. */
+/** Orders writes and reads across area remounts in the current application. */
 export function createDesktopPreferenceStorage(storage: DesktopPreferenceStorage) {
   let pending: Promise<void> = Promise.resolve();
 

@@ -8,7 +8,8 @@ import { DesktopCatalogArtwork } from "../components/DesktopCatalogArtwork.tsx";
 import { DESKTOP_AREAS, type DesktopAreaKey } from '../navigation/desktopAreas';
 import { desktopCatalogAreaForRoute } from '../navigation/appsWidgetsCatalogModel.shared';
 import type { DesktopApp } from "../navigation/desktopAppCatalog.native.ts";
-import { DESKTOP_SLOT_COUNT, type BackgroundDefinition, type WidgetDefinition } from './administrationDesktopCatalog';
+import type { BackgroundDefinition, WidgetDefinition } from './administrationDesktopCatalog';
+import { desktopPageCount, DESKTOP_SLOT_COUNT, type DesktopSlot } from '../navigation/desktopSlots';
 import { desktopAppsWidgetsCenterCss } from "./desktopAppsWidgetsCenterCss.native.ts";
 export type DesktopCenterTab = 'apps' | 'widgets' | 'workflows' | 'backgrounds';
 type DesktopWorkflow = {
@@ -32,6 +33,8 @@ export type DesktopAppsWidgetsCenterProps = {
     workflows: readonly DesktopWorkflow[];
     backgrounds: readonly BackgroundDefinition[];
     desktopIds: readonly string[];
+    desktopSlots: readonly DesktopSlot[];
+    placementSlot?: number | null;
     backgroundId: string;
     recoverableCount: number;
     onRecover: () => void;
@@ -94,7 +97,7 @@ function BackgroundPreview({ background }: {
     {failed ? <NativeSpan className="cs-center-preview-unavailable">Vorschau nicht verfügbar</NativeSpan> : uri ? <NativeImg src={uri} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)}/> : <Image source={source} resizeMode="cover" style={{ width: '100%', height: '100%' }} accessible={false} onError={() => setFailed(true)}/>}
   </NativeDiv>}</NativeWorkspaceStyleScope>;
 }
-export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selectedArea, areas, onSelectArea, initialTab, onTabChange, apps, widgets, workflows, backgrounds, desktopIds, backgroundId, recoverableCount, onRecover, onOpen, onToggleWidget, onMoveWidget, onBackground, saveStatus, onRetrySave, }: DesktopAppsWidgetsCenterProps) {
+export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selectedArea, areas, onSelectArea, initialTab, onTabChange, apps, widgets, workflows, backgrounds, desktopIds, desktopSlots, placementSlot, backgroundId, recoverableCount, onRecover, onOpen, onToggleWidget, onMoveWidget, onBackground, saveStatus, onRetrySave, }: DesktopAppsWidgetsCenterProps) {
     const effectiveScale = 1;
     const [tab, setTab] = useState<DesktopCenterTab>(initialTab);
     const [query, setQuery] = useState('');
@@ -160,10 +163,12 @@ export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selected
     const hasFilters = !!needle || activeCategory !== 'Alle' || (tab === 'widgets' && selectedOnly);
     const tabLabel = TABS.find(item => item.id === tab)!.label;
     const style = { '--cs-center-scale': Math.max(1, Number.isFinite(effectiveScale) ? effectiveScale : 1) } as CSSProperties;
-    const pages = Math.ceil(desktopIds.length / DESKTOP_SLOT_COUNT);
+    const pages = desktopPageCount(desktopSlots);
     const descriptions: Record<DesktopCenterTab, string> = {
         apps: scope === 'area' ? `Apps aus ${areaLabel}. Über das i erfahren Sie, wofür eine App gedacht ist.` : 'Alle für Sie verfügbaren Apps. Der Bereich steht jeweils unter dem Namen.',
-        widgets: `Fügen Sie Widgets zu „Mein Desktop · ${areaLabel}“ hinzu. Das i erklärt die jeweilige Funktion.`,
+        widgets: placementSlot == null
+            ? `Fügen Sie Widgets zu „Mein Desktop · ${areaLabel}“ hinzu. Das i erklärt die jeweilige Funktion.`
+            : `Wählen Sie ein Widget für Seite ${Math.floor(placementSlot / DESKTOP_SLOT_COUNT) + 1}, Platz ${placementSlot % DESKTOP_SLOT_COUNT + 1}.`,
         workflows: selectedArea === 'office' ? 'Häufige Abläufe für Office.' : `Häufige Abläufe für ${areaLabel} und gemeinsame Office-Abläufe.`,
         backgrounds: 'Wählen Sie den Hintergrund für Ihren Desktop. Die Änderung ist sofort sichtbar.',
     };
@@ -220,7 +225,7 @@ export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selected
           <NativeSpan className="cs-center-result-count" role="status" aria-live="polite">{resultCount} von {counts[tab]} {tabLabel}</NativeSpan>
         </NativeDiv>
 
-        {tab === 'widgets' ? <NativeDiv className="cs-center-desktop-summary"><NativeStrong>{desktopIds.length} {desktopIds.length === 1 ? 'Widget' : 'Widgets'} auf „Mein Desktop · {areaLabel}“</NativeStrong><NativeSpan>{pages > 1 ? `Auf ${pages} Seiten verteilt.` : 'Neue Widgets werden am Ende ergänzt.'} Die Reihenfolge lässt sich unten ändern.</NativeSpan></NativeDiv> : null}
+        {tab === 'widgets' ? <NativeDiv className="cs-center-desktop-summary"><NativeStrong>{desktopIds.length} {desktopIds.length === 1 ? 'Widget' : 'Widgets'} auf „Mein Desktop · {areaLabel}“</NativeStrong><NativeSpan>{pages > 1 ? `${pages} Desktop-Seiten. ` : ''} Die Position ändern Sie auch direkt auf dem Desktop.</NativeSpan></NativeDiv> : null}
         {tab === 'widgets' && recoverableCount > 0 ? <NativeDiv className="cs-center-recovery"><NativeP>{recoverableCount} weitere {recoverableCount === 1 ? 'Widget ist' : 'Widgets sind'} aus Ihrer früheren Auswahl verfügbar.</NativeP><NativeButton type="button" className="cs-center-button" onClick={onRecover}>Gespeicherte Widgets wiederherstellen</NativeButton></NativeDiv> : null}
 
         {resultCount === 0 ? <NativeDiv className="cs-center-empty">
@@ -245,13 +250,14 @@ export function DesktopAppsWidgetsCenter({ visible, onClose, areaLabel, selected
           {filteredWidgets.map(widget => {
                 const position = desktopIds.indexOf(widget.id);
                 const pinned = position >= 0;
+                const slot = desktopSlots.indexOf(widget.id);
                 return <NativeWorkspaceStyleScope key={widget.id} css={[desktopAppsWidgetsCenterCss]}>{<NativeArticle key={widget.id} className="cs-center-card cs-center-widget-card" data-selected={pinned}>
               <CatalogHeading label={widget.label} description={widget.description} route={widget.route} category={widget.category} kind={widget.workspaceService ? 'Live-Widget · Zeigt Workspace-Inhalte auf Ihrem Desktop.' : 'Schnellzugriff · Öffnet die Funktion von Ihrem Desktop aus.'}/>
               <NativeSpan className={`cs-center-badge cs-center-card-status${pinned ? '' : ' cs-center-badge-muted'}`}>{pinned ? '✓ Auf diesem Desktop' : widget.workspaceService ? 'Live-Widget' : 'Schnellzugriff'}</NativeSpan>
               <NativeDiv className="cs-center-artwork-preview cs-center-widget-preview"><DesktopCatalogArtwork route={widget.route} label={widget.label} images={widget.images}/></NativeDiv>
               <NativeDiv className="cs-center-card-body cs-center-widget-body">
                 <NativeDiv className="cs-center-widget-actions"><NativeButton type="button" className={`cs-center-button${pinned ? ' cs-center-button-neutral' : ''}`} aria-label={`${widget.label} ${pinned ? 'vom Desktop entfernen' : 'zum Desktop hinzufügen'}`} onClick={() => onToggleWidget(widget.id)}>{pinned ? '− Vom Desktop entfernen' : '+ Zum Desktop hinzufügen'}</NativeButton>
-                  {pinned ? <NativeDiv className="cs-center-reorder"><NativeSpan>Position {position + 1}</NativeSpan><NativeButton type="button" aria-label={`${widget.label} nach vorne verschieben`} title="Nach vorne verschieben" disabled={position === 0} onClick={() => onMoveWidget(widget.id, -1)}>↑</NativeButton><NativeButton type="button" aria-label={`${widget.label} nach hinten verschieben`} title="Nach hinten verschieben" disabled={position === desktopIds.length - 1} onClick={() => onMoveWidget(widget.id, 1)}>↓</NativeButton></NativeDiv> : null}
+                  {pinned ? <NativeDiv className="cs-center-reorder"><NativeSpan>Seite {Math.floor(slot / DESKTOP_SLOT_COUNT) + 1}, Platz {slot % DESKTOP_SLOT_COUNT + 1}</NativeSpan><NativeButton type="button" aria-label={`${widget.label} nach vorne verschieben`} title="Nach vorne verschieben" disabled={position === 0} onClick={() => onMoveWidget(widget.id, -1)}>↑</NativeButton><NativeButton type="button" aria-label={`${widget.label} nach hinten verschieben`} title="Nach hinten verschieben" disabled={position === desktopIds.length - 1} onClick={() => onMoveWidget(widget.id, 1)}>↓</NativeButton></NativeDiv> : null}
                 </NativeDiv>
               </NativeDiv>
             </NativeArticle>}</NativeWorkspaceStyleScope>;

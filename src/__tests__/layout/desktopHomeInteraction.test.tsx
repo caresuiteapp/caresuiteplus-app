@@ -166,7 +166,7 @@ describe('App centre categories and distinct actions', () => {
     await click(label('Gmail zum Desktop hinzufügen'));
     expect(JSON.parse(memory.get(key())!)).toContain('google-gmail');
     expect(dialog().textContent).toContain('13 Widgets');
-    expect(dialog().textContent).toContain('Auf 2 Seiten verteilt');
+    expect(dialog().textContent).toContain('2 Desktop-Seiten');
     expect(catalogButton('Workspace').getAttribute('aria-pressed')).toBe('true');
     await click(label('Gmail vom Desktop entfernen'));
     expect(JSON.parse(memory.get(key())!)).not.toContain('google-gmail'); expect(api.push).not.toHaveBeenCalled();
@@ -174,7 +174,7 @@ describe('App centre categories and distinct actions', () => {
     expect(dialog().textContent).toContain('Widgets für Office');
   });
   it('opens the Widgets tab when adding an empty desktop tile', async () => {
-    memory.set(key(), '[]'); await render(); await click(label('Widget hinzufügen'));
+    memory.set(key(), '[]'); await render(); await click(label('Desktop bearbeiten')); await click(label('Widget hinzufügen'));
     expect(dialog().querySelector('[data-testid="center-widget-catalog"]')).not.toBeNull();
   });
   it('finds released pages outside the old shortlist and opens their actual destination', async () => {
@@ -247,7 +247,7 @@ describe('area desktops with the permitted navigation', () => {
     expect(label('Gmail öffnen')).toBeNull();
     await click(label('Nächste Desktop-Seite'));
     expect(label('Gmail öffnen')).not.toBeNull();
-    expect(host.textContent).toContain('2/2');
+    expect(host.textContent).toContain('Seite 2 von 2');
   });
   it('recovers omitted saved widgets only after an explicit action, keeping the current order', async () => {
     memory.set(key(), '["messages"]');

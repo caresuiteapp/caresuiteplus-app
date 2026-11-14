@@ -23,7 +23,7 @@ export const PREVIOUS_DESKTOP_WIDGETS_STORAGE_KEY = "caresuite.healthos.desktop-
 export const LEGACY_FAVORITES_STORAGE_KEY = "caresuite.healthos.top-widgets.v1";
 export const SIDEBAR_STORAGE_KEY = "caresuite.healthos.sidebar-open.v2";
 export const BACKGROUND_STORAGE_KEY = "caresuite.healthos.desktop-background.v1";
-export const DESKTOP_SLOT_COUNT = 12;
+export { DESKTOP_SLOT_COUNT } from '../navigation/desktopSlots';
 
 export const BACKGROUNDS: readonly BackgroundDefinition[] = [
   { id: "alien-planet", label: "Alien Planet", image: require("../../../assets/healthos/caresuite-alien-planet-no-logo.png") },

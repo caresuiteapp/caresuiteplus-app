@@ -7,7 +7,8 @@ import { DesktopCatalogArtwork } from '../components/DesktopCatalogArtwork.web';
 import { DESKTOP_AREAS, type DesktopAreaKey } from '../navigation/desktopAreas';
 import { desktopCatalogAreaForRoute } from '../navigation/appsWidgetsCatalogModel.shared';
 import type { DesktopApp } from '../navigation/desktopAppCatalog.web';
-import { DESKTOP_SLOT_COUNT, type BackgroundDefinition, type WidgetDefinition } from './administrationDesktopCatalog';
+import type { BackgroundDefinition, WidgetDefinition } from './administrationDesktopCatalog';
+import { desktopPageCount, DESKTOP_SLOT_COUNT, type DesktopSlot } from '../navigation/desktopSlots';
 import { desktopAppsWidgetsCenterCss } from './desktopAppsWidgetsCenterCss.web';
 
 export type DesktopCenterTab = 'apps' | 'widgets' | 'workflows' | 'backgrounds';
@@ -27,6 +28,8 @@ export type DesktopAppsWidgetsCenterProps = {
   workflows: readonly DesktopWorkflow[];
   backgrounds: readonly BackgroundDefinition[];
   desktopIds: readonly string[];
+  desktopSlots: readonly DesktopSlot[];
+  placementSlot?: number | null;
   backgroundId: string;
   recoverableCount: number;
   onRecover: () => void;
@@ -87,7 +90,7 @@ function BackgroundPreview({ background }: { background: BackgroundDefinition })
 
 export function DesktopAppsWidgetsCenter({
   visible, onClose, areaLabel, selectedArea, areas, onSelectArea, initialTab, onTabChange, apps, widgets, workflows, backgrounds,
-  desktopIds, backgroundId, recoverableCount, onRecover, onOpen, onToggleWidget,
+  desktopIds, desktopSlots, placementSlot, backgroundId, recoverableCount, onRecover, onOpen, onToggleWidget,
   onMoveWidget, onBackground, saveStatus, onRetrySave,
 }: DesktopAppsWidgetsCenterProps) {
   const { effectiveScale } = useWebFontScale();
@@ -147,10 +150,12 @@ export function DesktopAppsWidgetsCenter({
   const hasFilters = !!needle || activeCategory !== 'Alle' || (tab === 'widgets' && selectedOnly);
   const tabLabel = TABS.find(item => item.id === tab)!.label;
   const style = { '--cs-center-scale': Math.max(1, Number.isFinite(effectiveScale) ? effectiveScale : 1) } as CSSProperties;
-  const pages = Math.ceil(desktopIds.length / DESKTOP_SLOT_COUNT);
+  const pages = desktopPageCount(desktopSlots);
   const descriptions: Record<DesktopCenterTab, string> = {
     apps: scope === 'area' ? `Apps aus ${areaLabel}. Über das i erfahren Sie, wofür eine App gedacht ist.` : 'Alle für Sie verfügbaren Apps. Der Bereich steht jeweils unter dem Namen.',
-    widgets: `Fügen Sie Widgets zu „Mein Desktop · ${areaLabel}“ hinzu. Das i erklärt die jeweilige Funktion.`,
+    widgets: placementSlot == null
+      ? `Fügen Sie Widgets zu „Mein Desktop · ${areaLabel}“ hinzu. Das i erklärt die jeweilige Funktion.`
+      : `Wählen Sie ein Widget für Seite ${Math.floor(placementSlot / DESKTOP_SLOT_COUNT) + 1}, Platz ${placementSlot % DESKTOP_SLOT_COUNT + 1}.`,
     workflows: selectedArea === 'office' ? 'Häufige Abläufe für Office.' : `Häufige Abläufe für ${areaLabel} und gemeinsame Office-Abläufe.`,
     backgrounds: 'Wählen Sie den Hintergrund für Ihren Desktop. Die Änderung ist sofort sichtbar.',
   };
@@ -219,7 +224,7 @@ export function DesktopAppsWidgetsCenter({
           <span className="cs-center-result-count" role="status" aria-live="polite">{resultCount} von {counts[tab]} {tabLabel}</span>
         </div>
 
-        {tab === 'widgets' ? <div className="cs-center-desktop-summary"><strong>{desktopIds.length} {desktopIds.length === 1 ? 'Widget' : 'Widgets'} auf „Mein Desktop · {areaLabel}“</strong><span>{pages > 1 ? `Auf ${pages} Seiten verteilt.` : 'Neue Widgets werden am Ende ergänzt.'} Die Reihenfolge lässt sich unten ändern.</span></div> : null}
+        {tab === 'widgets' ? <div className="cs-center-desktop-summary"><strong>{desktopIds.length} {desktopIds.length === 1 ? 'Widget' : 'Widgets'} auf „Mein Desktop · {areaLabel}“</strong><span>{pages > 1 ? `${pages} Desktop-Seiten. ` : ''} Die Position ändern Sie auch direkt auf dem Desktop.</span></div> : null}
         {tab === 'widgets' && recoverableCount > 0 ? <div className="cs-center-recovery"><p>{recoverableCount} weitere {recoverableCount === 1 ? 'Widget ist' : 'Widgets sind'} aus Ihrer früheren Auswahl verfügbar.</p><button type="button" className="cs-center-button" onClick={onRecover}>Gespeicherte Widgets wiederherstellen</button></div> : null}
 
         {resultCount === 0 ? <div className="cs-center-empty">
@@ -244,6 +249,7 @@ export function DesktopAppsWidgetsCenter({
           {filteredWidgets.map(widget => {
             const position = desktopIds.indexOf(widget.id);
             const pinned = position >= 0;
+            const slot = desktopSlots.indexOf(widget.id);
             return <article key={widget.id} className="cs-center-card cs-center-widget-card" data-selected={pinned}>
               <CatalogHeading label={widget.label} description={widget.description} route={widget.route} category={widget.category}
                 kind={widget.workspaceService ? 'Live-Widget · Zeigt Workspace-Inhalte auf Ihrem Desktop.' : 'Schnellzugriff · Öffnet die Funktion von Ihrem Desktop aus.'}/>
@@ -252,7 +258,7 @@ export function DesktopAppsWidgetsCenter({
               <div className="cs-center-card-body cs-center-widget-body">
                 <div className="cs-center-widget-actions"><button type="button" className={`cs-center-button${pinned ? ' cs-center-button-neutral' : ''}`}
                   aria-label={`${widget.label} ${pinned ? 'vom Desktop entfernen' : 'zum Desktop hinzufügen'}`} onClick={() => onToggleWidget(widget.id)}>{pinned ? '− Vom Desktop entfernen' : '+ Zum Desktop hinzufügen'}</button>
-                  {pinned ? <div className="cs-center-reorder"><span>Position {position + 1}</span><button type="button" aria-label={`${widget.label} nach vorne verschieben`} title="Nach vorne verschieben" disabled={position === 0} onClick={() => onMoveWidget(widget.id, -1)}>↑</button><button type="button" aria-label={`${widget.label} nach hinten verschieben`} title="Nach hinten verschieben" disabled={position === desktopIds.length - 1} onClick={() => onMoveWidget(widget.id, 1)}>↓</button></div> : null}
+                  {pinned ? <div className="cs-center-reorder"><span>Seite {Math.floor(slot / DESKTOP_SLOT_COUNT) + 1}, Platz {slot % DESKTOP_SLOT_COUNT + 1}</span><button type="button" aria-label={`${widget.label} nach vorne verschieben`} title="Nach vorne verschieben" disabled={position === 0} onClick={() => onMoveWidget(widget.id, -1)}>↑</button><button type="button" aria-label={`${widget.label} nach hinten verschieben`} title="Nach hinten verschieben" disabled={position === desktopIds.length - 1} onClick={() => onMoveWidget(widget.id, 1)}>↓</button></div> : null}
                 </div>
               </div>
             </article>;

@@ -1,10 +1,8 @@
 import { desktopGridMetrics } from '../navigation/desktopLayoutModel';
 
 /** Keep sidebar motion, track widths and artwork height in the same browser layout pass. */
-export function desktopWorkspaceCss(fontScale: number, mobile = false, hasSuggestions = false) {
-  // Recommendations include copy and two actions; keep them readable on tablets
-  // and phones too, instead of inheriting the compact artwork-only card width.
-  const { scale, gap, minimum, labelHeight } = desktopGridMetrics(fontScale, mobile, hasSuggestions);
+export function desktopWorkspaceCss(fontScale: number, mobile = false) {
+  const { scale, gap, minimum, labelHeight } = desktopGridMetrics(fontScale, mobile, false);
   const threshold = (columns: number) => columns * minimum + (columns - 1) * gap;
   return `
     [data-cs-desktop-header] {
@@ -118,16 +116,156 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false, hasSugges
       scrollbar-width: thin;
       scrollbar-color: #7195b4 transparent;
     }
-    [data-cs-desktop-widget-grid] {
-      --cs-desktop-card-height: ${labelHeight + 152}px;
+    .cs-desktop-page-frame {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(min(100%, ${minimum}px), 1fr));
+      grid-template-columns: clamp(24px, 2.6vw, 38px) minmax(0, 1fr) clamp(24px, 2.6vw, 38px);
+      gap: 3px;
+      min-width: 0;
+      min-height: 0;
+    }
+    .cs-desktop-page-frame > [data-cs-desktop-widget-viewport] { grid-column: 2; grid-row: 1; }
+    [data-cs-desktop-page-arrow="previous"] { grid-column: 1; grid-row: 1; }
+    [data-cs-desktop-page-arrow="next"] { grid-column: 3; grid-row: 1; }
+    .cs-desktop-page-arrow, .cs-desktop-page-action,
+    .cs-desktop-move-widget, .cs-desktop-remove-widget {
+      appearance: none;
+      border: 1px solid rgba(140, 216, 255, .42);
+      background: rgba(5, 25, 48, .88);
+      color: #eefaff;
+      font-family: inherit;
+      cursor: pointer;
+    }
+    .cs-desktop-page-arrow {
+      align-self: center;
+      justify-self: stretch;
+      min-height: 48px;
+      padding: 0;
+      border-radius: 13px;
+      font-size: 30px;
+      line-height: 1;
+    }
+    .cs-desktop-page-arrow:disabled { opacity: .38; cursor: default; }
+    .cs-desktop-page-arrow:enabled:hover, .cs-desktop-page-action:hover { background: #125674; }
+    .cs-desktop-page-footer {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: 5px 10px;
+      padding: 3px 4px 0;
+      color: #edf7ff;
+      font-size: ${Math.round(12 * scale)}px;
+    }
+    .cs-desktop-page-count, .cs-desktop-edit-hint {
+      border-radius: 10px;
+      background: rgba(2, 18, 35, .78);
+      padding: 7px 10px;
+      text-align: center;
+    }
+    .cs-desktop-page-count { font-variant-numeric: tabular-nums; }
+    .cs-desktop-page-action {
+      min-height: 36px;
+      border-radius: 10px;
+      padding: 4px 10px;
+      font-size: inherit;
+      font-weight: 700;
+    }
+    [data-cs-desktop-widget-grid] {
+      --cs-desktop-card-height: ${labelHeight + 150}px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(min(100%, ${minimum}px), 1fr));
+      grid-auto-rows: minmax(var(--cs-desktop-card-height), auto);
       gap: ${gap}px;
       align-items: stretch;
     }
     [data-cs-desktop-widget-label] { min-height: ${labelHeight}px !important; }
-    [data-cs-desktop-widget-artwork] { height: 140px !important; }
-    [data-cs-desktop-widget-empty] { min-height: ${labelHeight + 152}px; }
+    [data-cs-desktop-widget-artwork] { height: 138px !important; }
+    [data-cs-desktop-widget-empty] { flex: 1; }
+    .cs-desktop-cell {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      min-width: 0;
+      container: caresuite-desktop-cell / inline-size;
+    }
+    .cs-desktop-cell[data-target="true"] {
+      outline: 2px solid #9af5d6;
+      outline-offset: 2px;
+      border-radius: 18px;
+      background: rgba(25, 104, 93, .38);
+      z-index: 1;
+    }
+    .cs-desktop-cell[data-moving="true"] .cs-desktop-edit-card { opacity: .4; animation: none; }
+    .cs-desktop-edit-card { position: relative; display: flex; flex: 1; flex-direction: column; min-width: 0; }
+    .cs-desktop-edit-card [data-cs-desktop-widget-label] { padding-right: 44px; }
+    .cs-desktop-move-widget {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: flex-end;
+      justify-content: flex-end;
+      padding: 8px;
+      border: 0;
+      border-radius: 18px;
+      background: transparent;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+    @media (pointer: coarse) {
+      .cs-desktop-move-widget { inset: auto 3px 3px auto; padding: 6px; }
+    }
+    .cs-desktop-move-widget:active { cursor: grabbing; }
+    .cs-desktop-move-widget[aria-pressed="true"] { box-shadow: inset 0 0 0 2px #9af5d6; }
+    .cs-desktop-move-widget > span {
+      display: grid;
+      place-items: center;
+      width: 32px;
+      height: 32px;
+      border-radius: 9px;
+      background: #0b344f;
+      font-size: 21px;
+      line-height: 1;
+    }
+    .cs-desktop-remove-widget {
+      position: absolute;
+      right: 5px;
+      top: 5px;
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      color: #ffdee4;
+      background: #4e2537;
+      font-size: 22px;
+      line-height: 1;
+    }
+    .cs-desktop-drag-preview {
+      position: fixed;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      max-width: min(230px, 65vw);
+      padding: 10px 13px;
+      transform: translate(-50%, calc(-100% - 12px));
+      overflow-wrap: anywhere;
+      border: 1px solid #87e6ee;
+      border-radius: 12px;
+      background: #103a55;
+      color: #fff;
+      box-shadow: 0 6px 18px #02152990;
+      font-weight: 700;
+      pointer-events: none;
+    }
+    @keyframes cs-desktop-widget-wiggle {
+      0%, 100% { transform: rotate(-.45deg); }
+      50% { transform: rotate(.45deg); }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .cs-desktop-edit-card { animation: cs-desktop-widget-wiggle .34s ease-in-out infinite; }
+      .cs-desktop-cell:nth-child(even) .cs-desktop-edit-card { animation-delay: -.17s; }
+      .cs-desktop-edit-card:focus-within { animation: none; }
+    }
     @supports (container-type: size) {
       [data-cs-desktop-widget-viewport] {
         container-type: size;
@@ -137,13 +275,12 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false, hasSugges
         --cs-desktop-columns: 1;
         --cs-desktop-rows: 12;
         --cs-desktop-artwork-height: clamp(72px,
-          calc((100cqh - 24px - (var(--cs-desktop-rows) - 1) * ${gap}px) / var(--cs-desktop-rows) - ${labelHeight + 12}px),
-          min(180px, calc((100cqw - (var(--cs-desktop-columns) - 1) * ${gap}px) / var(--cs-desktop-columns) * .55)));
+          calc((100cqh - 20px - (var(--cs-desktop-rows) - 1) * ${gap}px) / var(--cs-desktop-rows) - ${labelHeight + 12}px),
+          min(168px, calc((100cqw - (var(--cs-desktop-columns) - 1) * ${gap}px) / var(--cs-desktop-columns) * .55)));
         --cs-desktop-card-height: calc(${labelHeight + 12}px + var(--cs-desktop-artwork-height));
         grid-template-columns: repeat(var(--cs-desktop-columns), minmax(0, 1fr));
       }
       [data-cs-desktop-widget-artwork] { height: var(--cs-desktop-artwork-height) !important; }
-      [data-cs-desktop-widget-empty] { min-height: calc(${labelHeight + 12}px + var(--cs-desktop-artwork-height)); }
       @container caresuite-desktop-widgets (min-width: ${threshold(2)}px) {
         [data-cs-desktop-widget-grid] { --cs-desktop-columns: 2; --cs-desktop-rows: 6; }
       }
@@ -165,7 +302,6 @@ export function desktopWorkspaceCss(fontScale: number, mobile = false, hasSugges
       line-height: ${21 * fontScale}px !important;
     }
     [data-cs-desktop-widget-artwork] { height: 90px !important; margin: 0 7px 7px; }
-    [data-cs-desktop-widget-empty] { min-height: ${labelHeight + 98}px; }
     ` : ''}
     [data-testid="desktop-full-width-header"] :is([role="button"],button):focus-visible,
     [data-cs-desktop-navigation-workspace] :is([role="button"],[role="tab"],button):focus-visible {
