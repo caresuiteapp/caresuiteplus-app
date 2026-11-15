@@ -1,7 +1,7 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, SectionPanel } from '@/components/ui';
+import { ErrorState, InfoBanner, LoadingState, PremiumButton } from '@/components/ui';
 import { WoundBodyMapFrame } from '@/components/clinicalMedia/WoundBodyMapFrame';
 import { readBodyMark, type WoundBodyMark, type WoundFigure } from '@/components/clinicalMedia/WoundBodyMapFrame.types';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -15,23 +15,36 @@ import { WoundEntryForm, type FormKind } from './WoundEntryForm';
 import { WoundMediaPanel } from './WoundMediaPanel';
 import { WoundCostSummary, WoundEntries, WoundExportPanel, WoundTrends } from './WoundTimeline';
 import { useWoundRecordStyles } from './woundRecordStyles';
+import { WoundSection, WoundTabs } from './WoundWorkspaceLayout';
+import { WoundTextInput } from './WoundTextInput';
 
 const TABS = [
-  { key: 'overview', label: 'Verlauf' }, { key: 'measurement', label: 'Vermessung und Fotos' },
-  { key: 'bodymap', label: 'Körperkarte' }, { key: 'risk', label: 'Dekubitusprophylaxe' },
-  { key: 'anamnesis', label: 'Stammdaten' }, { key: 'diabetic_foot', label: 'Diabetischer Fuß' },
-  { key: 'tracheostomy', label: 'Tracheostomie' }, { key: 'material', label: 'Material' }, { key: 'export', label: 'Ausgabe' },
+  { key: 'overview', label: 'Verlauf', icon: 'activity' },
+  { key: 'findings', label: 'Befunde und Versorgung', icon: 'clipboard' },
+  { key: 'measurement', label: 'Vermessung und Fotos', icon: 'camera' },
+  { key: 'bodymap', label: 'Körperkarte', icon: 'crosshair' },
+  { key: 'risk', label: 'Dekubitusprophylaxe', icon: 'shield' },
+  { key: 'anamnesis', label: 'Stammdaten', icon: 'user' },
+  { key: 'diabetic_foot', label: 'Diabetischer Fuß', icon: 'heart' },
+  { key: 'tracheostomy', label: 'Tracheostomie', icon: 'list' },
+  { key: 'coordination', label: 'Abstimmung', icon: 'message-square' },
+  { key: 'material', label: 'Material', icon: 'package' },
+  { key: 'export', label: 'Ausgabe', icon: 'download' },
 ] as const;
-type Tab = typeof TABS[number]['key'];
+export type WoundRecordTab = typeof TABS[number]['key'];
 type Props = {
   scope: WoundRecordScope;
   wound: AmbulatoryWound & { corrections: Record<string, unknown>[] };
   canWrite: boolean; canReadPlans: boolean; canReadTreatment: boolean; canEgk: boolean;
+  tab: WoundRecordTab; onChangeTab: (tab: WoundRecordTab) => void;
+  actions: (locked: boolean) => ReactNode;
+  caseDetails: ReactNode; findings: ReactNode; coordination: ReactNode; photoEvidence: ReactNode;
 };
 
-export function WoundRecordWorkspace({ scope, wound, canWrite, canReadPlans, canReadTreatment, canEgk }: Props) {
+export function WoundRecordWorkspace({ scope, wound, canWrite, canReadPlans, canReadTreatment, canEgk,
+  tab, onChangeTab, actions, caseDetails, findings, coordination, photoEvidence }: Props) {
   const router = useRouter(), styles = useWoundRecordStyles();
-  const [tab, setTab] = useState<Tab>('overview'), [form, setForm] = useState<FormKind | null>(null);
+  const [form, setForm] = useState<FormKind | null>(null);
   const [saved, setSaved] = useState(''), [mediaEditor, resetMediaEditor] = useState(0);
   const [mark, setMark] = useState<WoundBodyMark | null>(null), [catalog, setCatalog] = useState(false);
   const { tenantId, actorId, role, clientId, woundId } = scope;
@@ -69,6 +82,7 @@ export function WoundRecordWorkspace({ scope, wound, canWrite, canReadPlans, can
   const latestTrace = object(latest?.payload.trace);
   const mayWrite = active.current && !query.refreshing;
   const locked = write.locked || !mayWrite;
+  const navigationLocked = write.locked || form !== null || mark !== null;
   async function save(entry: WoundRecordWrite) {
     if (locked) return;
     setSaved('');
@@ -78,16 +92,19 @@ export function WoundRecordWorkspace({ scope, wound, canWrite, canReadPlans, can
   const add = (kind: FormKind, label: string) => mayWrite ? <PremiumButton title={label} size="sm" disabled={locked}
     onPress={() => { setForm(kind); setSaved(''); write.setError(null); }} /> : null;
 
-  return <SectionPanel title="Wundakte">
-    <View style={styles.stack}>
-      <FilterChipGroup wrap options={TABS.map(option => ({ ...option }))} value={tab} onChange={write.locked ? undefined : key => {
-        setTab(key as Tab); setSaved(''); write.setError(null);
+  return <View style={styles.stack}>
+      {actions(navigationLocked)}
+      <WoundTabs tabs={TABS} value={tab} label="Bereiche der Wundakte" onChange={navigationLocked ? undefined : key => {
+        onChangeTab(key); setSaved(''); write.setError(null);
       }} />
       {query.loading && !data && <LoadingState message="Wundakte wird geladen …" />}
       {(query.error || query.refreshError) && <ErrorState message={query.error || query.refreshError || ''} onRetry={query.refresh} />}
       {write.error && <ErrorState message={write.error} />}
       {write.uncertain && <PremiumButton title="Speicherbestätigung erneut prüfen" disabled={write.busy} onPress={write.retry} />}
       {!!saved && <InfoBanner variant="success" message={saved} />}
+      {tab === 'overview' && caseDetails}
+      <View style={tab === 'findings' ? styles.stack : styles.hidden}>{findings}</View>
+      <View style={tab === 'coordination' ? styles.stack : styles.hidden}>{coordination}</View>
       {data && !query.error && !query.refreshError && <>
         {form && <WoundEntryForm key={form} kind={form} scope={scope} birthDate={data.person.date_of_birth} locked={locked}
           onSave={save} onClose={() => setForm(null)} />}
@@ -97,29 +114,31 @@ export function WoundRecordWorkspace({ scope, wound, canWrite, canReadPlans, can
               <View key={key} style={styles.tile}><Text style={styles.muted}>{label}</Text>
                 <Text style={styles.value}>{typeof latestTrace[key] === 'number' ? formatWoundNumber(latestTrace[key]) + ' ' + unit : '—'}</Text></View>)}
           </View>}
-          {add('note', 'Wundbeschreibung oder Behandlung ergänzen')}
+          <View style={styles.row}>{add('note', 'Wundbeschreibung oder Behandlung ergänzen')}</View>
           <WoundTrends series={series.filter(item => !item.key.includes(':'))} />
           <WoundEntries entries={entries} />
         </>}
         {tab === 'measurement' && <WoundMediaPanel key={mediaEditor} scope={scope} data={data} kind="wound_photo"
           assessments={assessments} canWrite={mayWrite} locked={write.locked} refresh={query.refreshWithResult} onSave={save} />}
-        {tab === 'bodymap' && <>
+        {tab === 'bodymap' && <WoundSection title="3D-Körperkarte">
           {mark && <View style={styles.panel}>
             <Text style={styles.title}>{mark.name}</Text>
-            <Text style={styles.text}>{mark.kind}{mark.text ? ' · ' + mark.text : ''}</Text>
+            <Text style={styles.text}>{mark.kind}</Text>
+            <WoundTextInput scope={scope} label="Beobachtung zur Markierung" value={mark.text} maxLength={1500}
+              onChangeText={text => setMark(previous => previous && { ...previous, text })} editable={!locked} multiline />
             <View style={styles.row}>
               <PremiumButton title="Markierung in Wundakte speichern" onPress={() => save({ kind: 'body_mark', observedAt: new Date().toISOString(), payload: mark })} disabled={locked} />
               <PremiumButton title="Verwerfen" variant="secondary" onPress={() => setMark(null)} disabled={write.locked} />
             </View>
           </View>}
           <WoundBodyMapFrame figure={figure} marks={anchors} canWrite={!locked && mark === null} onMark={setMark} />
-        </>}
-        {tab === 'risk' && <>
+        </WoundSection>}
+        {tab === 'risk' && <WoundSection title="Dekubitusprophylaxe">
           {add('risk', 'Risiko und Prophylaxe erfassen')}
           <WoundTrends series={series.filter(item => /^(braden|norton)(:|$)/.test(item.key))} />
           <WoundEntries entries={perKind('risk')} />
-        </>}
-        {tab === 'anamnesis' && <>
+        </WoundSection>}
+        {tab === 'anamnesis' && <WoundSection title="Stammdaten und Pflegeanamnese">
           <View style={styles.row}>
             <View style={styles.tile}><Text style={styles.muted}>Klient:in</Text><Text style={styles.title}>{wound.clientName}</Text></View>
             <View style={styles.tile}><Text style={styles.muted}>Geburtsdatum</Text><Text style={styles.title}>{data.person.date_of_birth?.split('-').reverse().join('.') || '—'}</Text></View>
@@ -134,10 +153,14 @@ export function WoundRecordWorkspace({ scope, wound, canWrite, canReadPlans, can
             locked={write.locked} refresh={query.refreshWithResult} onSave={save} />
           <WoundMediaPanel scope={scope} data={data} kind="voice" assessments={[]} canWrite={mayWrite}
             locked={write.locked} refresh={query.refreshWithResult} onSave={save} />
-        </>}
-        {tab === 'diabetic_foot' && <>{add('diabetic_foot', 'Fußbefund erfassen')}<WoundEntries entries={perKind('diabetic_foot')} /></>}
-        {tab === 'tracheostomy' && <>{add('tracheostomy', 'Protokoll erfassen')}<WoundEntries entries={perKind('tracheostomy')} /></>}
-        {tab === 'material' && <>
+        </WoundSection>}
+        {tab === 'diabetic_foot' && <WoundSection title="Diabetischer Fuß">
+          {add('diabetic_foot', 'Fußbefund erfassen')}<WoundEntries entries={perKind('diabetic_foot')} />
+        </WoundSection>}
+        {tab === 'tracheostomy' && <WoundSection title="Tracheostomie">
+          {add('tracheostomy', 'Protokoll erfassen')}<WoundEntries entries={perKind('tracheostomy')} />
+        </WoundSection>}
+        {tab === 'material' && <WoundSection title="Material und Kosten">
           <WoundCostSummary entries={entries} />
           <View style={styles.row}>
             {add('material', 'Materialvorgang erfassen')}
@@ -146,10 +169,10 @@ export function WoundRecordWorkspace({ scope, wound, canWrite, canReadPlans, can
           </View>
           {catalog && <WoundCatalogEditor scope={scope} edit={mayWrite && !write.locked} />}
           <WoundEntries entries={perKind('material')} />
-        </>}
+        </WoundSection>}
         {tab === 'export' && <WoundExportPanel wound={wound} entries={entries} media={data.media} scope={scope} canReadPlans={canReadPlans}
           canReadTreatment={canReadTreatment} locked={write.locked || query.refreshing} />}
       </>}
-    </View>
-  </SectionPanel>;
+      <View style={tab === 'measurement' ? styles.stack : styles.hidden}>{photoEvidence}</View>
+    </View>;
 }

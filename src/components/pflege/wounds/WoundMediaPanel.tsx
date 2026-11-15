@@ -1,7 +1,8 @@
+import { WoundSection } from './WoundWorkspaceLayout';
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
-import { ErrorState, FilterChipGroup, InfoBanner, PremiumButton, SectionPanel } from '@/components/ui';
+import { ErrorState, FilterChipGroup, InfoBanner, PremiumButton } from '@/components/ui';
 import { CareSuiteImage } from '@/components/images/CareSuiteImage';
 import { WoundMeasurementFrame } from '@/components/clinicalMedia/WoundMeasurementFrame';
 import { currentMedicationEventTime, MedicationEventTimeInput, medicationEventInstant } from '@/components/pflege/MedicationEventTimeInput';
@@ -91,12 +92,11 @@ export function WoundMediaPanel({ scope, data, kind, assessments, canWrite, lock
     if (alive.current) setFiles(previous => [...previous, file]);
   }
 
-  return <SectionPanel title={title}>
+  return <WoundSection title={title} actions={canWrite ? <PremiumButton
+    title={upload ? 'Hinzufügen schließen' : photo ? 'Bilder hinzufügen' : 'Kommentar hinzufügen'}
+    disabled={busy || locked || voice.isRecording || files.length > 0} size="sm" variant="secondary"
+    onPress={() => setUpload(value => !value)} /> : undefined}>
     <View style={styles.stack}>
-      {canWrite && <View style={styles.row}>
-        <PremiumButton title={upload ? 'Hinzufügen schließen' : photo ? 'Bilder hinzufügen' : 'Kommentar hinzufügen'}
-          disabled={busy || locked || voice.isRecording || files.length > 0} size="sm" variant="secondary" onPress={() => setUpload(value => !value)} />
-      </View>}
       {upload && <View style={styles.panel}>
         <MedicationEventTimeInput label={photo ? 'Aufnahmezeitpunkt der ausgewählten Bilder' : 'Zeitpunkt des Kommentars'}
           value={time} onChange={setTime} disabled={busy || locked || files.length > 0} />
@@ -128,7 +128,7 @@ export function WoundMediaPanel({ scope, data, kind, assessments, canWrite, lock
       {!!error && <ErrorState message={error} />}
       {!!notice && <InfoBanner variant="success" message={notice} />}
       {!items.length && <Text style={styles.muted}>{photo ? 'Keine freigegebenen Bilder zugeordnet.' : 'Noch keine gesprochenen Kommentare.'}</Text>}
-      {items.slice(0, count).map(file => <View key={file.id} style={styles.panel}>
+      {!!items.length && <View style={styles.row}>{items.slice(0, count).map(file => <View key={file.id} style={[styles.panel, styles.galleryCard]}>
         <Text style={styles.title}>{file.file_name}</Text>
         <Text style={styles.muted}>{formatWoundDate(file.observed_at)} · {formatWoundNumber(file.size_bytes / 1024, 0)} KB</Text>
         <View style={styles.row}>
@@ -136,10 +136,11 @@ export function WoundMediaPanel({ scope, data, kind, assessments, canWrite, lock
           {wound && canWrite && <PremiumButton size="sm" title="Auf diesem Foto vermessen" variant="secondary" disabled={busy || locked}
             onPress={() => run(() => open(file, true))} />}
         </View>
-      </View>)}
-      {items.length > count && <PremiumButton title="Weitere Dateien anzeigen" variant="secondary" onPress={() => setCount(n => n + 15)} />}
-      {shown && <View style={styles.stack}>
-        <View style={styles.row}><Text style={styles.title}>{shown.file.file_name}</Text>
+      </View>)}</View>}
+      {items.length > count && <View style={styles.row}><PremiumButton title="Weitere Dateien anzeigen" size="sm"
+        variant="secondary" onPress={() => setCount(n => n + 15)} /></View>}
+      {shown && <View style={styles.panel}>
+        <View style={styles.toolbar}><Text style={styles.title}>{shown.file.file_name}</Text>
           <PremiumButton title="Datei schließen" size="sm" variant="secondary" disabled={locked}
             onPress={() => { setSelected(null); setMeasurement(null); }} />
         </View>
@@ -160,5 +161,5 @@ export function WoundMediaPanel({ scope, data, kind, assessments, canWrite, lock
           <AudioComment key={shown.uri} uri={shown.uri} />}
       </View>}
     </View>
-  </SectionPanel>;
+  </WoundSection>;
 }

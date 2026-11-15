@@ -1,7 +1,8 @@
+import { WoundSection } from './WoundWorkspaceLayout';
 import { useEffect, useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import Svg, { Circle, Line, Polyline } from 'react-native-svg';
-import { ErrorState, FilterChipGroup, PremiumButton, SectionPanel } from '@/components/ui';
+import { ErrorState, FilterChipGroup, PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { ENTRY_LABELS, formatWoundDate, formatWoundNumber, materialCost, type WoundEntry, type WoundMedia } from '@/lib/pflege/woundRecordDomain';
 import { describeWoundEntry, downloadWoundReport, euro, woundRecordSeries, type WoundReportMode, type WoundSeries } from '@/lib/pflege/woundRecordReport';
@@ -61,14 +62,14 @@ export function WoundTrends({ series }: { series: WoundSeries[] }) {
   const styles = useWoundRecordStyles();
   const [metric, setMetric] = useState('');
   const current = series.find(item => item.key === metric) ?? series[0];
-  return <SectionPanel title="Verlaufskurven">
+  return <WoundSection title="Verlaufskurven">
     <View style={styles.stack}>
       {current ? <>
         <FilterChipGroup wrap value={current.key} options={series.map(item => ({ key: item.key, label: item.title }))} onChange={setMetric} />
         <WoundChart series={current} />
       </> : <Text style={styles.muted}>Sobald datierte Messwerte vorliegen, erscheinen sie hier im Verlauf.</Text>}
     </View>
-  </SectionPanel>;
+  </WoundSection>;
 }
 
 export function WoundCostSummary({ entries }: { entries: WoundEntry[] }) {
@@ -113,14 +114,14 @@ export function WoundExportPanel({ wound, entries, media, scope, canReadPlans, c
     } catch (e) { setError(e instanceof Error ? e.message : 'Die PDF-Ausgabe konnte nicht erstellt werden.'); }
     finally { setBusy(false); }
   }
-  return <SectionPanel title="Dokumentation ausgeben">
+  return <WoundSection title="Dokumentation ausgeben">
     <View style={styles.stack}>
       <FilterChipGroup wrap options={types} value={mode} onChange={busy || locked ? undefined : key => { setMode(key as WoundReportMode); setSelected(''); }} />
       {mode !== 'timeline' && (options.length ? <FilterChipGroup wrap options={options} value={selected} onChange={busy ? undefined : setSelected} /> :
         <Text style={styles.muted}>Für diese Ausgabe liegt noch kein passender Eintrag vor.</Text>)}
       {!!error && <ErrorState message={error} />}
-      <PremiumButton title={busy ? 'PDF wird erstellt …' : 'PDF ausgeben'} onPress={save}
-        disabled={locked || busy || (mode !== 'timeline' && !options.some(o => o.key === selected))} />
+      <View style={styles.row}><PremiumButton title={busy ? 'PDF wird erstellt …' : 'PDF ausgeben'} size="sm" onPress={save}
+        disabled={locked || busy || (mode !== 'timeline' && !options.some(o => o.key === selected))} /></View>
     </View>
-  </SectionPanel>;
+  </WoundSection>;
 }

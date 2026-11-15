@@ -1,6 +1,9 @@
+import { WoundSection } from './wounds/WoundWorkspaceLayout';
+import { WoundTextInput } from './wounds/WoundTextInput';
+import type { WoundRecordUserScope } from '@/lib/pflege/woundRecordService';
 import {useEffect,useRef,useState} from 'react';
 import {Text,View} from 'react-native';
-import {ErrorState,InfoBanner,LoadingState,PremiumButton,PremiumInput,SectionPanel,SuccessState} from '@/components/ui';
+import {ErrorState,InfoBanner,LoadingState,PremiumButton,SuccessState} from '@/components/ui';
 import {useUnsavedWebChanges} from '@/hooks/useUnsavedWebChanges.web';
 import {makeWoundPathReviewPacket,woundPathReviewPacketIssue,type WoundPathReviewOriginal,type WoundPathReviewPacket} from '@/lib/pflege/woundPathReview.web';
 import type {WoundPathOriginal,WoundPathSources} from '@/lib/pflege/woundPathPacket.web';
@@ -8,9 +11,9 @@ import {readWoundPathReviewPage} from '@/lib/pflege/woundPathReviewRepository.su
 import {recoverWoundPathReview,saveWoundPathReviewDurably} from '@/lib/pflege/woundPathReviewWorkflow.web';
 import {spacing,typography} from '@/theme';
 
-type Props={tenantId:string;clientId:string;woundId:string;actorId:string;canView:boolean;canRequest:boolean;canReview:boolean;woundOriginal:WoundPathOriginal;sources:WoundPathSources};
+type Props={catalogScope:WoundRecordUserScope;tenantId:string;clientId:string;woundId:string;actorId:string;canView:boolean;canRequest:boolean;canReview:boolean;woundOriginal:WoundPathOriginal;sources:WoundPathSources};
 export function WoundPathReviewPanel(props:Props){
- const {tenantId,clientId,woundId,actorId,canView,canRequest,canReview,woundOriginal,sources}=props;
+ const {catalogScope,tenantId,clientId,woundId,actorId,canView,canRequest,canReview,woundOriginal,sources}=props;
  const identity=`${tenantId}:${clientId}:${woundId}:${actorId}:${woundOriginal.headId}:${woundOriginal.contentFingerprint}:${canView}:${canRequest}:${canReview}`,live=useRef(identity),alive=useRef(true),generation=useRef(0);live.current=identity;
  const current=()=>alive.current&&canView&&live.current===identity;
  const [rows,setRows]=useState<WoundPathReviewOriginal[]>([]),[loaded,setLoaded]=useState(false),[busy,setBusy]=useState(false),[uncertain,setUncertain]=useState(false),[error,setError]=useState<string|null>(null),[success,setSuccess]=useState<string|null>(null),[reason,setReason]=useState(''),[requiredChange,setRequiredChange]=useState(''),[rationale,setRationale]=useState('');
@@ -23,16 +26,16 @@ export function WoundPathReviewPanel(props:Props){
  const send=async(action:WoundPathReviewPacket['action'])=>{if(busy||uncertain||!loaded||!current()||(action==='request'?!canRequest:!canReview))return;setBusy(true);setError(null);setSuccess(null);try{const request=makeWoundPathReviewPacket({...packet(action),requestId:globalThis.crypto.randomUUID()});const result=await saveWoundPathReviewDurably(request,()=>current()&&(action==='request'?canRequest:canReview));if(!current())return;if(!result.ok){setError(result.error);setUncertain(result.uncertain===true);return;}remember(result.data);setReason('');setRequiredChange('');setRationale('');setSuccess(action==='request'?'Wundversorgungfachprüfung bestätigt angefragt.':action==='return'?'Begründete Rückgabe bestätigt gespeichert.':'Qualifizierte Annahme genau dieser unveränderten Wundversorgungfassung bestätigt gespeichert.');}catch(cause){if(current())setError(cause instanceof Error?cause.message:'Wundversorgungfachprüfung konnte nicht gespeichert werden.');}finally{if(current())setBusy(false);}};
  const issue=(action:WoundPathReviewPacket['action'])=>woundPathReviewPacketIssue(packet(action));
  if(!canView)return null;
- return <SectionPanel title="Getrennte Wundfachprüfung" subtitle="Anfrage, Rückgabe und Annahme gehören zu genau einer unveränderten Fassung">
+ return <WoundSection title="Getrennte Wundfachprüfung" subtitle="Anfrage, Rückgabe und Annahme gehören zu genau einer unveränderten Fassung">
   <InfoBanner variant="info" message={`Prüfgrundlage: ${woundOriginal.kind}, Fassung ${woundOriginal.revision}, Kopf ${woundOriginal.headId}. ${active?.status==='accepted'?'Diese Fassung wurde qualifiziert angenommen.':active?.status==='returned'?'Diese Fassung wurde begründet zurückgegeben.':active?.status==='requested'?'Eine getrennte Entscheidung steht aus.':'Für diese Fassung liegt keine Fachprüfung vor.'}`}/>
   {!loaded&&!error?<LoadingState message="Vollständige Wundversorgungprüfhistorie und ursprüngliche Quittung werden geladen…"/>:null}
   {loaded&&!uncertain?<View style={{gap:spacing.sm}}>
-   {!active&&canRequest?<><PremiumInput label="Konkreter Anlass der Wundversorgungfachprüfung" value={reason} onChangeText={setReason} multiline/><PremiumButton title="Fachprüfung dieser Fassung anfragen" loading={busy} disabled={busy||!!issue('request')} onPress={()=>send('request')}/></>:null}
-   {active?.status==='requested'&&canReview?<><PremiumInput label="Grund der Rückgabe" value={reason} onChangeText={setReason} multiline/><PremiumInput label="Erforderliche konkrete Änderung" value={requiredChange} onChangeText={setRequiredChange} multiline/><PremiumButton title="Begründete Rückgabe speichern" variant="secondary" loading={busy} disabled={busy||!!issue('return')} onPress={()=>send('return')}/><PremiumInput label="Eigene fachliche Begründung der Annahme" value={rationale} onChangeText={setRationale} multiline/><PremiumButton title="Qualifizierte Annahme speichern" loading={busy} disabled={busy||!!issue('accept')} onPress={()=>send('accept')}/><InfoBanner variant="info" message={issue('accept')??'Aktuelle Beschäftigungs-, Qualifikations-, Dokument- und ausdrücklich freigegebene Wundversorgungprüfbereichsoriginale werden serverseitig geprüft.'}/></>:null}
+   {!active&&canRequest?<><WoundTextInput scope={catalogScope} editable={!busy} maxLength={8000} label="Konkreter Anlass der Wundversorgungfachprüfung" value={reason} onChangeText={setReason} multiline/><PremiumButton title="Fachprüfung dieser Fassung anfragen" loading={busy} disabled={busy||!!issue('request')} onPress={()=>send('request')}/></>:null}
+   {active?.status==='requested'&&canReview?<><WoundTextInput scope={catalogScope} editable={!busy} maxLength={8000} label="Grund der Rückgabe" value={reason} onChangeText={setReason} multiline/><WoundTextInput scope={catalogScope} editable={!busy} maxLength={8000} label="Erforderliche konkrete Änderung" value={requiredChange} onChangeText={setRequiredChange} multiline/><PremiumButton title="Begründete Rückgabe speichern" variant="secondary" loading={busy} disabled={busy||!!issue('return')} onPress={()=>send('return')}/><WoundTextInput scope={catalogScope} editable={!busy} maxLength={8000} label="Eigene fachliche Begründung der Annahme" value={rationale} onChangeText={setRationale} multiline/><PremiumButton title="Qualifizierte Annahme speichern" loading={busy} disabled={busy||!!issue('accept')} onPress={()=>send('accept')}/><InfoBanner variant="info" message={issue('accept')??'Aktuelle Beschäftigungs-, Qualifikations-, Dokument- und ausdrücklich freigegebene Wundversorgungprüfbereichsoriginale werden serverseitig geprüft.'}/></>:null}
    {active?.status==='returned'?<InfoBanner variant="warning" message="Die Rückgabe bleibt erhalten. Eine neue Wundversorgungfassung erbt keine Annahme und benötigt eine neue Prüfanfrage."/>:null}
   </View>:null}
   {rows.filter(o=>o.woundRootId===woundOriginal.rootId).map(o=><View key={o.rootId} style={{gap:spacing.xs}}><Text style={typography.label}>{o.woundHeadId===woundOriginal.headId?'Aktuelle Fassung':'Frühere Fassung'} · {o.status==='accepted'?'angenommen':o.status==='returned'?'zurückgegeben':'angefragt'}</Text>{o.history.map(e=><Text key={e.id} style={typography.caption}>{e.recordedAt} · {e.actorName} · {e.action==='request'?'Prüfanfrage':e.action==='return'?'Rückgabe':'Annahme'}: {e.reason||e.rationale}{e.requiredChange?` · Änderung: ${e.requiredChange}`:''}{e.qualification?` · Qualifikation: ${e.qualification.title} (${e.qualification.id}), Prüfbereich ${e.qualification.scopeKind}`:''}</Text>)}</View>)}
   {error?<ErrorState message={error}/>:null}{success?<SuccessState message={success}/>:null}{uncertain?<InfoBanner variant="warning" title="Prüfausgang ungeklärt" message="Die feste ursprüngliche Anfrage bleibt erhalten. Erneut prüfen liest ausschließlich ihre native Quittung."/>:null}
   <PremiumButton title={uncertain?'Ursprüngliche Prüfquittung erneut prüfen':'Fachprüfbestand erneut laden'} variant="secondary" disabled={busy} onPress={load}/>
- </SectionPanel>;
+ </WoundSection>;
 }

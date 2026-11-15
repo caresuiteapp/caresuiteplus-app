@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode, type Ref } from "react";
 import {
   Platform,
   StyleSheet,
@@ -27,6 +27,8 @@ type PremiumInputProps = TextInputProps & {
   onLightSurface?: boolean;
   viewContext?: LlganViewContext;
   sensitiveBusinessValue?: boolean;
+  labelAccessory?: ReactNode;
+  inputRef?: Ref<TextInput>;
 };
 
 export function PremiumInput({
@@ -37,6 +39,8 @@ export function PremiumInput({
   onLightSurface = false,
   viewContext,
   sensitiveBusinessValue = false,
+  labelAccessory,
+  inputRef,
   style,
   onChangeText,
   ...props
@@ -65,6 +69,8 @@ export function PremiumInput({
     () =>
       StyleSheet.create({
         wrapper: { gap: spacing.xs },
+        labelRow: { flexDirection: "row", alignItems: "center", gap: spacing.xs },
+        labelWithAccessory: { flex: 1, minWidth: 0 },
         label: {
           ...typography.label,
           color: text.primary,
@@ -114,8 +120,14 @@ export function PremiumInput({
           } as object)
         : {})}
     >
-      {label ? <Text style={styles.label}>{label}</Text> : null}
+      {labelAccessory ? (
+        <View style={styles.labelRow}>
+          {label ? <Text style={[styles.label, styles.labelWithAccessory]}>{label}</Text> : null}
+          {labelAccessory}
+        </View>
+      ) : label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
+        ref={inputRef}
         placeholderTextColor={text.muted}
         {...(Platform.OS === "web"
           ? ({

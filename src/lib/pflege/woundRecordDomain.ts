@@ -1,4 +1,4 @@
-import { TISSUE_LABELS, woundPlanimetry, type WoundMeasurement } from './woundPlanimetry';
+import { TISSUE_LABELS, woundPlanimetry, type WoundMeasurement } from './woundPlanimetry.ts';
 
 export const RISK_SCALES = {
   norton: { label: 'Norton', domains: [
@@ -78,6 +78,28 @@ export const DEFAULT_WOUND_SNIPPETS = [
   { id: 'response', kind: 'treatment', name: 'Versorgung und Reaktion', text: 'Die durchgeführten Versorgungsschritte, das verwendete Material und die beobachtete Reaktion sind dokumentiert.' },
   { id: 'review', kind: 'treatment', name: 'Weiteres Vorgehen', text: 'Die nächste Kontrolle und Zuständigkeit wurden abgestimmt.' },
 ] as const;
+
+export const EMPTY_WOUND_CATALOG_ITEM = { name: '', text: '', supplier: '', code: '', unit: '', unit_cents: null };
+export const WOUND_CATALOG_LABELS: Record<WoundCatalogKind, string> = {
+  description: 'Wundbeschreibung',
+  treatment: 'Wundbehandlung',
+  article: 'Pflegehilfsmittel und Material',
+};
+
+export function mergeWoundCatalogItems(
+  items: readonly WoundCatalogItem[], kind: WoundCatalogKind, starterArticles: readonly WoundCatalogItem[] = [],
+): WoundCatalogItem[] {
+  const saved = items.filter(item => item.kind === kind);
+  const defaults = kind === 'article' ? starterArticles : DEFAULT_WOUND_SNIPPETS.filter(item => item.kind === kind)
+    .map(item => ({ ...EMPTY_WOUND_CATALOG_ITEM, ...item, updated_at: '' }));
+  return [...saved, ...defaults.filter(item => !saved.some(row => row.name === item.name && row.supplier === item.supplier))];
+}
+
+export function appendWoundTemplates(value: string, templates: readonly string[], multiline: boolean): string {
+  const addition = templates.map(text => multiline ? text.trim() : text.trim().replace(/\s+/g, ' ')).filter(Boolean);
+  if (!addition.length) return value;
+  return [value, ...addition].filter(Boolean).join(multiline ? '\n\n' : ' · ');
+}
 
 export function object(value: unknown): RecordPayload | null {
   return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as RecordPayload : null;

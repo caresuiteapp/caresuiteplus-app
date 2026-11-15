@@ -4,7 +4,6 @@ import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
-import { ScreenShell } from '@/components/layout';
 import { ErrorState, FilterChipGroup, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -14,15 +13,16 @@ import { useWoundRead, type WoundReadProps } from "../../hooks/pflege/useWoundRe
 import { WoundStatisticsPanel } from '@/components/pflege/wounds/WoundStatisticsPanel';
 import { WoundCatalogEditor } from '@/components/pflege/wounds/WoundCatalogPanel';
 import { useWoundEntryStyles } from '@/components/pflege/wounds/woundEntryStyles';
+import { WoundPage, WoundSection, WoundTabs } from '@/components/pflege/wounds/WoundWorkspaceLayout';
 import { WoundBodyMapFrame } from '@/components/clinicalMedia/WoundBodyMapFrame';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { fetchAmbulatoryWoundList } from "../../lib/pflege/ambulatoryWoundService.native.ts";
 import { captureWoundListOriginal, filterWoundList, woundListText, woundStatusLabels } from "../../lib/pflege/woundReadOriginal.native.ts";
 import { woundUuid } from '@/lib/pflege/woundCareDomain';
 const VIEWS = [
-    { key: 'cases', label: 'Übersicht' },
-    { key: 'statistics', label: 'Wundstatistik' },
-    { key: 'catalog', label: 'Material und Textbausteine' },
+    { key: 'cases', label: 'Übersicht', icon: 'grid' },
+    { key: 'statistics', label: 'Wundstatistik', icon: 'bar-chart-2' },
+    { key: 'catalog', label: 'Material und Textbausteine', icon: 'layers' },
 ] as const;
 export function WoundDocumentationListScreen() {
     const serviceTenant = useServiceTenantId(), { profile } = useAuth(), permissions = usePermissions();
@@ -75,28 +75,19 @@ function WoundListWorkspace(props: WoundReadProps & {
         setVisible(selection.current.visible);
     }
     if (!q.canRead || !props.owner)
-        return <ScreenShell title="Wunddokumentation">
+        return <WoundPage title="Wunddokumentation">
     <CarePermissionStatus state={props.permissionStatus}/>
-  </ScreenShell>;
+  </WoundPage>;
     const scope = { tenantId: props.owner.tenantId, actorId: props.owner.profileId, role: props.owner.role };
-    return <ScreenShell title="Wunddokumentation" compactHeader>
-    <View style={styles.content}>
+    return <WoundPage title="Wunddokumentation">
       <View style={styles.toolbar}>
-        <FilterChipGroup wrap options={VIEWS.map(option => ({ ...option }))} value={view} onChange={key => {
-            const next = VIEWS.find(option => option.key === key);
-            if (next)
-                setView(next.key);
-        }}/>
+        <WoundTabs tabs={VIEWS} value={view} onChange={setView} label="Wunddokumentation"/>
         {props.canManage && <PremiumButton title="Wundfall anlegen" size="sm" onPress={create} disabled={!q.ready} leadingIcon={<Feather name="plus" size={17} color="#fff" accessible={false}/>}/>}
       </View>
       {view === 'statistics' && <WoundStatisticsPanel scope={scope}/>}
       {view === 'catalog' && <WoundCatalogEditor scope={scope} edit={props.canManage}/>}
       {view === 'cases' && <View style={styles.columns}>
-        <View style={[styles.panel, styles.mainColumn]}>
-          <View style={styles.toolbar}>
-            <Text accessibilityRole="header" style={styles.title}>Wundfälle</Text>
-            <PremiumButton title="Aktualisieren" size="sm" variant="ghost" accessibilityLabel="Wundfälle aktualisieren" onPress={q.refresh} disabled={q.loading}/>
-          </View>
+        <WoundSection title="Wundfälle" style={styles.mainColumn} actions={<PremiumButton title="Aktualisieren" size="sm" variant="ghost" accessibilityLabel="Wundfälle aktualisieren" onPress={q.refresh} disabled={q.loading}/>}>
           {!q.ready ? (q.loading
                 ? <LoadingState message="Wundfälle werden geladen …"/>
                 : <ErrorState message={q.error}/>) : <>
@@ -133,15 +124,10 @@ function WoundListWorkspace(props: WoundReadProps & {
             </>}
             {visible < filtered.length && <PremiumButton title="Weitere 50 anzeigen" size="sm" variant="secondary" onPress={showMore}/>}
           </>}
-        </View>
-        <View style={[styles.panel, styles.mapColumn]}>
-          <View style={styles.headingRow}>
-            <Feather name="crosshair" size={20} color={c.muted} accessible={false}/>
-            <Text accessibilityRole="header" style={styles.title}>3D-Körperkarte</Text>
-          </View>
+        </WoundSection>
+        <WoundSection title="3D-Körperkarte" style={styles.mapColumn}>
           <WoundBodyMapFrame view="preview" figure="adult-man"/>
-        </View>
+        </WoundSection>
       </View>}
-    </View>
-  </ScreenShell>;
+  </WoundPage>;
 }

@@ -1,6 +1,7 @@
+import { WoundSection } from './wounds/WoundWorkspaceLayout';
 import {useEffect,useRef,useState} from 'react';
 import {StyleSheet,Text,View} from 'react-native';
-import {ErrorState,FilterChip,InfoBanner,PremiumButton,SectionPanel} from '@/components/ui';
+import {ErrorState,FilterChip,InfoBanner,PremiumButton} from '@/components/ui';
 import {useCareLightPalette} from '@/design/tokens/carelightadaptive';
 import {spacing,typography} from '@/theme';
 import {woundUuid} from '@/lib/pflege/woundCareDomain';
@@ -25,7 +26,7 @@ export function WoundAssessmentComparison(props:Props){
  function toggleRaw(){try{active();setSelection(s=>s?.ticket===renderTicket?{...s,showRaw:!s.showRaw}:s);}catch{}}
  const selected=selection?.ticket===renderTicket&&originals?selection:null;let comparison:ReturnType<typeof compareWoundAssessments>|null=null;
  if(selected?.left&&selected.right&&originals)try{comparison=compareWoundAssessments(originals,selected.left,selected.right,scope);}catch(e){readError=e instanceof Error?e.message:'Befundpaar prüfen.';}
- return <SectionPanel title="Zwei Originalbefunde gegenüberstellen" subtitle="Technischer Vergleich ohne Verlaufsbewertung oder fachliche Freigabe"><View style={styles.group}>
+ return <WoundSection title="Zwei Originalbefunde gegenüberstellen" subtitle="Technischer Vergleich ohne Verlaufsbewertung oder fachliche Freigabe"><View style={styles.group}>
   <InfoBanner variant="info" message="Befunde ausdrücklich auswählen. Gleiche Zahlen oder Texte bestätigen keine Heilung, Diagnose, Infektion, Behandlung oder Erledigung. Berichtigungen bleiben eigenständige Originalbelege. Bilder werden nicht geladen; vorhandene Referenzen sind nur Originalmetadaten."/>
   {readError||error?<ErrorState message={readError??error??'Originalstand prüfen.'}/>:null}
   {originals?<>
@@ -43,5 +44,5 @@ export function WoundAssessmentComparison(props:Props){
    <PremiumButton variant="secondary" title={selected?.showRaw?'Vollständige Originalbelege ausblenden':'Vollständige Originalbelege anzeigen'} onPress={toggleRaw}/>
    {selected?.showRaw?<Text selectable style={styles.raw}>{JSON.stringify({woundCase:comparison.originals.row,befundA:comparison.left,befundB:comparison.right,berichtigungenA:comparison.leftCorrections,berichtigungenB:comparison.rightCorrections},null,2)}</Text>:null}
   </>:null}
- </View></SectionPanel>;
+ </View></WoundSection>;
 }

@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
-import { ErrorState, FilterChipGroup, InfoBanner, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { ErrorState, FilterChipGroup, InfoBanner, PremiumButton } from '@/components/ui';
 import { currentMedicationEventTime, MedicationEventTimeInput, medicationEventInstant } from '@/components/pflege/MedicationEventTimeInput';
 import { useWoundRecordStyles } from './woundRecordStyles';
 import { WoundCatalogPanel } from './WoundCatalogPanel';
+import { WoundTextInput } from './WoundTextInput';
+import { WoundSection } from './WoundWorkspaceLayout';
 import { ageAt, CLINICAL_FIELDS, COMPLICATING_FACTORS, ENTRY_LABELS, formatWoundNumber, RISK_SCALES, scorePressureRisk,
   woundBmi, woundNumber, type RecordPayload, type RiskScale, type WoundCatalogItem } from '@/lib/pflege/woundRecordDomain';
 import { FOOT_SIDE_LABELS, MATERIAL_LABELS, TRACHEOSTOMY_LABELS } from '@/lib/pflege/woundRecordReport';
@@ -31,18 +33,13 @@ export function WoundEntryForm({ kind, scope, birthDate, locked, onSave, onClose
   const bmi = woundBmi(woundNumber(values.heightCm ?? ''), woundNumber(values.weightKg ?? ''));
   const set = (key: string, value: string) => setValues(prev => ({ ...prev, [key]: value }));
   const input = (key: string, label: string, number = false, multiline = true) =>
-    <PremiumInput key={key} label={label} accessibilityLabel={label} value={values[key] ?? ''} onChangeText={value => set(key, value)}
+    <WoundTextInput key={key} label={label} accessibilityLabel={label} scope={number || kind === 'material' ? undefined : scope}
+      value={values[key] ?? ''} onChangeText={value => set(key, value)}
       multiline={multiline && !number} editable={!locked} maxLength={number ? 12 : 2000}
       keyboardType={number ? 'decimal-pad' : 'default'} />;
   const choices = (key: string, options: Record<string, string>) => <FilterChipGroup wrap
     options={Object.entries(options).map(([k, label]) => ({ key: k, label }))}
     value={values[key] ?? ''} onChange={locked ? undefined : value => set(key, value)} />;
-
-  function insert(field: string, text: string) {
-    const next = [values[field]?.trim(), text].filter(Boolean).join('\n\n');
-    if (next.length > 2000) { setError('Der Baustein passt nicht vollständig in das Feld. Kürze zuerst den vorhandenen Text.'); return; }
-    set(field, next); setError('');
-  }
 
   function copyArticle(item: WoundCatalogItem) {
     setValues(prev => ({ ...prev, name: item.name, supplier: item.supplier, code: item.code, unit: item.unit,
@@ -94,14 +91,11 @@ export function WoundEntryForm({ kind, scope, birthDate, locked, onSave, onClose
     await onSave({ kind, observedAt: observations, payload });
   }
 
-  return <SectionPanel title={ENTRY_LABELS[kind]}>
+  return <WoundSection title={ENTRY_LABELS[kind]}>
     <View style={styles.stack}>
       <MedicationEventTimeInput label={kind === 'material' ? 'Zeitpunkt des Materialvorgangs' : 'Tatsächlicher Beobachtungszeitpunkt'}
         value={time} disabled={locked} onChange={setTime} />
-      {kind === 'note' && NOTES.map(([key, label]) => <View key={key} style={styles.tight}>
-        {input(key, label)}<WoundCatalogPanel scope={scope} kind={key} embedded edit disabled={locked}
-          onInsert={item => insert(key, item.text)} />
-      </View>)}
+      {kind === 'note' && NOTES.map(([key, label]) => input(key, label))}
       {kind === 'risk' && <>
         <FilterChipGroup wrap value={scale} options={Object.entries(RISK_SCALES).map(([key, s]) => ({ key, label: s.label }))}
           onChange={locked ? undefined : key => { setScale(key as RiskScale); setScores([]); }} />
@@ -153,5 +147,5 @@ export function WoundEntryForm({ kind, scope, birthDate, locked, onSave, onClose
         <PremiumButton title="Eingabe schließen" variant="secondary" onPress={onClose} disabled={locked} />
       </View>
     </View>
-  </SectionPanel>;
+  </WoundSection>;
 }

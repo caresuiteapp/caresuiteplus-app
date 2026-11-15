@@ -1,8 +1,9 @@
 // Generated native presentation from src/components/pflege/WoundPhotoReferenceEvidence.web.tsx. Update through scripts/port-native-workspaces.mjs.
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { WoundSection } from './wounds/WoundWorkspaceLayout';
 import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { ErrorState, FilterChip, InfoBanner, PremiumButton, SectionPanel } from '@/components/ui';
+import { ErrorState, FilterChip, InfoBanner, PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { spacing, typography } from '@/theme';
 import { woundUuid } from '@/lib/pflege/woundCareDomain';
@@ -83,7 +84,7 @@ export function WoundPhotoReferenceEvidence(props: Props) {
         catch (e) {
             readError = e instanceof Error ? e.message : 'Originalbefund prüfen.';
         }
-    return <SectionPanel title="Fotoverweise im Originalbefund" subtitle="Referenzbelege und ihre äußere Wundzuordnung"><View style={styles.group}>
+    return <WoundSection title="Fotoverweise im Originalbefund" subtitle="Referenzbelege und ihre äußere Wundzuordnung"><View style={styles.group}>
   <InfoBanner variant="info" message="Vorhandene Verweise sind keine bestätigten Bildoriginale. Bildherkunft, Aufnahmezeit, Bildqualität und Einwilligungsgrundlage sind in diesem Lesestand nicht nachgewiesen. Es werden keine Bilder geladen."/>
   {readError || error ? <ErrorState message={readError ?? error ?? 'Referenzstand prüfen.'}/> : null}
   {evidence ? <>
@@ -103,5 +104,5 @@ export function WoundPhotoReferenceEvidence(props: Props) {
    </View>)}
    <PremiumButton title={selected?.showRaw ? 'Originalverweise ausblenden' : 'Originalverweise als Text anzeigen'} variant="secondary" onPress={toggleRaw}/>
   </> : null}
- </View></SectionPanel>;
+ </View></WoundSection>;
 }

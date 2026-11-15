@@ -1,20 +1,18 @@
+import { WoundSection, WoundTabs } from './WoundWorkspaceLayout';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
-import { ErrorState, FilterChipGroup, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
-import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { DEFAULT_WOUND_SNIPPETS, woundNumber, type WoundCatalogItem, type WoundCatalogKind } from '@/lib/pflege/woundRecordDomain';
-import { readWoundCatalog, saveWoundCatalogItem, type WoundRecordScope } from '@/lib/pflege/woundRecordService';
+import { ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
+import { EMPTY_WOUND_CATALOG_ITEM as EMPTY, WOUND_CATALOG_LABELS as LABELS, mergeWoundCatalogItems, woundNumber, type WoundCatalogItem, type WoundCatalogKind } from '@/lib/pflege/woundRecordDomain';
+import { saveWoundCatalogItem, type WoundRecordUserScope } from '@/lib/pflege/woundRecordService';
 import { WOUND_STARTER_ARTICLES } from '@/lib/pflege/woundStarterCatalog';
 import { useWoundRecordStyles } from './woundRecordStyles';
+import { useWoundCatalog } from './useWoundCatalog';
 
-type CatalogScope = Pick<WoundRecordScope, 'tenantId' | 'actorId' | 'role'>;
-const LABELS = { description: 'Wundbeschreibung', treatment: 'Wundbehandlung', article: 'Pflegehilfsmittel und Material' };
-const EMPTY = { name: '', text: '', supplier: '', code: '', unit: '', unit_cents: null };
 const EMPTY_SEARCH = 'Bezeichnung, Lieferant oder Artikelnummer suchen';
 
 export function WoundCatalogPanel({ scope, kind, onInsert, embedded = false, edit, disabled = false }: {
-  scope: CatalogScope; kind: WoundCatalogKind; onInsert?: (item: WoundCatalogItem) => void;
+  scope: WoundRecordUserScope; kind: WoundCatalogKind; onInsert?: (item: WoundCatalogItem) => void;
   embedded?: boolean; edit: boolean; disabled?: boolean;
 }) {
   const styles = useWoundRecordStyles();
@@ -22,12 +20,9 @@ export function WoundCatalogPanel({ scope, kind, onInsert, embedded = false, edi
   const [count, setCount] = useState(12);
   const [draft, setDraft] = useState<WoundCatalogItem | null>(null), [price, setPrice] = useState('');
   const [error, setError] = useState(''), [busy, setBusy] = useState(false);
-  const query = useAsyncQuery(() => readWoundCatalog(scope), [scope.tenantId, scope.actorId, scope.role],
-    { enabled: shown && !!scope.tenantId && !!scope.actorId, queryKey: [scope.tenantId, scope.actorId, scope.role, 'wound-catalog'].join(':') });
+  const query = useWoundCatalog(scope, shown);
   const searchLabel = kind === 'article' ? EMPTY_SEARCH : 'Textbausteine durchsuchen';
-  const rows = query.data?.filter(item => item.kind === kind) ?? [];
-  const defaults = kind === 'article' ? WOUND_STARTER_ARTICLES : DEFAULT_WOUND_SNIPPETS.filter(item => item.kind === kind).map(item => ({ ...EMPTY, ...item, updated_at: '' }));
-  const visible = [...rows, ...defaults.filter(item => !rows.some(row => row.name === item.name && row.supplier === item.supplier))].filter(item =>
+  const visible = mergeWoundCatalogItems(query.data ?? [], kind, WOUND_STARTER_ARTICLES).filter(item =>
     [item.name, item.supplier, item.code, item.text].some(field => field.toLocaleLowerCase('de').includes(search.trim().toLocaleLowerCase('de'))));
   const update = (key: 'name' | 'text' | 'supplier' | 'code' | 'unit', value: string) => setDraft(prev => prev ? { ...prev, [key]: value } : prev);
 
@@ -53,9 +48,9 @@ export function WoundCatalogPanel({ scope, kind, onInsert, embedded = false, edi
     } finally { setBusy(false); }
   }
 
-  if (!shown) return <PremiumButton title={kind === 'article' ? 'Aus Materialkatalog übernehmen' : 'Textbausteine öffnen'}
+  if (!shown) return <PremiumButton title="Aus Materialkatalog übernehmen"
     variant="secondary" size="sm" disabled={disabled} onPress={() => setShown(true)} />;
-  return <SectionPanel title={kind === 'article' ? LABELS[kind] : 'Textbausteine · ' + LABELS[kind]}>
+  return <WoundSection title={kind === 'article' ? LABELS[kind] : 'Textbausteine · ' + LABELS[kind]}>
     <View style={styles.stack}>
       <PremiumInput label={searchLabel} accessibilityLabel={searchLabel} value={search}
         onChangeText={value => { setSearch(value); setCount(12); }} editable={!disabled} />
@@ -87,7 +82,7 @@ export function WoundCatalogPanel({ scope, kind, onInsert, embedded = false, edi
         </View>
       </View>}
       {!visible.length && !query.loading && <Text style={styles.muted}>Keine passenden Einträge im Katalog.</Text>}
-      {visible.slice(0, count).map(item => <View key={item.id} style={styles.panel}>
+      {!!visible.length && <View style={styles.row}>{visible.slice(0, count).map(item => <View key={item.id} style={[styles.panel, styles.galleryCard]}>
         <Text style={styles.title}>{item.name}</Text>
         {kind === 'article' && <Text style={styles.muted}>{[item.supplier, item.code, item.unit,
           !item.updated_at ? 'Produktfamilie' : item.unit_cents == null ? 'Preis offen' : (item.unit_cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })].filter(Boolean).join(' · ')}</Text>}
@@ -97,18 +92,22 @@ export function WoundCatalogPanel({ scope, kind, onInsert, embedded = false, edi
           {edit && <PremiumButton title={item.updated_at ? 'Bearbeiten' : 'Eigene Fassung speichern'} size="sm"
             variant="secondary" disabled={disabled || busy} onPress={() => open(item)} />}
         </View>
-      </View>)}
-      {visible.length > count && <PremiumButton title="Weitere Einträge laden" variant="secondary" onPress={() => setCount(n => n + 20)} />}
+      </View>)}</View>}
+      {visible.length > count && <View style={styles.row}><PremiumButton title="Weitere Einträge anzeigen" size="sm"
+        variant="secondary" onPress={() => setCount(n => n + 20)} /></View>}
     </View>
-  </SectionPanel>;
+  </WoundSection>;
 }
 
-export function WoundCatalogEditor({ scope, edit }: { scope: CatalogScope; edit: boolean }) {
+export function WoundCatalogEditor({ scope, edit }: { scope: WoundRecordUserScope; edit: boolean }) {
   const styles = useWoundRecordStyles();
   const [kind, setKind] = useState<WoundCatalogKind>('article');
   return <View style={styles.stack}>
-    <FilterChipGroup wrap options={Object.entries(LABELS).map(([key, label]) => ({ key, label }))} value={kind}
-      onChange={key => setKind(key as WoundCatalogKind)} />
+    <WoundTabs tabs={[
+      { key: 'article', label: 'Material', icon: 'package' },
+      { key: 'description', label: LABELS.description, icon: 'clipboard' },
+      { key: 'treatment', label: LABELS.treatment, icon: 'file-text' },
+    ]} value={kind} onChange={setKind} label="Material und Textbausteine" />
     <WoundCatalogPanel key={kind} scope={scope} kind={kind} edit={edit} />
   </View>;
 }

@@ -3,8 +3,7 @@ import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
 import { useRef, useState } from 'react';
 import { View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ScreenShell } from '@/components/layout';
-import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
+import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, SuccessState } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useCareRuntimePermissions as usePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
@@ -12,7 +11,9 @@ import { CarePermissionStatus, type CarePermissionStatusState } from "./CarePerm
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useMedicationSubmission } from "../../hooks/useMedicationSubmission.native.ts";
 import { MedicationEventTimeInput, currentMedicationEventTime, medicationEventInstant } from "../../components/pflege/MedicationEventTimeInput.native.tsx";
-import { WoundCatalogPanel } from '@/components/pflege/wounds/WoundCatalogPanel';
+import { WoundClientPicker } from '@/components/pflege/wounds/WoundClientPicker';
+import { WoundTextInput } from '@/components/pflege/wounds/WoundTextInput';
+import { WoundPage, WoundSection } from '@/components/pflege/wounds/WoundWorkspaceLayout';
 import { useWoundEntryStyles } from '@/components/pflege/wounds/woundEntryStyles';
 import { WoundBodyMapFrame } from '@/components/clinicalMedia/WoundBodyMapFrame';
 import type { WoundBodyMark } from '@/components/clinicalMedia/WoundBodyMapFrame.types';
@@ -28,6 +29,7 @@ const SIDES = [
     { key: 'midline', label: 'Mittig' }, { key: 'bilateral', label: 'Beidseitig' },
     { key: 'not_applicable', label: 'Nicht anwendbar' },
 ];
+const STRUCTURED_FIELDS = new Set(['onsetDate', 'physician', 'lengthCm', 'widthCm', 'depthCm', 'painScore']);
 export function WoundCreateScreen() { return <WoundFormBoundary mode="create"/>; }
 export function WoundAssessmentCreateScreen() { return <WoundFormBoundary mode="assessment"/>; }
 function WoundFormBoundary({ mode }: {
@@ -55,7 +57,7 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
     const [observed, setObserved] = useState(currentMedicationEventTime), [review, setReview] = useState(currentMedicationEventTime);
     const [draft, setDraft] = useState<Record<string, string>>(() => mode === 'create' ? { ...emptyWoundCase() } : { ...emptyWoundAssessment() });
     const [bodyMark, setBodyMark] = useState<WoundBodyMark | null>(null);
-    const [search, setSearch] = useState(''), [timeEdited, setTimeEdited] = useState(false);
+    const [timeEdited, setTimeEdited] = useState(false);
     const clients = useAsyncQuery(() => fetchWoundClients(tenant, role), [tenant, role], {
         enabled: !!tenant && canView && mode === 'create', queryKey: `${tenant}:${role}:wound-clients`,
     });
@@ -63,7 +65,6 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
         enabled: !!tenant && canView && mode === 'assessment', queryKey: `${tenant}:${role}:${woundId}:wound-form`,
     });
     const client = clients.data?.find(person => person.id === clientId);
-    const matchingClients = (clients.data ?? []).filter(person => person.name.toLocaleLowerCase('de').includes(search.trim().toLocaleLowerCase('de')));
     const dirty = timeEdited || !!clientId || Object.values(draft).some(Boolean);
     const write = useMedicationSubmission<FormSubmission>(dirty && !confirmed, async (id, { request, bodyMark: location }, replay) => {
         const result = await writeAmbulatoryWound(tenant, id, request, role, replay, location);
@@ -113,19 +114,11 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
         setBodyMark(mark);
         setDraft(previous => ({ ...previous, bodyLocation: mark.name, side: '' }));
     }
-    const field = (key: string, label: string, multiline = true) => <PremiumInput key={key} label={label} accessibilityLabel={label} value={draft[key] ?? ''} onChangeText={value => change(key, value)} editable={!write.locked} maxLength={key === 'onsetDate' ? 10 : 2000} multiline={multiline}/>;
+    const field = (key: string, label: string, multiline = true) => <WoundTextInput key={key} label={label} scope={STRUCTURED_FIELDS.has(key) ? undefined : catalogScope} accessibilityLabel={label} value={draft[key] ?? ''} onChangeText={value => change(key, value)} editable={!write.locked} maxLength={key === 'onsetDate' ? 10 : 2000} multiline={multiline}/>;
     const chips = (key: string, options: {
         key: string;
         label: string;
     }[]) => <FilterChipGroup wrap options={options} value={draft[key] ?? ''} onChange={write.locked ? undefined : value => change(key, value)}/>;
-    const snippets = (kind: 'description' | 'treatment', fieldKey: string) => <WoundCatalogPanel scope={catalogScope} kind={kind} embedded edit={canManage} disabled={write.locked} onInsert={item => {
-            const next = [draft[fieldKey]?.trim(), item.text].filter(Boolean).join('\n\n');
-            if (next.length > 2000) {
-                write.setError('Der Baustein passt nicht vollständig in das Feld.');
-                return;
-            }
-            change(fieldKey, next);
-        }}/>;
     async function save() {
         if (write.uncertain) {
             await write.retry();
@@ -154,41 +147,34 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
         await write.submit({ request, ...(bodyMark ? { bodyMark } : {}) });
     }
     if (!canView || !canManage)
-        return <ScreenShell title="Wunddokumentation">
+        return <WoundPage title="Wunddokumentation">
     <CarePermissionStatus state={permissionStatus} deniedMessage="Lese- und Schreibberechtigung für Wunddokumentation erforderlich."/>
-  </ScreenShell>;
+  </WoundPage>;
     if (confirmed)
-        return <ScreenShell title="Wunddokumentation gespeichert">
-    <View style={styles.content}>
+        return <WoundPage title="Wunddokumentation gespeichert">
+    <WoundSection title="Gespeichert">
       <SuccessState message={mode === 'create'
                 ? 'Wundfall als Entwurf gespeichert. In der Wundakte findest du die Körperkarte, Vermessung, Fotos und den Verlauf.'
                 : 'Eigenständiges Wundassessment gespeichert. Der bestehende Versorgungsplan und Fallstatus wurden dadurch nicht automatisch freigegeben oder geändert.'}/>
       <View style={styles.actions}>
         <PremiumButton title="Wundakte öffnen" disabled={write.busy} onPress={() => router.replace(`/pflege/wunden/${mode === 'create' ? confirmed : woundId}` as never)}/>
       </View>
-    </View>
-  </ScreenShell>;
-    const control = <SectionPanel title="Nächste Wundkontrolle">
+    </WoundSection>
+  </WoundPage>;
+    const control = <WoundSection title="Nächste Wundkontrolle">
     {chips('reviewStatus', [{ key: 'scheduled', label: 'Termin vereinbart' }, { key: 'pending', label: 'Abstimmung offen' }])}
     {draft.reviewStatus === 'pending' && field('reviewPendingReason', 'Grund oder weiterer Abstimmungsbedarf *')}
     {draft.reviewStatus === 'scheduled' && <MedicationEventTimeInput label="Vereinbarter Kontrolltermin" value={review} disabled={write.locked} onChange={value => { setReview(value); setTimeEdited(true); }}/>}
-  </SectionPanel>;
-    return <ScreenShell title={mode === 'create' ? 'Wundfall anlegen' : 'Wundassessment dokumentieren'} subtitle={wound.data ? `${wound.data.clientName} · ${String(wound.data.row.body_location)}` : undefined} compactHeader>
-    <View style={styles.content}>
+  </WoundSection>;
+    return <WoundPage title={mode === 'create' ? 'Wundfall anlegen' : 'Wundassessment dokumentieren'} subtitle={wound.data ? `${wound.data.clientName} · ${String(wound.data.row.body_location)}` : undefined}>
       {write.uncertain && <InfoBanner variant="warning" message="Speicherergebnis unklar. Dieselbe unveränderte Anfrage erneut prüfen. Angaben und Schließen bleiben bis zur Klärung gesperrt."/>}
       {mode === 'create' ? <>
         <View style={styles.columns}>
-          <View style={[styles.panel, styles.mainColumn]}>
-            <Text accessibilityRole="header" style={styles.title}>Pflegeakte und Lokalisation</Text>
-            <View style={styles.stack}>
-              <PremiumInput label="Pflegeklient:innen suchen" value={search} onChangeText={setSearch} editable={!write.locked}/>
-              {clients.loading && !clients.data ? <LoadingState message="Pflegeakten werden geladen …"/>
+          <WoundSection title="Pflegeakte und Lokalisation" style={styles.mainColumn}>
+            {clients.loading && !clients.data ? <LoadingState message="Pflegeakten werden geladen …"/>
                 : clients.error ? <ErrorState message={clients.error} onRetry={clients.refresh}/>
-                    : matchingClients.length ? <FilterChipGroup wrap options={matchingClients.map(person => ({ key: person.id, label: person.name }))} value={clientId} onChange={write.locked ? undefined : selectClient}/>
-                        : <Text style={styles.muted}>{clients.data?.length ? 'Keine Pflegeakte für diese Suche.' : 'Keine aktiven Pflegeakten verfügbar.'}</Text>}
-              {clients.refreshError && <ErrorState message={clients.refreshError} onRetry={clients.refresh}/>}
-              {client && <Text style={styles.muted} accessibilityLiveRegion="polite">Ausgewählte Pflegeakte · {client.name}</Text>}
-            </View>
+                    : <WoundClientPicker people={clients.data ?? []} selected={clientId} onSelect={selectClient} showOnEmpty disabled={write.locked || !!clients.refreshError}/>}
+            {clients.refreshError && <ErrorState message={clients.refreshError} onRetry={clients.refresh}/>}
             {field('bodyLocation', 'Genaue Lokalisation *', false)}
             <View style={styles.stack}>
               <Text style={styles.body}>Körperseite *</Text>
@@ -198,29 +184,26 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
               <Text style={styles.muted} accessibilityLiveRegion="polite">3D-Markierung übernommen</Text>
               <PremiumButton title="3D-Punkt entfernen" variant="ghost" size="sm" disabled={write.locked} onPress={() => setBodyMark(null)}/>
             </View>}
-          </View>
-          <View style={[styles.panel, styles.mapColumn]}>
-            <Text accessibilityRole="header" style={styles.title}>3D-Körperkarte</Text>
-            <Text style={styles.muted}>{client
+          </WoundSection>
+          <WoundSection title="3D-Körperkarte" style={styles.mapColumn} subtitle={client
                 ? 'Körperstelle auf der Figur wählen und anschließend die Körperseite bestätigen.'
-                : 'Wähle eine Pflegeakte aus, um die Körperstelle an der Figur zu markieren.'}</Text>
+                : 'Wähle eine Pflegeakte aus, um die Körperstelle an der Figur zu markieren.'}>
             <WoundBodyMapFrame key={clientId || 'unassigned'} view="location" figure="adult-man" canWrite={canPickLocation} marks={bodyMark ? [{ ...bodyMark, id: 'pending-location' }] : undefined} onMark={applyLocation}/>
-          </View>
+          </WoundSection>
         </View>
         <View style={styles.columns}>
           <View style={styles.formColumn}>
-            <SectionPanel title="Wundbefund">
+            <WoundSection title="Wundbefund">
               {field('woundType', 'Wundart oder Klärungsstand *', false)}
               {field('etiology', 'Bekannte Ursache oder Klärungsstand *')}
               {field('acquiredWhere', 'Ort und Umstände der Entstehung oder Kenntnisstand *')}
               {field('onsetDate', 'Entstehungsdatum (JJJJ-MM-TT)', false)}
               {!draft.onsetDate && field('onsetUnknownReason', 'Kenntnisstand bei unbekanntem Entstehungsdatum *')}
               {field('description', 'Beschreibung der Wundsituation *')}
-              {snippets('description', 'description')}
-            </SectionPanel>
+            </WoundSection>
           </View>
           <View style={styles.formColumn}>
-            <SectionPanel title="Geplante Versorgung">
+            <WoundSection title="Geplante Versorgung">
               {chips('basisStatus', [
                 { key: 'documented', label: 'Ärztliche Grundlage dokumentiert' },
                 { key: 'pending', label: 'Klärung offen' },
@@ -229,8 +212,7 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
               {field('basisReference', 'Anordnungsbezug, Klärungsstand oder Begründung *')}
               {field('physician', draft.basisStatus === 'documented' ? 'Anordnende ärztliche Person *' : 'Anordnende ärztliche Person', false)}
               {field('carePlan', 'Geplante Versorgung')}
-              {snippets('treatment', 'carePlan')}
-            </SectionPanel>
+            </WoundSection>
             {control}
           </View>
         </View>
@@ -238,34 +220,40 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
         {wound.loading && !wound.data ? <LoadingState message="Wundfall und vorhandener Verlauf werden geladen …"/>
                 : wound.error ? <ErrorState message={wound.error} onRetry={wound.refresh}/> : null}
         {wound.refreshError && <ErrorState message={wound.refreshError} onRetry={wound.refresh}/>}
-        <SectionPanel title="Tatsächlich erhobene Wundsituation">
-          <MedicationEventTimeInput label="Tatsächlicher Assessmentzeitpunkt" value={observed} disabled={write.locked} onChange={value => { setObserved(value); setTimeEdited(true); }}/>
-          {field('measurementMethod', 'Verwendete Messmethode / Einschränkungen *')}
-          {(['length', 'width', 'depth'] as const).map((key, index) => <View key={key} style={styles.stack}>
-            <Text style={styles.body}>{['Länge', 'Breite', 'Tiefe'][index]}</Text>
-            {chips(key + 'State', [{ key: 'measured', label: 'Tatsächlich gemessen' }, { key: 'not_measurable', label: 'Nicht messbar' }])}
-            {draft[key + 'State'] === 'measured' ? field(key + 'Cm', 'Tatsächlich gemessener Wert in cm', false)
+        <View style={styles.columns}>
+          <View style={styles.formColumn}>
+            <WoundSection title="Tatsächlich erhobene Wundsituation">
+              <MedicationEventTimeInput label="Tatsächlicher Assessmentzeitpunkt" value={observed} disabled={write.locked} onChange={value => { setObserved(value); setTimeEdited(true); }}/>
+              {field('measurementMethod', 'Verwendete Messmethode / Einschränkungen *')}
+              {(['length', 'width', 'depth'] as const).map((key, index) => <View key={key} style={styles.stack}>
+                <Text style={styles.body}>{['Länge', 'Breite', 'Tiefe'][index]}</Text>
+                {chips(key + 'State', [{ key: 'measured', label: 'Tatsächlich gemessen' }, { key: 'not_measurable', label: 'Nicht messbar' }])}
+                {draft[key + 'State'] === 'measured' ? field(key + 'Cm', 'Tatsächlich gemessener Wert in cm', false)
                     : field(key + 'Reason', 'Falls nicht messbar: tatsächlicher Grund')}
-          </View>)}
-          {field('woundBed', 'Wundbett / Beurteilbarkeit *')}{snippets('description', 'woundBed')}
-          {field('exudate', 'Exsudat / tatsächliche Beurteilung *')}{field('odor', 'Geruch / tatsächliche Beurteilung *')}
-          {field('woundEdge', 'Wundrand / Beurteilbarkeit *')}{field('surroundingSkin', 'Wundumgebung / Beurteilbarkeit *')}
-          {field('infectionObservation', 'Tatsächliche Infektionsbeobachtungen / Beurteilbarkeit *')}
-        </SectionPanel>
-        <SectionPanel title="Schmerz und persönliche Situation">
-          {chips('painState', [{ key: 'NRS', label: 'NRS 0–10 tatsächlich erhoben' }, { key: 'not_assessable', label: 'Nicht beurteilbar' }])}
-          {draft.painState === 'NRS' ? field('painScore', 'Erhobener ganzzahliger NRS-Wert 0–10', false)
+              </View>)}
+              {field('woundBed', 'Wundbett / Beurteilbarkeit *')}
+              {field('exudate', 'Exsudat / tatsächliche Beurteilung *')}{field('odor', 'Geruch / tatsächliche Beurteilung *')}
+              {field('woundEdge', 'Wundrand / Beurteilbarkeit *')}{field('surroundingSkin', 'Wundumgebung / Beurteilbarkeit *')}
+              {field('infectionObservation', 'Tatsächliche Infektionsbeobachtungen / Beurteilbarkeit *')}
+            </WoundSection>
+          </View>
+          <View style={styles.formColumn}>
+            <WoundSection title="Schmerz und persönliche Situation">
+              {chips('painState', [{ key: 'NRS', label: 'NRS 0–10 tatsächlich erhoben' }, { key: 'not_assessable', label: 'Nicht beurteilbar' }])}
+              {draft.painState === 'NRS' ? field('painScore', 'Erhobener ganzzahliger NRS-Wert 0–10', false)
                 : field('painReason', 'Tatsächlicher Grund für fehlende Schmerzerhebung')}
-          {field('personalImpact', 'Wund-/therapiebedingte Auswirkungen auf Alltag und Wohlbefinden *')}
-          {field('preferences', 'Wünsche / Entscheidungen der Person bzw. tatsächliche Erhebungsgrenze *')}
-          {field('selfManagement', 'Vorhandene Ressourcen und Unterstützungsbedarf *')}
-        </SectionPanel>
-        <SectionPanel title="Tatsächliche Reaktion und Ergebnis">
-          {field('actualAction', 'Tatsächliche Reaktion / ausdrücklich keine Handlung mit Begründung *')}
-          {snippets('treatment', 'actualAction')}{field('response', 'Beobachtetes Ergebnis / ausstehende Rückmeldung *')}
-          <InfoBanner variant="info" message="Eine Beobachtung ist keine automatische Infektionsdiagnose. Verbandwechsel, Anordnungsänderung, Fallabschluss und Eskalationsabschluss werden nicht aus diesem Assessment abgeleitet."/>
-        </SectionPanel>
-        {control}
+              {field('personalImpact', 'Wund-/therapiebedingte Auswirkungen auf Alltag und Wohlbefinden *')}
+              {field('preferences', 'Wünsche / Entscheidungen der Person bzw. tatsächliche Erhebungsgrenze *')}
+              {field('selfManagement', 'Vorhandene Ressourcen und Unterstützungsbedarf *')}
+            </WoundSection>
+            <WoundSection title="Tatsächliche Reaktion und Ergebnis">
+              {field('actualAction', 'Tatsächliche Reaktion / ausdrücklich keine Handlung mit Begründung *')}
+              {field('response', 'Beobachtetes Ergebnis / ausstehende Rückmeldung *')}
+              <InfoBanner variant="info" message="Eine Beobachtung ist keine automatische Infektionsdiagnose. Verbandwechsel, Anordnungsänderung, Fallabschluss und Eskalationsabschluss werden nicht aus diesem Assessment abgeleitet."/>
+            </WoundSection>
+            {control}
+          </View>
+        </View>
       </>}
       {write.error && <ErrorState message={write.error}/>}
       <View style={styles.actions}>
@@ -274,6 +262,5 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
         <PremiumButton title="Schließen" variant="secondary" disabled={write.locked} onPress={async () => { if (await write.confirmLeave())
         router.back(); }}/>
       </View>
-    </View>
-  </ScreenShell>;
+  </WoundPage>;
 }

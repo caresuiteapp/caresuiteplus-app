@@ -16,7 +16,7 @@ const prefix = stripTypeScriptTypes(screen.slice(start, screen.indexOf(' if(acti
 const branch = screen.slice(screen.indexOf(' if(activeEditor){',start),screen.indexOf(" if(!permissions.can('pflege.wounds.view'))",start));
 const expression = branch.match(/const editor=([^\n]+);/)[1].replace(/<(TreatmentCorrectionScreen|WoundAssessmentCorrectionScreen|WoundCareScreen|WoundLifecycleScreen)[^\n]*?\/>/g,(_,name)=>JSON.stringify(name));
 const branchSource=`if(activeEditor)return ${expression};if(!nativeRead)return "denied";`;
-const makeWorkspace = new Function('useEffect', 'useRef', 'useState', 'useLocalSearchParams', 'useServiceTenantId', 'useAuth', 'usePermissions', 'useRouter', 'useStyles', 'useAsyncQuery', 'fetchWoundWithCorrections', 'woundUuid', 'captureWoundComparisonOriginals', 'sameWoundComparisonOriginal','isKnownWoundEditorRole', `${prefix}\nreturn {readComparisonContext,currentDetail,refreshDetail,openDetailEditor,closeDetailEditor,activeEditor,nativeRead,editorBranch(){${branchSource};return null;}};`);
+const makeWorkspace = new Function('useEffect', 'useRef', 'useState', 'useLocalSearchParams', 'useServiceTenantId', 'useAuth', 'usePermissions', 'useRouter', 'useWoundEntryStyles', 'useAsyncQuery', 'fetchWoundWithCorrections', 'woundUuid', 'captureWoundComparisonOriginals', 'sameWoundComparisonOriginal','isKnownWoundEditorRole', `${prefix}\nreturn {readComparisonContext,currentDetail,refreshDetail,openDetailEditor,closeDetailEditor,activeEditor,nativeRead,editorBranch(){${branchSource};return null;}};`);
 // Source-extracted caller logic with local hook/query adapters. This is not a React, browser, layout or database execution.
 function workspace() {
   const slots = [], cleanups = [], routes = [];

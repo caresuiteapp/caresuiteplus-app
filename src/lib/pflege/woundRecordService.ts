@@ -18,6 +18,7 @@ import { object, type RecordPayload, type WoundCatalogItem, type WoundEntry,
 export type WoundRecordScope = {
   tenantId: string; actorId: string; role: RoleKey | null; clientId: string; woundId: string;
 };
+export type WoundRecordUserScope = Pick<WoundRecordScope, 'tenantId' | 'actorId' | 'role'>;
 export type WoundRecordWrite = { kind: WoundEntryKind; observedAt: string; payload: RecordPayload };
 export type WoundRecordData = {
   entries: WoundEntry[];
@@ -205,10 +206,14 @@ export async function woundImageDataUrl(scope: WoundRecordScope, file: WoundMedi
 export type WoundStatistics = { total: number; people: number; dated: number; medianDays: number | null;
   types: Record<string, number>; ageGroups: Record<string, number>; gender: Record<string, number>; factors: Record<string, number> };
 
-export async function readWoundStatistics(scope: Pick<WoundRecordScope, 'tenantId' | 'actorId' | 'role'>, from: string, to: string): Promise<ServiceResult<WoundStatistics>> {
+export async function readWoundStatistics(scope: WoundRecordUserScope, from: string, to: string, clientId?: string): Promise<ServiceResult<WoundStatistics>> {
   try {
     const db = assertScope(scope, false);
-    const response = await rpc(db, 'read_wound_statistics', { p_tenant: scope.tenantId, p_actor: scope.actorId, p_from: from, p_to: to });
+    if (clientId !== undefined && !woundUuid(clientId)) throw Error('Pflegeakte für die Auswertung prüfen.');
+    const args = { p_tenant: scope.tenantId, p_actor: scope.actorId, p_from: from, p_to: to };
+    const response = clientId
+      ? await rpc(db, 'read_wound_statistics_for_client', { ...args, p_client: clientId })
+      : await rpc(db, 'read_wound_statistics', args);
     if (response.error) throw Error(toGermanSupabaseError(response.error));
     const data = object(response.data);
     if (!data || !Number.isInteger(data.total)) throw Error('Statistik konnte nicht bestätigt werden.');

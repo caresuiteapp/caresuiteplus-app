@@ -12,12 +12,15 @@ declare
   s uuid := gen_random_uuid();
   r uuid := gen_random_uuid();
   c uuid := gen_random_uuid();
+  other_client uuid := gen_random_uuid();
   view_uid uuid := gen_random_uuid();
   view_role uuid := gen_random_uuid();
   view_session uuid := gen_random_uuid();
   w uuid;
   case_request uuid := gen_random_uuid();
   case_payload jsonb;
+  statistics jsonb;
+  day date := (clock_timestamp() at time zone 'Europe/Berlin')::date;
   initial_mark jsonb := '{"name":"Linke Ferse","kind":"Wunde","text":"","figure":"older-woman","focusRegion":"foot","side":"left","target":[0,0,0],"point":[0,0.2,0.1],"yaw":0,"pitch":0,"height":1,"detailAngle":0,"anatomyIndex":0,"clinical":false}';
   assessment_id uuid;
   photo_id uuid := gen_random_uuid();
@@ -47,9 +50,10 @@ begin
     values(s,a,clock_timestamp()+interval '2 hours','aal2'),
     (view_session,view_uid,clock_timestamp()+interval '2 hours','aal2');
   insert into public.clients(id,tenant_id,first_name,last_name,status,date_of_birth)
-    values(c,t,'Synthetisch','Prüffall','aktiv','1960-01-01');
+    values(c,t,'Synthetisch','Prüffall','aktiv','1960-01-01'),
+      (other_client,t,'Synthetisch','Zweite Pflegeakte','aktiv','1980-01-01');
   insert into public.client_module_assignments(tenant_id,client_id,module_key,status,is_active)
-    values(t,c,'pflege','active',true);
+    values(t,c,'pflege','active',true),(t,other_client,'pflege','active',true);
   insert into public.client_consents(id,tenant_id,client_id,title,scope,consent_type,granted,granted_at)
     values(consent_id,t,c,'Synthetische Fotofreigabe','own','foto_video',true,observed-interval '1 day');
   auth_claims := jsonb_build_object('sub',a,'role','authenticated','session_id',s,'aal','aal2',
@@ -95,6 +99,27 @@ begin
     perform public.create_ambulatory_wound_with_location(case_request,case_payload,initial_mark || '{"point":[0,0.3,0.1]}');
     raise exception 'Markierung derselben Anfrage überschrieben';
   exception when invalid_parameter_value then null;
+  end;
+  statistics := public.read_wound_statistics_for_client(t,a,day,day,other_client);
+  if statistics->>'total' is distinct from '0' then
+    raise exception 'Pflegeakte ohne Wundfall enthält fremde Fälle';
+  end if;
+  perform public.write_ambulatory_wound_documentation(gen_random_uuid(),
+    jsonb_build_object('action','create','subjectId',other_client,
+      'dataJson',(doc || '{"woundType":"Weiterer synthetischer Befund"}')::text));
+  statistics := public.read_wound_statistics_for_client(t,a,day,day,c);
+  if statistics->>'total' is distinct from '1' or statistics->>'people' is distinct from '1'
+     or statistics->'types' is distinct from '{"Synthetischer Befund":1}'::jsonb then
+    raise exception 'Klientenfilter stellt keine eindeutige Teilmenge dar';
+  end if;
+  statistics := public.read_wound_statistics(t,a,day,day);
+  if statistics->>'total' is distinct from '2' or statistics->>'people' is distinct from '2' then
+    raise exception 'Gesamtstatistik hat einen Klienten ausgeblendet';
+  end if;
+  begin
+    perform public.read_wound_statistics_for_client(t,a,day,day,gen_random_uuid());
+    raise exception 'Klientenfilter hat einen unzugänglichen Bezug akzeptiert';
+  exception when insufficient_privilege then null;
   end;
   assessment_id := public.write_ambulatory_wound_documentation(gen_random_uuid(),
     jsonb_build_object('action','assessment','subjectId',w,'dataJson',assessment_doc::text));

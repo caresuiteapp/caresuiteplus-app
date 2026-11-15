@@ -455,11 +455,11 @@ drop policy if exists wound_record_storage_delete_guard on storage.objects;
 create policy wound_record_storage_delete_guard on storage.objects as restrictive for delete to authenticated
   using (bucket_id<>'pflege-wound-media');
 
-create or replace function care_private.read_wound_statistics(t uuid,a uuid,from_day date,to_day date)
+create or replace function care_private.read_wound_statistics(t uuid,a uuid,from_day date,to_day date,filter_client uuid)
 returns jsonb language plpgsql security definer set search_path = '' as $$
 declare result jsonb;
 begin
-  perform care_private.assert_wound_record_scope(t,a,null,null,false);
+  perform care_private.assert_wound_record_scope(t,a,filter_client,null,false);
   if from_day is null or to_day is null or not isfinite(from_day) or not isfinite(to_day) or from_day>to_day
     or to_day>(clock_timestamp() at time zone 'Europe/Berlin')::date then
     raise exception 'Auswertungszeitraum prüfen.' using errcode='22023';
@@ -479,6 +479,7 @@ begin
     from public.clinical_wound_cases w
     where w.tenant_id=t and w.created_at >= (from_day::timestamp at time zone 'Europe/Berlin')
       and w.created_at < ((to_day+1)::timestamp at time zone 'Europe/Berlin')
+      and (filter_client is null or w.client_id=filter_client)
       and care_private.wound_active_client(w.client_id)
   ), people as materialized (
     select x.id,coalesce(x.gender::text,'Ohne Angabe') as gender,
@@ -509,6 +510,11 @@ begin
   return result;
 end $$;
 
+create or replace function care_private.read_wound_statistics(t uuid,a uuid,from_day date,to_day date)
+returns jsonb language sql security invoker set search_path='' as $$
+  select care_private.read_wound_statistics(t,a,from_day,to_day,null::uuid)
+$$;
+
 create or replace function public.read_wound_record_context(p_tenant uuid,p_actor uuid,p_client uuid,p_wound uuid)
 returns jsonb language sql security invoker set search_path='' as $$
   select care_private.read_wound_record_context(p_tenant,p_actor,p_client,p_wound)
@@ -534,6 +540,17 @@ create or replace function public.read_wound_statistics(p_tenant uuid,p_actor uu
 returns jsonb language sql security invoker set search_path='' as $$
   select care_private.read_wound_statistics(p_tenant,p_actor,p_from,p_to)
 $$;
+create or replace function public.read_wound_statistics_for_client(p_tenant uuid,p_actor uuid,p_from date,p_to date,p_client uuid)
+returns jsonb language plpgsql security invoker set search_path='' as $$
+begin
+  if p_client is null then raise exception 'Pflegeakte für die Auswertung prüfen.' using errcode='22023'; end if;
+  return care_private.read_wound_statistics(p_tenant,p_actor,p_from,p_to,p_client);
+end $$;
+
+revoke all on function care_private.read_wound_statistics(uuid,uuid,date,date,uuid),
+  public.read_wound_statistics_for_client(uuid,uuid,date,date,uuid) from public,anon,authenticated,service_role;
+grant execute on function care_private.read_wound_statistics(uuid,uuid,date,date,uuid),
+  public.read_wound_statistics_for_client(uuid,uuid,date,date,uuid) to authenticated;
 
 revoke all on function care_private.wound_record_consent(uuid,uuid,uuid,timestamptz),
   care_private.validate_wound_record_entry(text,jsonb),care_private.assert_wound_record_scope(uuid,uuid,uuid,uuid,boolean)
