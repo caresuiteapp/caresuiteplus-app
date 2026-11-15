@@ -106,6 +106,19 @@ afterEach(async () => {
 });
 
 describe('Vitalwerte · Übersicht und Erfassung', () => {
+  it('shows and filters the full catalog without an eligible case and sends no case-specific request', async () => {
+    fixture.createPeople = [];
+    await page(<VitalReadingCreateScreen/>);
+    expect(host.textContent).toContain('42 Messarten');
+    expect(host.textContent).toContain('Körperoberfläche');
+    expect(host.textContent).toContain('Sauerstoffpartialdruck');
+    expect(readChoiceKeys()).toEqual([]);
+    expect(button('Messung speichern')?.disabled).toBe(true);
+    await click('Körpermaße');
+    expect(host.textContent).toContain('5 Messarten');
+    expect(host.textContent).not.toContain('Sauerstoffpartialdruck');
+  });
+
   it('opens a generic create route and waits for explicit confirmation before loading that case’s catalog', async () => {
     await selectFromHistory();
     await page(<React.StrictMode><VitalReadingCreateScreen/></React.StrictMode>);

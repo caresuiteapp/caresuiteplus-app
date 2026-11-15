@@ -14,7 +14,7 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useMedicationSubmission } from "../../hooks/useMedicationSubmission.native.ts";
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { radius, spacing, typography } from '@/theme';
-import { getVitalDefinition, VITAL_CATEGORY_LABELS, type VitalCategoryKey, type VitalSignDefinition } from '@/lib/pflege/vitalCatalog';
+import { getVitalDefinition, VITAL_CATEGORY_LABELS, VITAL_SIGN_CATALOG, type VitalCategoryKey, type VitalSignDefinition } from '@/lib/pflege/vitalCatalog';
 import { deriveVitalValues, parseVitalNumber, requiredVitalComponents, validateVitalMeasurement, type VitalMeasurementPayload } from '@/lib/pflege/vitalMeasurementDomain';
 import { VitalCreateRuntimeWeb } from "../../lib/pflege/vitalCreateRuntime.native.ts";
 import { takeVitalCaptureClient } from '@/lib/pflege/vitalCaptureHandoff';
@@ -50,26 +50,30 @@ const measurementScales: Readonly<Record<string, Readonly<Record<string, ReturnT
 const textOptions = (...labels: string[]) => labels.map(label => ({ key: label, label }));
 // Optional shortcuts for the existing catalog fields. They never replace free text.
 const contextOptions: Readonly<Partial<Record<VitalSignDefinition['key'], Readonly<Record<string, ReturnType<typeof textOptions>>>>>> = {
-    blood_pressure: { arm: textOptions('links', 'rechts') },
+    blood_pressure: { position: textOptions('sitzend', 'liegend', 'stehend'), arm: textOptions('links', 'rechts'), cuff: textOptions('klein', 'Standard', 'groß', 'XL', 'Handgelenk') },
     pulse: { rhythm: textOptions('regelmäßig', 'unregelmäßig'), method: textOptions('manuell', 'Monitor') },
     respiratory_rate: { pattern: textOptions('regelmäßig', 'flach', 'vertieft') },
-    oxygen: { oxygenSupport: textOptions('Raumluft'), perfusion: textOptions('gut', 'eingeschränkt') },
-    temperature: { site: textOptions('Ohr', 'oral', 'axillär', 'rektal'), method: textOptions('Kontakt', 'kontaktlos') },
-    weight: { scale: textOptions('Standwaage', 'Sitzwaage', 'Bettwaage') },
+    oxygen: { oxygenSupport: textOptions('Raumluft', 'Nasenbrille', 'Maske', 'Reservoirmaske', 'HFNC'), perfusion: textOptions('gut', 'eingeschränkt') },
+    temperature: { site: textOptions('Ohr', 'Stirn', 'oral', 'axillär', 'rektal'), method: textOptions('Kontakt', 'kontaktlos') },
+    weight: { clothing: textOptions('ohne Kleidung', 'leicht bekleidet', 'bekleidet'), scale: textOptions('Standwaage', 'Sitzwaage', 'Bettwaage', 'Rollstuhlwaage') },
     blood_glucose: { mealContext: textOptions('nüchtern', 'präprandial', 'postprandial'), sample: textOptions('kapillär', 'venös', 'Sensor') },
     capillary_refill: { site: textOptions('Finger', 'Sternum') },
-    urine_output: { route: textOptions('spontan', 'DK', 'Urostoma') },
+    pain_score: { location: textOptions('Kopf', 'Hals', 'Brustkorb', 'Bauch', 'Rücken', 'Arm', 'Bein', 'mehrere Regionen') },
+    urine_output: { period: textOptions('Frühdienst', 'Spätdienst', 'Nachtdienst', '24 Stunden'), route: textOptions('spontan', 'Dauerkatheter', 'Einmalkatheter', 'Urostoma') },
+    fluid_balance: { period: textOptions('Frühdienst', 'Spätdienst', 'Nachtdienst', '24 Stunden') },
+    arterial_pressure: { site: textOptions('A. radialis', 'A. femoralis', 'A. brachialis', 'A. dorsalis pedis') },
+    cvp: { reference: textOptions('Phlebostatische Achse', 'Rückenlage', 'Oberkörper erhöht') },
     pupils: { leftReaction: textOptions('prompt', 'träge', 'keine'), rightReaction: textOptions('prompt', 'träge', 'keine') },
     etco2: { method: textOptions('Hauptstrom', 'Nebenstrom') },
     oxygen_flow: { device: textOptions('Nasenbrille', 'Maske', 'HFNC') },
-    ventilator_rate: { mode: textOptions('PSV', 'PCV', 'VC') },
+    ventilator_rate: { mode: textOptions('PSV', 'PCV', 'VC', 'SIMV', 'CPAP') },
     ph: { sample: textOptions('arteriell', 'venös', 'kapillär') },
 };
 const typeAliases: Readonly<Record<string, string>> = {
     blood_pressure: 'rr blutdruck', pulse: 'herzfrequenz hf',
     respiratory_rate: 'atemfrequenz af', oxygen: 'sauerstoff o2 spo2',
 };
-const searchText = (value: string) => value.normalize('NFKD').replace(/\p{Mark}/gu, '').toLocaleLowerCase('de-DE').trim();
+const searchText = (value: string) => value.normalize('NFKD').replace(/\p{Mark}/gu, '').toLocaleLowerCase('de-DE').replaceAll('ß', 'ss').trim();
 const matches = (query: string, value: string) => query.split(/\s+/).every(term => searchText(value).includes(term));
 const unitsFor = (definition: VitalSignDefinition) => [...new Set(definition.components.map(component => component.unit).filter(Boolean))].join(' · ');
 function IntakeStep({ number, title, hint, badge, children, styles }: {
@@ -325,12 +329,13 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
       </View>
     </View>
   </ScreenShell>;
-    const catalogue = (choices.data ?? []).flatMap(item => {
+    const confirmedCatalogue = !!client && !!choices.data;
+    const catalogue = confirmedCatalogue ? (choices.data ?? []).flatMap(item => {
         const definition = getVitalDefinition(item.key);
         return definition ? [{ definition, enabled: item.enabled }] : [];
-    });
+    }) : VITAL_SIGN_CATALOG.map(definition => ({ definition, enabled: false }));
     const enabledCount = catalogue.filter(item => item.enabled).length;
-    const typeOptions = catalogueView === 'enabled' ? catalogue.filter(item => item.enabled) : catalogue;
+    const typeOptions = confirmedCatalogue && catalogueView === 'enabled' ? catalogue.filter(item => item.enabled) : catalogue;
     const selectedMeasurement = choice?.enabled && client ? definition : null;
     const suggestedMatches = suggestedClientId ? (clients.data ?? []).filter(item => item.id === suggestedClientId) : [];
     const suggestedClient = !clientId && suggestedMatches.length === 1 ? suggestedMatches[0] : null;
@@ -354,9 +359,9 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
           {uncertain ? <InfoBanner variant="warning" title="Speicherergebnis noch unklar" message="Die Anfrage bleibt unverändert. Bitte dieselbe Messung erneut prüfen. Änderungen und Schließen sind bis zur Klärung gesperrt."/> : null}
 
           <IntakeStep number={1} title="Pflegefall" hint="Wählen Sie die Person, bei der gemessen wurde." badge={client ? 'Ausgewählt' : undefined} styles={styles}>
-            {clients.loading && !clients.data ? <LoadingState message="Aktive Pflegefälle werden geladen…"/> : null}
-            {clients.error ? <ErrorState message={clients.error} onRetry={clients.refresh}/> : null}
-            {clients.refreshError ? <ErrorState message={clients.refreshError} onRetry={clients.refresh}/> : null}
+            {clients.loading && !clients.data ? <LoadingState presentation="inline" message="Aktive Pflegefälle werden geladen…"/> : null}
+            {clients.error ? <ErrorState presentation="inline" message={clients.error} onRetry={clients.refresh}/> : null}
+            {clients.refreshError ? <ErrorState presentation="inline" message={clients.refreshError} onRetry={clients.refresh}/> : null}
             {clients.data && !clients.data.length ? <Text style={styles.note}>Keine aktiven, zugänglichen Pflegefälle vorhanden.</Text> : null}
             {suggestedClient ? <View style={styles.highlight}>
               <View style={styles.choiceText}>
@@ -382,11 +387,13 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
             </> : null}
           </IntakeStep>
 
-          {client ? <IntakeStep number={2} title="Messart" hint="Wählen Sie eine Messart, die für diese Akte aktiviert ist." badge={selectedMeasurement ? 'Ausgewählt' : undefined} styles={styles}>
-            {choices.loading && !choices.data ? <LoadingState message="Verfügbare Messarten werden geladen…"/> : null}
-            {choices.error ? <ErrorState message={choices.error} onRetry={choices.refresh}/> : null}
-            {choices.refreshError ? <ErrorState message={choices.refreshError} onRetry={choices.refresh}/> : null}
-            {choices.data && !enabledCount ? <Text style={styles.note}>Für diesen Pflegefall ist keine Messart aktiviert. Bitte lassen Sie die Messkonfiguration prüfen.</Text> : null}
+          <IntakeStep number={2} title="Messarten" hint={client ?
+            'Wählen Sie eine Messart, die für diese Akte aktiviert ist.' :
+            'Alle Messarten im Überblick. Für die Erfassung zuerst einen Pflegefall auswählen.'} badge={selectedMeasurement ? 'Ausgewählt' : undefined} styles={styles}>
+            {client && choices.loading && !choices.data ? <LoadingState presentation="inline" message="Verfügbare Messarten werden geladen…"/> : null}
+            {client && choices.error ? <ErrorState presentation="inline" message={choices.error} onRetry={choices.refresh}/> : null}
+            {client && choices.refreshError ? <ErrorState presentation="inline" message={choices.refreshError} onRetry={choices.refresh}/> : null}
+            {confirmedCatalogue && !enabledCount ? <Text style={styles.note}>Für diesen Pflegefall ist keine Messart aktiviert. Bitte lassen Sie die Messkonfiguration prüfen.</Text> : null}
             {selectedMeasurement ? <View style={styles.selection}>
               <VitalMeasurementArtwork measurementKey={selectedMeasurement.key} size={48}/>
               <View style={styles.choiceText}>
@@ -396,16 +403,22 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
               <PremiumButton title={editingMeasurement ? 'Messart beibehalten' : 'Messart ändern'} size="sm" variant="secondary" disabled={locked || editingClient} onPress={toggleMeasurementPicker}/>
             </View> : null}
             {catalogue.length && (!selectedMeasurement || editingMeasurement) ? <>
-              {enabledCount < catalogue.length ? <FilterChipGroup wrap options={catalogueFilters} value={catalogueView} onChange={locked ? undefined : next => { setCatalogueView(next); setCategory(allCategories); }}/> : null}
+              {confirmedCatalogue && enabledCount < catalogue.length ? <FilterChipGroup wrap options={catalogueFilters} value={catalogueView} onChange={locked ? undefined : next => { setCatalogueView(next); setCategory(allCategories); }}/> : null}
               <PremiumInput label="Messart suchen" accessibilityLabel="Messart suchen" placeholder="Name, Kürzel oder Einheit" value={measurementSearch} editable={!locked} maxLength={100} onChangeText={setMeasurementSearch}/>
               {categoryOptions.length > 2 ? <FilterChipGroup wrap options={categoryOptions} value={category} onChange={locked ? undefined : setCategory}/> : null}
               <Text style={styles.note} accessibilityLiveRegion="polite">{visibleDefinitions.length} {visibleDefinitions.length === 1 ? 'Messart' : 'Messarten'}{measurementNeedle ? ' gefunden' : ''}</Text>
               {categories.map(key => {
-                    const group = visibleDefinitions.filter(({ definition: item }) => item.category === key);
-                    return group.length ? <View key={key} style={styles.measurementGroup}>
+                const group = visibleDefinitions.filter(({ definition: item }) => item.category === key);
+                return group.length ? <View key={key} style={styles.measurementGroup}>
                   <Text accessibilityRole="header" style={styles.groupLabel}>{VITAL_CATEGORY_LABELS[key]}</Text>
-                  <View style={styles.row}>{group.map(({ definition: item, enabled }) => <Pressable key={item.key} accessibilityRole="button" accessibilityLabel={`${item.label} ${enabled ? 'auswählen' : '– nicht für diese Akte aktiviert'}`} accessibilityState={{ selected: type === item.key, disabled: !editable || !enabled || editingClient }} disabled={!editable || !enabled || editingClient} onPress={enabled ? () => changeType(item.key) : undefined} style={({ pressed }) => [styles.measurementCard, !enabled && styles.catalogueCard, type === item.key && styles.choiceSelected, pressed && styles.pressed]}>
-                    <VitalMeasurementArtwork measurementKey={item.key} size={48}/>
+                  <View style={styles.row}>{group.map(({ definition: item, enabled }) => !confirmedCatalogue ?
+                        <View key={item.key} style={[styles.measurementCard, styles.catalogueCard]}>
+                      <VitalMeasurementArtwork measurementKey={item.key} size={62}/>
+                      <View style={styles.choiceText}><Text style={styles.choiceTitle}>{item.label}</Text>
+                        <Text style={styles.note}>{unitsFor(item) || 'Ohne Einheit'}</Text>
+                      </View>
+                    </View> : <Pressable key={item.key} accessibilityRole="button" accessibilityLabel={`${item.label} ${enabled ? 'auswählen' : '– nicht für diese Akte aktiviert'}`} accessibilityState={{ selected: type === item.key, disabled: !editable || !enabled || editingClient }} disabled={!editable || !enabled || editingClient} onPress={enabled ? () => changeType(item.key) : undefined} style={({ pressed }) => [styles.measurementCard, !enabled && styles.catalogueCard, type === item.key && styles.choiceSelected, pressed && styles.pressed]}>
+                    <VitalMeasurementArtwork measurementKey={item.key} size={62}/>
                     <View style={styles.choiceText}>
                       <Text style={styles.choiceTitle}>{item.label}</Text>
                       <Text style={styles.note}>{unitsFor(item) || 'Ohne Einheit'}</Text>
@@ -413,10 +426,10 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
                     </View>
                   </Pressable>)}</View>
                 </View> : null;
-                })}
+            })}
               {typeOptions.length > 0 && !visibleDefinitions.length ? <Text style={styles.note}>Keine Messart passt zu Suche und Kategorie.</Text> : null}
             </> : null}
-          </IntakeStep> : null}
+          </IntakeStep>
 
           {selectedMeasurement ? <>
             <IntakeStep number={3} title="Messwerte" hint="Die Einheit gehört zur Messart. Pflichtfelder sind mit * markiert." styles={styles}>
@@ -455,7 +468,7 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
             </IntakeStep>
 
             <IntakeStep number={4} title="Messzeitpunkt" hint="Prüfen Sie das Datum und die Uhrzeit der tatsächlichen Messung." styles={styles}>
-              <MedicationEventTimeInput label="Tatsächlicher Messzeitpunkt" value={time} disabled={!editableMeasurement} onChange={editTime}/>
+              <MedicationEventTimeInput pickers label="Tatsächlicher Messzeitpunkt" value={time} disabled={!editableMeasurement} onChange={editTime}/>
               {showNote || note ? <PremiumInput label="Messnotiz (optional)" hint="Beobachtung, Messbedingungen und Reaktion" accessibilityLabel="Messnotiz" value={note} editable={editableMeasurement} onChangeText={editNote} maxLength={4000} multiline/> :
                 <View style={styles.actionButtons}><PremiumButton title="Messnotiz hinzufügen" size="sm" variant="secondary" disabled={!editableMeasurement} onPress={() => setShowNote(true)}/></View>}
               <Text style={styles.note}>Die Software protokolliert, wer die Messung wann erfasst hat. Konfigurierte Grenzbereiche sind keine Diagnose oder Therapieanweisung.</Text>
