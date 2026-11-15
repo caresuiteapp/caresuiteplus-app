@@ -62,8 +62,9 @@ export function WoundRecordWorkspace({ scope, wound, canWrite, canReadPlans, can
   }));
   const age = ageAt(data?.person.date_of_birth, new Date().toISOString());
   const woman = ['weiblich', 'female'].includes(data?.person.gender ?? '');
-  const figure: WoundFigure = age !== null && age < 18 ? (woman ? 'girl' : 'boy') :
+  const defaultFigure: WoundFigure = age !== null && age < 18 ? (woman ? 'girl' : 'boy') :
     age !== null && age >= 65 ? (woman ? 'older-woman' : 'older-man') : woman ? 'adult-woman' : 'adult-man';
+  const figure = anchors.at(-1)?.figure ?? defaultFigure;
   const latest = entries.find(entry => entry.kind === 'measurement');
   const latestTrace = object(latest?.payload.trace);
   const mayWrite = active.current && !query.refreshing;

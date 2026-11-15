@@ -114,7 +114,7 @@ test('Gleichwertige Objekt-Schlüsselreihenfolge bleibt lesbar, vertauschte Hist
 
 // Execute the actual imperative list handlers; router and state setters are local probes, not a React/browser proof.
 const listSource = readFileSync(new URL('../../src/screens/pflege/WoundDocumentationListScreen.web.tsx', import.meta.url), 'utf8');
-const handlerSource = stripTypeScriptTypes(listSource.slice(listSource.indexOf('  function ownSelection()'), listSource.indexOf('  if (!q.canRead)')));
+const handlerSource = stripTypeScriptTypes(listSource.slice(listSource.indexOf('  function ownSelection()'), listSource.indexOf('  if (!q.canRead')));
 function listHandlers(q, selection = { current: { search: '', filter: 'all', visible: 50 } }) {
   const routes = [], setters = [], { search, filter, visible } = selection.current;
   const actions = new Function('q', 'selection', 'search', 'filter', 'visible', 'router', 'setSearch', 'setFilter', 'setVisible', 'woundUuid', 'filterWoundList', 'woundStatusLabels', `${handlerSource}\nreturn { open, create, changeSearch, changeFilter, showMore };`)
@@ -137,5 +137,5 @@ test('Echte Anlageaktion prüft aktuelles Leserecht und Schreibrecht erneut', as
   const h = await ready(), p = listHandlers(h.value); p.actions.create(); assert.deepEqual(p.routes, ['/pflege/wunden/new']); h.render({ ...props(), canManage: false }); p.actions.create(); assert.equal(p.routes.length, 1);
 });
 test('Wundliste gibt Fehler-/Ladezustand vor der tatsächlichen Kartenprojektion zurück', () => {
-  assert.ok(listSource.indexOf('if (!q.ready)') < listSource.indexOf('filtered.slice(0, visible).map'));
+  assert.match(listSource, /!q\.ready\s*\?\s*\(q\.loading[\s\S]+?ErrorState[\s\S]+?:\s*<>[\s\S]+?filtered\.slice\(0, visible\)\.map/);
 });

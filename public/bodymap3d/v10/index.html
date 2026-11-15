@@ -73,6 +73,10 @@
             </button>
           </div>
         </header>
+        <div class="embed-pickers" id="embed-pickers" hidden>
+          <label for="embed-figure">Figur<select id="embed-figure"></select></label>
+          <label for="embed-region">Körperbereich<select id="embed-region"></select></label>
+        </div>
         <div class="viewer-controls" id="viewer-controls">
           <div id="view-options" class="segmented views" role="group" aria-label="Ansicht"></div>
           <div id="side-options" class="segmented side-options" role="group" aria-label="Körperseite" hidden></div>
@@ -162,8 +166,8 @@
       <div class="dialog-fields">
         <label for="note-region">Körperstelle</label>
         <input id="note-region" name="region" required maxlength="120" placeholder="Z. B. linker Unterarm" autocomplete="off">
-        <label for="note-kind">Kategorie</label>
-        <select id="note-kind" name="kind">
+        <label for="note-kind" class="note-detail">Kategorie</label>
+        <select id="note-kind" name="kind" class="note-detail">
           <option>Hautbefund</option>
           <option>Wunde</option>
           <option>Verletzung</option>
@@ -171,15 +175,15 @@
           <option>Katheterstelle</option>
           <option>Sonstiges</option>
         </select>
-        <label for="note-text">Beobachtung <span class="muted">(optional)</span></label>
-        <textarea id="note-text" name="text" rows="4" maxlength="1500" placeholder="Stelle und Befund beschreiben"></textarea>
+        <label for="note-text" class="note-detail">Beobachtung <span class="muted">(optional)</span></label>
+        <textarea id="note-text" name="text" class="note-detail" rows="4" maxlength="1500" placeholder="Stelle und Befund beschreiben"></textarea>
       </div>
       <footer class="dialog-actions">
         <button type="button" class="subtle-button delete-button" id="note-delete" hidden>
           <svg aria-hidden="true"><use href="#i-trash"/></svg> Entfernen
         </button>
         <button type="submit" class="primary-button">
-          <svg aria-hidden="true"><use href="#i-check"/></svg> Markierung übernehmen
+          <svg aria-hidden="true"><use href="#i-check"/></svg> <span id="note-submit-label">Markierung übernehmen</span>
         </button>
       </footer>
     </form>

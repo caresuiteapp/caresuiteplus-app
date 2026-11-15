@@ -24,6 +24,7 @@ button:disabled { cursor: default; opacity: .42; }
 :focus-visible { outline: 3px solid #087987; outline-offset: 3px; }
 svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .symbols, .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.embed-pickers { display: none; }
 
 .top {
   background: #102538;
@@ -308,6 +309,37 @@ dialog::backdrop { background: #071d30b5; backdrop-filter: blur(3px); }
 
 @media (max-height: 550px) and (orientation: landscape) {
   .stage { min-height: 315px; }
+}
+
+:root[data-embed] { background: #f5f8fb; }
+[data-embed] main { width: 100%; }
+[data-embed] .workspace { display: block; }
+[data-embed] .models, [data-embed] .side, [data-embed] .preview-footer { display: none; }
+[data-embed] .viewer { padding: 10px; border-radius: 12px; box-shadow: none; }
+[data-embed] .viewer-heading { padding: 0 0 7px; }
+[data-embed] .viewer-heading h2 { font-size: .91rem; }
+[data-embed] .viewer-heading p { display: none; }
+[data-embed] .embed-pickers { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 8px; }
+[data-embed] .embed-pickers label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-weight: 650; font-size: .75rem; }
+[data-embed] .embed-pickers select {
+  width: 100%;
+  min-height: 38px;
+  padding-inline: 7px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f5f9fb;
+  color: var(--ink);
+  font-weight: 600;
+  font-size: .81rem;
+}
+[data-embed] .views button { min-height: 33px; }
+[data-embed] .stage { min-height: 0; height: clamp(280px, 83vw, 420px); }
+[data-embed] .viewer.expanded .stage { min-height: 180px; height: auto; }
+[data-embed="location"] .note-detail { display: none; }
+@media (max-width: 385px) {
+  [data-embed] .viewer { padding: 7px; }
+  [data-embed] .views button svg { display: none; }
+  [data-embed] .viewer-tools { flex-wrap: wrap; }
 }
 
 .diagram .outline { fill: url(#torso); stroke: #86a7b1; stroke-width: 1.35; }

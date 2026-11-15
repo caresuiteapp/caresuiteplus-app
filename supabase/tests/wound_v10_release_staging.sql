@@ -16,6 +16,9 @@ declare
   view_role uuid := gen_random_uuid();
   view_session uuid := gen_random_uuid();
   w uuid;
+  case_request uuid := gen_random_uuid();
+  case_payload jsonb;
+  initial_mark jsonb := '{"name":"Linke Ferse","kind":"Wunde","text":"","figure":"older-woman","focusRegion":"foot","side":"left","target":[0,0,0],"point":[0,0.2,0.1],"yaw":0,"pitch":0,"height":1,"detailAngle":0,"anatomyIndex":0,"clinical":false}';
   assessment_id uuid;
   photo_id uuid := gen_random_uuid();
   article_id uuid := gen_random_uuid();
@@ -73,8 +76,26 @@ begin
   );
 
   set local role authenticated;
-  w := public.write_ambulatory_wound_documentation(gen_random_uuid(),
-    jsonb_build_object('action','create','subjectId',c,'dataJson',doc::text));
+  case_payload := jsonb_build_object('action','create','subjectId',c,'dataJson',doc::text);
+  begin
+    perform public.create_ambulatory_wound_with_location(case_request,case_payload,initial_mark || '{"name":"Andere Stelle"}');
+    raise exception 'Widersprüchliche Lokalisation übernommen';
+  exception when invalid_parameter_value then null;
+  end;
+  if exists (select 1 from public.clinical_wound_cases where client_id=c) then
+    raise exception 'Teilweise Anlage eines Wundfalls';
+  end if;
+  w := public.create_ambulatory_wound_with_location(case_request,case_payload,initial_mark);
+  if public.create_ambulatory_wound_with_location(case_request,case_payload,initial_mark) is distinct from w
+    or (select count(*) from public.ambulatory_wound_clinical_entries
+      where wound_case_id=w and kind='body_mark' and payload=initial_mark) <> 1 then
+    raise exception 'Markierung fehlt oder wurde beim Wiederholen verdoppelt';
+  end if;
+  begin
+    perform public.create_ambulatory_wound_with_location(case_request,case_payload,initial_mark || '{"point":[0,0.3,0.1]}');
+    raise exception 'Markierung derselben Anfrage überschrieben';
+  exception when invalid_parameter_value then null;
+  end;
   assessment_id := public.write_ambulatory_wound_documentation(gen_random_uuid(),
     jsonb_build_object('action','assessment','subjectId',w,'dataJson',assessment_doc::text));
   perform public.write_wound_record_entry(t,a,c,w,gen_random_uuid(),'note',observed,
@@ -108,13 +129,22 @@ begin
     raise exception 'Leser durfte schreiben';
   exception when insufficient_privilege then null;
   end;
+  begin
+    perform public.create_ambulatory_wound_with_location(gen_random_uuid(),case_payload,initial_mark);
+    raise exception 'Leser durfte Wundfall mit Markierung anlegen';
+  exception when insufficient_privilege then null;
+  end;
   reset role;
   insert into wound_release_fixture values(t,a,c,w,assessment_id,photo_id,article_id,auth_claims);
 end
 $fixture$;
 
 set local transaction_read_only = on;
-select set_config('request.jwt.claims', claims::text, true) from wound_release_fixture;
+do $read_claims$
+begin
+  perform set_config('request.jwt.claims', claims::text, true) from wound_release_fixture;
+end
+$read_claims$;
 set local role authenticated;
 do $read$
 declare f wound_release_fixture%rowtype;
@@ -124,6 +154,8 @@ begin
     raise exception 'Lesetest lief in einer schreibfähigen Transaktion';
   end if;
   if not exists(select 1 from public.ambulatory_wound_clinical_entries where wound_case_id=f.wound)
+    or not exists(select 1 from public.ambulatory_wound_clinical_entries
+      where wound_case_id=f.wound and kind='body_mark' and payload->>'name'='Linke Ferse')
     or not exists(select id from public.ambulatory_wound_media where id=f.photo and state='ready')
     or not exists(select 1 from public.ambulatory_wound_catalog where id=f.article)
     or not exists(select 1 from public.ambulatory_wound_photo_links where id=f.photo)

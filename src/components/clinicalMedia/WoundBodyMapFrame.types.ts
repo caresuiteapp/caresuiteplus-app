@@ -12,11 +12,13 @@ export type WoundBodyMark = {
   diagram?: { view: number; x: number; y: number };
 };
 export type WoundBodyMapFrameProps = {
-  marks: (WoundBodyMark & { id: string })[];
-  canWrite: boolean;
+  marks?: (WoundBodyMark & { id: string })[];
+  canWrite?: boolean;
   figure: WoundFigure;
-  onMark: (value: WoundBodyMark) => void;
+  onMark?: (value: WoundBodyMark) => void;
+  view?: 'preview' | 'location';
 };
+export const EMPTY_BODY_MARKS: NonNullable<WoundBodyMapFrameProps['marks']> = [];
 const numeric = (value: unknown, min: number, max: number): value is number =>
   typeof value === 'number' && Number.isFinite(value) && value >= min && value <= max;
 const vector = (value: unknown): value is Vector =>
@@ -51,7 +53,7 @@ export function bodyMapMessage(value: unknown) {
   const message = value as Record<string, unknown>;
   if (message.type === 'caresuite-body-ready') return { type: 'ready' as const };
   if (message.type === 'caresuite-body-height' && numeric(message.height, 0, 16000)) {
-    return { type: 'height' as const, height: Math.max(520, Math.min(2100, message.height + 8)) };
+    return { type: 'height' as const, height: Math.max(350, Math.min(2100, message.height + 4)) };
   }
   if (message.type === 'caresuite-body-mark') {
     const mark = readBodyMark(message.mark);

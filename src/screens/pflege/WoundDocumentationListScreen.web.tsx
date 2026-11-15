@@ -1,19 +1,28 @@
-import { useMemo, useRef, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { useRef, useState } from 'react';
+import { Pressable, Text, View } from 'react-native';
+import Feather from '@expo/vector-icons/Feather';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, FilterChipGroup, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { ErrorState, FilterChipGroup, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useCareRuntimePermissions as usePermissions } from '@/hooks/pflege/useCareRuntimePermissions.web';
 import { CarePermissionStatus, type CarePermissionStatusState } from './CarePermissionStatus.web';
 import { useWoundRead, type WoundReadProps } from '@/hooks/pflege/useWoundRead.web';
 import { WoundStatisticsPanel } from '@/components/pflege/wounds/WoundStatisticsPanel';
+import { WoundCatalogEditor } from '@/components/pflege/wounds/WoundCatalogPanel';
+import { useWoundEntryStyles } from '@/components/pflege/wounds/woundEntryStyles';
+import { WoundBodyMapFrame } from '@/components/clinicalMedia/WoundBodyMapFrame';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
-import { spacing, typography } from '@/theme';
 import { fetchAmbulatoryWoundList } from '@/lib/pflege/ambulatoryWoundService';
 import { captureWoundListOriginal, filterWoundList, woundListText, woundStatusLabels } from '@/lib/pflege/woundReadOriginal.web';
 import { woundUuid } from '@/lib/pflege/woundCareDomain';
+
+const VIEWS = [
+  { key: 'cases', label: 'Übersicht' },
+  { key: 'statistics', label: 'Wundstatistik' },
+  { key: 'catalog', label: 'Material und Textbausteine' },
+] as const;
 
 export function WoundDocumentationListScreen() {
   const serviceTenant = useServiceTenantId(), { profile } = useAuth(), permissions = usePermissions();
@@ -26,10 +35,8 @@ export function WoundDocumentationListScreen() {
 
 function WoundListWorkspace(props: WoundReadProps & { permissionStatus: CarePermissionStatusState }) {
   const router = useRouter(), { c } = useCareLightPalette();
-  const styles = useMemo(() => StyleSheet.create({
-    content: { gap: spacing.md, paddingBottom: spacing.xxl, minWidth: 0 },
-    body: { ...typography.body, color: c.text, flexShrink: 1, maxWidth: '100%' },
-  }), [c]);
+  const styles = useWoundEntryStyles();
+  const [view, setView] = useState<typeof VIEWS[number]['key']>('cases');
   const [search, setSearch] = useState(''), [filter, setFilter] = useState('all'), [visible, setVisible] = useState(50);
   const selection = useRef({ search, filter, visible }); selection.current = { search, filter, visible };
   const q = useWoundRead(props, 'list', owner => fetchAmbulatoryWoundList(owner.tenantId, owner.role), captureWoundListOriginal);
@@ -57,24 +64,77 @@ function WoundListWorkspace(props: WoundReadProps & { permissionStatus: CarePerm
     if (!ownSelection()) return;
     selection.current.visible += 50; setVisible(selection.current.visible);
   }
-  if (!q.canRead) return <ScreenShell title="Wundfälle"><CarePermissionStatus state={props.permissionStatus} /></ScreenShell>;
-  if (!q.ready) return <ScreenShell title="Wundfälle">{q.loading
-    ? <LoadingState message="Aktuelle Wundfälle werden geladen…" /> : <ErrorState message={q.error} onRetry={q.refresh} />}</ScreenShell>;
-  return <ScreenShell title="Wundfälle"><ScrollView contentContainerStyle={styles.content}>
-    {props.canManage ? <PremiumButton title="Neuen Wundfall anlegen" onPress={create} /> : null}
-    {props.owner ? <WoundStatisticsPanel scope={{tenantId:props.owner.tenantId,actorId:props.owner.profileId,role:props.owner.role}}
-      enabled={q.ready && q.canRead} /> : null}
-    <PremiumInput label="Nach Klient:in, Lokalisation oder Wund-ID suchen" value={search} onChangeText={changeSearch} />
-    <FilterChipGroup wrap options={[{ key: 'all', label: 'Alle Status' }, ...Object.entries(woundStatusLabels).map(([key, label]) => ({ key, label }))]} value={filter} onChange={changeFilter} />
-    <Text style={styles.body}>{filtered.length} passende Wundfälle im geladenen Bestand · {Math.min(visible, filtered.length)} angezeigt.</Text>
-    {!filtered.length ? <EmptyState title={items.length ? 'Keine passenden Wundfälle' : 'Keine Wundfälle im geladenen Bestand'} message={items.length ? 'Suchbegriff oder Statusfilter anpassen.' : 'Für die aktuell zugänglichen aktiven Pflegefälle wurden keine Wundfälle geliefert.'} /> : null}
-    {filtered.slice(0, visible).map(({ row, clientName }) => <SectionPanel key={String(row.id)} title={clientName}>
-      <Text style={styles.body}>Wund-ID: {String(row.id)}</Text>
-      <Text style={styles.body}>{woundListText(row.body_location)} · {woundListText(row.wound_type)}</Text>
-      <Text style={styles.body}>Status: {woundStatusLabels[String(row.status)]}</Text>
-      <PremiumButton title="Wundfall und Assessmentverlauf öffnen" variant="secondary" onPress={() => open(String(row.id))} />
-    </SectionPanel>)}
-    {visible < filtered.length ? <PremiumButton title="Weitere 50 Wundfälle anzeigen" variant="secondary" onPress={showMore} /> : null}
-    <PremiumButton title="Wundfälle aktualisieren" variant="secondary" onPress={q.refresh} />
-  </ScrollView></ScreenShell>;
+  if (!q.canRead || !props.owner) return <ScreenShell title="Wunddokumentation">
+    <CarePermissionStatus state={props.permissionStatus} />
+  </ScreenShell>;
+  const scope = { tenantId: props.owner.tenantId, actorId: props.owner.profileId, role: props.owner.role };
+  return <ScreenShell title="Wunddokumentation" compactHeader>
+    <View style={styles.content}>
+      <View style={styles.toolbar}>
+        <FilterChipGroup wrap options={VIEWS.map(option => ({ ...option }))} value={view} onChange={key => {
+          const next = VIEWS.find(option => option.key === key);
+          if (next) setView(next.key);
+        }} />
+        {props.canManage && <PremiumButton title="Wundfall anlegen" size="sm" onPress={create} disabled={!q.ready}
+          leadingIcon={<Feather name="plus" size={17} color="#fff" accessible={false} />} />}
+      </View>
+      {view === 'statistics' && <WoundStatisticsPanel scope={scope} />}
+      {view === 'catalog' && <WoundCatalogEditor scope={scope} edit={props.canManage} />}
+      {view === 'cases' && <View style={styles.columns}>
+        <View style={[styles.panel, styles.mainColumn]}>
+          <View style={styles.toolbar}>
+            <Text accessibilityRole="header" style={styles.title}>Wundfälle</Text>
+            <PremiumButton title="Aktualisieren" size="sm" variant="ghost" accessibilityLabel="Wundfälle aktualisieren"
+              onPress={q.refresh} disabled={q.loading} />
+          </View>
+          {!q.ready ? (q.loading
+            ? <LoadingState message="Wundfälle werden geladen …" />
+            : <ErrorState message={q.error} />) : <>
+            {items.length > 0 && <>
+              <PremiumInput label="Klient:in, Lokalisation oder Wund-ID" placeholder="Wundfälle suchen"
+                value={search} onChangeText={changeSearch} />
+              <FilterChipGroup wrap options={[{ key: 'all', label: 'Alle Status' }, ...Object.entries(woundStatusLabels).map(([key, label]) => ({ key, label }))]}
+                value={filter} onChange={changeFilter} />
+            </>}
+            {!filtered.length ? <View style={styles.empty}>
+              <Feather name="clipboard" size={20} color={c.muted} accessible={false} />
+              <Text style={styles.body}>{items.length ? 'Keine Wundfälle für diese Suche' : 'Noch keine Wundfälle vorhanden'}</Text>
+              <Text style={styles.muted}>{items.length ? 'Suchbegriff oder Statusfilter anpassen.'
+                : props.canManage ? 'Beim Anlegen wählst du zuerst die Pflegeakte und die Körperstelle.'
+                : 'Für die zugänglichen Pflegeakten sind derzeit keine Wundfälle erfasst.'}</Text>
+            </View> : <>
+              <Text style={styles.muted} accessibilityLiveRegion="polite">
+                {visible < filtered.length ? `${visible} von ${filtered.length}` : filtered.length} {filtered.length === 1 ? 'Wundfall' : 'Wundfälle'}
+              </Text>
+              <View style={styles.list}>
+                {filtered.slice(0, visible).map(({ row, clientName }, index) => {
+                  const id = String(row.id), location = woundListText(row.body_location), type = woundListText(row.wound_type);
+                  const status = woundStatusLabels[String(row.status)];
+                  return <Pressable key={id} accessibilityRole="button" accessibilityLabel={[clientName, location, type, status].filter(Boolean).join(', ')}
+                    onPress={() => open(id)} style={({ pressed }) => [
+                      styles.record, index > 0 && styles.divider, pressed && styles.recordActive,
+                    ]}>
+                    <View style={styles.identity}>
+                      <Text style={styles.body}>{clientName}</Text>
+                      <Text style={styles.muted}>{[location, type].filter(Boolean).join(' · ')}</Text>
+                    </View>
+                    <View style={styles.badge}><Text style={styles.muted}>{status}</Text></View>
+                    <Feather name="chevron-right" size={18} color={c.muted} accessible={false} />
+                  </Pressable>;
+                })}
+              </View>
+            </>}
+            {visible < filtered.length && <PremiumButton title="Weitere 50 anzeigen" size="sm" variant="secondary" onPress={showMore} />}
+          </>}
+        </View>
+        <View style={[styles.panel, styles.mapColumn]}>
+          <View style={styles.headingRow}>
+            <Feather name="crosshair" size={20} color={c.muted} accessible={false} />
+            <Text accessibilityRole="header" style={styles.title}>3D-Körperkarte</Text>
+          </View>
+          <WoundBodyMapFrame view="preview" figure="adult-man" />
+        </View>
+      </View>}
+    </View>
+  </ScreenShell>;
 }

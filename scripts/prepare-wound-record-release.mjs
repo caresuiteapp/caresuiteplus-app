@@ -8,9 +8,10 @@ const sources = read('../supabase/migrations/20261022055659_pflege_wound_path_so
   .replaceAll('care_private.require_workspace_session(', 'care_private.require_wound_workspace_session(');
 const record = read('../supabase/patches/ambulatory_wound_record.sql');
 const access = read('../supabase/patches/ambulatory_wound_release_access.sql');
+const location = read('../supabase/patches/ambulatory_wound_initial_location.sql');
 
 if (!/^begin;$/im.test(record) || !/^commit;$/im.test(record) ||
-  [workspace, consent, sources, access].some((sql) => /^(?:begin|commit|rollback);$/im.test(sql))) {
+  [workspace, consent, sources, access, location].some((sql) => /^(?:begin|commit|rollback);$/im.test(sql))) {
   throw new Error('Unerwartete Transaktionsgrenze in den Wundakten-Patches.');
 }
 
@@ -23,6 +24,7 @@ process.stdout.write([
   sources,
   record.replace(/^begin;$/im, '').replace(/^commit;$/im, ''),
   access,
+  location,
   "notify pgrst, 'reload schema';",
   'commit;',
   '',

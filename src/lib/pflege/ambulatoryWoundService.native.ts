@@ -1,6 +1,7 @@
 // Generated native presentation from src/lib/pflege/ambulatoryWoundService.web.ts. Update through scripts/port-native-workspaces.mjs.
 /** Web platform adapter. Shared/native implementation remains separate; status labels are not rewritten. */
 import type { RoleKey, ServiceResult } from '@/types';
+import type { WoundBodyMark } from '@/components/clinicalMedia/WoundBodyMapFrame.types';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
@@ -112,7 +113,7 @@ export async function fetchAmbulatoryWound(tenant: string, id: string, role: Rol
         return { ok: false, error: e instanceof Error ? e.message : 'Wundfall konnte nicht vollständig geladen werden.' };
     }
 }
-export async function writeAmbulatoryWound(tenant: string, requestId: string, payload: WoundRequest, role: RoleKey | null, replay = false): Promise<MedicationWriteResult> {
+export async function writeAmbulatoryWound(tenant: string, requestId: string, payload: WoundRequest, role: RoleKey | null, replay = false, bodyMark?: WoundBodyMark): Promise<MedicationWriteResult> {
     const blocked = scope<{
         id: string;
     }>(tenant, role, true) ?? enforcePermission<{
@@ -140,7 +141,9 @@ export async function writeAmbulatoryWound(tenant: string, requestId: string, pa
                 status?: number;
             }>;
         };
-        const r = await withServiceQueryTimeout(rpc.rpc('write_ambulatory_wound_documentation', { request_id: requestId, payload }), 'Wunddokumentation speichern', 20000);
+        const args = { request_id: requestId, payload, ...(bodyMark ? { body_mark: bodyMark } : {}) };
+        const procedure = bodyMark ? 'create_ambulatory_wound_with_location' : 'write_ambulatory_wound_documentation';
+        const r = await withServiceQueryTimeout(rpc.rpc(procedure, args), 'Wunddokumentation speichern', 20000);
         if (r.error)
             return { ok: false, error: toGermanSupabaseError(r.error), uncertain: !isDefiniteMedicationRejection(r.error.code, r.status) };
         if (!uuid(r.data))

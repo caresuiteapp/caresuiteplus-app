@@ -97,6 +97,8 @@ function isDynamicSegment(segment: string): boolean {
 }
 
 function labelForSegment(segment: string, cumulativePath: string): string {
+  if (cumulativePath === '/pflege/wunden') return 'Wunddokumentation';
+  if (cumulativePath === '/pflege/wunden/new') return 'Wundfall anlegen';
   const routeLabel = resolveRouteLabel(cumulativePath);
   if (routeLabel) return routeLabel;
 
