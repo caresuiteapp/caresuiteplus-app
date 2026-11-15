@@ -101,7 +101,9 @@ begin
     join public.client_module_assignments a on a.tenant_id = c.tenant_id and a.client_id = c.id
     where c.id = subject and c.tenant_id = tenant
       and c.status::text in ('active', 'aktiv')
-      and c.lifecycle_status::text in ('active', 'aktiv')
+      -- Older production schemas store the client status in status alone.
+      and (not (to_jsonb(c) ? 'lifecycle_status')
+        or to_jsonb(c)->>'lifecycle_status' in ('active', 'aktiv'))
       and to_jsonb(c)->>'deleted_at' is null
       and a.module_key = 'pflege' and a.is_active and a.status in ('active', 'aktiv')
   );

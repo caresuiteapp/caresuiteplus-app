@@ -21,6 +21,66 @@ const { tenant, otherTenant, actor, patient, child, wound, otherWound, assessmen
 const patch = readFileSync(new URL('../patches/ambulatory_wound_record.sql', import.meta.url), 'utf8');
 const now = '2026-08-01T08:00:00.000Z';
 
+test('wound client lookup reads both client schemas and respects the current status and assignment', async () => {
+  const release = readFileSync(new URL('../patches/ambulatory_wound_release_access.sql', import.meta.url), 'utf8');
+  const lookup = release.match(/^create or replace function care_private\.wound_active_client\(subject uuid\)[\s\S]*?^\$\$;/m);
+  assert.ok(lookup);
+
+  const db = await PGlite.create();
+  try {
+    await db.exec(`
+      create schema care_private;
+      create type public.client_status as enum ('active', 'aktiv', 'archived');
+      create table public.clients (
+        id uuid primary key, tenant_id uuid, status public.client_status, deleted_at timestamptz
+      );
+      create table public.client_module_assignments (
+        tenant_id uuid, client_id uuid, module_key text, is_active boolean, status text
+      );
+      create function public.current_tenant_id() returns uuid language sql as $$select '${tenant}'::uuid$$;
+      create function public.resolve_current_profile_id() returns uuid language sql as $$select '${actor}'::uuid$$;
+      create function care_private.require_wound_workspace_session(t uuid, a uuid)
+      returns void language plpgsql as $$
+      begin
+        if t is distinct from public.current_tenant_id() or a is distinct from public.resolve_current_profile_id() then
+          raise exception 'Invalid fixture scope';
+        end if;
+      end
+      $$;
+      insert into public.clients values ('${patient}', '${tenant}', 'active', null),
+        ('${child}', '${otherTenant}', 'active', null);
+      insert into public.client_module_assignments values ('${tenant}', '${patient}', 'pflege', true, 'aktiv'),
+        ('${otherTenant}', '${child}', 'pflege', true, 'active');
+    `);
+    await db.exec(lookup[0]);
+    const isActive = async (id) =>
+      (await db.query('select care_private.wound_active_client($1) as active', [id])).rows[0].active;
+
+    assert.equal(await isActive(patient), true);
+    assert.equal(await isActive(child), false);
+    await db.exec('begin read only');
+    assert.equal(await isActive(patient), true);
+    await db.exec('commit');
+    await db.exec("update public.client_module_assignments set is_active=false where status='aktiv'");
+    assert.equal(await isActive(patient), false);
+    await db.exec("update public.client_module_assignments set is_active=true where status='aktiv'");
+    await db.exec("update public.clients set status='archived' where tenant_id=current_tenant_id()");
+    assert.equal(await isActive(patient), false);
+    await db.exec("update public.clients set status='aktiv' where tenant_id=current_tenant_id()");
+
+    await db.exec('alter table public.clients add column lifecycle_status text');
+    assert.equal(await isActive(patient), false);
+    await db.exec("update public.clients set lifecycle_status='archived' where tenant_id=current_tenant_id()");
+    assert.equal(await isActive(patient), false);
+    await db.exec("update public.clients set lifecycle_status='active' where tenant_id=current_tenant_id()");
+    assert.equal(await isActive(patient), true);
+    await db.exec('update public.clients set deleted_at=clock_timestamp() where tenant_id=current_tenant_id()');
+    assert.equal(await isActive(patient), false);
+  } finally {
+    await db.close();
+  }
+});
+
 test('Wundakte bindings, immutable entries, media promotion, catalog and statistics', async () => {
   const db = await PGlite.create();
   try {
