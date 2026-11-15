@@ -1,0 +1,32 @@
+{
+  "older-man": {
+    "file": "older-man.json.gz",
+    "sha256": "9081f6d88022240a0ba6edfdfd6254ee9869f3d896ac4bde8c0a702e541250fb",
+    "bytes": 5387953
+  },
+  "older-woman": {
+    "file": "older-woman.json.gz",
+    "sha256": "213b9a511f53083f870c3c4ed486ffdd02127acd409c19a7b86a96f624d5f253",
+    "bytes": 5316715
+  },
+  "adult-man": {
+    "file": "adult-man.json.gz",
+    "sha256": "9447baab8a8d7f057206bcad3ff3cc5faba3534237b2bcdf57cb7d67c09e1ef2",
+    "bytes": 5139642
+  },
+  "adult-woman": {
+    "file": "adult-woman.json.gz",
+    "sha256": "5747c6bb8f9eee01c765cc70a0c153d486cd76ffd789dc59bac09dc76c757477",
+    "bytes": 5063561
+  },
+  "boy": {
+    "file": "boy.json.gz",
+    "sha256": "8a863429b8dad0072002682d621d826be8e222d583bbae3ff148b9c098c354a8",
+    "bytes": 4326555
+  },
+  "girl": {
+    "file": "girl.json.gz",
+    "sha256": "671079aad5a98eaf570a2877611ca47be43e381e775cfccf2616390101d060e8",
+    "bytes": 4256577
+  }
+}

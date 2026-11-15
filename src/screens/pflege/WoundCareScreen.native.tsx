@@ -9,6 +9,7 @@ import { ScreenShell } from '@/components/layout';
 import { ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SuccessState } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { WoundCatalogPanel } from '@/components/pflege/wounds/WoundCatalogPanel';
 import { useCareRuntimePermissions as usePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useWoundSubmission } from "../../hooks/pflege/useWoundSubmission.native.ts";
@@ -48,13 +49,14 @@ export function WoundCareScreen({ mode, onClose, sessionOwner, accessBlocked = f
     });
     const access = woundEditorAccess({ owner: sessionOwner === undefined ? stableOwner.current : sessionOwner, profile, serviceTenant: tenant, runtimeTenant: permissions.tenantId, runtimeRole: permissions.roleKey, blocked: accessBlocked, canView: permissions.can('pflege.wounds.view') && permissions.can('pflege.orders.view') && (mode === 'plan' || permissions.can('pflege.treatment.view')), canManage: permissions.can('pflege.wounds.manage') && (mode === 'plan' || permissions.can('pflege.treatment.manage')) });
     const guardAccess = { ...captureWoundEditorAccess({ originalOwner: access.owner, tenantId: tenant, profileTenantId: profile?.tenantId, profileId: profile?.id, profileRole: profile?.roleKey, runtimeTenantId: permissions.tenantId, runtimeRole: permissions.roleKey, sourceId: id ?? '', woundId: id ?? '', kind: 'care', action: mode, canRead: access.canView, canManage: permissions.can('pflege.wounds.manage') && (mode === 'plan' || permissions.can('pflege.treatment.manage')), readDressings: permissions.can('pflege.treatment.view') }), liveAccess: liveAccess.current };
-    return <CareForm access={guardAccess} key={`${access.key}:${id}:${mode}`} id={id ?? ''} tenant={access.owner?.tenantId ?? ''} mode={mode} role={access.owner?.role ?? null} readDressings={access.canView && permissions.can('pflege.treatment.view')} canView={access.canView} canManage={access.canManage} onClose={onClose}/>;
+    return <CareForm access={guardAccess} key={`${access.key}:${id}:${mode}`} id={id ?? ''} tenant={access.owner?.tenantId ?? ''} actorId={access.owner?.profileId ?? ''} mode={mode} role={access.owner?.role ?? null} readDressings={access.canView && permissions.can('pflege.treatment.view')} canView={access.canView} canManage={access.canManage} onClose={onClose}/>;
 }
-function CareForm({ access, id, tenant, mode, role, canView, canManage, onClose, readDressings }: {
+function CareForm({ access, id, tenant, actorId, mode, role, canView, canManage, onClose, readDressings }: {
     access: WoundEditorAccess;
     readDressings: boolean;
     id: string;
     tenant: string;
+    actorId: string;
     mode: 'plan' | 'dressing';
     role: ReturnType<typeof usePermissions>['roleKey'];
     canView: boolean;
@@ -90,6 +92,16 @@ function CareForm({ access, id, tenant, mode, role, canView, canManage, onClose,
         } if (key === 'reviewStatus')
         next.reviewPendingReason = ''; return next; }); }
     const field = (key: string, label: string) => <PremiumInput key={key} label={label} accessibilityLabel={label} value={draft[key] ?? ''} onChangeText={v => change(key, v)} editable={!write.locked && guard.current.mayWrite(readEpoch, readTicket, q.data) && !confirmed} multiline maxLength={2000}/>;
+    const catalogScope = { tenantId: tenant, actorId, role };
+    const catalogDisabled = write.locked || !guard.current.mayWrite(readEpoch, readTicket, q.data) || confirmed;
+    const append = (key: string, value: string) => {
+        const next = [draft[key]?.trim(), value].filter(Boolean).join('\n\n');
+        if (next.length > 2000) {
+            write.setError('Der Text passt nicht vollständig in das Feld.');
+            return;
+        }
+        change(key, next);
+    };
     const choices = (key: string, options: {
         key: string;
         label: string;
@@ -203,8 +215,15 @@ function CareForm({ access, id, tenant, mode, role, canView, canManage, onClose,
  {field('personDecision', 'Tatsächliche Zustimmung, Ablehnung, Wünsche oder Erhebungsgrenze *')}{field('qualificationBasis', 'Tatsächliche Qualifikations-/Delegationsgrundlage bzw. ausdrücklich ungeklärter Status *')}
  </>}
  </SectionPanel>
- {mode === 'plan' ? <SectionPanel title="Individuell abgestimmte geplante Versorgung">{field('goal', 'Individuelles Versorgungsziel *')}{field('plannedCare', 'Geplante Versorgung / Reinigung / Technik gemäß tatsächlicher Grundlage *')}{field('plannedMaterials', 'Tatsächlich vorgesehenes Material mit Anordnungs-/Abstimmungsbezug *')}{field('frequency', 'Tatsächlich festgelegtes Wechselintervall und verantwortliche Festlegung *')}{field('hygienePlan', 'Vorgesehenes hygienisches Vorgehen und Voraussetzungen *')}{field('painPlan', 'Abgestimmtes Schmerzmanagement / tatsächlicher Klärungsbedarf *')}{field('warningSigns', 'Abgestimmte Beobachtungen / Warnzeichen *')}{field('escalationPath', 'Verantwortliche Kontakte und vereinbartes Vorgehen bei Veränderung *')}{field('personDecision', 'Einbezogene Wünsche, Ressourcen und tatsächliche Entscheidung der Person *')}</SectionPanel> : <>
- <SectionPanel title="Tatsächliche Durchführung und Materialverbrauch">{field('actualCleaning', 'Tatsächlich erfolgte Reinigung oder begründete Nichtdurchführung *')}{field('actualTechnique', 'Tatsächlich erfolgte Versorgung / Verbandtechnik oder Nichtdurchführung *')}{field('hygiene', 'Tatsächliche hygienische Bedingungen, Maßnahmen und Abweichungen *')}
+ {mode === 'plan' ? <SectionPanel title="Individuell abgestimmte geplante Versorgung">{field('goal', 'Individuelles Versorgungsziel *')}{field('plannedCare', 'Geplante Versorgung / Reinigung / Technik gemäß tatsächlicher Grundlage *')}<WoundCatalogPanel scope={catalogScope} kind="treatment" embedded edit={canManage} disabled={catalogDisabled} onInsert={item => append('plannedCare', item.text)}/>{field('plannedMaterials', 'Tatsächlich vorgesehenes Material mit Anordnungs-/Abstimmungsbezug *')}<WoundCatalogPanel scope={catalogScope} kind="article" embedded edit={canManage} disabled={catalogDisabled} onInsert={item => append('plannedMaterials', [item.name, item.supplier, item.code].filter(Boolean).join(' · '))}/>{field('frequency', 'Tatsächlich festgelegtes Wechselintervall und verantwortliche Festlegung *')}{field('hygienePlan', 'Vorgesehenes hygienisches Vorgehen und Voraussetzungen *')}{field('painPlan', 'Abgestimmtes Schmerzmanagement / tatsächlicher Klärungsbedarf *')}{field('warningSigns', 'Abgestimmte Beobachtungen / Warnzeichen *')}{field('escalationPath', 'Verantwortliche Kontakte und vereinbartes Vorgehen bei Veränderung *')}{field('personDecision', 'Einbezogene Wünsche, Ressourcen und tatsächliche Entscheidung der Person *')}</SectionPanel> : <>
+ <SectionPanel title="Tatsächliche Durchführung und Materialverbrauch">{field('actualCleaning', 'Tatsächlich erfolgte Reinigung oder begründete Nichtdurchführung *')}{field('actualTechnique', 'Tatsächlich erfolgte Versorgung / Verbandtechnik oder Nichtdurchführung *')}<WoundCatalogPanel scope={catalogScope} kind="treatment" embedded edit={canManage} disabled={catalogDisabled} onInsert={item => append('actualTechnique', item.text)}/>{field('hygiene', 'Tatsächliche hygienische Bedingungen, Maßnahmen und Abweichungen *')}
+ <WoundCatalogPanel scope={catalogScope} kind="article" embedded edit={canManage} disabled={catalogDisabled || materials.length >= 20} onInsert={item => {
+                if (!guard.current.mayWrite(readEpoch, readTicket, q.data) || write.locked || confirmed || materials.length >= 20)
+                    return;
+                touch();
+                change('noMaterialReason', '');
+                setMaterials(rows => [...rows, { key: crypto.randomUUID(), name: item.name, quantity: '', unit: item.unit, purpose: '' }]);
+            }}/>
  {materials.map((m, i) => <View key={m.key} style={styles.group}><Text style={styles.body}>Materialposition {i + 1}</Text>{(['name', 'quantity', 'unit'] as const).map((key, j) => <PremiumInput key={key} label={['Tatsächliche Materialbezeichnung', 'Tatsächlich verbrauchte Menge', 'Einheit'][j]} value={m[key]} editable={!write.locked && guard.current.mayWrite(readEpoch, readTicket, q.data) && !confirmed} maxLength={200} onChangeText={value => { if (write.locked || !guard.current.mayWrite(readEpoch, readTicket, q.data) || confirmed)
             return; touch(); setMaterials(rows => rows.map(r => r.key === m.key ? { ...r, [key]: value } : r)); }}/>)}<FilterChipGroup wrap options={[{ key: 'wound', label: 'An der Wunde verwendet' }, { key: 'preparation', label: 'Zur Vorbereitung verbraucht' }, { key: 'waste', label: 'Verworfen' }]} value={m.purpose} onChange={write.locked || !guard.current.mayWrite(readEpoch, readTicket, q.data) || confirmed ? undefined : value => { if (!guard.current.mayWrite(readEpoch, readTicket, q.data) || write.locked || confirmed)
             return; touch(); setMaterials(rows => rows.map(r => r.key === m.key ? { ...r, purpose: value } : r)); }}/><PremiumButton title="Diese Materialposition entfernen" variant="secondary" disabled={write.locked || !guard.current.mayWrite(readEpoch, readTicket, q.data) || confirmed} onPress={() => { if (!guard.current.mayWrite(readEpoch, readTicket, q.data) || write.locked || confirmed)

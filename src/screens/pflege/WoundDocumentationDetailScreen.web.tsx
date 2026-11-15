@@ -18,6 +18,7 @@ import {WoundLifecycleScreen} from './WoundLifecycleScreen.web';
 import {WoundCareScreen,WoundCareHistoryPanel} from './WoundCareScreen.web';
 import {WoundAssessmentComparison} from '@/components/pflege/WoundAssessmentComparison.web';
 import {WoundPhotoReferenceEvidence} from '@/components/pflege/WoundPhotoReferenceEvidence.web';
+import {WoundRecordWorkspace} from '@/components/pflege/wounds/WoundRecordWorkspace';
 import {WoundPathWorkspacePanel} from '@/components/pflege/WoundPathWorkspacePanel.web';
 import {captureWoundComparisonOriginals,sameWoundComparisonOriginal,type WoundComparisonOriginals} from '@/lib/pflege/woundAssessmentComparison.web';
 import {woundUuid} from '@/lib/pflege/woundCareDomain';
@@ -101,6 +102,12 @@ function WoundDocumentationWorkspace(){
  if(!currentDetail()||!q.data)return <ScreenShell title="Wunddokumentation">{q.loading||q.refreshing?<LoadingState message="Aktueller Wundfall und Verlauf werden geladen…"/>:<ErrorState message={q.error??q.refreshError??'Der aktuelle Wundverlauf ist nicht vollständig bestätigt. Bitte neu laden.'} onRetry={refreshDetail}/>}</ScreenShell>;
  const w=q.data.row,d=details(w.documentation_details);
  return <ScreenShell title="Wundfall und Verlauf" subtitle={`${q.data.clientName} · ${text(w.body_location)}`}><ScrollView contentContainerStyle={styles.content}>
+ <WoundRecordWorkspace key={[tenant,profile?.id,permissions.roleKey,id,String(w.client_id)].join(':')}
+  scope={{tenantId:tenant??'',actorId:profile?.id??'',role:permissions.roleKey,clientId:String(w.client_id),woundId:id}}
+  wound={q.data} canWrite={permissions.can('pflege.wounds.manage')&&!comparisonBlocked.current}
+  canReadPlans={permissions.can('pflege.orders.view')} canReadTreatment={permissions.can('pflege.treatment.view')}
+  canEgk={permissions.can('ti.egk.view')}/>
+
  {q.refreshError?<ErrorState message={`Letzter erfolgreich geladener Stand: ${q.refreshError}`} onRetry={refreshDetail}/>:null}
  <SectionPanel title="Wundzuordnung"><Text style={styles.body}>Wund-ID: {text(w.id)}</Text><Text style={styles.body}>Fallstatus: {({draft:'Entwurf',active:'Aktiv',healing:'Heilend',healed:'Abgeheilt',deteriorated:'Verschlechtert',archived:'Archiviert'} as Record<string,string>)[String(w.status)]??'Status nicht bestätigt'}</Text><Text style={styles.body}>Angelegt: {time(w.created_at)} · {text(w.recorded_by_name)}</Text>
  {d?Object.entries(labels).filter(([k])=>k in d).map(([k,label])=><Text key={k} style={styles.body}>{label}: {translate[String(d[k])]??text(d[k])}</Text>):<><InfoBanner variant="warning" message="Historischer Wundfall ohne neue strukturierte Herkunftsangaben. Es wird keine ärztliche Grundlage, Messung oder BodyMap-Markierung ergänzt oder behauptet."/><Text style={styles.body}>Lokalisation: {text(w.body_location)}</Text><Text style={styles.body}>Wundtyp: {text(w.wound_type)}</Text><Text style={styles.body}>Gespeicherter historischer Plantext: {text(w.treatment_plan)}</Text></>}

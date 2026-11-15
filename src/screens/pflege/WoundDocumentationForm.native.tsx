@@ -12,6 +12,7 @@ import { CarePermissionStatus, type CarePermissionStatusState } from "./CarePerm
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useMedicationSubmission } from "../../hooks/useMedicationSubmission.native.ts";
 import { MedicationEventTimeInput, currentMedicationEventTime, medicationEventInstant } from "../../components/pflege/MedicationEventTimeInput.native.tsx";
+import { WoundCatalogPanel } from '@/components/pflege/wounds/WoundCatalogPanel';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { spacing, typography } from '@/theme';
 import { emptyWoundCase, emptyWoundAssessment, validateWoundRequest, type WoundRequest } from '@/lib/pflege/woundDocumentationDomain';
@@ -35,6 +36,8 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
     canManage: boolean;
     permissionStatus: CarePermissionStatusState;
 }) {
+    const { profile } = useAuth();
+    const catalogScope = { tenantId: tenant, actorId: profile?.id ?? '', role };
     const styles = useStyles(), router = useRouter(), [clientId, setClientId] = useState(''), [confirmed, setConfirmed] = useState(''), receipt = useRef('');
     const [observed, setObserved] = useState(currentMedicationEventTime), [review, setReview] = useState(currentMedicationEventTime);
     const [draft, setDraft] = useState<Record<string, string>>(() => mode === 'create' ? { ...emptyWoundCase() } : { ...emptyWoundAssessment() });
@@ -56,6 +59,14 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
             next.painReason = '';
         } return next; }); };
     const field = (key: string, label: string) => <PremiumInput key={key} label={label} accessibilityLabel={label} value={draft[key] ?? ''} onChangeText={value => change(key, value)} editable={!write.locked} maxLength={2000} multiline/>;
+    const snippets = (kind: 'description' | 'treatment', fieldKey: string) => <WoundCatalogPanel scope={catalogScope} kind={kind} embedded edit={canManage} disabled={write.locked} onInsert={item => {
+            const next = [draft[fieldKey]?.trim(), item.text].filter(Boolean).join('\n\n');
+            if (next.length > 2000) {
+                write.setError('Der Baustein passt nicht vollständig in das Feld.');
+                return;
+            }
+            change(fieldKey, next);
+        }}/>;
     const chips = (key: string, options: {
         key: string;
         label: string;
@@ -82,15 +93,15 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
  {mode === 'create' ? <>
  <SectionPanel title="Richtige Akte und Wunde"><PremiumInput label="Pflegeklient:innen suchen" value={search} onChangeText={setSearch} editable={!write.locked}/>{clients.loading && !clients.data ? <LoadingState message="Pflegefälle werden geladen…"/> : clients.error ? <ErrorState message={clients.error} onRetry={clients.refresh}/> : <FilterChipGroup wrap options={(clients.data ?? []).filter(c => c.name.toLocaleLowerCase('de').includes(search.toLocaleLowerCase('de'))).map(c => ({ key: c.id, label: c.name }))} value={clientId} onChange={write.locked ? undefined : setClientId}/>}{clients.refreshError ? <ErrorState message={clients.refreshError}/> : null}
  {field('bodyLocation', 'Genaue Lokalisation *')}{chips('side', [{ key: 'left', label: 'Links' }, { key: 'right', label: 'Rechts' }, { key: 'midline', label: 'Mittig' }, { key: 'bilateral', label: 'Beidseitig' }, { key: 'not_applicable', label: 'Seite nicht anwendbar' }])}
- {field('woundType', 'Fachliche Wundeinordnung / ausdrücklich ungeklärt *')}{field('etiology', 'Bekannte Ursache / tatsächlicher Klärungsstand *')}{field('acquiredWhere', 'Ort / Umstände der Entstehung bzw. Kenntnisstand *')}{field('onsetDate', 'Bekanntes Entstehungsdatum (JJJJ-MM-TT, Kalenderdatum Berlin)')}{field('onsetUnknownReason', 'Falls Datum unbekannt: tatsächlicher Kenntnisstand')}{field('description', 'Beschreibung der Wundsituation *')}
- </SectionPanel><SectionPanel title="Grundlage und geplante Versorgung">{chips('basisStatus', [{ key: 'documented', label: 'Ärztliche Grundlage dokumentiert' }, { key: 'pending', label: 'Grundlage / Klärung offen' }, { key: 'not_required', label: 'Nicht erforderlich – begründen' }])}{field('basisReference', 'Anordnungsbezug oder offener/begründet nicht erforderlicher Status *')}{field('physician', 'Anordnende ärztliche Person (bei dokumentierter Grundlage erforderlich)')}{field('carePlan', 'Geplante Versorgung – keine ausgeführte Handlung')}<InfoBanner variant="info" message="Die Beschreibung wird nicht als ärztliche Anordnung oder ausgeführte Versorgung übernommen. Der neue Wundfall bleibt ein Entwurf."/></SectionPanel>
+ {field('woundType', 'Fachliche Wundeinordnung / ausdrücklich ungeklärt *')}{field('etiology', 'Bekannte Ursache / tatsächlicher Klärungsstand *')}{field('acquiredWhere', 'Ort / Umstände der Entstehung bzw. Kenntnisstand *')}{field('onsetDate', 'Bekanntes Entstehungsdatum (JJJJ-MM-TT, Kalenderdatum Berlin)')}{field('onsetUnknownReason', 'Falls Datum unbekannt: tatsächlicher Kenntnisstand')}{field('description', 'Beschreibung der Wundsituation *')}{snippets('description', 'description')}
+ </SectionPanel><SectionPanel title="Grundlage und geplante Versorgung">{chips('basisStatus', [{ key: 'documented', label: 'Ärztliche Grundlage dokumentiert' }, { key: 'pending', label: 'Grundlage / Klärung offen' }, { key: 'not_required', label: 'Nicht erforderlich – begründen' }])}{field('basisReference', 'Anordnungsbezug oder offener/begründet nicht erforderlicher Status *')}{field('physician', 'Anordnende ärztliche Person (bei dokumentierter Grundlage erforderlich)')}{field('carePlan', 'Geplante Versorgung – keine ausgeführte Handlung')}{snippets('treatment', 'carePlan')}<InfoBanner variant="info" message="Die Beschreibung wird nicht als ärztliche Anordnung oder ausgeführte Versorgung übernommen. Der neue Wundfall bleibt ein Entwurf."/></SectionPanel>
  </> : <>
  {wound.loading && !wound.data ? <LoadingState message="Wundfall und vorhandener Verlauf werden geladen…"/> : wound.error ? <ErrorState message={wound.error} onRetry={wound.refresh}/> : null}{wound.refreshError ? <ErrorState message={wound.refreshError}/> : null}
  <SectionPanel title="Tatsächlich erhobene Wundsituation"><MedicationEventTimeInput label="Tatsächlicher Assessmentzeitpunkt" value={observed} disabled={write.locked} onChange={value => { setObserved(value); setTimeEdited(true); }}/>{field('measurementMethod', 'Verwendete Messmethode / Einschränkungen *')}
  {(['length', 'width', 'depth'] as const).map((k, i) => <View key={k} style={styles.group}><Text style={styles.body}>{['Länge', 'Breite', 'Tiefe'][i]}</Text>{chips(k + 'State', [{ key: 'measured', label: 'Tatsächlich gemessen' }, { key: 'not_measurable', label: 'Nicht messbar' }])}{draft[k + 'State'] === 'measured' ? field(k + 'Cm', 'Tatsächlich gemessener Wert in cm') : field(k + 'Reason', 'Falls nicht messbar: tatsächlicher Grund')}</View>)}
- {field('woundBed', 'Wundbett / Beurteilbarkeit *')}{field('exudate', 'Exsudat / tatsächliche Beurteilung *')}{field('odor', 'Geruch / tatsächliche Beurteilung *')}{field('woundEdge', 'Wundrand / Beurteilbarkeit *')}{field('surroundingSkin', 'Wundumgebung / Beurteilbarkeit *')}{field('infectionObservation', 'Tatsächliche Infektionsbeobachtungen / Beurteilbarkeit *')}
+ {field('woundBed', 'Wundbett / Beurteilbarkeit *')}{snippets('description', 'woundBed')}{field('exudate', 'Exsudat / tatsächliche Beurteilung *')}{field('odor', 'Geruch / tatsächliche Beurteilung *')}{field('woundEdge', 'Wundrand / Beurteilbarkeit *')}{field('surroundingSkin', 'Wundumgebung / Beurteilbarkeit *')}{field('infectionObservation', 'Tatsächliche Infektionsbeobachtungen / Beurteilbarkeit *')}
  </SectionPanel><SectionPanel title="Schmerz und persönliche Situation">{chips('painState', [{ key: 'NRS', label: 'NRS 0–10 tatsächlich erhoben' }, { key: 'not_assessable', label: 'Nicht beurteilbar' }])}{draft.painState === 'NRS' ? field('painScore', 'Erhobener ganzzahliger NRS-Wert 0–10') : field('painReason', 'Tatsächlicher Grund für fehlende Schmerzerhebung')}{field('personalImpact', 'Wund-/therapiebedingte Auswirkungen auf Alltag und Wohlbefinden *')}{field('preferences', 'Wünsche / Entscheidungen der Person bzw. tatsächliche Erhebungsgrenze *')}{field('selfManagement', 'Vorhandene Ressourcen und Unterstützungsbedarf *')}</SectionPanel>
- <SectionPanel title="Tatsächliche Reaktion und Ergebnis">{field('actualAction', 'Tatsächliche Reaktion / ausdrücklich keine Handlung mit Begründung *')}{field('response', 'Beobachtetes Ergebnis / ausstehende Rückmeldung *')}<InfoBanner variant="info" message="Eine Beobachtung ist keine automatische Infektionsdiagnose. Verbandwechsel, Anordnungsänderung, Fallabschluss und Eskalationsabschluss werden nicht aus diesem Assessment abgeleitet."/></SectionPanel>
+ <SectionPanel title="Tatsächliche Reaktion und Ergebnis">{field('actualAction', 'Tatsächliche Reaktion / ausdrücklich keine Handlung mit Begründung *')}{snippets('treatment', 'actualAction')}{field('response', 'Beobachtetes Ergebnis / ausstehende Rückmeldung *')}<InfoBanner variant="info" message="Eine Beobachtung ist keine automatische Infektionsdiagnose. Verbandwechsel, Anordnungsänderung, Fallabschluss und Eskalationsabschluss werden nicht aus diesem Assessment abgeleitet."/></SectionPanel>
  </>}
  <SectionPanel title="Weitere Kontrolle / tatsächlicher Abstimmungsstand">{chips('reviewStatus', [{ key: 'scheduled', label: 'Termin tatsächlich vereinbart' }, { key: 'pending', label: 'Terminabstimmung offen' }])}{draft.reviewStatus === 'pending' ? field('reviewPendingReason', 'Tatsächlicher Grund / weiterer Abstimmungsbedarf *') : draft.reviewStatus === 'scheduled' ? <MedicationEventTimeInput label="Tatsächlich vereinbarter nächster Kontrolltermin" value={review} disabled={write.locked} onChange={value => { setReview(value); setTimeEdited(true); }}/> : null}</SectionPanel>
  <View style={styles.actions}><PremiumButton title={write.busy ? 'Wunddokumentation wird gespeichert…' : write.uncertain ? 'Dieselbe Anfrage erneut prüfen' : 'Wunddokumentation speichern'} disabled={write.busy} onPress={save}/><PremiumButton title="Bearbeitung schließen" variant="secondary" disabled={write.locked} onPress={async () => { if (await write.confirmLeave())

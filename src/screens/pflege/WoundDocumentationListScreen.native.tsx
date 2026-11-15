@@ -10,6 +10,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useCareRuntimePermissions as usePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
 import { CarePermissionStatus, type CarePermissionStatusState } from "./CarePermissionStatus.native.tsx";
 import { useWoundRead, type WoundReadProps } from "../../hooks/pflege/useWoundRead.native.ts";
+import { WoundStatisticsPanel } from '@/components/pflege/wounds/WoundStatisticsPanel';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { spacing, typography } from '@/theme';
 import { fetchAmbulatoryWoundList } from "../../lib/pflege/ambulatoryWoundService.native.ts";
@@ -74,6 +75,7 @@ function WoundListWorkspace(props: WoundReadProps & {
                 ? <LoadingState message="Aktuelle Wundfälle werden geladen…"/> : <ErrorState message={q.error} onRetry={q.refresh}/>}</ScreenShell>;
     return <ScreenShell title="Wundfälle"><ScrollView contentContainerStyle={styles.content}>
     {props.canManage ? <PremiumButton title="Neuen Wundfall anlegen" onPress={create}/> : null}
+    {props.owner ? <WoundStatisticsPanel scope={{ tenantId: props.owner.tenantId, actorId: props.owner.profileId, role: props.owner.role }} enabled={q.ready && q.canRead}/> : null}
     <PremiumInput label="Nach Klient:in, Lokalisation oder Wund-ID suchen" value={search} onChangeText={changeSearch}/>
     <FilterChipGroup wrap options={[{ key: 'all', label: 'Alle Status' }, ...Object.entries(woundStatusLabels).map(([key, label]) => ({ key, label }))]} value={filter} onChange={changeFilter}/>
     <Text style={styles.body}>{filtered.length} passende Wundfälle im geladenen Bestand · {Math.min(visible, filtered.length)} angezeigt.</Text>
