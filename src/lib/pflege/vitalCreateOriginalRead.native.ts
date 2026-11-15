@@ -1,5 +1,6 @@
 // Generated native presentation from src/lib/pflege/vitalCreateOriginalRead.web.ts. Update through scripts/port-native-workspaces.mjs.
 import { cloneClientNativeOriginal as clone, freezeClientNativeOriginal as freeze } from "../clients/clientRecordNativeOriginal.native.ts";
+import { readVitalCasesWeb, vitalCaseOptions } from "./vitalCaseApi.native.ts";
 import { getVitalDefinition } from './vitalCatalog.ts';
 import { woundInstant } from './woundCareDomain.ts';
 import type { VitalCreateRuntimeWeb, VitalCreateReadTicket, VitalCreateReadEnvelope, VitalCreateReadScope } from "./vitalCreateRuntime.native.ts";
@@ -88,7 +89,11 @@ async function pool(runtime: VitalCreateRuntimeWeb, ticket: VitalCreateReadTicke
 function deliver<T>(runtime: VitalCreateRuntimeWeb, ticket: VitalCreateReadTicket, original: unknown, view: T[]): VitalCreateReadEnvelope<T> { runtime.assertCurrent(false, ticket); const token = Object.freeze({}); deliveries.set(token, { runtime, ticket, original, view }); return runtime.acceptRead(ticket, original, view, token); }
 export async function fetchVitalCreateClientsWeb(runtime: VitalCreateRuntimeWeb, scope: VitalCreateReadScope | null): Promise<ServiceResult<VitalCreateReadEnvelope<VitalClient>>> {
     try {
-        const ticket = runtime.beginRead('clients', null, scope), clients = await pool(runtime, ticket, 'clients'), assignments = await pool(runtime, ticket, 'client_module_assignments');
+        const ticket = runtime.beginRead('clients', null, scope), { sdk } = runtime.assertCurrent(false, ticket);
+        const original = await readVitalCasesWeb(sdk, runtime.tenantId, () => { runtime.assertCurrent(false, ticket); });
+        if (original)
+            return { ok: true, data: deliver(runtime, ticket, original, vitalCaseOptions(original.rows)) };
+        const clients = await pool(runtime, ticket, 'clients'), assignments = await pool(runtime, ticket, 'client_module_assignments');
         runtime.assertCurrent(false, ticket);
         // The filtered active-client subset need not contain legitimate inactive-client assignments.
         const active = new Set(assignments.filter(row => !['inactive', 'deactivated', 'archiviert'].includes(row.status as string)).map(row => row.client_id));
@@ -115,7 +120,7 @@ export async function fetchVitalCreateChoicesWeb(runtime: VitalCreateRuntimeWeb,
                 throw Error('Ganzer nativer Konfigurationsbestand ist nicht eindeutig.');
             byKey.set(setting.vital_key, setting);
         }
-        const view = catalog.map(row => { assertVitalCreateCatalogWeb(row); const setting = byKey.get(row.key as string); return { key: row.key as string, catalogVersion: row.updated_at as string, configurationVersion: setting ? setting.updated_at as string : 'none', enabled: setting ? setting.enabled as boolean : row.default_enabled as boolean, limits: setting?.limits ?? {} }; });
+        const view = catalog.map(row => { assertVitalCreateCatalogWeb(row); const setting = byKey.get(row.key as string); return { key: row.key as string, catalogVersion: row.updated_at as string, configurationVersion: setting ? setting.updated_at as string : 'none', enabled: setting ? setting.enabled === true && setting.active !== false : row.default_enabled as boolean, limits: setting?.limits ?? {} }; });
         runtime.assertCurrent(false, ticket);
         return { ok: true, data: deliver(runtime, ticket, { catalog, settings }, view) };
     }

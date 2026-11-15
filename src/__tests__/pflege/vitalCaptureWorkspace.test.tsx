@@ -106,6 +106,19 @@ afterEach(async () => {
 });
 
 describe('Vitalwerte · Übersicht und Erfassung', () => {
+  it('shows and filters the full catalog without an eligible case and sends no case-specific request', async () => {
+    fixture.createPeople = [];
+    await page(<VitalReadingCreateScreen/>);
+    expect(host.textContent).toContain('42 Messarten');
+    expect(host.textContent).toContain('Körperoberfläche');
+    expect(host.textContent).toContain('Sauerstoffpartialdruck');
+    expect(readChoiceKeys()).toEqual([]);
+    expect(button('Messung speichern')?.disabled).toBe(true);
+    await click('Körpermaße');
+    expect(host.textContent).toContain('5 Messarten');
+    expect(host.textContent).not.toContain('Sauerstoffpartialdruck');
+  });
+
   it('opens a generic create route and waits for explicit confirmation before loading that case’s catalog', async () => {
     await selectFromHistory();
     await page(<React.StrictMode><VitalReadingCreateScreen/></React.StrictMode>);
@@ -124,6 +137,21 @@ describe('Vitalwerte · Übersicht und Erfassung', () => {
     await click('Nichtinvasiver Blutdruck auswählen');
     expect(host.querySelector<HTMLInputElement>('[aria-label="Systolisch in mmHg"]')?.value).toBe('');
     expect(host.querySelector<HTMLInputElement>('[aria-label="Diastolisch in mmHg"]')?.value).toBe('');
+  });
+
+  it('zeigt Kontextoptionen großgeschrieben, übernimmt die Auswahl und erlaubt eigene Angaben', async () => {
+    await page(<VitalReadingCreateScreen/>);
+    await click(`Pflegefall auswählen: ${mara.name}`);
+    await click('Nichtinvasiver Blutdruck auswählen');
+    await click('Körperlage: Auswählen');
+    expect(button('Linke Seitenlage')).toBeDefined();
+    expect(button('Sitzend')).toBeDefined();
+    expect(button('sitzend')).toBeUndefined();
+    await click('Sitzend');
+    expect(button('Körperlage: Sitzend')).toBeDefined();
+    await click('Körperlage: Sitzend');
+    await click('Eigene Angabe');
+    expect(host.querySelector('[aria-label="Körperlage · Eigene Angabe"]')).not.toBeNull();
   });
 
   it('does not suggest a case missing from the fresh create receipt', async () => {

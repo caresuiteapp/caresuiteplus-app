@@ -1,3 +1,4 @@
+import {readVitalCaseWeb,vitalCaseName,type VitalCaseRow} from './vitalCaseApi.web.ts';
 import {fromUnknownTable} from '../supabase/untypedTable';
 import {withServiceQueryTimeout} from '../services/queryTimeout';
 import {assertVitalDetailReadWeb,assertVitalDetailSessionWeb,vitalDetailReadContextWeb,type VitalDetailReadLeaseWeb} from './vitalDetailRuntime.web.ts';
@@ -69,7 +70,14 @@ export async function fetchVitalDetailOriginalReadWeb(lease:VitalDetailReadLease
     await session();const context=vitalDetailReadContextWeb(lease),{tenantId,measurementId,expectedClientId}=context;
     const fetchRoot=async()=>{await session();const query=fromUnknownTable(context.client,'vital_sign_measurements').select('*').eq('tenant_id',tenantId).eq('id',measurementId).maybeSingle();current();return root(await select(query),tenantId,measurementId,expectedClientId);};
     const before=await fetchRoot(),clientId=field(before,'client_id') as string;
-    await session();const clientQuery=fromUnknownTable(context.client,'clients').select('id,tenant_id').eq('tenant_id',tenantId).eq('id',clientId).maybeSingle();current();const nativeClient=client(await select(clientQuery),tenantId,clientId);
+    const scopedClient=await readVitalCaseWeb(context.client,tenantId,clientId,current,session);
+    let nativeClient:Row;
+    if(scopedClient)nativeClient=scopedClient;
+    else{
+      await session();
+      const clientQuery=fromUnknownTable(context.client,'clients').select('id,tenant_id').eq('tenant_id',tenantId).eq('id',clientId).maybeSingle();
+      current();nativeClient=client(await select(clientQuery),tenantId,clientId);
+    }
     const history=async(table:'vital_measurement_follow_ups'|'vital_measurement_invalidations')=>{
       const result:Row[]=[];let cursor:string|null=null;
       try{for(;;){await session();let query=fromUnknownTable(context.client,table).select('*').eq('tenant_id',tenantId).eq('client_id',clientId).eq('measurement_id',measurementId).order('id',{ascending:true}).limit(200);if(cursor)query=query.gt('id',cursor);current();
@@ -94,7 +102,8 @@ export function vitalDetailProjectionWeb(token:VitalDetailOriginalReadWeb,lease:
   const row=originals.measurement,values=field(row,'values'),context=field(row,'context');
   if(typeof field(row,'vital_key')!=='string'||typeof field(row,'display_value')!=='string'||!values||typeof values!=='object'||Array.isArray(values)||!context||typeof context!=='object'||Array.isArray(context))return null;
   const fields=(original:Row,mapping:Record<string,string>)=>{const output:Record<string,unknown>={};for(const [native,projected] of Object.entries(mapping)){if(Object.hasOwn(original,native))Object.defineProperty(output,projected,{value:field(original,native),enumerable:true});}return output;};
-  const mapped=Object.freeze({...fields(row,{id:'id',tenant_id:'tenantId',client_id:'clientId',vital_key:'type',display_value:'value',unit:'unit',values:'values',context:'context',note:'note',flag_status:'flagStatus',occurred_at:'occurredAt',created_at:'recordedAt',recorded_by_name:'recordedByName',catalog_snapshot:'catalogSnapshot',configuration_snapshot:'configurationSnapshot'}),clientName:'Name nicht geladen',
+  const mapped=Object.freeze({...fields(row,{id:'id',tenant_id:'tenantId',client_id:'clientId',vital_key:'type',display_value:'value',unit:'unit',values:'values',context:'context',note:'note',flag_status:'flagStatus',occurred_at:'occurredAt',created_at:'recordedAt',recorded_by_name:'recordedByName',catalog_snapshot:'catalogSnapshot',configuration_snapshot:'configurationSnapshot'}),...fields(originals.client,{vital_path:'vitalPathAvailable',respiratory_path:'respiratoryPathAvailable'}),
+    clientName:typeof originals.client.first_name==='string'&&typeof originals.client.last_name==='string'?vitalCaseName(originals.client as VitalCaseRow):'Name nicht geladen',
     followUps:Object.freeze(originals.followUps.map(f=>Object.freeze(fields(f,{id:'id',observed_at:'observedAt',observation:'observation',action:'action',responsible_person:'responsiblePerson',outcome:'outcome',next_review_at:'nextReviewAt',created_at:'recordedAt',recorded_by_name:'recordedByName'})))),
     invalidation:originals.invalidations.length?Object.freeze(fields(originals.invalidations[0],{id:'id',measurement_id:'measurementId',reason:'reason',created_at:'recordedAt',recorded_by_name:'recordedByName'})):null});
   return vitalDetailOriginalsWeb(token,lease)?mapped:null;

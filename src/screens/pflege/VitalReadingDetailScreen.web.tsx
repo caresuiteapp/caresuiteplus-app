@@ -109,10 +109,15 @@ function VitalDetailWorkspace({capture,actorId,canReview,permissionState}:{captu
       </View>:null}
       {conditions.length?<View style={styles.detailGroup}>
         <Text accessibilityRole="header" style={styles.subheading}>Messbedingungen</Text>
-        <View style={styles.metadata}>{conditions.map(([key,value])=><View key={key} style={styles.metadataItem}>
-          <Text style={styles.label}>{definition?.contextFields?.find(c=>c.key===key)?.label??key}</Text>
-          <Text style={styles.body}>{typeof value==='string'?value:'Angabe nicht bestätigt'}</Text>
-        </View>)}</View>
+        <View style={styles.metadata}>{conditions.map(([key,value])=>{
+          const field=definition?.contextFields?.find(item=>item.key===key);
+          const label=field?.label??(key==='scale'?'Skala':key==='completeness'?'Erfassungsumfang':key==='incompleteReason'?'Fehlende Angaben':key);
+          const extent=key==='completeness'&&typeof value==='string'?({complete:'Vollständig erfasst',incomplete:'Unvollständig erfasst',unknown:'Umfang unbekannt'} as Record<string,string>)[value]:undefined;
+          return <View key={key} style={styles.metadataItem}>
+            <Text style={styles.label}>{label}</Text>
+            <Text style={styles.body}>{typeof value==='string'?(field?.options.find(option=>option.key===value)?.label??extent??value):'Angabe nicht bestätigt'}</Text>
+          </View>;
+        })}</View>
       </View>:null}
     </SectionPanel>:null}
     <SectionPanel title="Reaktion und Verlaufskontrollen">
@@ -134,7 +139,12 @@ function VitalDetailWorkspace({capture,actorId,canReview,permissionState}:{captu
       <View style={styles.actions}><PremiumButton title="Ungültigkeitsvermerk vorbereiten" variant="secondary" disabled={editor||correcting||!runtime.canPrepare('invalidation')} onPress={prepareInvalidation}/></View>
       {correcting||runtime.operationState('invalidation').pending?<VitalInvalidationForm key={`${runtime.readVersion()}:invalidation`} capture={capture} close={()=>setCorrecting(false)} saved={()=>saved('invalidation')}/>:null}
     </SectionPanel>:null}
-    {typeof reading.clientId==='string'?<><VitalCarePathWorkspacePanel tenantId={runtime.tenantId} clientId={reading.clientId} measurementId={runtime.id} actorId={actorId} canRead={runtime.canRead()} canWrite={runtime.canManage()} canReview={canReview}/><RespiratoryIntensiveCareWorkspacePanel tenantId={runtime.tenantId} clientId={reading.clientId} measurementId={runtime.id} actorId={actorId} canRead={runtime.canRead()} canWrite={runtime.canManage()} canReview={canReview}/></>:<InfoBanner variant="warning" message="Die verbundenen Vital- und Atempflegepfade bleiben gesperrt, weil der native Pflegefallbezug der Messung nicht bestätigt ist."/>}
+    {typeof reading.clientId==='string'&&reading.vitalPathAvailable!==false?
+      <VitalCarePathWorkspacePanel tenantId={runtime.tenantId} clientId={reading.clientId} measurementId={runtime.id}
+        actorId={actorId} canRead={runtime.canRead()} canWrite={runtime.canManage()} canReview={canReview}/>:null}
+    {typeof reading.clientId==='string'&&reading.respiratoryPathAvailable!==false?
+      <RespiratoryIntensiveCareWorkspacePanel tenantId={runtime.tenantId} clientId={reading.clientId} measurementId={runtime.id}
+        actorId={actorId} canRead={runtime.canRead()} canWrite={runtime.canManage()} canReview={canReview}/>:null}
     <View style={styles.actions}><PremiumButton title="Messung erneut laden" variant="secondary" disabled={editor||correcting||original.busy} onPress={reload}/><PremiumButton title="Zurück" variant="secondary" disabled={editor||correcting||original.pending} onPress={closeParent}/></View>
   </ScrollView></ScreenShell>;
 }

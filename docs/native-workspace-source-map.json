@@ -3052,7 +3052,7 @@
     {
       "web": "src/components/pflege/MedicationEventTimeInput.web.tsx",
       "native": "src/components/pflege/MedicationEventTimeInput.native.tsx",
-      "sourceHash": "69dc8875c97cb6207ba23652043d8dc14e87051f67f6d341e7bdc417d31f6117",
+      "sourceHash": "a997830fac3bf644e5b97972f1405a5915daa5eb4e7d9f0a498d679618e7f4a0",
       "environment": []
     },
     {
@@ -3744,9 +3744,15 @@
       "environment": []
     },
     {
+      "web": "src/lib/pflege/vitalCaseApi.web.ts",
+      "native": "src/lib/pflege/vitalCaseApi.native.ts",
+      "sourceHash": "e1ac19f842a6d54c89b1a62ca54abf63774db3df13465edb45629a1b64fa6006",
+      "environment": []
+    },
+    {
       "web": "src/lib/pflege/vitalHistoryClientsOriginalRead.web.ts",
       "native": "src/lib/pflege/vitalHistoryClientsOriginalRead.native.ts",
-      "sourceHash": "59bada00c8fc7e0016269dac66301e32ee1a7b63f4f7f579405f4ab4bd8ff19b",
+      "sourceHash": "cc799e54c6138e87fbf4c2f4bd6dffa3ad908e661fe508b58732d1a8557be068",
       "environment": []
     },
     {
@@ -6400,7 +6406,7 @@
     {
       "web": "src/lib/pflege/vitalCreateOriginalRead.web.ts",
       "native": "src/lib/pflege/vitalCreateOriginalRead.native.ts",
-      "sourceHash": "a195c4cd83023a740c19fa90992989b4b901e17fae69308aa9805e858549b45d",
+      "sourceHash": "a2dc5b176fea1fa3896538b6a0f0a79ec2eee7e08ab6c7b038dd4642835bb20b",
       "environment": []
     },
     {
@@ -6412,7 +6418,7 @@
     {
       "web": "src/screens/pflege/VitalReadingCreateScreen.web.tsx",
       "native": "src/screens/pflege/VitalReadingCreateScreen.native.tsx",
-      "sourceHash": "2db2a52b5c214593ca1ff5f554690b7ba16fd6f0afd04f64b248e705a40e8f40",
+      "sourceHash": "aa5ceec808e359fbe70344a5d71ee41e47d4c5a6338603eea759bec10fe5d149",
       "environment": []
     },
     {
@@ -6424,7 +6430,7 @@
     {
       "web": "src/lib/pflege/vitalDetailOriginalRead.web.ts",
       "native": "src/lib/pflege/vitalDetailOriginalRead.native.ts",
-      "sourceHash": "faedfaf154be236d98b052430ec48a90bcc62a69d272c9edecd54cdf83008fd0",
+      "sourceHash": "9ccdadc647025871e50c449cb13a95ad60fce1501d72538f0ef96d71013d9073",
       "environment": []
     },
     {
@@ -6442,7 +6448,7 @@
     {
       "web": "src/screens/pflege/VitalReadingDetailScreen.web.tsx",
       "native": "src/screens/pflege/VitalReadingDetailScreen.native.tsx",
-      "sourceHash": "3f90bb4393c551692c1efe4a0d0b390583c930fa0d1ad9f12f6814b2ecc3f899",
+      "sourceHash": "c07af3dc74d190dfa74e4c702867ab418549b4b3146351748d5425d87db44feb",
       "environment": []
     },
     {

@@ -274,7 +274,7 @@ export function VitalReadingCreateScreen() {
             {definition.contextFields?.length ? (
               <View style={styles.valueGrid}>
                 {definition.contextFields.map((field) => (
-                  <View key={field.key} style={styles.valueField}><PremiumInput label={field.label} placeholder={field.placeholder}
+                  <View key={field.key} style={styles.valueField}><PremiumInput label={field.label} placeholder="Angabe eingeben"
                     value={context[field.key] ?? ''} onChangeText={(value) => setContext((current) => ({ ...current, [field.key]: value }))}
                     editable={!isReadOnly && !saving} onLightSurface /></View>
                 ))}

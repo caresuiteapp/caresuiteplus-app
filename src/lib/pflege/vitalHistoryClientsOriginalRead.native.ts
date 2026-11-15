@@ -1,5 +1,6 @@
 // Generated native presentation from src/lib/pflege/vitalHistoryClientsOriginalRead.web.ts. Update through scripts/port-native-workspaces.mjs.
 import { cloneClientNativeOriginal as clone, freezeClientNativeOriginal as freeze } from "../clients/clientRecordNativeOriginal.native.ts";
+import { readVitalCasesWeb, vitalCaseOptions } from "./vitalCaseApi.native.ts";
 import { withServiceQueryTimeout } from '../services/queryTimeout';
 import { beginVitalHistoryViewFetchWeb, assertVitalHistoryViewFetchWeb, assertVitalHistoryViewSessionWeb, vitalHistoryViewReadContextWeb, closeVitalHistoryViewFetchWeb, type VitalHistoryViewReadLeaseWeb } from "./vitalHistoryViewRuntime.native.ts";
 type Row = Readonly<Record<string, unknown>>;
@@ -32,6 +33,14 @@ export async function fetchVitalHistoryClientsOriginalReadWeb(lease: VitalHistor
     try {
         await session();
         const { client: sdk, tenantId } = vitalHistoryViewReadContextWeb(frame, lease);
+        const confirmed = await readVitalCasesWeb(sdk, tenantId, current, session);
+        if (confirmed) {
+            const originals = freeze({ clients: confirmed.rows, assignments: [], responses: confirmed.responses, people: vitalCaseOptions(confirmed.rows) });
+            current();
+            const token = Object.freeze({});
+            receipts.set(token, { lease, frame, originals });
+            return token;
+        }
         const method = (target: unknown, key: string, args: unknown[]) => { const first = (target as Record<string, unknown>)[key], second = (target as Record<string, unknown>)[key]; if (typeof first !== 'function' || first !== second)
             throw error(); current(); return Reflect.apply(first, target, args); };
         const pool = async (table: keyof typeof selectors) => { const rows: Row[] = []; let cursor: string | null = null; try {

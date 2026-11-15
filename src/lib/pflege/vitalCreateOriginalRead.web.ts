@@ -1,4 +1,5 @@
 import {cloneClientNativeOriginal as clone,freezeClientNativeOriginal as freeze} from '../clients/clientRecordNativeOriginal.web.ts';
+import {readVitalCasesWeb,vitalCaseOptions} from './vitalCaseApi.web.ts';
 import {getVitalDefinition} from './vitalCatalog.ts';
 import {woundInstant} from './woundCareDomain.ts';
 import type {VitalCreateRuntimeWeb,VitalCreateReadTicket,VitalCreateReadEnvelope,VitalCreateReadScope} from './vitalCreateRuntime.web';
@@ -28,7 +29,11 @@ async function page(runtime:VitalCreateRuntimeWeb,ticket:VitalCreateReadTicket,t
 async function pool(runtime:VitalCreateRuntimeWeb,ticket:VitalCreateReadTicket,table:string,text=false):Promise<Row[]>{const rows:Row[]=[],seen=new Set<string>();let cursor:string|null=null;for(;;){const supplied=await page(runtime,ticket,table,cursor,text);if(!supplied.length){runtime.assertCurrent(false,ticket);return freeze(rows);}let previous: string | null=cursor;for(const row of supplied){const id=(row[text?'key':'id'] as string),canonical=text?id:id.toLowerCase();if(seen.has(canonical)||previous!==null&&canonical<=(text?previous:previous.toLowerCase()))throw Error('Nativer Originalabruf enthält doppelte oder nicht fortschreitende Kennungen.');seen.add(canonical);previous=id;rows.push(row);}cursor=previous;}}
 function deliver<T>(runtime:VitalCreateRuntimeWeb,ticket:VitalCreateReadTicket,original:unknown,view:T[]):VitalCreateReadEnvelope<T>{runtime.assertCurrent(false,ticket);const token=Object.freeze({});deliveries.set(token,{runtime,ticket,original,view});return runtime.acceptRead(ticket,original,view,token);}
 export async function fetchVitalCreateClientsWeb(runtime:VitalCreateRuntimeWeb,scope:VitalCreateReadScope|null):Promise<ServiceResult<VitalCreateReadEnvelope<VitalClient>>>{
- try{const ticket=runtime.beginRead('clients',null,scope),clients=await pool(runtime,ticket,'clients'),assignments=await pool(runtime,ticket,'client_module_assignments');runtime.assertCurrent(false,ticket);
+ try{
+ const ticket=runtime.beginRead('clients',null,scope), {sdk}=runtime.assertCurrent(false,ticket);
+ const original=await readVitalCasesWeb(sdk,runtime.tenantId,()=>{runtime.assertCurrent(false,ticket);});
+ if(original)return {ok:true,data:deliver(runtime,ticket,original,vitalCaseOptions(original.rows))};
+ const clients=await pool(runtime,ticket,'clients'),assignments=await pool(runtime,ticket,'client_module_assignments');runtime.assertCurrent(false,ticket);
  // The filtered active-client subset need not contain legitimate inactive-client assignments.
  const active=new Set(assignments.filter(row=>!['inactive','deactivated','archiviert'].includes(row.status as string)).map(row=>row.client_id));
  const view=clients.filter(row=>active.has(row.id)).map(row=>({id:row.id as string,name:[row.first_name,row.last_name].filter(v=>typeof v==='string').join(' ').trim()||'Name fehlt'})).sort((a,b)=>a.name.localeCompare(b.name,'de'));
@@ -41,7 +46,7 @@ export function assertVitalCreateCatalogWeb(input:Row){const row=clone(input);co
 export async function fetchVitalCreateChoicesWeb(runtime:VitalCreateRuntimeWeb,clientId:string,scope:VitalCreateReadScope|null):Promise<ServiceResult<VitalCreateReadEnvelope<VitalChoice>>>{
  try{const ticket=runtime.beginRead('choices',clientId,scope),catalog=await pool(runtime,ticket,'vital_sign_catalog',true),settings=await pool(runtime,ticket,'client_vital_sign_settings');runtime.assertCurrent(false,ticket);
  const byKey=new Map<string,Row>();for(const setting of settings){if(typeof setting.vital_key!=='string'||!setting.vital_key||byKey.has(setting.vital_key)||typeof setting.enabled!=='boolean'||!version(setting.updated_at))throw Error('Ganzer nativer Konfigurationsbestand ist nicht eindeutig.');byKey.set(setting.vital_key,setting);}
- const view=catalog.map(row=>{assertVitalCreateCatalogWeb(row);const setting=byKey.get(row.key as string);return {key:row.key as string,catalogVersion:row.updated_at as string,configurationVersion:setting?setting.updated_at as string:'none',enabled:setting?setting.enabled as boolean:row.default_enabled as boolean,limits:setting?.limits??{}};});
+ const view=catalog.map(row=>{assertVitalCreateCatalogWeb(row);const setting=byKey.get(row.key as string);return {key:row.key as string,catalogVersion:row.updated_at as string,configurationVersion:setting?setting.updated_at as string:'none',enabled:setting?setting.enabled===true&&setting.active!==false:row.default_enabled as boolean,limits:setting?.limits??{}};});
  runtime.assertCurrent(false,ticket);return {ok:true,data:deliver(runtime,ticket,{catalog,settings},view)};
  }catch{return {ok:false,error:'Aktueller ganzer Messkatalog, Einheit und Pflegefallkonfiguration konnten nicht bestätigt werden.'};}
 }
