@@ -143,7 +143,8 @@ const TITLES: Record<WoundReportMode, string> = {
 };
 
 export async function generateWoundReport({ wound, entries, media = [], care, treatmentCorrections, mode, selected }: ReportArgs) {
-  const { jsPDF } = await import('jspdf');
+  const jsPdfModule = await import('jspdf/dist/jspdf.es.min.js');
+  const { jsPDF } = jsPdfModule as unknown as typeof import('jspdf');
   const pdf = new jsPDF({ format: 'a4', unit: 'mm' });
   registerCareSuitePdfFont(pdf);
   pdf.setFont(CARESUITE_PDF_FONT, 'normal');
