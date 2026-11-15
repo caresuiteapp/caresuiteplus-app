@@ -1,0 +1,51 @@
+import { Image, type ImageSourcePropType } from 'react-native';
+import type { VitalReadingType } from '@/types/modules/pflege';
+
+const artwork: Record<VitalReadingType, ImageSourcePropType> = {
+  blood_pressure: require('../../../assets/vitalwerte/blood_pressure.png'),
+  pulse: require('../../../assets/vitalwerte/pulse.png'),
+  respiratory_rate: require('../../../assets/vitalwerte/respiratory_rate.png'),
+  oxygen: require('../../../assets/vitalwerte/oxygen.png'),
+  temperature: require('../../../assets/vitalwerte/temperature.png'),
+  weight: require('../../../assets/vitalwerte/weight.png'),
+  height: require('../../../assets/vitalwerte/height.png'),
+  bmi: require('../../../assets/vitalwerte/bmi.png'),
+  body_surface_area: require('../../../assets/vitalwerte/body_surface_area.png'),
+  head_circumference: require('../../../assets/vitalwerte/head_circumference.png'),
+  blood_glucose: require('../../../assets/vitalwerte/blood_glucose.png'),
+  blood_ketones: require('../../../assets/vitalwerte/blood_ketones.png'),
+  pain_score: require('../../../assets/vitalwerte/pain_score.png'),
+  capillary_refill: require('../../../assets/vitalwerte/capillary_refill.png'),
+  urine_output: require('../../../assets/vitalwerte/urine_output.png'),
+  fluid_balance: require('../../../assets/vitalwerte/fluid_balance.png'),
+  gcs: require('../../../assets/vitalwerte/gcs.png'),
+  rass: require('../../../assets/vitalwerte/rass.png'),
+  pupils: require('../../../assets/vitalwerte/pupils.png'),
+  arterial_pressure: require('../../../assets/vitalwerte/arterial_pressure.png'),
+  map: require('../../../assets/vitalwerte/map.png'),
+  cvp: require('../../../assets/vitalwerte/cvp.png'),
+  cardiac_output: require('../../../assets/vitalwerte/cardiac_output.png'),
+  cardiac_index: require('../../../assets/vitalwerte/cardiac_index.png'),
+  svv: require('../../../assets/vitalwerte/svv.png'),
+  icp: require('../../../assets/vitalwerte/icp.png'),
+  cpp: require('../../../assets/vitalwerte/cpp.png'),
+  etco2: require('../../../assets/vitalwerte/etco2.png'),
+  oxygen_flow: require('../../../assets/vitalwerte/oxygen_flow.png'),
+  fio2: require('../../../assets/vitalwerte/fio2.png'),
+  peep: require('../../../assets/vitalwerte/peep.png'),
+  tidal_volume: require('../../../assets/vitalwerte/tidal_volume.png'),
+  minute_ventilation: require('../../../assets/vitalwerte/minute_ventilation.png'),
+  peak_airway_pressure: require('../../../assets/vitalwerte/peak_airway_pressure.png'),
+  plateau_pressure: require('../../../assets/vitalwerte/plateau_pressure.png'),
+  ventilator_rate: require('../../../assets/vitalwerte/ventilator_rate.png'),
+  ph: require('../../../assets/vitalwerte/ph.png'),
+  pco2: require('../../../assets/vitalwerte/pco2.png'),
+  po2: require('../../../assets/vitalwerte/po2.png'),
+  bicarbonate: require('../../../assets/vitalwerte/bicarbonate.png'),
+  base_excess: require('../../../assets/vitalwerte/base_excess.png'),
+  lactate: require('../../../assets/vitalwerte/lactate.png'),
+};
+
+export function VitalMeasurementArtwork({ kind, size = 72 }: { kind: VitalReadingType; size?: number }) {
+  return <Image source={artwork[kind]} style={{ width: size, height: size }} resizeMode="contain" accessible={false} />;
+}

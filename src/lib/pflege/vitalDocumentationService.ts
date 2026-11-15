@@ -14,7 +14,7 @@ import {isDefiniteMedicationRejection} from './medicationRequestState';
 import type {MedicationWriteResult} from './medicationAdministrationService';
 
 type Row=Record<string,unknown>;
-export type VitalClient={id:string;name:string};
+export type VitalClient={id:string;name:string;birthDate?:string;number?:string};
 export type VitalChoice={key:string;catalogVersion:string;configurationVersion:string;enabled:boolean;limits:unknown};
 export type VitalFollowUp={id:string;observedAt:string;observation:string;action:string;responsiblePerson:string;outcome:'ongoing'|'resolved';nextReviewAt:string|null;recordedAt:string;recordedByName:string};
 export type VitalDocumentation={id:string;tenantId:string;clientId:string;clientName:string;type:string;value:string;unit:string;occurredAt:string|null;recordedAt:string;recordedByName:string;flagStatus:string;values:Row;context:Row;note:string;catalogSnapshot:Row|null;configurationSnapshot:Row|null;followUps:VitalFollowUp[];invalidation:VitalInvalidation|null};

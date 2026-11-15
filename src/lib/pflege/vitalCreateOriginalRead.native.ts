@@ -92,7 +92,14 @@ export async function fetchVitalCreateClientsWeb(runtime: VitalCreateRuntimeWeb,
         runtime.assertCurrent(false, ticket);
         // The filtered active-client subset need not contain legitimate inactive-client assignments.
         const active = new Set(assignments.filter(row => !['inactive', 'deactivated', 'archiviert'].includes(row.status as string)).map(row => row.client_id));
-        const view = clients.filter(row => active.has(row.id)).map(row => ({ id: row.id as string, name: [row.first_name, row.last_name].filter(v => typeof v === 'string').join(' ').trim() || 'Name fehlt' })).sort((a, b) => a.name.localeCompare(b.name, 'de'));
+        const view = clients.filter(row => active.has(row.id)).map(row => {
+            const person: VitalClient = { id: row.id as string, name: [row.first_name, row.last_name].filter(v => typeof v === 'string').join(' ').trim() || 'Name fehlt' };
+            if (typeof row.date_of_birth === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(row.date_of_birth))
+                person.birthDate = row.date_of_birth;
+            if (typeof row.client_number === 'string' && row.client_number.trim())
+                person.number = row.client_number.trim();
+            return person;
+        }).sort((a, b) => a.name.localeCompare(b.name, 'de'));
         runtime.assertCurrent(false, ticket);
         return { ok: true, data: deliver(runtime, ticket, { clients, assignments }, view) };
     }

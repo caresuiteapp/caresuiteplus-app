@@ -1,14 +1,15 @@
 import {useMemo,useState,useRef,useEffect} from 'react';
-import {ScrollView,StyleSheet,Text,View} from 'react-native';
+import {Text,View} from 'react-native';
 import {useRouter} from 'expo-router';
 import {ScreenShell} from '@/components/layout';
-import {EmptyState,ErrorState,FilterChipGroup,InfoBanner,LoadingState,PremiumButton,PremiumInput,SectionPanel} from '@/components/ui';
+import {EmptyState,ErrorState,InfoBanner,LoadingState} from '@/components/ui';
 import {useAuth} from '@/lib/auth/context';
 import {useCareRuntimePermissions as usePermissions} from '@/hooks/pflege/useCareRuntimePermissions.web';
 import {useServiceTenantId} from '@/hooks/useTenantId';
 import {useAsyncQuery} from '@/hooks/core/useAsyncQuery';
-import {useCareLightPalette} from '@/design/tokens/carelightadaptive';
-import {spacing,typography} from '@/theme';
+import {VitalAction,VitalCasePicker,VitalPills,VitalWorkspaceHero,useVitalStyles} from '@/components/pflege/VitalWorkspaceUi';
+import {VitalMeasurementArtwork} from '@/components/pflege/VitalMeasurementArtwork';
+import {currentMedicationEventTime} from '@/components/pflege/MedicationEventTimeInput.web';
 import {VitalHistoryChartPanel} from '@/components/pflege/VitalHistoryChartPanel.web';
 import {getVitalDefinition} from '@/lib/pflege/vitalCatalog';
 import {vitalTimeDisplay} from '@/lib/pflege/vitalTimeDisplay.web';
@@ -27,18 +28,22 @@ export function VitalReadingsListScreen({onReadingPress,selectedId}:{onReadingPr
  return <VitalHistoryWorkspace key={`${key}:${current.version}`} capture={current.view} scope={scope} permissionState={{loading:permissions.loading||auth.isLoading||!auth.authReady,error:permissions.error,refreshPermissions:permissions.refreshPermissions}} onReadingPress={onReadingPress} selectedId={selectedId}/>;
 }
 function VitalHistoryWorkspace({capture,scope,permissionState,onReadingPress,selectedId}:{capture:VitalHistoryViewWeb|null;scope:object|null;permissionState:PermissionFeedback;onReadingPress?:(id:string)=>void;selectedId?:string|null}){
- const router=useRouter(),styles=useStyles(),alive=useRef(true);useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
- const [clientId,setClientId]=useState(''),[search,setSearch]=useState(''),[type,setType]=useState('all'),[component,setComponent]=useState(''),[visible,setVisible]=useState(50),[exportError,setExportError]=useState<string|null>(null);
+ const router=useRouter(),alive=useRef(true);useEffect(()=>{alive.current=true;return()=>{alive.current=false;};},[]);
+ const [clientId,setClientId]=useState(''),[type,setType]=useState('all'),[component,setComponent]=useState(''),[days,setDays]=useState('all'),[visible,setVisible]=useState(50),[exportError,setExportError]=useState<string|null>(null);
  const clients=useAsyncQuery(async()=>{try{if(!alive.current||!capture||!scope)throw Error();const originalScope=beginVitalHistoryViewChoicesWeb(capture);if(originalScope!==scope)throw Error();const data=await fetchVitalHistoryClientsOriginalReadWeb(originalScope);if(!alive.current)throw Error();acceptVitalHistoryViewChoicesWeb(capture,data);return{ok:true as const,data};}catch{return{ok:false as const,error:'Aktuelle Klientenauswahl ist unbekannt. Bitte mit aktueller Berechtigung neu laden.'};}},[capture,scope],{enabled:!!capture&&!!scope,queryKey:`vital-history-clients`,retryCount:0});
  if(capture)bindVitalHistoryViewQueryWeb(capture,'clients',clients.data,flags(clients));
  const people=capture?vitalHistoryViewPeopleWeb(capture):null,fetchScope=capture?captureVitalHistoryViewFetchWeb(capture):null;
  const history=useAsyncQuery(async()=>{try{if(!alive.current||!fetchScope)throw Error();const data=await fetchVitalHistoryViewWeb(fetchScope);if(!alive.current)throw Error();return{ok:true as const,data};}catch{return{ok:false as const,error:'Aktueller ganzer Verlauf mit Originalbelegen ist unbekannt. Bitte neu laden.'};}},[capture,scope,fetchScope],{enabled:!!capture&&!!fetchScope,queryKey:`vital-history:${clientId}`,retryCount:0});
  if(capture)bindVitalHistoryViewQueryWeb(capture,'history',history.data,flags(history));
  const entries=capture?vitalHistoryViewRowsWeb(capture):null,choiceAction=capture?captureVitalHistoryViewActionWeb(capture):null,historyAction=capture?captureVitalHistoryViewActionWeb(capture,true):null;
- const person=people?.find(c=>c.id===clientId),needle=search.trim().toLocaleLowerCase('de'),types=[...new Set((entries??[]).map(e=>e.type))],definition=type==='all'?null:getVitalDefinition(type),filtered=(entries??[]).filter(e=>type==='all'||e.type===type);
+ const types=[...new Set((entries??[]).map(entry=>entry.type))].sort((a,b)=>measurementLabel(a).localeCompare(measurementLabel(b),'de'));
+ const definition=type==='all'?null:getVitalDefinition(type);
+ const matchesPeriod=historyPeriod(days);
+ const filtered=(entries??[]).filter(entry=>(type==='all'||entry.type===type)&&matchesPeriod(entry.occurredAt,entry.occurredAtState));
+ const shown=filtered.slice(0,visible);
  const chartCapture=useMemo(()=>historyAction&&component?captureVitalHistoryViewChartWeb(historyAction):null,[historyAction,component]);
  const current=()=>alive.current&&!!historyAction&&mayUseVitalHistoryViewActionWeb(historyAction);
- function choose(id:string){if(!alive.current||!selectVitalHistoryViewClientWeb(choiceAction,id))return;setClientId(id);setType('all');setComponent('');setVisible(50);setExportError(null);}
+ function choose(id:string){if(!alive.current||!selectVitalHistoryViewClientWeb(choiceAction,id))return;setClientId(id);setDays('all');setType('all');setComponent('');setVisible(50);setExportError(null);}
  function chooseType(id:string){if(!alive.current||!clearVitalHistoryViewSelectionWeb(historyAction))return;setType(id);setComponent('');setVisible(50);}
  function chooseComponent(id:string){const selected=definition?.components.find(c=>c.key===id);if(!alive.current||!selected||!selectVitalHistoryViewComponentWeb(historyAction,{type,component:id,unit:selected.unit}))return;setComponent(id);setExportError(null);}
  async function reload(kind:'clients'|'history'){if(!alive.current)return;if(kind==='history'&&!mayReloadVitalHistoryViewWeb(fetchScope)||kind==='clients'&&(!capture||!mayReloadVitalHistoryChoicesWeb(capture)))return;await(kind==='clients'?clients.refresh():history.refresh());}
@@ -47,31 +52,162 @@ function VitalHistoryWorkspace({capture,scope,permissionState,onReadingPress,sel
  function more(){if(current())setVisible(n=>n+50);}
  function download(){setExportError(null);if(!alive.current||!component||!current())return;let url:string|null=null,anchor:HTMLAnchorElement|null=null,remove:HTMLAnchorElement['remove']|null=null,revoke:typeof URL.revokeObjectURL|null=null,urlApi:typeof URL|null=null;try{const csv=vitalHistoryViewCsvWeb(historyAction);if(csv===null||!current())throw Error();const makeBlob=Blob,documentApi=document;urlApi=URL;const create=urlApi.createObjectURL;revoke=urlApi.revokeObjectURL;const element=documentApi.createElement,body=documentApi.body,append=body.appendChild;if(!current())throw Error();const blob=Reflect.construct(makeBlob,[[csv],{type:'text/csv;charset=utf-8'}]);if(!current())throw Error();url=Reflect.apply(create,urlApi,[blob]);if(!current())throw Error();const node=Reflect.apply(element,documentApi,['a']);if(!(node instanceof HTMLAnchorElement))throw Error();anchor=node;const click=anchor!.click;remove=anchor!.remove;if(typeof click!=='function'||typeof remove!=='function'||!current())throw Error();anchor!.href=url!;anchor!.download='vitalwertverlauf-originale.csv';if(!current())throw Error();Reflect.apply(append,body,[anchor]);if(!current())throw Error();Reflect.apply(click,anchor,[]);const done=url,cleanup=revoke,receiver=urlApi;setTimeout(()=>{try{if(cleanup&&receiver)Reflect.apply(cleanup,receiver,[done]);}catch{}},60_000);url=null;}catch{if(alive.current)setExportError('Originalexport konnte nicht mit aktuellem Zugriff gestartet werden. Bitte neu laden und ausdrücklich auswählen.');}finally{if(anchor&&remove)try{Reflect.apply(remove,anchor,[]);}catch{}if(url&&revoke&&urlApi)try{Reflect.apply(revoke,urlApi,[url]);}catch{}}}
  if(!capture)return <ScreenShell title="Vitalwerte">{permissionState.loading?<LoadingState message="Berechtigungen werden geprüft…"/>:permissionState.error?<ErrorState message={permissionState.error} onRetry={permissionState.refreshPermissions}/>:<ErrorState message="Aktuelle eigene Leseberechtigung für Vitalwerte fehlt."/>}</ScreenShell>;
- return <ScreenShell title="Vitalwerte" subtitle={person?.name??'Pflegeklient:in auswählen'}><ScrollView contentContainerStyle={styles.content}>
-  <View style={styles.actions}>{vitalHistoryViewManageWeb(capture)?<PremiumButton title="Messung erfassen" disabled={!choiceAction} onPress={create}/>:null}<PremiumButton title="Verlauf aktualisieren" variant="secondary" disabled={!historyAction} onPress={()=>reload('history')}/></View>
-  {exportError?<ErrorState message={exportError}/>:null}
-  <SectionPanel title="Pflegeklient:in"><PremiumInput label="Klient:innen suchen" accessibilityLabel="Klientenliste nach Namen filtern" value={search} onChangeText={value=>{if(alive.current&&mayUseVitalHistoryChoiceActionWeb(choiceAction))setSearch(value);}}/>
-   {clients.loading?<LoadingState message="Aktuelle Klientenauswahl wird geladen…"/>:clients.error||clients.refreshError?<ErrorState message={clients.error??clients.refreshError??''} onRetry={()=>reload('clients')}/>:people?<FilterChipGroup wrap options={people.filter(p=>p.name.toLocaleLowerCase('de').includes(needle)).map(p=>({key:p.id,label:p.name}))} value={clientId} onChange={choose}/>:<InfoBanner variant="info" message="Aktuelle Auswahl noch nicht bestätigt."/>}
-   {people?.length===0?<EmptyState title="Keine auswählbaren Klient:innen geliefert" message="Die tatsächliche Abfrage liefert keine passenden aktiven Zuordnungen. Dies bestätigt keine vollständige Pflegefallberechtigung."/>:null}
-  </SectionPanel>
-  {!clientId?<InfoBanner variant="info" message="Bitte die richtige Akte ausdrücklich auswählen. Es wird keine Person vorausgewählt."/>:history.loading||history.refreshing?<LoadingState message="Alle drei Originalbestände werden geladen…"/>:history.error||history.refreshError?<ErrorState message={history.error??history.refreshError??''} onRetry={()=>reload('history')}/>:entries?<>
-   {types.length?<SectionPanel title="Messart"><FilterChipGroup wrap options={[{key:'all',label:'Alle Messarten'},...types.map(id=>({key:id,label:measurementLabel(id)}))]} value={type} onChange={chooseType}/></SectionPanel>:null}
-   {definition?<SectionPanel title="Technische Komponente"><FilterChipGroup wrap options={definition.components.map(c=>({key:c.key,label:`${c.label} · ${c.unit}`}))} value={component} onChange={chooseComponent}/><Text style={styles.note}>Die Auswahl bestätigt keine klinische Gültigkeit und wandelt keine Einheiten um.</Text></SectionPanel>:null}
-   {component&&chartCapture?<VitalHistoryChartPanel capture={chartCapture} onReadingPress={open}/>:null}
-   <PremiumButton title="Ganze geladene Aktenoriginale als CSV herunterladen" variant="secondary" disabled={!historyAction||!component} onPress={download}/>
-   <Text style={styles.note}>Der Export enthält sämtliche gelieferten Messungen, Folgedokumentationen und Korrekturvermerke dieser Akte. Der sichtbare Messartfilter begrenzt die Datei nicht. Bitte für die technische Einordnung eine bekannte Komponente ausdrücklich auswählen. Die Datei enthält personenbezogene Pflegedaten.</Text>
-   <Text style={styles.note}>{filtered.length} Messungen im sichtbaren Filter · {Math.min(visible,filtered.length)} angezeigt. Native Originalreihenfolge; Messzeit, Erfassung und historische Metadaten bleiben getrennt.</Text>
-   {filtered.length===0?<EmptyState title="Keine Messungen geliefert" message="Für die aktuelle Akte und den sichtbaren Filter wurden keine Messungen geliefert."/>:filtered.slice(0,visible).map(e=><SectionPanel key={e.id} title={measurementLabel(e.type)}>
-    <Text style={styles.value}>{e.display} {e.unit}</Text><Text style={styles.body}>Messzeit: {time(e.occurredAt,e.occurredAtState)}</Text><Text style={styles.note}>Erfasst: {time(e.recordedAt,e.recordedAtState)} · Originalname: {e.actor}</Text><Text style={styles.note}>Historische Zeitmetadaten: {time(e.legacyAt,e.legacyAtState)}</Text>
-    {e.flagStatus==='outside_configured_range'?<InfoBanner variant="warning" title="Gespeicherter Originalvergleich" message="Außerhalb konfigurierter Grenzen gespeichert. Dies ist ein Originalmetadatum, kein aktueller Vergleich oder Nachweis einer Reaktion; Komponenten und Einheiten in der Detailansicht prüfen."/>:null}
-    {e.type==='fluid_balance'&&e.collectionExtent!=='complete'?<InfoBanner variant="warning" title="Erfassungsumfang nicht bestätigt" message="Der gelieferte Originalumfang der Bilanz ist unvollständig oder unbekannt. Daraus folgt keine vollständige oder klinisch gültige Bilanz."/>:null}
-    {e.invalidations.map(r=><InfoBanner key={r.id} variant="warning" title="Originaler Korrekturvermerk" message={`${typeof r.reason==='string'?r.reason:'Grund nicht lesbar'} · ${time(r.recordedAt,r.recordedAtState)} · ${typeof r.actor==='string'?r.actor:'Originalname nicht geliefert'} · Kennung ${r.id}`}/>)}
-    {e.followUps.map(r=><View key={r.id} style={styles.history}><Text style={styles.body}>Originale Folgedokumentation · {r.id}</Text><Text style={styles.note}>Kontrolle: {time(r.observedAt,r.observedAtState)} · Vereinbarung: {time(r.nextReviewAt,r.nextReviewAtState)} · Erfasst: {time(r.recordedAt,r.recordedAtState)}</Text><Text style={styles.body}>{typeof r.observation==='string'?r.observation:'Originalbeobachtung nicht lesbar'}</Text><Text style={styles.body}>{typeof r.action==='string'?r.action:'Originalhandlung nicht lesbar'}</Text><Text style={styles.note}>Originalstatus: {typeof r.outcome==='string'?r.outcome:'nicht geliefert'} · Originalname: {typeof r.actor==='string'?r.actor:'nicht geliefert'}</Text></View>)}
-    <PremiumButton title={selectedId===e.id?'Ausgewählte Messung öffnen':'Messung und Folgedokumentation öffnen'} variant="secondary" onPress={()=>open(e.id)}/>
-   </SectionPanel>)}
-   {visible<filtered.length?<PremiumButton title="Weitere 50 Messungen anzeigen" variant="secondary" onPress={more}/>:null}
-   <InfoBanner variant="info" message="Originale bleiben erhalten. Status, Folgedokumentation und Korrekturvermerk bestätigen keinen Aufgabenabschluss oder eine Freigabe. Gelieferte Bestände sind kein atomarer Snapshot; neue Einträge bitte aktualisieren."/>
-  </>:<InfoBanner variant="info" message="Ein eigener aktueller Originalbestand ist noch nicht bestätigt. Bitte aktualisieren."/>}
- </ScrollView></ScreenShell>;
+ return <ScreenShell title="Vitalwerte" compactHeader>
+  <VitalHistoryLayout
+    canCreate={vitalHistoryViewManageWeb(capture)} create={create} createDisabled={!choiceAction}
+    people={people} clientId={clientId} choose={choose} choiceDisabled={!choiceAction}
+    peopleLoading={clients.loading||clients.refreshing} peopleError={clients.error??clients.refreshError}
+    reloadPeople={()=>reload('clients')}
+    historyLoading={history.loading||history.refreshing} historyError={history.error??history.refreshError}
+    historyReady={!!entries} reloadHistory={()=>reload('history')}
+    types={types} type={type} chooseType={chooseType}
+    component={component} chooseComponent={chooseComponent} days={days}
+    chooseDays={next=>{if(current()){setDays(next);setVisible(50);}}}
+    chart={component&&chartCapture?<VitalHistoryChartPanel capture={chartCapture} onReadingPress={open}/>:null}
+    download={download} exportError={exportError} exportReady={!!historyAction&&!!component}
+    entries={shown} total={filtered.length} selectedId={selectedId} open={open} more={more}/>
+ </ScreenShell>;
 }
-function useStyles(){const {c}=useCareLightPalette();return useMemo(()=>StyleSheet.create({content:{gap:spacing.md,paddingBottom:spacing.xxl,minWidth:0},actions:{flexDirection:'row',flexWrap:'wrap',gap:spacing.sm},history:{gap:spacing.xs},body:{...typography.body,color:c.text},note:{...typography.caption,color:c.muted},value:{...typography.h2,color:c.text}}),[c]);}
+
+type HistoryEntry = NonNullable<ReturnType<typeof vitalHistoryViewRowsWeb>>[number];
+
+const berlinDay = new Intl.DateTimeFormat('sv-SE', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' });
+function historyPeriod(days: string) {
+  if (days === 'all') return () => true;
+  const today = currentMedicationEventTime().date;
+  const cutoff = new Date(today + 'T12:00:00Z');
+  cutoff.setUTCDate(cutoff.getUTCDate() - (Number(days) - 1));
+  const firstDay = cutoff.toISOString().slice(0, 10);
+  return (raw: unknown, state?: string) => {
+    if (state === 'missing' || typeof raw !== 'string' || vitalTimeDisplay(raw).state !== 'valid') return false;
+    const day = berlinDay.format(new Date(raw.replace(' ', 'T')));
+    return day >= firstDay && day <= today;
+  };
+}
+
+function VitalHistoryLayout({
+  canCreate, create, createDisabled, people, clientId, choose, choiceDisabled, peopleLoading, peopleError, reloadPeople,
+  historyLoading, historyError, historyReady, reloadHistory, types, type, chooseType, component, chooseComponent,
+  days, chooseDays, chart, download, exportError, exportReady, entries, total, selectedId, open, more,
+}: {
+  canCreate: boolean;
+  create(): void;
+  createDisabled: boolean;
+  people: ReturnType<typeof vitalHistoryViewPeopleWeb>;
+  clientId: string;
+  choose(id: string): void;
+  choiceDisabled: boolean;
+  peopleLoading: boolean;
+  peopleError: string | null;
+  reloadPeople(): Promise<void>;
+  historyLoading: boolean;
+  historyError: string | null;
+  historyReady: boolean;
+  reloadHistory(): Promise<void>;
+  types: string[];
+  type: string;
+  chooseType(id: string): void;
+  component: string;
+  chooseComponent(id: string): void;
+  days: string;
+  chooseDays(id: string): void;
+  chart: React.ReactNode;
+  download(): void;
+  exportError: string | null;
+  exportReady: boolean;
+  entries: HistoryEntry[];
+  total: number;
+  selectedId?: string | null;
+  open(id: string): void;
+  more(): void;
+}) {
+  const styles = useVitalStyles();
+  const definition = getVitalDefinition(type);
+  const person = people?.find(item => item.id === clientId);
+  return <View style={styles.page}>
+    <VitalWorkspaceHero title="Vitalwerte im Verlauf" description={person?.name}>
+      {canCreate ? <View style={styles.row}>
+        <VitalAction title="Messung erfassen" icon="plus" variant="light" disabled={createDisabled} onPress={create} />
+      </View> : null}
+    </VitalWorkspaceHero>
+    <View style={[styles.panel, styles.transaction]}>
+      <View style={styles.sectionItem}>
+        <Text accessibilityRole="header" style={styles.label}>Klient:in</Text>
+        {peopleLoading ? <LoadingState presentation="inline" message="Pflegefälle werden geladen…" />
+          : peopleError ? <ErrorState presentation="inline" message={peopleError} onRetry={reloadPeople} />
+          : people?.length ? <VitalCasePicker people={people} selectedId={clientId} onSelect={choose} disabled={choiceDisabled} />
+          : <Text style={styles.body}>Keine aktiven Pflegefälle verfügbar.</Text>}
+      </View>
+      {clientId ? <View style={styles.sectionItem}>
+        <Text style={styles.label}>Messzeitraum</Text>
+        <VitalPills label="Messzeitraum" value={days} disabled={!historyReady} options={[
+          { key: 'all', label: 'Alle' }, { key: '1', label: 'Heute' }, { key: '7', label: '7 Tage' }, { key: '30', label: '30 Tage' },
+        ]} onChange={chooseDays} />
+      </View> : null}
+    </View>
+    {clientId && (historyLoading ? <LoadingState presentation="inline" message="Messungen und Dokumentation werden geladen…" />
+      : historyError ? <ErrorState presentation="inline" message={historyError} onRetry={reloadHistory} />
+      : historyReady ? <>
+        <View style={styles.panel}>
+          <View style={styles.titleRow}>
+            <Text accessibilityRole="header" style={styles.heading}>Messungen</Text>
+            <VitalAction title="Verlauf aktualisieren" variant="secondary" icon="refresh" onPress={reloadHistory} />
+          </View>
+          {types.length ? <VitalPills compact label="Messart" value={type} onChange={chooseType}
+            options={[{ key: 'all', label: 'Alle Messarten' }, ...types.map(key=>({ key, label: measurementLabel(key) }))]} /> : null}
+          {definition ? <View style={styles.stack}>
+            <Text style={styles.label}>Komponente für Diagramm und Export</Text>
+            <VitalPills label="Messkomponente" value={component} onChange={chooseComponent}
+              options={definition.components.map(item=>({ key: item.key, label: item.unit ? `${item.label} · ${item.unit}` : item.label }))} />
+          </View> : null}
+          {exportReady ? <View style={styles.stack}>
+            <VitalAction title="Gesamte Akte als CSV" variant="secondary" icon="download" onPress={download} />
+            <Text style={styles.muted}>CSV enthält sämtliche Messungen, Folgedokumentationen und Korrekturvermerke der gewählten Akte.</Text>
+          </View> : null}
+          {exportError ? <ErrorState presentation="inline" message={exportError} /> : null}
+        </View>
+        {chart}
+        <Text accessibilityLiveRegion="polite" style={styles.muted}>{total} {total === 1 ? 'Messung' : 'Messungen'}{entries.length < total ? ` · ${entries.length} angezeigt` : ''}</Text>
+        {entries.length ? <View style={styles.histories}>
+          {entries.map(entry => <VitalHistoryCard key={entry.id} entry={entry} selected={selectedId === entry.id} onOpen={()=>open(entry.id)} />)}
+        </View> : <EmptyState title="Keine Messungen" message="Für diese Akte und den gewählten Filter liegen keine Messungen vor." />}
+        {entries.length < total ? <VitalAction title="Weitere 50 Messungen anzeigen" variant="secondary" onPress={more} /> : null}
+      </> : <Text style={styles.muted}>Der aktuelle Verlauf konnte noch nicht bestätigt werden.</Text>)}
+  </View>;
+}
+
+function VitalHistoryCard({entry,selected,onOpen}: { entry: HistoryEntry; selected: boolean; onOpen(): void }) {
+  const styles = useVitalStyles();
+  const definition = getVitalDefinition(entry.type);
+  const [expanded, setExpanded] = useState(false);
+  return <View style={styles.historyCard}>
+    <View style={styles.historyHeader}>
+      {definition ? <VitalMeasurementArtwork kind={definition.key} size={63} /> : null}
+      <View style={styles.flex}>
+        <Text accessibilityRole="header" style={styles.label}>{measurementLabel(entry.type)}</Text>
+        <Text style={styles.value}>{entry.display} {entry.unit}</Text>
+      </View>
+    </View>
+    <Text style={styles.body}>Messzeit · {time(entry.occurredAt,entry.occurredAtState)}</Text>
+    <Text style={styles.muted}>Erfasst · {time(entry.recordedAt,entry.recordedAtState)} · {entry.actor}</Text>
+    {entry.flagStatus === 'outside_configured_range' ? <InfoBanner variant="warning" message="Außerhalb konfigurierter Grenzen gespeichert." /> : null}
+    {entry.type === 'fluid_balance' && entry.collectionExtent !== 'complete' ? <InfoBanner variant="warning" message="Erfassungsumfang der Bilanz unvollständig oder unbekannt." /> : null}
+    {entry.invalidations.map(item => <InfoBanner key={item.id} variant="warning" title="Originaler Korrekturvermerk"
+      message={`${typeof item.reason === 'string' ? item.reason : 'Grund nicht lesbar'} · ${time(item.recordedAt,item.recordedAtState)} · ${typeof item.actor === 'string' ? item.actor : 'Originalname nicht geliefert'} · Kennung ${item.id}`} />)}
+    <View style={styles.row}>
+      <VitalAction title={selected ? 'Ausgewählte Messung öffnen' : 'Messung öffnen'} variant="secondary" icon="arrow-top-right" onPress={onOpen} />
+      <VitalAction title={expanded ? 'Dokumentation ausblenden' : `Dokumentation (${entry.followUps.length})`} variant="secondary"
+        onPress={()=>setExpanded(!expanded)} />
+    </View>
+    {expanded ? <View style={styles.stack}>
+      <Text style={styles.muted}>Historische Zeitmetadaten · {time(entry.legacyAt,entry.legacyAtState)}</Text>
+      {entry.followUps.map(item=><View key={item.id} style={styles.historyContext}>
+        <Text style={styles.label}>Folgedokumentation · {item.id}</Text>
+        <Text style={styles.muted}>Kontrolle: {time(item.observedAt,item.observedAtState)} · Vereinbarung: {time(item.nextReviewAt,item.nextReviewAtState)} · Erfasst: {time(item.recordedAt,item.recordedAtState)}</Text>
+        <Text style={styles.body}>{typeof item.observation==='string'?item.observation:'Originalbeobachtung nicht lesbar'}</Text>
+        <Text style={styles.body}>{typeof item.action==='string'?item.action:'Originalhandlung nicht lesbar'}</Text>
+        <Text style={styles.muted}>Originalstatus: {typeof item.outcome==='string'?item.outcome:'nicht geliefert'} · {typeof item.actor==='string'?item.actor:'Originalname nicht geliefert'}</Text>
+      </View>)}
+    </View> : null}
+  </View>;
+}

@@ -9,6 +9,8 @@ import {useServiceTenantId} from '@/hooks/useTenantId';
 import {useAsyncQuery} from '@/hooks/core/useAsyncQuery';
 import {useCareLightPalette} from '@/design/tokens/carelightadaptive';
 import {spacing,typography} from '@/theme';
+import {VitalMeasurementArtwork} from '@/components/pflege/VitalMeasurementArtwork';
+import {VitalAction,VitalWorkspaceHero,useVitalStyles} from '@/components/pflege/VitalWorkspaceUi';
 import {getVitalDefinition} from '@/lib/pflege/vitalCatalog';
 import {useMedicationSubmission} from '@/hooks/useMedicationSubmission.web';
 import {MedicationEventTimeInput,currentMedicationEventTime,medicationEventInstant} from '@/components/pflege/MedicationEventTimeInput.web';
@@ -58,18 +60,27 @@ function VitalDetailWorkspace({capture,actorId,canReview,permissionState}:{captu
   const newToken=runtime.captureNewFollowUp(),newFollow=()=>{if(runtime.newFollowUp(newToken)){setEditor(false);setCorrecting(false);setSuccess(null);}};
   if(!canView)return <ScreenShell title="Vitalwert">{permissionState.loading?<LoadingState message="Berechtigungen werden geprüft…"/>:permissionState.error?<ErrorState message={permissionState.error} onRetry={permissionState.refreshPermissions}/>:<ErrorState message="Aktuelle eigene Leseberechtigung fehlt."/>}</ScreenShell>;
   if(!reading)return <ScreenShell title="Vitalwert"><ScrollView contentContainerStyle={styles.content}>{query.loading||query.refreshing?<LoadingState message="Ganze Originalmessung und Belege werden geladen…"/>:<ErrorState message={query.error??query.refreshError??'Ganze Originalmessung oder vollständige Anzeige noch nicht bestätigt.'} onRetry={reload}/>}<VitalOriginalRequestStatus capture={capture}/>{original.pending&&runtime.canManage()?<View>{runtime.operationState('follow_up').pending?<VitalFollowUpForm key={`${runtime.readVersion()}:follow-up`} capture={capture} close={()=>setEditor(false)} saved={()=>saved('follow_up')}/>:null}{runtime.operationState('invalidation').pending?<VitalInvalidationForm key={`${runtime.readVersion()}:invalidation`} capture={capture} close={()=>setCorrecting(false)} saved={()=>saved('invalidation')}/>:null}</View>:null}</ScrollView></ScreenShell>;
-  return <ScreenShell title={definition?.label??displayText(reading.type)} subtitle="Gespeicherte Messung"><ScrollView contentContainerStyle={styles.content}>
+  return <ScreenShell title="Vitalwerte" compactHeader><View style={styles.content}>
+    <VitalWorkspaceHero title={definition?.label??displayText(reading.type,'Gespeicherte Messung')}
+      description={displayText(reading.clientName,'Pflegefall')} artwork={definition?.key} />
     {success?<SuccessState message={success}/>:null}
     {query.refreshError?<ErrorState message={query.refreshError} onRetry={reload}/>:null}
     {invalidation?<InfoBanner variant="warning" title="Messung als ungültig gekennzeichnet" message={`${displayText(invalidation.reason)} · ${vitalTimeFieldDisplay(invalidation,'recordedAt').display} · ${displayText(invalidation.recordedByName)}. Die ursprünglichen Angaben und Folgedokumentationen bleiben erhalten.`}/>:null}
-    <SectionPanel title="Messung"><Text style={styles.value}>{displayText(reading.value)} {displayText(reading.unit)}</Text><Text style={styles.body}>Klient:in: {displayText(reading.clientName)} · {displayText(reading.clientId)}</Text>
+    <SectionPanel title="Messung">
+      <VitalSavedMeasurement
+        value={displayText(reading.value)} unit={displayText(reading.unit, '')} definition={definition}
+        measured={actualTime.state==='valid'?actualTime.display:''}
+        measuredUnknown={actualTime.display}
+        recorded={vitalTimeFieldDisplay(reading,'recordedAt').display}
+        recorder={displayText(reading.recordedByName)}
+        values={displayRow(reading.values)} />
       {reading.type==='fluid_balance'?<InfoBanner variant={displayRow(reading.context)?.completeness==='complete'?'info':'warning'} message={displayRow(reading.context)?.completeness==='complete'?'Dokumentierter Erfassungsumfang: vollständig. Der Saldo ist eine rechnerische Differenz und ersetzt keine klinische Beurteilung.':'Erfassungsumfang unvollständig oder unbekannt. Der rechnerische Saldo ist keine bestätigte Gesamtbilanz.'}/>:null}
-      {actualTime.state==='valid'?<Text style={styles.body}>Tatsächlich gemessen: {actualTime.display}</Text>:<InfoBanner variant="warning" message={`Gesonderter tatsächlicher Messzeitpunkt nicht bestätigt. ${actualTime.display}. Die Erfassungszeit wird nicht als Messzeit ausgegeben.`}/>}
-      <Text style={styles.note}>Erfasst: {vitalTimeFieldDisplay(reading,'recordedAt').display} · {displayText(reading.recordedByName)}</Text>
       <Text style={styles.note}>{reading.flagStatus==='outside_configured_range'?'Außerhalb mindestens einer klientenbezogen konfigurierten Grenze. Fachliche Reaktion prüfen.':reading.flagStatus==='within_configured_range'?'Innerhalb der gespeicherten konfigurierten Grenzen. Dies ersetzt keine fachliche Beurteilung.':'Keine vollständige Bewertung anhand klientenbezogener Grenzen bestätigt.'}</Text>
-      {Object.entries(displayRow(reading.values)??{}).map(([key,value])=><Text key={key} style={styles.body}>{definition?.components.find(c=>c.key===key)?.label??key}: {typeof value==='number'?value.toLocaleString('de-DE'):'Wert nicht bestätigt'}</Text>)}
     </SectionPanel>
-    <SectionPanel title="Messbedingungen und Notiz">{Object.entries(displayRow(reading.context)??{}).map(([key,value])=><Text key={key} style={styles.body}>{definition?.contextFields?.find(c=>c.key===key)?.label??key}: {typeof value==='string'?value:'Angabe nicht bestätigt'}</Text>)}<Text style={styles.body}>{displayText(reading.note,'Originalnotiz nicht bestätigt')||'Keine zusätzliche Notiz dokumentiert.'}</Text></SectionPanel>
+    <SectionPanel title="Messbedingungen und Notiz">
+      <VitalSavedContext definition={definition} clientId={displayText(reading.clientId)}
+        context={displayRow(reading.context)} note={displayText(reading.note,'Originalnotiz nicht bestätigt')} />
+    </SectionPanel>
     <SectionPanel title="Reaktion und Verlaufskontrollen">
       {history?.length?history.map(f=><View key={displayText(f.id)} style={styles.history}>
         <Text style={styles.body}>{vitalTimeFieldDisplay(f,'observedAt').display} · {f.outcome==='resolved'?'Abschluss dokumentiert':f.outcome==='ongoing'?'Weitere Kontrolle erforderlich':'Ergebnis nicht bestätigt'}</Text>
@@ -87,9 +98,65 @@ function VitalDetailWorkspace({capture,actorId,canReview,permissionState}:{captu
       {correcting||runtime.operationState('invalidation').pending?<VitalInvalidationForm key={`${runtime.readVersion()}:invalidation`} capture={capture} close={()=>setCorrecting(false)} saved={()=>saved('invalidation')}/>:null}
     </SectionPanel>:null}
     {typeof reading.clientId==='string'?<><VitalCarePathWorkspacePanel tenantId={runtime.tenantId} clientId={reading.clientId} measurementId={runtime.id} actorId={actorId} canRead={runtime.canRead()} canWrite={runtime.canManage()} canReview={canReview}/><RespiratoryIntensiveCareWorkspacePanel tenantId={runtime.tenantId} clientId={reading.clientId} measurementId={runtime.id} actorId={actorId} canRead={runtime.canRead()} canWrite={runtime.canManage()} canReview={canReview}/></>:<InfoBanner variant="warning" message="Die verbundenen Vital- und Atempflegepfade bleiben gesperrt, weil der native Pflegefallbezug der Messung nicht bestätigt ist."/>}
-    <View style={styles.actions}><PremiumButton title="Messung erneut laden" variant="secondary" disabled={editor||correcting||original.busy} onPress={reload}/><PremiumButton title="Zurück" variant="secondary" disabled={editor||correcting||original.pending} onPress={closeParent}/></View>
-  </ScrollView></ScreenShell>;
+    <View style={styles.actions}>
+      <VitalAction title="Messung aktualisieren" icon="refresh" variant="secondary" disabled={editor||correcting||original.busy} onPress={reload} />
+      <VitalAction title="Zurück" variant="secondary" disabled={editor||correcting||original.pending} onPress={closeParent} />
+    </View>
+  </View></ScreenShell>;
 }
+
+function VitalSavedMeasurement({value,unit,definition,measured,measuredUnknown,recorded,recorder,values}: {
+  value: string;
+  unit: string;
+  definition: ReturnType<typeof getVitalDefinition> | null;
+  measured: string;
+  measuredUnknown: string;
+  recorded: string;
+  recorder: string;
+  values: DisplayRow | null;
+}) {
+  const styles=useVitalStyles();
+  return <View style={styles.stack}>
+    <View style={styles.editorTitle}>
+      {definition ? <View style={styles.editorArtwork}><VitalMeasurementArtwork kind={definition.key} size={72} /></View> : null}
+      <View style={styles.flex}>
+        <Text style={styles.value}>{value}{unit ? ' '+unit : ''}</Text>
+        {measured ? <Text style={styles.body}>Gemessen · {measured}</Text> : null}
+        <Text style={styles.muted}>Erfasst · {recorded} · {recorder}</Text>
+      </View>
+    </View>
+    {!measured ? <InfoBanner variant="warning" message={`Messzeitpunkt konnte nicht bestätigt werden. ${measuredUnknown}`} /> : null}
+    <View style={styles.row}>{Object.entries(values??{}).map(([key,item])=>{
+      const component=definition?.components.find(component=>component.key===key);
+      return <View key={key} style={styles.condition}>
+        <Text style={styles.label}>{component?.label??key}</Text>
+        <Text style={styles.body}>{typeof item==='number'?`${item.toLocaleString('de-DE')}`:'Wert nicht bestätigt'}</Text>
+      </View>;
+    })}</View>
+  </View>;
+}
+
+const contextLabels: Record<string,string> = {completeness:'Erfassungsumfang',incompleteReason:'Fehlende Angaben / Einschränkung'};
+const extentLabels: Record<string,string> = {complete:'Vollständig',incomplete:'Unvollständig',unknown:'Unbekannt'};
+
+function VitalSavedContext({definition,clientId,context,note}: {
+  definition: ReturnType<typeof getVitalDefinition> | null;
+  clientId: string;
+  context: DisplayRow | null;
+  note: string;
+}) {
+  const styles=useVitalStyles();
+  const entries=Object.entries(context??{});
+  return <View style={styles.stack}>
+    {entries.length ? <View style={styles.row}>{entries.map(([key,value])=><View key={key} style={styles.condition}>
+      <Text style={styles.label}>{definition?.contextFields?.find(field=>field.key===key)?.label??contextLabels[key]??key}</Text>
+      <Text style={styles.body}>{typeof value==='string'?(key==='completeness'?extentLabels[value]??value:value):'Angabe nicht bestätigt'}</Text>
+    </View>)}</View> : null}
+    <Text style={styles.body}>{note||'Keine Notiz dokumentiert.'}</Text>
+    <Text style={styles.muted}>Akten-ID · {clientId}</Text>
+  </View>;
+}
+
 function VitalOriginalRequestStatus({capture}:{capture:VitalDetailWriteCaptureWeb}){
   const runtime=useMemo(()=>vitalDetailWriteActionsWeb(capture),[capture]);
   const state=runtime.pendingState(),follow=runtime.known('follow_up'),invalid=runtime.known('invalidation'),[error,setError]=useState<string|null>(null);
@@ -135,4 +202,4 @@ function VitalInvalidationForm({capture,close,saved}:{capture:VitalDetailWriteCa
   return <View style={styles.form}>{write.error?<ErrorState message={write.error}/>:null}{original.uncertain?<InfoBanner variant="warning" message="Nur dieselbe unveränderte Originalanfrage prüfen. Ein neuer Korrekturvermerk wird nicht angelegt."/>:null}<PremiumInput label="Tatsächlicher Grund für die Ungültigkeit *" accessibilityLabel="Begründung des Ungültigkeitsvermerks" value={reason} onChangeText={editReason} editable={!locked} maxLength={2000} multiline/><View style={styles.actions}><PremiumButton title={busy?'Originalvermerk wird geprüft…':original.pending?'Dieselbe Originalanfrage wiederholen':'Messung begründet als ungültig kennzeichnen'} disabled={busy} onPress={save}/><PremiumButton title="Bearbeitung schließen" variant="secondary" disabled={locked} onPress={closeAction}/></View></View>;
 }
 
-function useStyles(){const {c}=useCareLightPalette();return useMemo(()=>StyleSheet.create({content:{gap:spacing.md,paddingBottom:spacing.xxl,minWidth:0},form:{gap:spacing.md,minWidth:0},history:{gap:spacing.sm,borderTopWidth:1,borderTopColor:c.border,paddingTop:spacing.md},actions:{flexDirection:'row',flexWrap:'wrap',gap:spacing.sm},body:{...typography.body,color:c.text},note:{...typography.caption,color:c.muted},value:{...typography.h2,color:c.text}}),[c]);}
+function useStyles(){const {c}=useCareLightPalette();return useMemo(()=>StyleSheet.create({content:{gap:spacing.md,paddingBottom:spacing.xxl,minWidth:0,maxWidth:1560,width:'100%',alignSelf:'center'},form:{gap:spacing.md,minWidth:0},history:{gap:spacing.sm,borderTopWidth:1,borderTopColor:c.border,paddingTop:spacing.md},actions:{flexDirection:'row',flexWrap:'wrap',gap:spacing.sm},body:{...typography.body,color:c.text},note:{...typography.caption,color:c.muted},value:{...typography.h2,color:c.text}}),[c]);}

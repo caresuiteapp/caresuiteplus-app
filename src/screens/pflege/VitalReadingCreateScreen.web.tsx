@@ -1,117 +1,442 @@
-import {useEffect,useMemo,useRef,useState} from 'react';
-import {ScrollView,StyleSheet,Text,View} from 'react-native';
-import {useRouter} from 'expo-router';
-import {ScreenShell} from '@/components/layout';
-import {ErrorState,FilterChipGroup,InfoBanner,LoadingState,PremiumButton,PremiumInput,SectionPanel,SuccessState} from '@/components/ui';
-import {MedicationEventTimeInput,currentMedicationEventTime,medicationEventInstant} from '@/components/pflege/MedicationEventTimeInput.web';
-import {useAuth} from '@/lib/auth/context';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Pressable, ScrollView, Text, View, useWindowDimensions } from 'react-native';
+import { MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import { ScreenShell } from '@/components/layout';
+import { ErrorState, InfoBanner, LoadingState, PremiumInput } from '@/components/ui';
+import {
+  currentMedicationEventTime, medicationEventInstant, type MedicationEventTime,
+} from '@/components/pflege/MedicationEventTimeInput.web';
+import { VitalCaptureFields, VitalCaptureTime } from '@/components/pflege/VitalCaptureFields.web';
+import { VitalMeasurementArtwork } from '@/components/pflege/VitalMeasurementArtwork';
+import {
+  VitalAction, VitalCasePicker, VitalPills, VitalWorkspaceHero, useVitalStyles,
+} from '@/components/pflege/VitalWorkspaceUi';
+import { useAuth } from '@/lib/auth/context';
 import { useCareRuntimePermissions as usePermissions } from '@/hooks/pflege/useCareRuntimePermissions.web';
-import {useServiceTenantId} from '@/hooks/useTenantId';
-import {useAsyncQuery} from '@/hooks/core/useAsyncQuery';
-import {useMedicationSubmission} from '@/hooks/useMedicationSubmission.web';
-import {useCareLightPalette} from '@/design/tokens/carelightadaptive';
-import {spacing,typography} from '@/theme';
-import {getVitalDefinition} from '@/lib/pflege/vitalCatalog';
-import {deriveVitalValues,parseVitalNumber,requiredVitalComponents,validateVitalMeasurement,type VitalMeasurementPayload} from '@/lib/pflege/vitalMeasurementDomain';
-import {VitalCreateRuntimeWeb} from '@/lib/pflege/vitalCreateRuntime.web';
-import {fetchVitalCreateClientsWeb,fetchVitalCreateChoicesWeb} from '@/lib/pflege/vitalCreateOriginalRead.web';
-import {executeVitalCreateNativeWeb} from '@/lib/pflege/vitalCreateNativeWrite.web';
-import {carePermissionOwner} from '@/lib/permissions/carePermissionOwner.web';
-import {isDemoMode} from '@/lib/supabase/config';
-import type {RoleKey} from '@/types';
-import {CarePermissionStatus,type CarePermissionStatusState} from './CarePermissionStatus.web';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { useMedicationSubmission } from '@/hooks/useMedicationSubmission.web';
+import { formatVitalValues, getVitalDefinition, VITAL_SIGN_CATALOG } from '@/lib/pflege/vitalCatalog';
+import { vitalCatalogFilters, vitalCatalogSelection, vitalCatalogUnit, type VitalCatalogFilter } from '@/lib/pflege/vitalCaptureOptions';
+import { deriveVitalValues, parseVitalNumber, validateVitalMeasurement, type VitalMeasurementPayload } from '@/lib/pflege/vitalMeasurementDomain';
+import { VitalCreateRuntimeWeb } from '@/lib/pflege/vitalCreateRuntime.web';
+import { fetchVitalCreateClientsWeb, fetchVitalCreateChoicesWeb } from '@/lib/pflege/vitalCreateOriginalRead.web';
+import { executeVitalCreateNativeWeb } from '@/lib/pflege/vitalCreateNativeWrite.web';
+import { carePermissionOwner } from '@/lib/permissions/carePermissionOwner.web';
+import { confirmAction } from '@/lib/platform/confirmAction';
+import type { VitalClient } from '@/lib/pflege/vitalDocumentationService';
+import { isDemoMode } from '@/lib/supabase/config';
+import { CarePermissionStatus } from './CarePermissionStatus.web';
 
-export function VitalReadingCreateScreen(){
-  const auth=useAuth(),permissions=usePermissions(),tenantId=useServiceTenantId();
-  const owner=carePermissionOwner(auth,tenantId,isDemoMode()),native=useRef({auth,permissions,tenantId});native.current={auth,permissions,tenantId};
-  const live=useRef(()=>{const current=native.current;if(current.permissions.tenantId!==current.tenantId||current.permissions.roleKey!==current.auth.profile?.roleKey||!Object.isFrozen(current.permissions.permissions))throw Error('Aktueller eigener nativer Rechteursprung fehlt.');const descriptor=Object.getOwnPropertyDescriptor(current.permissions,'can');if(!descriptor||!Object.hasOwn(descriptor,'value')||typeof descriptor.value!=='function')throw Error('Aktueller nativer Rechtebezug fehlt.');return {owner:carePermissionOwner(current.auth,current.tenantId,isDemoMode()),can:descriptor.value};});
-  const scope=owner?JSON.stringify([owner.tenantId,owner.profileId,owner.roleKey]):null,held=useRef<{scope:string;runtime:VitalCreateRuntimeWeb}|null>(null);
-  if(scope&&held.current?.scope!==scope){held.current?.runtime.dispose();try{held.current={scope,runtime:new VitalCreateRuntimeWeb(owner!,live.current)};}catch{held.current=null;}}
-  useEffect(()=>()=>held.current?.runtime.dispose(),[]);
-  const runtime=held.current?.runtime??null;const [,setOwnerStoreRevision]=useState(0);
-  useEffect(()=>runtime?.subscribeOriginal(()=>setOwnerStoreRevision(value=>value+1)),[runtime]);
-  if(!runtime)return <ScreenShell title="Vitalwerte erfassen"><CarePermissionStatus state={permissions} deniedMessage="Der eigene Benutzer- und Pflegezugriff konnte nicht bestätigt werden."/></ScreenShell>;
-  return <VitalCreateWorkspace key={`${scope}:${runtime.originalDraftVersion}`} runtime={runtime} tenantId={runtime.tenantId} role={runtime.role} canView={runtime.canRead()} canManage={runtime.canManage()} permissionStatus={permissions}/>;
+type Draft = { values: Record<string, string>; context: Record<string, string>; note: string };
+type Continuation = { clientId: string; previousLabel: string };
+const emptyDraft = (): Draft => ({ values: {}, context: {}, note: '' });
+
+function queryFlags<T>(query: ReturnType<typeof useAsyncQuery<T>>) {
+  return {
+    loading: query.loading, refreshing: query.refreshing, error: !!query.error, refreshError: !!query.refreshError,
+    previewData: query.previewData, tableMissing: query.tableMissing, fromCache: query.cacheMeta.fromCache,
+    partialDetail: !!query.cacheMeta.partialDetail, usedDemoFallback: false,
+  };
 }
-function VitalCreateWorkspace({runtime,tenantId,role,canView,canManage,permissionStatus}:{runtime:VitalCreateRuntimeWeb;tenantId:string;role:RoleKey|null;canView:boolean;canManage:boolean;permissionStatus:CarePermissionStatusState}){
-  const router=useRouter(),styles=useStyles();
-  const [clientId,setClientId]=useState(''),[type,setType]=useState(''),[values,setValues]=useState<Record<string,string>>({}),[context,setContext]=useState<Record<string,string>>({}),[note,setNote]=useState('');
-  const [time,setTime]=useState(currentMedicationEventTime),[timeEdited,setTimeEdited]=useState(false);
-  const readScope=runtime.captureReadScope(),readScopeVersion=runtime.readScopeVersion;
-  const clientsQuery=useAsyncQuery(()=>fetchVitalCreateClientsWeb(runtime,readScope),[runtime,readScope,canView],{enabled:canView&&!!readScope,queryKey:`${tenantId}:${role}:${canView}:${readScopeVersion}:vital-clients`});
-  const choicesQuery=useAsyncQuery(()=>fetchVitalCreateChoicesWeb(runtime,clientId,readScope),[runtime,readScope,clientId,canView],{enabled:!!clientId&&canView&&!!readScope,queryKey:`${tenantId}:${role}:${clientId}:${canView}:${readScopeVersion}:vital-choices`});
-  const flags=(query:typeof clientsQuery)=>({loading:query.loading,refreshing:query.refreshing,error:!!query.error,refreshError:!!query.refreshError,previewData:query.previewData,tableMissing:query.tableMissing,fromCache:query.cacheMeta.fromCache,partialDetail:!!query.cacheMeta.partialDetail,usedDemoFallback:false});
-  runtime.setView('clients',clientsQuery.data,flags(clientsQuery));runtime.setView('choices',choicesQuery.data,flags(choicesQuery as unknown as typeof clientsQuery));
-  const clients={...clientsQuery,data:runtime.visible('clients',clientsQuery.data)},choices={...choicesQuery,data:runtime.visible('choices',choicesQuery.data)};
-  const definition=getVitalDefinition(type),choice=choices.data?.find(x=>x.key===type),client=clients.data?.find(c=>c.id===clientId);
-  const draftRevision=useRef(0),renderRevision=draftRevision.current;
-  useEffect(()=>{runtime.mount();return()=>runtime.dispose();},[runtime]);
-  const [confirmedId,setConfirmedId]=useState('');const [,setOriginalRevision]=useState(0);
-  useEffect(()=>runtime.subscribeOriginal(()=>setOriginalRevision(value=>value+1)),[runtime]);
-  const dirty=!confirmedId&&!!(clientId||type||Object.values(values).some(Boolean)||Object.values(context).some(Boolean)||note||timeEdited);
-  const receiptId=useRef('');
-  const write=useMedicationSubmission<VitalMeasurementPayload>(dirty||runtime.originalRequestState().pending,async(id,payload,replay)=>{
-    const result=await executeVitalCreateNativeWeb(runtime,id,payload,replay);
-    if(result.ok)receiptId.current=result.data.id;return result;
-  },()=>{if(runtime.mayConfirm(receiptId.current))setConfirmedId(receiptId.current);});
-  const originalRequest=runtime.originalRequestState(),originalRetry=runtime.captureOriginalRetry(),busy=write.busy||originalRequest.busy,locked=write.locked||originalRequest.pending,uncertain=write.uncertain||originalRequest.uncertain;
-  const currentDraft=()=>!runtime.originalRequestState().pending&&renderRevision===draftRevision.current&&!write.locked&&!confirmedId&&runtime.maySelect('choices',choicesQuery.data)&&runtime.canShow('clients',clientsQuery.data);
-  const changeClient=(id:string)=>{if(id===clientId)return;if(renderRevision!==draftRevision.current||runtime.originalRequestState().pending||write.locked||!runtime.maySelect('clients',clientsQuery.data)||clients.data?.filter(c=>c.id===id).length!==1)return;draftRevision.current++;runtime.clearChoices();setClientId(id);setType('');setValues({});setContext({});setNote('');};
-  const changeType=(key:string)=>{if(!currentDraft()||choices.data?.filter(c=>c.key===key&&c.enabled).length!==1)return;draftRevision.current++;setType(key);setValues({});setContext({});};
-  const editValues=(next:Parameters<typeof setValues>[0])=>{if(currentDraft()){draftRevision.current++;setValues(next);}};
-  const editContext=(next:Parameters<typeof setContext>[0])=>{if(currentDraft()){draftRevision.current++;setContext(next);}};
-  const editNote=(value:string)=>{if(currentDraft()){draftRevision.current++;setNote(value);}};
-  const editTime=(value:typeof time)=>{if(currentDraft()){draftRevision.current++;setTime(value);setTimeEdited(true);}};
-  const editable=currentDraft();
-  async function close(){if(renderRevision!==draftRevision.current)return;const originalClose=runtime.captureClose();if(!originalClose)return;const leave=await write.confirmLeave();if(leave&&renderRevision===draftRevision.current&&runtime.mayCloseCaptured(originalClose))router.back();}
-  async function save(){
-    if(!runtime.canManage())return;
-    if(runtime.confirmedReceipt()||runtime.originalRequestState().busy)return;
-    if(originalRequest.pending){if(write.uncertain){await write.retry();return;}const result=await runtime.retryOriginal(originalRetry);if(!result.ok)write.setError(result.error);return;}
-    if(write.uncertain){await write.retry();return;}
-    if(!currentDraft()){write.setError('Aktuellen ganzen Originalbestand und eigene Rechte zuerst bestätigen.');return;}
-    if(!definition||!choice?.enabled||!client||choices.refreshError||clients.refreshError){write.setError('Klient:in, aktivierte Messart und aktuellen Konfigurationsstand prüfen.');return;}
-    const numbers:Record<string,number>={};
-    for(const component of definition.components){
-      if(['total','balance'].includes(component.key))continue;
-      const raw=values[component.key]??'';if(!raw.trim())continue;
-      const value=parseVitalNumber(raw);if(value===null){write.setError(`${component.label}: eine gültige Dezimalzahl ohne Tausendertrennzeichen eingeben.`);return;}numbers[component.key]=value;
+
+export function VitalReadingCreateScreen() {
+  const auth = useAuth();
+  const permissions = usePermissions();
+  const tenantId = useServiceTenantId();
+  const owner = carePermissionOwner(auth, tenantId, isDemoMode());
+  const current = useRef({ auth, permissions, tenantId });
+  current.current = { auth, permissions, tenantId };
+  const live = useRef(() => {
+    const { auth: latestAuth, permissions: latestPermissions, tenantId: latestTenant } = current.current;
+    if (latestPermissions.tenantId !== latestTenant || latestPermissions.roleKey !== latestAuth.profile?.roleKey ||
+      !Object.isFrozen(latestPermissions.permissions)) throw Error('Aktueller eigener nativer Rechteursprung fehlt.');
+    const descriptor = Object.getOwnPropertyDescriptor(latestPermissions, 'can');
+    if (!descriptor || !Object.hasOwn(descriptor, 'value') || typeof descriptor.value !== 'function') {
+      throw Error('Aktueller nativer Rechtebezug fehlt.');
     }
-    const payload={clientId,type,occurredAt:medicationEventInstant(time),valuesJson:JSON.stringify(deriveVitalValues(type,numbers)),contextJson:JSON.stringify(Object.fromEntries(Object.entries(context).filter(([,v])=>v.trim()).map(([k,v])=>[k,v.trim()]))),note,catalogVersion:choice.catalogVersion,configurationVersion:choice.configurationVersion};
-    const error=validateVitalMeasurement(payload,definition);if(error){write.setError(error);return;}if(!runtime.prepare(payload,clientsQuery.data,choicesQuery.data)){write.setError('Aktuelle native Messdefinition, Einheit und Pflegefallzuordnung zuerst bestätigen.');return;}await write.submit(payload);
+    return { owner: carePermissionOwner(latestAuth, latestTenant, isDemoMode()), can: descriptor.value };
+  });
+
+  const scope = owner ? JSON.stringify([owner.tenantId, owner.profileId, owner.roleKey]) : null;
+  const held = useRef<{ scope: string; runtime: VitalCreateRuntimeWeb } | null>(null);
+  if (held.current?.scope !== scope) {
+    held.current?.runtime.dispose();
+    held.current = null;
+    if (scope && owner) {
+      try { held.current = { scope, runtime: new VitalCreateRuntimeWeb(owner, live.current) }; }
+      catch { held.current = null; }
+    }
   }
-  if(!canView||!canManage)return <ScreenShell title="Vitalwerte erfassen"><CarePermissionStatus state={permissionStatus} deniedMessage={canView?'Für das Erfassen von Vitalwerten fehlt die Schreibberechtigung.':'Für Vitalwerte fehlt die Leseberechtigung.'}/></ScreenShell>;
-  const displayedReceipt=runtime.confirmedReceipt(),newDraftToken=runtime.captureNewDraft();
-  const newMeasurement=()=>{if(renderRevision!==draftRevision.current||!displayedReceipt)return;const freshTime=currentMedicationEventTime();if(renderRevision!==draftRevision.current||!runtime.startNewDraft(newDraftToken))return;draftRevision.current++;setConfirmedId('');receiptId.current='';setClientId('');setType('');setValues({});setContext({});setNote('');setTime(freshTime);setTimeEdited(false);};
-  const openReceipt=()=>{if(displayedReceipt&&runtime.confirmedReceipt()===displayedReceipt&&runtime.mayConfirm(displayedReceipt))router.replace(`/pflege/vitalwerte/${displayedReceipt}` as never);};
-  const openOverview=()=>{if(displayedReceipt&&runtime.confirmedReceipt()===displayedReceipt&&runtime.mayConfirm(displayedReceipt))router.replace('/pflege/vitalwerte' as never);};
-  if(displayedReceipt)return <ScreenShell title="Vitalwert gespeichert"><SuccessState message="Die Datenbank hat die Speicherung bestätigt. Öffnen Sie die gespeicherte Messung, um Originalangaben und Folgedokumentation erneut zu laden."/><View style={styles.row}><PremiumButton title="Gespeicherte Messung öffnen" disabled={busy} onPress={openReceipt}/><PremiumButton title="Zur Vitalwertübersicht" variant="secondary" disabled={busy} onPress={openOverview}/><PremiumButton title="Neue Messung vorbereiten" variant="secondary" disabled={busy} onPress={newMeasurement}/></View></ScreenShell>;
-  return <ScreenShell title="Vitalwerte erfassen" subtitle={client?client.name:'Pflegeklient:in ausdrücklich auswählen'}><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-    {write.error?<ErrorState message={write.error}/>:null}
-    {uncertain?<InfoBanner variant="warning" title="Speicherergebnis noch unklar" message="Die Anfrage bleibt unverändert. Bitte dieselbe Messung erneut prüfen. Änderungen und Schließen sind bis zur Klärung gesperrt."/>:null}
-    <SectionPanel title="Klient:in">
-      {clients.loading&&!clients.data?<LoadingState message="Aktive Pflegefälle werden geladen…"/>:clients.error?<ErrorState message={clients.error} onRetry={clients.refresh}/>:clients.data?.length?<FilterChipGroup wrap options={clients.data.map(c=>({key:c.id,label:c.name}))} value={clientId} onChange={locked?undefined:changeClient}/>:<Text style={styles.note}>Keine aktiven zugänglichen Pflegefälle vorhanden.</Text>}
-      {clients.refreshError?<ErrorState message={clients.refreshError} onRetry={clients.refresh}/>:null}
-    </SectionPanel>
-    {clientId?<SectionPanel title="Messart und Einheit">
-      {choices.loading&&!choices.data?<LoadingState message="Messkatalog und klientenbezogene Konfiguration werden geladen…"/>:choices.error?<ErrorState message={choices.error} onRetry={choices.refresh}/>:<FilterChipGroup wrap options={(choices.data??[]).filter(c=>c.enabled).map(c=>({key:c.key,label:getVitalDefinition(c.key)?.label??c.key}))} value={type} onChange={locked?undefined:changeType}/>}
-      {choices.data&&!choices.data.some(c=>c.enabled)?<Text style={styles.note}>Keine Messart für diesen Pflegefall aktiviert. Die zuständige Person muss die Messkonfiguration prüfen.</Text>:null}
-      {choices.refreshError?<ErrorState message={choices.refreshError} onRetry={choices.refresh}/>:null}
-      {definition?<View style={styles.form}>
-        <View style={styles.row}>{definition.components.filter(c=>!['total','balance'].includes(c.key)).map(component=><View key={component.key} style={styles.field}><PremiumInput label={`${component.label} (${component.unit})${requiredVitalComponents(definition).includes(component.key)?' *':''}`} accessibilityLabel={`${component.label} in ${component.unit}`} value={values[component.key]??''} editable={editable} keyboardType="decimal-pad" onChangeText={value=>editValues(v=>({...v,[component.key]:value}))}/></View>)}</View>
-        {type==='gcs'||type==='fluid_balance'?<Text style={styles.note}>Gesamtwert wird aus den Einzelangaben berechnet und nicht als unabhängige Messung übernommen.</Text>:null}
-        {type==='fluid_balance'?<><Text style={styles.note}>Umfang der erfassten Ein- und Ausfuhr:</Text><FilterChipGroup wrap options={[{key:'complete',label:'Vollständig erfasst'},{key:'incomplete',label:'Unvollständig erfasst'},{key:'unknown',label:'Umfang unbekannt'}]} value={context.completeness??''} onChange={locked?undefined:completeness=>editContext(c=>({...c,completeness,incompleteReason:''}))}/>{context.completeness&&context.completeness!=='complete'?<PremiumInput label="Fehlende Angaben / Einschränkung *" value={context.incompleteReason??''} editable={editable} maxLength={500} onChangeText={incompleteReason=>editContext(c=>({...c,incompleteReason}))}/>:null}</>:null}
-        {type==='pain_score'?<><Text style={styles.note}>Verwendete Skala ausdrücklich bestätigen:</Text><FilterChipGroup options={[{key:'NRS',label:'NRS 0–10'}]} value={context.scale??''} onChange={locked?undefined:scale=>editContext(c=>({...c,scale}))}/></>:null}
-        {(definition.contextFields??[]).filter(f=>!(type==='pain_score'&&f.key==='scale')).map(field=><PremiumInput key={field.key} label={field.label} accessibilityLabel={field.label} value={context[field.key]??''} editable={editable} maxLength={500} onChangeText={value=>editContext(c=>({...c,[field.key]:value}))}/>)
-      }</View>:null}
-    </SectionPanel>:null}
-    <SectionPanel title="Zeitpunkt und Messkontext">
-      <MedicationEventTimeInput label="Tatsächlicher Messzeitpunkt" value={time} disabled={!editable} onChange={editTime}/>
-      <PremiumInput label="Beobachtung, Messbedingungen und Reaktion" accessibilityLabel="Messnotiz" value={note} editable={editable} onChangeText={editNote} maxLength={4000} multiline/>
-      <InfoBanner variant="info" message="Erfassungszeit und angemeldete Person werden serverseitig dokumentiert. Konfigurierte Grenzbereiche sind keine Diagnose oder Therapieanweisung. Auffälligkeiten nach dem fachlich vereinbarten Vorgehen behandeln."/>
-    </SectionPanel>
-    <View style={styles.row}><PremiumButton title={busy?'Messung wird gespeichert…':uncertain?'Dieselbe Messung erneut prüfen':'Messung speichern'} disabled={busy||(!uncertain&&(!definition||!choice?.enabled||!client||!!choices.refreshError||!!clients.refreshError))} onPress={save}/><PremiumButton title="Bearbeitung schließen" variant="secondary" disabled={locked} onPress={close}/></View>
-  </ScrollView></ScreenShell>;
+
+  const runtime = held.current?.runtime ?? null;
+  const continuation = useRef<{ runtime: VitalCreateRuntimeWeb; epoch: number; next: Continuation } | null>(null);
+  const [, revise] = useState(0);
+  useEffect(() => {
+    if (!runtime) return;
+    runtime.mount();
+    const unsubscribe = runtime.subscribeOriginal(() => revise(value => value + 1));
+    return () => { unsubscribe(); runtime.dispose(); };
+  }, [runtime]);
+
+  const canView = runtime?.canRead() ?? false;
+  const canManage = runtime?.canManage() ?? false;
+  if (!runtime || !canView || !canManage) return <ScreenShell title="Vitalwerte erfassen" compactHeader>
+    <CarePermissionStatus state={permissions} deniedMessage={canView
+      ? 'Für das Erfassen von Vitalwerten fehlt die Schreibberechtigung.'
+      : 'Der eigene Lesezugriff für Vitalwerte konnte nicht bestätigt werden.'} />
+  </ScreenShell>;
+
+  const epoch = runtime.originalDraftVersion;
+  const next = continuation.current?.runtime === runtime && continuation.current.epoch === epoch ? continuation.current.next : undefined;
+  function newDraft(token: unknown, carry?: Continuation) {
+    if (!runtime) return;
+    continuation.current = carry ? { runtime, epoch: runtime.originalDraftVersion + 1, next: carry } : null;
+    if (!runtime.startNewDraft(token)) continuation.current = null;
+  }
+  return <VitalCreateWorkspace key={`${scope}:${epoch}`} runtime={runtime} continuation={next} onNew={newDraft} />;
 }
 
-function useStyles(){const {c}=useCareLightPalette();return useMemo(()=>StyleSheet.create({content:{gap:spacing.md,paddingBottom:spacing.xxl,minWidth:0},form:{gap:spacing.md,minWidth:0},row:{flexDirection:'row',flexWrap:'wrap',gap:spacing.md},field:{flex:1,flexBasis:240,minWidth:0},body:{...typography.body,color:c.text},note:{...typography.caption,color:c.muted}}),[c]);}
+function VitalCreateWorkspace({ runtime, continuation, onNew }: {
+  runtime: VitalCreateRuntimeWeb;
+  continuation?: Continuation;
+  onNew(token: unknown, carry?: Continuation): void;
+}) {
+  const router = useRouter();
+  const [clientId, setClientId] = useState(continuation?.clientId ?? '');
+  const [type, setType] = useState('');
+  const [draft, setDraft] = useState(emptyDraft);
+  const [time, setTime] = useState(currentMedicationEventTime);
+  const [timeEdited, setTimeEdited] = useState(false);
+  const readScope = runtime.captureReadScope();
+  const scopeVersion = runtime.readScopeVersion;
+  const clientsQuery = useAsyncQuery(() => fetchVitalCreateClientsWeb(runtime, readScope), [runtime, readScope], {
+    enabled: !!readScope, queryKey: `${runtime.tenantId}:${scopeVersion}:vital-clients`,
+  });
+  runtime.setView('clients', clientsQuery.data, queryFlags(clientsQuery));
+  const clients = runtime.visible('clients', clientsQuery.data);
+  const client = clients?.find(person => person.id === clientId);
+  const choiceSubject = client?.id ?? '';
+  const choicesQuery = useAsyncQuery(() => fetchVitalCreateChoicesWeb(runtime, choiceSubject, readScope), [runtime, readScope, choiceSubject], {
+    enabled: !!choiceSubject && !!readScope, queryKey: `${runtime.tenantId}:${scopeVersion}:${choiceSubject}:vital-choices`,
+  });
+  runtime.setView('choices', choicesQuery.data, queryFlags(choicesQuery));
+  const choices = runtime.visible('choices', choicesQuery.data);
+  const choice = choices?.find(item => item.key === type);
+  const definition = getVitalDefinition(type);
+  const revision = useRef(0);
+  const renderRevision = revision.current;
+  const dirty = Object.values(draft.values).some(value => value.trim()) ||
+    Object.values(draft.context).some(value => value.trim()) || !!draft.note.trim() || timeEdited;
+  const displayedReceipt = runtime.confirmedReceipt();
+  const [submitted, setSubmitted] = useState<{ id: string; payload: VitalMeasurementPayload } | null>(null);
+  const write = useMedicationSubmission<VitalMeasurementPayload>(
+    (!displayedReceipt && dirty) || runtime.originalRequestState().pending,
+    async (id, payload, replay) => {
+      const result = await executeVitalCreateNativeWeb(runtime, id, payload, replay);
+      if (result.ok) setSubmitted({ id: result.data.id, payload });
+      return result;
+    },
+    () => {},
+    () => {
+      const token = runtime.captureClose();
+      return token ? () => renderRevision === revision.current && runtime.mayCloseCaptured(token) : null;
+    },
+  );
+  const originalRequest = runtime.originalRequestState();
+  const originalRetry = runtime.captureOriginalRetry();
+  const busy = write.busy || originalRequest.busy;
+  const locked = write.locked || originalRequest.pending;
+  const uncertain = write.uncertain || originalRequest.uncertain;
+  const canChange = () => renderRevision === revision.current && !runtime.originalRequestState().pending &&
+    !write.locked && !runtime.confirmedReceipt() && runtime.canManage();
+  const canEditTime = () => canChange() && !!client && runtime.maySelect('clients', clientsQuery.data);
+  const canEditValue = () => canEditTime() && !!choice?.enabled && runtime.maySelect('choices', choicesQuery.data);
+  const mutate = () => { revision.current++; write.setError(null); };
+
+  async function changeClient(nextId: string) {
+    if (nextId === clientId || !canChange() || !runtime.maySelect('clients', clientsQuery.data)) return;
+    if (dirty && !await confirmAction({
+      title: 'Pflegefall wechseln', message: 'Die Eingaben für die aktuelle Person werden verworfen.',
+      confirmLabel: 'Pflegefall wechseln', cancelLabel: 'Weiter bearbeiten',
+    })) return;
+    if (!canChange() || !runtime.maySelect('clients', clientsQuery.data) || clients?.filter(person => person.id === nextId).length !== 1) return;
+    mutate();
+    runtime.clearChoices();
+    setClientId(nextId);
+    setDraft(emptyDraft());
+    setTime(currentMedicationEventTime());
+    setTimeEdited(false);
+  }
+
+  async function changeType(nextType: string) {
+    if (!canChange() || !getVitalDefinition(nextType)) return false;
+    if (nextType === type) return true;
+    if ((Object.values(draft.values).some(Boolean) || Object.values(draft.context).some(Boolean) || draft.note) && !await confirmAction({
+      title: 'Messart wechseln', message: 'Die Eingaben für die aktuelle Messart werden verworfen.',
+      confirmLabel: 'Messart wechseln', cancelLabel: 'Weiter bearbeiten',
+    })) return false;
+    if (!canChange()) return false;
+    mutate();
+    setType(nextType);
+    setDraft(emptyDraft());
+    return true;
+  }
+
+  function editFields(fields: Draft) {
+    if (!canEditValue()) return;
+    mutate();
+    setDraft(fields);
+  }
+
+  function editTime(next: MedicationEventTime) {
+    if (!canEditTime()) return;
+    mutate();
+    setTime(next);
+    setTimeEdited(true);
+  }
+
+  async function close() {
+    if (!canChange()) return;
+    const originalClose = runtime.captureClose();
+    if (!originalClose) return;
+    if (await write.confirmLeave() && renderRevision === revision.current && runtime.mayCloseCaptured(originalClose)) router.back();
+  }
+
+  async function save() {
+    if (!runtime.canManage() || runtime.confirmedReceipt() || runtime.originalRequestState().busy) return;
+    if (originalRequest.pending) {
+      if (write.uncertain) { await write.retry(); return; }
+      const result = await runtime.retryOriginal(originalRetry);
+      if (!result.ok) write.setError(result.error);
+      return;
+    }
+    if (write.uncertain) { await write.retry(); return; }
+    if (!definition || !choice?.enabled || !client || !canEditValue()) {
+      write.setError('Bitte Pflegefall und freigegebene Messart prüfen.');
+      return;
+    }
+    const numbers: Record<string, number> = {};
+    for (const component of definition.components) {
+      const raw = draft.values[component.key]?.trim();
+      if (!raw) continue;
+      const value = parseVitalNumber(raw);
+      if (value === null) {
+        write.setError(`${component.label}: Bitte eine gültige Zahl ohne Tausendertrennzeichen eingeben.`);
+        return;
+      }
+      numbers[component.key] = value;
+    }
+    const context = Object.fromEntries(Object.entries(draft.context)
+      .map(([key, value]) => [key, value.trim()]).filter(([, value]) => value));
+    if (context.completeness === 'complete') delete context.incompleteReason;
+    const payload = {
+      clientId, type, occurredAt: medicationEventInstant(time),
+      valuesJson: JSON.stringify(deriveVitalValues(type, numbers)), contextJson: JSON.stringify(context),
+      note: draft.note, catalogVersion: choice.catalogVersion, configurationVersion: choice.configurationVersion,
+    };
+    const error = validateVitalMeasurement(payload, definition);
+    if (error) { write.setError(error); return; }
+    if (!runtime.prepare(payload, clientsQuery.data, choicesQuery.data)) {
+      write.setError('Die aktuelle Messdefinition oder Pflegefallzuordnung konnte nicht bestätigt werden.');
+      return;
+    }
+    await write.submit(payload);
+  }
+
+  const newDraftToken = runtime.captureNewDraft();
+  const openConfirmed = (toDetail: boolean) => {
+    if (!displayedReceipt || !runtime.mayConfirm(displayedReceipt)) return;
+    router.replace((toDetail ? `/pflege/vitalwerte/${displayedReceipt}` : '/pflege/vitalwerte') as never);
+  };
+  if (displayedReceipt) {
+    const payload = submitted?.id === displayedReceipt ? submitted.payload : null;
+    const savedType = payload ? getVitalDefinition(payload.type) : undefined;
+    const savedClient = client?.id === payload?.clientId ? client : undefined;
+    const numbers = payload ? JSON.parse(payload.valuesJson) as Record<string, number> : {};
+    const previousLabel = savedType
+      ? `${savedType.shortLabel} · ${formatVitalValues(savedType.key, numbers)} ${savedType.components[0].unit || ''}`.trim()
+      : 'Letzte Messung';
+    return <ScreenShell title="Vitalwerte" compactHeader>
+      <VitalCaptureSuccess clientName={savedClient?.name} previousLabel={previousLabel} busy={busy}
+        onSameCase={savedClient ? () => onNew(newDraftToken, { clientId: savedClient.id, previousLabel }) : undefined}
+        onNew={() => onNew(newDraftToken)} onDetail={() => openConfirmed(true)} onOverview={() => openConfirmed(false)} />
+    </ScreenShell>;
+  }
+
+  const clientError = clientsQuery.error ?? clientsQuery.refreshError;
+  const choicesError = choicesQuery.error ?? choicesQuery.refreshError;
+  return <ScreenShell title="Vitalwerte" scroll={false} compactHeader showBack={false}>
+    <VitalCapturePage
+      client={client} people={clients} clientLoading={!clients && !clientError} clientError={clientError}
+      choices={choices} choicesError={choicesError} refreshingChoices={!!client && !choices && !choicesError}
+      contextEditable={canEditTime()} valueEditable={canEditValue()} locked={locked} busy={busy}
+      saveable={canEditValue() || uncertain} uncertain={uncertain} error={write.error}
+      draft={draft} type={type} time={time} previousLabel={client && clientId === continuation?.clientId ? continuation.previousLabel : ''}
+      onClient={changeClient} onType={changeType} onFields={editFields} onTime={editTime} onClose={close} onSave={save}
+      reloadPeople={clientsQuery.refresh} reloadChoices={choicesQuery.refresh} />
+  </ScreenShell>;
+}
+
+type CapturePageProps = {
+  client: VitalClient | undefined;
+  people: readonly VitalClient[] | null;
+  clientLoading: boolean;
+  clientError: string | null;
+  choices: readonly { key: string; enabled: boolean }[] | null;
+  choicesError: string | null;
+  refreshingChoices: boolean;
+  contextEditable: boolean;
+  valueEditable: boolean;
+  locked: boolean;
+  busy: boolean;
+  saveable: boolean;
+  uncertain: boolean;
+  error: string | null;
+  draft: Draft;
+  type: string;
+  time: MedicationEventTime;
+  previousLabel: string;
+  onClient(id: string): Promise<void>;
+  onType(key: string): Promise<boolean>;
+  onFields(draft: Draft): void;
+  onTime(time: MedicationEventTime): void;
+  onClose(): Promise<void>;
+  onSave(): Promise<void>;
+  reloadPeople(): unknown;
+  reloadChoices(): unknown;
+};
+
+function VitalCapturePage(props: CapturePageProps) {
+  const styles = useVitalStyles();
+  const dimensions = useWindowDimensions();
+  const [width, setWidth] = useState(Math.min(1560, dimensions.width - 24));
+  const wide = width >= 980 * Math.max(1, Math.min(1.35, dimensions.fontScale));
+  const [filter, setFilter] = useState<VitalCatalogFilter>('quick');
+  const [search, setSearch] = useState('');
+  const [gridWidth, setGridWidth] = useState(0);
+  const scrollView = useRef<ScrollView>(null);
+  const editorTop = useRef(0);
+  const catalogTop = useRef(0);
+  const definition = getVitalDefinition(props.type);
+  const enabled = useMemo(() => new Set(props.choices?.filter(choice => choice.enabled).map(choice => choice.key)), [props.choices]);
+  const activeFilter = filter === 'enabled' && !props.client ? 'quick' : filter;
+  const items = vitalCatalogSelection(activeFilter, search, enabled);
+  const availableWidth = gridWidth || Math.max(130, width * (wide ? 0.6 : 1) - 36);
+  const cellMin = 133 * Math.max(1, Math.min(1.4, dimensions.fontScale));
+  const columnCount = Math.max(1, Math.min(wide ? 5 : 4, Math.floor((availableWidth + 10) / (cellMin + 10))));
+  const cellWidth = Math.floor((availableWidth - (columnCount - 1) * 10) / columnCount);
+  const jumpTo = (top: number) => scrollView.current?.scrollTo({ y: Math.max(0, top - 8), animated: true });
+
+  const editor = <VitalCaptureFields key={props.type} definition={definition} draft={props.draft}
+    caseState={!props.client ? 'no-case' : props.choicesError ? 'unavailable' : !props.choices ? 'checking'
+      : enabled.has(props.type) ? 'enabled' : 'disabled'}
+    locked={!props.valueEditable} onChange={props.onFields} autoFocus={wide}
+    onChoose={!wide && !props.locked ? () => jumpTo(catalogTop.current) : undefined} />;
+  const catalog = <View style={styles.panel}>
+    <View style={styles.titleRow}>
+      <Text accessibilityRole="header" style={styles.heading}>Messart auswählen</Text>
+      <Text style={styles.muted}>{search.trim() ? `${items.length} Treffer` : `${VITAL_SIGN_CATALOG.length} Messarten`}</Text>
+    </View>
+    <PremiumInput accessibilityLabel="Messart suchen" placeholder="Messart oder Abkürzung suchen"
+      value={search} onChangeText={setSearch} autoCorrect={false} editable={!props.locked} />
+    <VitalPills label="Messkatalog" compact value={activeFilter} disabled={props.locked} options={[
+      { key: 'quick', label: 'Schnellwahl' }, { key: 'all', label: 'Alle' },
+      ...(props.choices ? [{ key: 'enabled', label: `Freigegeben (${enabled.size})` }] : []), ...vitalCatalogFilters,
+    ]} onChange={key => { setSearch(''); setFilter(key as VitalCatalogFilter); }} />
+    {items.length ? <View style={styles.grid} onLayout={event => setGridWidth(event.nativeEvent.layout.width)}>
+      {items.map(item => {
+        const selected = props.type === item.key;
+        const unavailable = !!props.choices && !enabled.has(item.key);
+        return <Pressable key={item.key} accessibilityRole="button" disabled={props.locked}
+          accessibilityState={{ selected, disabled: props.locked }}
+          accessibilityLabel={unavailable ? `${item.label}. Für diesen Pflegefall nicht freigegeben.` : item.label}
+          onPress={async () => {
+            const changed = await props.onType(item.key);
+            if (changed && !wide) jumpTo(editorTop.current);
+          }}
+          style={({ pressed }) => [
+            styles.tile, { width: cellWidth }, selected && styles.tileSelected,
+            pressed && styles.pressed,
+          ]}>
+          <View style={styles.tileArt}><VitalMeasurementArtwork kind={item.key} size={72} /></View>
+          <Text style={styles.tileLabel}>{item.label}</Text>
+          <Text style={styles.tileUnit}>{vitalCatalogUnit(item)}</Text>
+          {selected || unavailable ? <View style={styles.tileMarker}>
+            <MaterialCommunityIcons name={selected ? 'check-circle' : 'lock-outline'} size={16} color="#166782" />
+          </View> : null}
+        </Pressable>;
+      })}
+    </View> : <Text accessibilityLiveRegion="polite" style={styles.muted}>{activeFilter === 'enabled' && !search.trim()
+      ? 'Für diesen Pflegefall sind keine Messarten freigegeben.'
+      : 'Keine Messart gefunden. Suchbegriff oder Filter ändern.'}</Text>}
+  </View>;
+
+  return <View style={styles.root} onLayout={event => setWidth(Math.min(1560, event.nativeEvent.layout.width))}>
+    <ScrollView ref={scrollView} style={styles.scroll} contentContainerStyle={styles.page}
+      keyboardShouldPersistTaps="handled" automaticallyAdjustKeyboardInsets>
+      <VitalWorkspaceHero title="Vitalwerte erfassen" description="Pflegefall wählen, Messart antippen, Messwert eintragen." />
+      <View style={[styles.panel, styles.transaction, styles.transactionPanel]}>
+        <View style={styles.sectionItem}>
+          <Text style={styles.label}>Klient:in *</Text>
+          {props.clientError ? <ErrorState presentation="inline" message={props.clientError} onRetry={props.reloadPeople} />
+            : props.clientLoading ? <LoadingState presentation="inline" message="Aktive Pflegefälle werden geladen…" />
+            : props.people?.length ? <VitalCasePicker people={props.people} selectedId={props.client?.id ?? ''}
+              onSelect={props.onClient} disabled={props.locked} />
+            : <View style={styles.stack}>
+              <Text style={styles.body}>Keine aktiven Pflegefälle verfügbar.</Text>
+              <VitalAction title="Pflegefälle neu laden" variant="secondary" icon="refresh" onPress={props.reloadPeople} disabled={props.locked} />
+            </View>}
+          {props.previousLabel ? <Text accessibilityLiveRegion="polite" style={styles.muted}>{props.previousLabel} gespeichert</Text> : null}
+        </View>
+        <View style={styles.sectionItem}><VitalCaptureTime value={props.time} onChange={props.onTime} disabled={!props.contextEditable} /></View>
+      </View>
+      {props.choicesError ? <ErrorState presentation="inline" message={props.choicesError} onRetry={props.reloadChoices} /> : null}
+      {props.refreshingChoices ? <LoadingState presentation="inline" message="Messfreigaben für diesen Pflegefall werden geladen…" /> : null}
+      {props.uncertain ? <InfoBanner variant="warning" title="Speicherbestätigung steht aus"
+        message="Über „Speicherung prüfen“ wird dieselbe Messung erneut abgefragt. Bis zur Bestätigung bleiben die Eingaben gesperrt." /> : null}
+      {wide ? <View style={styles.columns}>
+        <View style={styles.catalogColumn}>{catalog}</View>
+        <View style={styles.editorColumn}>{editor}</View>
+      </View> : <>
+        <View onLayout={event => { editorTop.current = event.nativeEvent.layout.y; }}>{definition ? editor : null}</View>
+        <View onLayout={event => { catalogTop.current = event.nativeEvent.layout.y; }}>{catalog}</View>
+      </>}
+    </ScrollView>
+    <View style={styles.footer}>
+      {props.error ? <View style={{ width: '100%' }}><ErrorState presentation="inline" message={props.error} /></View> : null}
+      {wide ? <View style={styles.flex}>
+        <Text numberOfLines={2} style={styles.label}>{props.client ? props.client.name : 'Pflegefall auswählen'}</Text>
+        <Text numberOfLines={2} style={styles.muted}>{definition?.label ?? 'Messart auswählen'}</Text>
+      </View> : null}
+      <View style={[styles.footerActions, !wide && styles.flex]}>
+        <VitalAction variant="secondary" title="Schließen" disabled={props.locked} onPress={props.onClose} />
+        <VitalAction icon={props.uncertain ? 'refresh' : 'check'} disabled={!props.saveable || props.busy}
+          style={!wide ? { flexGrow: 1 } : undefined}
+          title={props.busy ? 'Speichert…' : props.uncertain ? 'Speicherung prüfen' : 'Messung speichern'} onPress={props.onSave} />
+      </View>
+    </View>
+  </View>;
+}
+
+function VitalCaptureSuccess({ clientName, previousLabel, busy, onSameCase, onNew, onDetail, onOverview }: {
+  clientName?: string;
+  previousLabel: string;
+  busy: boolean;
+  onSameCase?: () => void;
+  onNew(): void;
+  onDetail(): void;
+  onOverview(): void;
+}) {
+  const styles = useVitalStyles();
+  return <View style={styles.page}>
+    <VitalWorkspaceHero title="Messung gespeichert" description={clientName ? `${clientName} · ${previousLabel}` : 'Speicherung durch die Datenbank bestätigt.'} />
+    <View style={[styles.panel, styles.row]}>
+      {onSameCase ? <VitalAction title="Weitere Messung für diese Person" icon="plus" disabled={busy} onPress={onSameCase} /> : null}
+      <VitalAction title={onSameCase ? 'Andere Person wählen' : 'Neue Messung erfassen'} variant={onSameCase ? 'secondary' : 'primary'} disabled={busy} onPress={onNew} />
+      <VitalAction title="Messung öffnen" icon="clipboard-pulse-outline" variant="secondary" disabled={busy} onPress={onDetail} />
+      <VitalAction title="Zum Verlauf" variant="secondary" disabled={busy} onPress={onOverview} />
+    </View>
+  </View>;
+}

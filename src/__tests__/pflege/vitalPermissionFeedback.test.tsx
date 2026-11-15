@@ -24,6 +24,8 @@ vi.mock('@/hooks/core/useAsyncQuery',()=>({useAsyncQuery:(_load:unknown,_deps:un
 vi.mock('@/design/tokens/carelightadaptive',()=>({useCareLightPalette:()=>({c:{}})}));
 vi.mock('@/theme',()=>({spacing:{},typography:{}}));
 vi.mock('@/components/pflege/VitalHistoryChartPanel.web',()=>({VitalHistoryChartPanel:()=>null}));
+vi.mock('@/components/pflege/VitalWorkspaceUi',()=>({}));
+vi.mock('@/components/pflege/VitalMeasurementArtwork',()=>({VitalMeasurementArtwork:()=>null}));
 vi.mock('@/components/pflege/VitalCarePathWorkspacePanel.web',()=>({VitalCarePathWorkspacePanel:()=>null}));
 vi.mock('@/components/pflege/RespiratoryIntensiveCareWorkspacePanel.web',()=>({RespiratoryIntensiveCareWorkspacePanel:()=>null}));
 vi.mock('@/components/pflege/MedicationEventTimeInput.web',()=>({MedicationEventTimeInput:()=>null,currentMedicationEventTime:()=>'',medicationEventInstant:()=>''}));
