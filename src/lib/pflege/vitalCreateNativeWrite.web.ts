@@ -4,6 +4,8 @@ import {withServiceQueryTimeout} from '@/lib/services/queryTimeout';
 import type {MedicationWriteResult} from './medicationAdministrationService';
 import type {VitalMeasurementPayload} from './vitalMeasurementDomain';
 import type {VitalCreateRuntimeWeb} from './vitalCreateRuntime.web';
+import type {VitalChoice} from './vitalDocumentationService';
+import type {ServiceResult} from '@/types';
 import {captureVitalCreateReceiptScopeWeb,assertVitalCreateRequestSessionWeb} from './vitalCreateRuntime.web';
 import {assertVitalMeasurementWriteReceiptWeb} from './vitalNativeWriteReceipt.web';
 type Row=Record<string,unknown>;
@@ -11,6 +13,29 @@ const outcomes=new WeakMap<object,{runtime:VitalCreateRuntimeWeb;id:string;repla
 export function isOwnVitalCreateWriteResultWeb(result:unknown,runtime:VitalCreateRuntimeWeb,id:string,replay:boolean,flight:object|null=null){const own=result&&typeof result==='object'?outcomes.get(result):null;return !!own&&own.runtime===runtime&&own.id===id&&own.replay===replay&&own.flight===flight;}
 export function isSettledVitalCreateWriteResultWeb(result:unknown,runtime:VitalCreateRuntimeWeb,id:string,replay:boolean,flight:object){return isOwnVitalCreateWriteResultWeb(result,runtime,id,replay,flight)&&outcomes.get(result as object)?.settled===true;}
 const uuid=(v:unknown):v is string=>typeof v==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v);
+
+export async function configureVitalChoiceWeb(runtime:VitalCreateRuntimeWeb,clientId:string,choice:VitalChoice,enabled:boolean):Promise<ServiceResult<boolean>>{
+ try{
+  const {sdk}=runtime.assertCurrent(true);
+  const target=sdk as unknown as Row,rpc=target.rpc;
+  if(typeof rpc!=='function'||target.rpc!==rpc)throw Error('Verbindung zur Messkonfiguration fehlt.');
+  const args=freeze({
+   p_client_id:clientId,
+   p_vital_key:choice.key,
+   p_enabled:enabled,
+   p_catalog_version:choice.catalogVersion,
+   p_configuration_version:choice.configurationVersion,
+  });
+  const query=Reflect.apply(rpc,sdk,['configure_ambulatory_vital_choice',args]) as PromiseLike<unknown>;
+  const raw=await withServiceQueryTimeout(Promise.resolve(query),'Messart ändern',20_000);
+  const response=clone(raw) as Row;
+  if(runtime.assertCurrent(true).sdk===sdk&&response?.status===200&&response.error===null&&response.data===enabled)return {ok:true,data:enabled};
+ }catch{
+  // The subsequent catalogue reload also covers a write completed after a network interruption.
+ }
+ return {ok:false,error:'Die Änderung konnte nicht bestätigt werden. Prüfen Sie den aktuellen Stand der Messarten.'};
+}
+
 /** Original RPC contract, private Web current owner/rights and native ingress. */
 export async function executeVitalCreateNativeWeb(runtime:VitalCreateRuntimeWeb,id:string,value:VitalMeasurementPayload,replay:boolean):Promise<MedicationWriteResult>{
  let entered=false,observing=false,flight:object|null=null;

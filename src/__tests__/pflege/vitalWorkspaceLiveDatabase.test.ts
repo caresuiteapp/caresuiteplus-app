@@ -10,6 +10,7 @@ const tenant = id(1), otherTenant = id(2), author = id(11), reader = id(12), out
 const people = [author, reader, outsider, office];
 const subject = id(31), secondCase = id(32), archived = id(33), otherCase = id(34), assistOnly = id(35);
 const migration = readFileSync('supabase/migrations/20261115011117_pflege_vital_workspace_live.sql', 'utf8');
+const preferencesMigration = readFileSync('supabase/migrations/20261115013804_pflege_vital_catalog_preferences.sql', 'utf8');
 const liveBefore = readFileSync('supabase/migrations/20260812100000_vital_signs_live_final.sql', 'utf8');
 const vitalTables = liveBefore.slice(liveBefore.indexOf('CREATE TABLE IF NOT EXISTS public.vital_sign_catalog'),
   liveBefore.indexOf('CREATE OR REPLACE FUNCTION public.vital_actor_can_record'));
@@ -114,6 +115,7 @@ beforeAll(async () => {
   await db.exec(migration);
   // Reapplying an already reviewed release leaves the grants, triggers and catalog stable.
   await db.exec(migration);
+  await db.exec(preferencesMigration);
   observedAt = new Date(Date.now() - 120_000).toISOString();
   // Keep the full precision supplied by PostgREST to the application.
   definitionVersion = String((await one("select to_char(updated_at at time zone 'UTC','YYYY-MM-DD\"T\"HH24:MI:SS.US\"Z\"') version from public.vital_sign_catalog where key='pulse'")).version);
@@ -242,6 +244,48 @@ describe('Live-DB-Vertrag für Vitalwerte', () => {
       expect(assertVitalMeasurementWriteReceiptWeb(receipt, { tenantId: tenant, actorId: author, clientId: secondCase },
         measurement, writeId, data), definition.key).toEqual(receipt);
     }
+  });
+
+  it('aktiviert eine Messart fallbezogen und ändert weder andere Einstellungen noch Fachfreigaben', async () => {
+    const kind = 'body_surface_area';
+    const versionSql = `to_char(updated_at at time zone 'UTC','YYYY-MM-DD"T"HH24:MI:SS.US"Z"')`;
+    await actor(author);
+    const version = (await one(`select ${versionSql} version from public.vital_sign_catalog where key=$1`, [kind])).version;
+    const change = (enabled: boolean, expected: unknown, client = subject) => one(
+      'select public.configure_ambulatory_vital_choice($1,$2,$3,$4,$5) enabled', [client, kind, enabled, version, expected]);
+    await expect(change(true, 'none', otherCase)).rejects.toMatchObject({code: '42501'});
+    await expect(change(true, 'none', archived)).rejects.toMatchObject({code: '42501'});
+    await actor(reader);
+    await expect(change(true, 'none')).rejects.toMatchObject({code: '42501'});
+    await actor(author);
+    const data = packet({type: kind, catalogVersion: String(version), valuesJson: '{"value":1}'});
+    await expect(record(id(989), data)).rejects.toMatchObject({code: '23514'});
+    expect(await change(true, 'none')).toEqual({enabled: true});
+    await expect(change(false, 'none')).rejects.toMatchObject({code: '40001'});
+
+    const settings = () => one(`select enabled, limits, schedule, ${versionSql} version from public.client_vital_sign_settings
+      where client_id=$1 and vital_key=$2`, [subject, kind]);
+    const enabled = await settings();
+    const writeId = id(990), writeData = {...data, configurationVersion: String(enabled.version)};
+    const measurement = String((await record(writeId, writeData)).id);
+    expect((await confirm(measurement, writeId, writeData)).receipt).toBeTruthy();
+
+    await db.exec('reset role');
+    await db.query(`update public.client_vital_sign_settings set limits='{"value":{"min":0}}', schedule='{"period":"Test"}'
+      where client_id=$1 and vital_key=$2`, [subject, kind]);
+    await actor(author);
+    const original = await settings();
+    expect(await change(false, original.version)).toEqual({enabled: false});
+    expect(await settings()).toMatchObject({enabled: false, limits: original.limits, schedule: original.schedule});
+
+    await db.exec('reset role');
+    await db.query(`update public.client_vital_sign_settings set approved_by=$1 where client_id=$2 and vital_key=$3`,
+      [author, subject, kind]);
+    await actor(author);
+    await expect(change(true, (await settings()).version)).rejects.toMatchObject({code: '42501'});
+    expect((await settings()).enabled).toBe(false);
+    await db.exec('reset role; set role anon');
+    await expect(change(true, 'none')).rejects.toMatchObject({code: '42501'});
   });
 
 });

@@ -3,7 +3,7 @@ import React, {act} from 'react';
 import {createRoot, type Root} from 'react-dom/client';
 import {afterEach, beforeEach, describe, expect, it, vi} from 'vitest';
 import {takeVitalCaptureClient} from '@/lib/pflege/vitalCaptureHandoff';
-import {fixture, julian, mara, people, profileId, tenantId} from './vitalCaptureWorkspace.fixture';
+import {choices, fixture, julian, mara, people, profileId, tenantId} from './vitalCaptureWorkspace.fixture';
 
 vi.mock('react-native', () => ({
   View: ({children}: any) => <div>{children}</div>,
@@ -89,6 +89,7 @@ const selectFromHistory = async () => {
 beforeEach(() => {
   (globalThis as typeof globalThis & {IS_REACT_ACT_ENVIRONMENT: boolean}).IS_REACT_ACT_ENVIRONMENT = true;
   fixture.createPeople = [...people];
+  fixture.createChoices = [...choices];
   fixture.historyPeople = [...people];
   fixture.mayRead = true;
   fixture.mayManage = true;
@@ -152,6 +153,21 @@ describe('Vitalwerte · Übersicht und Erfassung', () => {
     await click('Körperlage: Sitzend');
     await click('Eigene Angabe');
     expect(host.querySelector('[aria-label="Körperlage · Eigene Angabe"]')).not.toBeNull();
+  });
+
+  it('macht eine aktivierte Messart nach dem Neuladen auswählbar und schützt Fachfreigaben', async () => {
+    await page(<VitalReadingCreateScreen/>);
+    expect(button('Messarten bearbeiten')).toBeUndefined();
+    await click(`Pflegefall auswählen: ${mara.name}`);
+    expect(button('Körperoberfläche auswählen')).toBeUndefined();
+    await click('Messarten bearbeiten');
+    expect(button('Glasgow Coma Scale deaktivieren')).toBeUndefined();
+    expect(host.textContent).toContain('Über die Fachfreigabe verwaltet');
+    await click('Körperoberfläche aktivieren');
+    expect(button('Körperoberfläche deaktivieren')).toBeDefined();
+    await click('Bearbeitung beenden');
+    await click('Körperoberfläche auswählen');
+    expect(host.querySelector('[aria-label="Körperoberfläche in m²"]')).not.toBeNull();
   });
 
   it('does not suggest a case missing from the fresh create receipt', async () => {

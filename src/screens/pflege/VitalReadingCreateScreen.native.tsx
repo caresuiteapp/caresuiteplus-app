@@ -20,7 +20,7 @@ import { deriveVitalValues, parseVitalNumber, requiredVitalComponents, validateV
 import { VitalCreateRuntimeWeb } from "../../lib/pflege/vitalCreateRuntime.native.ts";
 import { takeVitalCaptureClient } from '@/lib/pflege/vitalCaptureHandoff';
 import { fetchVitalCreateClientsWeb, fetchVitalCreateChoicesWeb } from "../../lib/pflege/vitalCreateOriginalRead.native.ts";
-import { executeVitalCreateNativeWeb } from "../../lib/pflege/vitalCreateNativeWrite.native.ts";
+import { configureVitalChoiceWeb, executeVitalCreateNativeWeb } from "../../lib/pflege/vitalCreateNativeWrite.native.ts";
 import { carePermissionOwner } from "../../lib/permissions/carePermissionOwner.native.ts";
 import { isDemoMode } from '@/lib/supabase/config';
 import type { RoleKey } from '@/types';
@@ -162,6 +162,9 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
     const [category, setCategory] = useState<VitalCategoryKey | typeof allCategories>(allCategories);
     const [catalogueView, setCatalogueView] = useState<CatalogueView>('enabled');
     const [editingClient, setEditingClient] = useState(false), [editingMeasurement, setEditingMeasurement] = useState(false);
+    const [editingAvailability, setEditingAvailability] = useState(false);
+    const [savingAvailability, setSavingAvailability] = useState<string | null>(null);
+    const availabilityPending = useRef(false);
     const [showNote, setShowNote] = useState(false);
     const [suggestedClientId, setSuggestedClientId] = useState<string | null>(null);
     useEffect(() => {
@@ -197,10 +200,10 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
         return result;
     }, () => { if (runtime.mayConfirm(receiptId.current))
         setConfirmedId(receiptId.current); });
-    const originalRequest = runtime.originalRequestState(), originalRetry = runtime.captureOriginalRetry(), busy = write.busy || originalRequest.busy, locked = write.locked || originalRequest.pending, uncertain = write.uncertain || originalRequest.uncertain;
-    const currentDraft = () => !runtime.originalRequestState().pending && renderRevision === draftRevision.current && !write.locked && !confirmedId && runtime.maySelect('choices', choicesQuery.data) && runtime.canShow('clients', clientsQuery.data);
+    const originalRequest = runtime.originalRequestState(), originalRetry = runtime.captureOriginalRetry(), busy = write.busy || originalRequest.busy, locked = write.locked || originalRequest.pending || !!savingAvailability, uncertain = write.uncertain || originalRequest.uncertain;
+    const currentDraft = () => !availabilityPending.current && !runtime.originalRequestState().pending && renderRevision === draftRevision.current && !write.locked && !confirmedId && runtime.maySelect('choices', choicesQuery.data) && runtime.canShow('clients', clientsQuery.data);
     const changeClient = (id: string) => {
-        if (renderRevision !== draftRevision.current || runtime.originalRequestState().pending || write.locked || !runtime.maySelect('clients', clientsQuery.data) || clients.data?.filter(c => c.id === id).length !== 1)
+        if (availabilityPending.current || renderRevision !== draftRevision.current || runtime.originalRequestState().pending || write.locked || !runtime.maySelect('clients', clientsQuery.data) || clients.data?.filter(c => c.id === id).length !== 1)
             return;
         setEditingClient(false);
         setSuggestedClientId(null);
@@ -219,6 +222,7 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
         setCategory(allCategories);
         setCatalogueView('enabled');
         setEditingMeasurement(false);
+        setEditingAvailability(false);
         setShowNote(false);
         write.setError(null);
     };
@@ -238,16 +242,46 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
         write.setError(null);
     };
     const toggleClientPicker = () => {
-        if (renderRevision !== draftRevision.current || runtime.originalRequestState().pending || write.locked || !runtime.maySelect('clients', clientsQuery.data))
+        if (availabilityPending.current || renderRevision !== draftRevision.current || runtime.originalRequestState().pending || write.locked || !runtime.maySelect('clients', clientsQuery.data))
             return;
         draftRevision.current++;
         setEditingClient(!editingClient);
+        setEditingAvailability(false);
     };
     const toggleMeasurementPicker = () => { if (!editingClient && currentDraft()) {
         draftRevision.current++;
         setEditingMeasurement(!editingMeasurement);
+        setEditingAvailability(false);
     } };
-    const mayEditFields = () => !editingClient && !editingMeasurement && currentDraft();
+    const toggleAvailability = () => {
+        if (editingClient || !client || !currentDraft())
+            return;
+        draftRevision.current++;
+        setEditingAvailability(previous => !previous);
+        setCategory(allCategories);
+    };
+    async function changeAvailability(key: string) {
+        if (editingClient || !editingAvailability || !client || !currentDraft())
+            return;
+        const shownChoice = choices.data?.find(item => item.key === key);
+        if (!shownChoice?.configurable)
+            return;
+        draftRevision.current++;
+        availabilityPending.current = true;
+        setSavingAvailability(key);
+        write.setError(null);
+        try {
+            const result = await configureVitalChoiceWeb(runtime, client.id, shownChoice, !shownChoice.enabled);
+            await choicesQuery.refresh();
+            if (!result.ok)
+                write.setError(result.error);
+        }
+        finally {
+            availabilityPending.current = false;
+            setSavingAvailability(null);
+        }
+    }
+    const mayEditFields = () => !editingClient && !editingMeasurement && !editingAvailability && currentDraft();
     const editValues = (next: Parameters<typeof setValues>[0]) => { if (mayEditFields()) {
         draftRevision.current++;
         setValues(next);
@@ -266,12 +300,12 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
         setTimeEdited(true);
     } };
     const editable = currentDraft();
-    async function close() { if (renderRevision !== draftRevision.current)
+    async function close() { if (availabilityPending.current || renderRevision !== draftRevision.current)
         return; const originalClose = runtime.captureClose(); if (!originalClose)
-        return; const leave = await write.confirmLeave(); if (leave && renderRevision === draftRevision.current && runtime.mayCloseCaptured(originalClose))
+        return; const leave = await write.confirmLeave(); if (leave && !availabilityPending.current && renderRevision === draftRevision.current && runtime.mayCloseCaptured(originalClose))
         router.back(); }
     async function save() {
-        if (!runtime.canManage())
+        if (availabilityPending.current || !runtime.canManage())
             return;
         if (runtime.confirmedReceipt() || runtime.originalRequestState().busy)
             return;
@@ -289,7 +323,7 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
             await write.retry();
             return;
         }
-        if (editingClient || editingMeasurement) {
+        if (editingClient || editingMeasurement || editingAvailability) {
             write.setError('Bitte bestätigen Sie Pflegefall und Messart vor dem Speichern.');
             return;
         }
@@ -332,7 +366,7 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
     const displayedReceipt = runtime.confirmedReceipt(), newDraftToken = runtime.captureNewDraft();
     const newMeasurement = () => { if (renderRevision !== draftRevision.current || !displayedReceipt)
         return; const freshTime = currentMedicationEventTime(); if (renderRevision !== draftRevision.current || !runtime.startNewDraft(newDraftToken))
-        return; draftRevision.current++; setConfirmedId(''); receiptId.current = ''; setClientId(''); setType(''); setValues({}); setContext({}); setNote(''); setTime(freshTime); setTimeEdited(false); setClientSearch(''); setVisibleClientCount(clientPageSize); setMeasurementSearch(''); setCategory(allCategories); setCatalogueView('enabled'); setEditingClient(false); setEditingMeasurement(false); setShowNote(false); setSuggestedClientId(null); };
+        return; draftRevision.current++; setConfirmedId(''); receiptId.current = ''; setClientId(''); setType(''); setValues({}); setContext({}); setNote(''); setTime(freshTime); setTimeEdited(false); setClientSearch(''); setVisibleClientCount(clientPageSize); setMeasurementSearch(''); setCategory(allCategories); setCatalogueView('enabled'); setEditingClient(false); setEditingMeasurement(false); setEditingAvailability(false); setShowNote(false); setSuggestedClientId(null); };
     const openReceipt = () => { if (displayedReceipt && runtime.confirmedReceipt() === displayedReceipt && runtime.mayConfirm(displayedReceipt))
         router.replace(`/pflege/vitalwerte/${displayedReceipt}` as never); };
     const openOverview = () => { if (displayedReceipt && runtime.confirmedReceipt() === displayedReceipt && runtime.mayConfirm(displayedReceipt))
@@ -349,12 +383,13 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
     </View>
   </ScreenShell>;
     const confirmedCatalogue = !!client && !!choices.data;
+    const configuringCatalogue = confirmedCatalogue && editingAvailability;
     const catalogue = confirmedCatalogue ? (choices.data ?? []).flatMap(item => {
         const definition = getVitalDefinition(item.key);
-        return definition ? [{ definition, enabled: item.enabled }] : [];
-    }) : VITAL_SIGN_CATALOG.map(definition => ({ definition, enabled: false }));
+        return definition ? [{ definition, enabled: item.enabled, configurable: item.configurable === true }] : [];
+    }) : VITAL_SIGN_CATALOG.map(definition => ({ definition, enabled: false, configurable: false }));
     const enabledCount = catalogue.filter(item => item.enabled).length;
-    const typeOptions = confirmedCatalogue && catalogueView === 'enabled' ? catalogue.filter(item => item.enabled) : catalogue;
+    const typeOptions = confirmedCatalogue && catalogueView === 'enabled' && !editingAvailability ? catalogue.filter(item => item.enabled) : catalogue;
     const selectedMeasurement = choice?.enabled && client ? definition : null;
     const suggestedMatches = suggestedClientId ? (clients.data ?? []).filter(item => item.id === suggestedClientId) : [];
     const suggestedClient = !clientId && suggestedMatches.length === 1 ? suggestedMatches[0] : null;
@@ -369,7 +404,7 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
     ];
     const required = selectedMeasurement ? requiredVitalComponents(selectedMeasurement) : [];
     const editableMeasurement = mayEditFields() && !!selectedMeasurement;
-    const stageHint = uncertain ? 'Speicherung prüfen' : !client || editingClient ? 'Pflegefall auswählen' : !selectedMeasurement || editingMeasurement ? 'Messart auswählen' : 'Werte und Zeitpunkt prüfen';
+    const stageHint = uncertain ? 'Speicherung prüfen' : !client || editingClient ? 'Pflegefall auswählen' : editingAvailability ? 'Messarten bearbeiten' : !selectedMeasurement || editingMeasurement ? 'Messart auswählen' : 'Werte und Zeitpunkt prüfen';
     return <ScreenShell title="Vitalwerte erfassen" subtitle={client ? client.name : 'Neue Messung'} scroll={false} compactHeader showBack={!locked} onBack={() => void close()}>
     <View style={styles.workspace}>
       <ScrollView style={styles.scroller} contentContainerStyle={styles.scrollBody} keyboardShouldPersistTaps="handled">
@@ -422,7 +457,10 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
               <PremiumButton title={editingMeasurement ? 'Messart beibehalten' : 'Messart ändern'} size="sm" variant="secondary" disabled={locked || editingClient} onPress={toggleMeasurementPicker}/>
             </View> : null}
             {catalogue.length && (!selectedMeasurement || editingMeasurement) ? <>
-              {confirmedCatalogue && enabledCount < catalogue.length ? <FilterChipGroup wrap options={catalogueFilters} value={catalogueView} onChange={locked ? undefined : next => { setCatalogueView(next); setCategory(allCategories); }}/> : null}
+              {confirmedCatalogue ? <View style={styles.actionButtons}>
+                {!editingAvailability && enabledCount < catalogue.length ? <FilterChipGroup wrap options={catalogueFilters} value={catalogueView} onChange={locked ? undefined : next => { setCatalogueView(next); setCategory(allCategories); }}/> : null}
+                {catalogue.some(item => item.configurable) || editingAvailability ? <PremiumButton title={editingAvailability ? 'Bearbeitung beenden' : 'Messarten bearbeiten'} variant="secondary" size="sm" disabled={!editable || editingClient} onPress={toggleAvailability}/> : null}
+              </View> : null}
               <PremiumInput label="Messart suchen" accessibilityLabel="Messart suchen" placeholder="Name, Kürzel oder Einheit" value={measurementSearch} editable={!locked} maxLength={100} onChangeText={setMeasurementSearch}/>
               {categoryOptions.length > 2 ? <FilterChipGroup wrap options={categoryOptions} value={category} onChange={locked ? undefined : setCategory}/> : null}
               <Text style={styles.note} accessibilityLiveRegion="polite">{visibleDefinitions.length} {visibleDefinitions.length === 1 ? 'Messart' : 'Messarten'}{measurementNeedle ? ' gefunden' : ''}</Text>
@@ -430,27 +468,33 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
                 const group = visibleDefinitions.filter(({ definition: item }) => item.category === key);
                 return group.length ? <View key={key} style={styles.measurementGroup}>
                   <Text accessibilityRole="header" style={styles.groupLabel}>{VITAL_CATEGORY_LABELS[key]}</Text>
-                  <View style={styles.row}>{group.map(({ definition: item, enabled }) => !confirmedCatalogue ?
-                        <View key={item.key} style={[styles.measurementCard, styles.catalogueCard]}>
+                  <View style={styles.row}>{group.map(({ definition: item, enabled, configurable }) => {
+                        const info = <>
                       <VitalMeasurementArtwork measurementKey={item.key} size={62}/>
-                      <View style={styles.choiceText}><Text style={styles.choiceTitle}>{item.label}</Text>
+                      <View style={styles.choiceText}>
+                        <Text style={styles.choiceTitle}>{item.label}</Text>
                         <Text style={styles.note}>{unitsFor(item) || 'Ohne Einheit'}</Text>
+                        {configuringCatalogue ? <Text style={styles.note}>{enabled ? 'Aktiviert' : 'Deaktiviert'}</Text> :
+                                confirmedCatalogue && !enabled ? <Text style={styles.note}>Nicht für diese Akte aktiviert</Text> : null}
                       </View>
-                    </View> : <Pressable key={item.key} accessibilityRole="button" accessibilityLabel={`${item.label} ${enabled ? 'auswählen' : '– nicht für diese Akte aktiviert'}`} accessibilityState={{ selected: type === item.key, disabled: !editable || !enabled || editingClient }} disabled={!editable || !enabled || editingClient} onPress={enabled ? () => changeType(item.key) : undefined} style={({ pressed }) => [styles.measurementCard, !enabled && styles.catalogueCard, type === item.key && styles.choiceSelected, pressed && styles.pressed]}>
-                    <VitalMeasurementArtwork measurementKey={item.key} size={62}/>
-                    <View style={styles.choiceText}>
-                      <Text style={styles.choiceTitle}>{item.label}</Text>
-                      <Text style={styles.note}>{unitsFor(item) || 'Ohne Einheit'}</Text>
-                      {!enabled ? <Text style={styles.note}>Nicht für diese Akte aktiviert</Text> : null}
-                    </View>
-                  </Pressable>)}</View>
+                    </>;
+                        if (configuringCatalogue || !confirmedCatalogue)
+                            return <View key={item.key} style={[styles.measurementCard, !enabled && styles.catalogueCard, configuringCatalogue && styles.configurationCard]}>
+                      {info}
+                      {configuringCatalogue && (configurable ? <PremiumButton title={enabled ? 'Deaktivieren' : 'Aktivieren'} accessibilityLabel={`${item.label} ${enabled ? 'deaktivieren' : 'aktivieren'}`} variant="secondary" size="sm" loading={savingAvailability === item.key} disabled={!editable || editingClient} onPress={() => void changeAvailability(item.key)}/> :
+                                    <Text style={styles.note}>Über die Fachfreigabe verwaltet</Text>)}
+                    </View>;
+                        return <Pressable key={item.key} accessibilityRole="button" accessibilityLabel={`${item.label} ${enabled ? 'auswählen' : '– nicht für diese Akte aktiviert'}`} accessibilityState={{ selected: type === item.key, disabled: !editable || !enabled || editingClient }} disabled={!editable || !enabled || editingClient} onPress={enabled ? () => changeType(item.key) : undefined} style={({ pressed }) => [styles.measurementCard, !enabled && styles.catalogueCard, type === item.key && styles.choiceSelected, pressed && styles.pressed]}>
+                      {info}
+                    </Pressable>;
+                    })}</View>
                 </View> : null;
             })}
               {typeOptions.length > 0 && !visibleDefinitions.length ? <Text style={styles.note}>Keine Messart passt zu Suche und Kategorie.</Text> : null}
             </> : null}
           </IntakeStep>
 
-          {selectedMeasurement ? <>
+          {selectedMeasurement && !editingAvailability ? <>
             <IntakeStep number={3} title="Messwerte" hint="Die Einheit gehört zur Messart. Pflichtfelder sind mit * markiert." styles={styles}>
               {type === 'pain_score' ? <View style={styles.inputGroup}>
                 <Text style={styles.groupLabel}>Verwendete Skala *</Text>
@@ -494,7 +538,7 @@ function VitalCreateWorkspace({ runtime, tenantId, role, ownerProfileId, canView
         </View>
         <View style={styles.actionButtons}>
           <PremiumButton title="Bearbeitung schließen" size="sm" variant="secondary" disabled={locked} onPress={close}/>
-          <PremiumButton title={busy ? 'Messung wird gespeichert…' : uncertain ? 'Dieselbe Messung erneut prüfen' : 'Messung speichern'} disabled={busy || (!uncertain && (!definition || !choice?.enabled || !client || editingClient || editingMeasurement || !!choices.refreshError || !!clients.refreshError))} onPress={save}/>
+          <PremiumButton title={busy ? 'Messung wird gespeichert…' : uncertain ? 'Dieselbe Messung erneut prüfen' : 'Messung speichern'} disabled={busy || (!uncertain && (!definition || !choice?.enabled || !client || editingClient || editingMeasurement || editingAvailability || !!choices.refreshError || !!clients.refreshError))} onPress={save}/>
         </View>
       </View>
     </View>
@@ -521,6 +565,7 @@ function useStyles() {
         highlight: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', gap: spacing.sm, padding: spacing.sm, minWidth: 0, backgroundColor: c.surfaceAlt, borderRadius: radius.md, borderWidth: 1, borderColor: c.violet },
         measurementGroup: { gap: spacing.sm, minWidth: 0 },
         measurementCard: { minHeight: 72, flexBasis: 232, flexGrow: 1, flexShrink: 1, minWidth: 0, maxWidth: '100%', padding: spacing.sm, borderWidth: 1, borderColor: c.border, borderRadius: radius.md, backgroundColor: c.surfaceAlt, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+        configurationCard: { flexBasis: 295, flexWrap: 'wrap' },
         catalogueCard: { backgroundColor: c.surface, borderStyle: 'dashed' },
         choiceSelected: { borderColor: c.violet },
         pressed: { opacity: 0.78 },

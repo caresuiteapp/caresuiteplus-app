@@ -12,10 +12,10 @@ export const additionalPeople = Array.from({length: 10}, (_, i) => ({
   name: `Testfall ${i + 1}`,
 }));
 const stamp = '2026-11-14T10:20:00+01:00';
-const choice = (key: string, enabled: boolean) => ({key, enabled, catalogVersion: stamp, configurationVersion: 'none'});
+const choice = (key: string, enabled: boolean, configurable = true) => ({key, enabled, configurable, catalogVersion: stamp, configurationVersion: 'none'});
 export const choices = [
   choice('blood_pressure', true), choice('pulse', true), choice('oxygen', true), choice('rass', true),
-  choice('fluid_balance', true), choice('gcs', true), choice('pain_score', true), choice('body_surface_area', false),
+  choice('fluid_balance', true), choice('gcs', true, false), choice('pain_score', true), choice('body_surface_area', false),
 ];
 const measurement = (suffix: number, type: string, display: string, unit: string) => ({
   id: `70000000-0000-4000-8000-${String(suffix).padStart(12, '0')}`,
@@ -40,6 +40,7 @@ export const fixture = {
   },
   historyPeople: [...people],
   createPeople: [...people],
+  createChoices: [...choices],
   mayRead: true,
   mayManage: true,
   enabledQueryKeys: new Set<string>(),
@@ -118,12 +119,19 @@ export class VitalCreateRuntimeWeb {
 export const fetchVitalCreateClientsWeb = noRefresh;
 export const fetchVitalCreateChoicesWeb = noRefresh;
 export const executeVitalCreateNativeWeb = () => { throw new Error('Synthetic fixture cannot write'); };
+export const configureVitalChoiceWeb = async (runtime: VitalCreateRuntimeWeb, clientId: string, choice: typeof choices[number], enabled: boolean) => {
+  if (!runtime.canManage() || !fixture.createPeople.some(person => person.id === clientId) || !choice.configurable) {
+    return {ok: false as const, error: 'Änderung abgelehnt'};
+  }
+  fixture.createChoices = fixture.createChoices.map(current => current.key === choice.key ? {...current, enabled} : current);
+  return {ok: true as const, data: enabled};
+};
 
 export const useAsyncQuery = (_load: unknown, _deps: unknown, options: {enabled: boolean; queryKey: string}) => {
   if (options.enabled) fixture.enabledQueryKeys.add(options.queryKey);
   const data = !options.enabled ? null
     : options.queryKey.endsWith(':vital-clients') ? fixture.createPeople
-    : options.queryKey.endsWith(':vital-choices') ? choices : {};
+    : options.queryKey.endsWith(':vital-choices') ? fixture.createChoices : {};
   return {
     data, loading: false, refreshing: false, error: null, refreshError: null,
     previewData: false, tableMissing: false,

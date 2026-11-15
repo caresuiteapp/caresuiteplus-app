@@ -120,7 +120,18 @@ export async function fetchVitalCreateChoicesWeb(runtime: VitalCreateRuntimeWeb,
                 throw Error('Ganzer nativer Konfigurationsbestand ist nicht eindeutig.');
             byKey.set(setting.vital_key, setting);
         }
-        const view = catalog.map(row => { assertVitalCreateCatalogWeb(row); const setting = byKey.get(row.key as string); return { key: row.key as string, catalogVersion: row.updated_at as string, configurationVersion: setting ? setting.updated_at as string : 'none', enabled: setting ? setting.enabled === true && setting.active !== false : row.default_enabled as boolean, limits: setting?.limits ?? {} }; });
+        const view = catalog.map(row => {
+            assertVitalCreateCatalogWeb(row);
+            const setting = byKey.get(row.key as string);
+            return {
+                key: row.key as string,
+                catalogVersion: row.updated_at as string,
+                configurationVersion: setting ? setting.updated_at as string : 'none',
+                enabled: setting ? setting.enabled === true && setting.active !== false : row.default_enabled as boolean,
+                limits: setting?.limits ?? {},
+                configurable: !setting || (setting.active === true && ['source_kind', 'approved_by', 'valid_from', 'valid_to'].every(key => setting[key] == null)),
+            };
+        });
         runtime.assertCurrent(false, ticket);
         return { ok: true, data: deliver(runtime, ticket, { catalog, settings }, view) };
     }

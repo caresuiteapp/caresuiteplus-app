@@ -6400,13 +6400,13 @@
     {
       "web": "src/lib/pflege/vitalCreateNativeWrite.web.ts",
       "native": "src/lib/pflege/vitalCreateNativeWrite.native.ts",
-      "sourceHash": "f600f78d6b68ea94dc2e47daee4bb3002be922b4709edc6637e54440116173cc",
+      "sourceHash": "d4722648fa3d0f852814d9ddc98c1f66b8dacf9b0ab805df6ffce56caf38b4cc",
       "environment": []
     },
     {
       "web": "src/lib/pflege/vitalCreateOriginalRead.web.ts",
       "native": "src/lib/pflege/vitalCreateOriginalRead.native.ts",
-      "sourceHash": "a2dc5b176fea1fa3896538b6a0f0a79ec2eee7e08ab6c7b038dd4642835bb20b",
+      "sourceHash": "c6e2984145d4d7ff7b6c9efac922ef37fef56a7489d256d1c4c9052b75a91b24",
       "environment": []
     },
     {
@@ -6418,7 +6418,7 @@
     {
       "web": "src/screens/pflege/VitalReadingCreateScreen.web.tsx",
       "native": "src/screens/pflege/VitalReadingCreateScreen.native.tsx",
-      "sourceHash": "aa5ceec808e359fbe70344a5d71ee41e47d4c5a6338603eea759bec10fe5d149",
+      "sourceHash": "b06c13fd5d1cbf4c580f4d8b6fdf095de40e766c5fec11eaba01927c2ac62fe4",
       "environment": []
     },
     {

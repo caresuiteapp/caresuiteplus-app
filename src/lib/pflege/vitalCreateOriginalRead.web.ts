@@ -46,7 +46,18 @@ export function assertVitalCreateCatalogWeb(input:Row){const row=clone(input);co
 export async function fetchVitalCreateChoicesWeb(runtime:VitalCreateRuntimeWeb,clientId:string,scope:VitalCreateReadScope|null):Promise<ServiceResult<VitalCreateReadEnvelope<VitalChoice>>>{
  try{const ticket=runtime.beginRead('choices',clientId,scope),catalog=await pool(runtime,ticket,'vital_sign_catalog',true),settings=await pool(runtime,ticket,'client_vital_sign_settings');runtime.assertCurrent(false,ticket);
  const byKey=new Map<string,Row>();for(const setting of settings){if(typeof setting.vital_key!=='string'||!setting.vital_key||byKey.has(setting.vital_key)||typeof setting.enabled!=='boolean'||!version(setting.updated_at))throw Error('Ganzer nativer Konfigurationsbestand ist nicht eindeutig.');byKey.set(setting.vital_key,setting);}
- const view=catalog.map(row=>{assertVitalCreateCatalogWeb(row);const setting=byKey.get(row.key as string);return {key:row.key as string,catalogVersion:row.updated_at as string,configurationVersion:setting?setting.updated_at as string:'none',enabled:setting?setting.enabled===true&&setting.active!==false:row.default_enabled as boolean,limits:setting?.limits??{}};});
+ const view=catalog.map(row=>{
+   assertVitalCreateCatalogWeb(row);
+   const setting=byKey.get(row.key as string);
+   return {
+     key:row.key as string,
+     catalogVersion:row.updated_at as string,
+     configurationVersion:setting?setting.updated_at as string:'none',
+     enabled:setting?setting.enabled===true&&setting.active!==false:row.default_enabled as boolean,
+     limits:setting?.limits??{},
+     configurable:!setting||(setting.active===true&&['source_kind','approved_by','valid_from','valid_to'].every(key=>setting[key]==null)),
+   };
+ });
  runtime.assertCurrent(false,ticket);return {ok:true,data:deliver(runtime,ticket,{catalog,settings},view)};
  }catch{return {ok:false,error:'Aktueller ganzer Messkatalog, Einheit und Pflegefallkonfiguration konnten nicht bestätigt werden.'};}
 }
