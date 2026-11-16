@@ -1,5 +1,6 @@
 // Generated native presentation from src/screens/pflege/WoundDocumentationDetailScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { initialWoundTab, type WoundRecordTab } from '@/components/pflege/wounds/woundAreas';
 import { isKnownWoundEditorRole } from "../../lib/pflege/woundEditorRequestGuard.native.ts";
 import { useEffect, useRef, useState } from 'react';
 import { View } from 'react-native';
@@ -17,7 +18,7 @@ import { WoundLifecycleScreen } from "./WoundLifecycleScreen.native.tsx";
 import { WoundCareScreen, WoundCareHistoryPanel } from "./WoundCareScreen.native.tsx";
 import { WoundAssessmentComparison } from "../../components/pflege/WoundAssessmentComparison.native.tsx";
 import { WoundPhotoReferenceEvidence } from "../../components/pflege/WoundPhotoReferenceEvidence.native.tsx";
-import { WoundRecordWorkspace, type WoundRecordTab } from '@/components/pflege/wounds/WoundRecordWorkspace';
+import { WoundRecordWorkspace } from '@/components/pflege/wounds/WoundRecordWorkspace';
 import { WoundFacts, WoundPage, WoundSection } from '@/components/pflege/wounds/WoundWorkspaceLayout';
 import { useWoundEntryStyles } from '@/components/pflege/wounds/woundEntryStyles';
 import { woundStatusLabels } from "../../lib/pflege/woundReadOriginal.native.ts";
@@ -31,20 +32,23 @@ const details = (v: unknown) => v && typeof v === 'object' && !Array.isArray(v) 
 const labels: Record<string, string> = { bodyLocation: 'Lokalisation', side: 'Körperseite', woundType: 'Fachliche Einordnung', etiology: 'Ursache / Klärungsstand', onsetDate: 'Entstehungsdatum', onsetUnknownReason: 'Kenntnisstand zum Entstehungsdatum', acquiredWhere: 'Entstehungsumstände', description: 'Wundsituation', basisStatus: 'Ärztliche Grundlage – Status', basisReference: 'Anordnungsbezug / Begründung / offener Status', physician: 'Ärztliche Person', reviewStatus: 'Kontrollabstimmung', reviewPendingReason: 'Offener Abstimmungsbedarf', carePlan: 'Geplante Versorgung', measurementMethod: 'Messmethode / Einschränkungen', woundBed: 'Wundbett', exudate: 'Exsudat', odor: 'Geruch', woundEdge: 'Wundrand', surroundingSkin: 'Wundumgebung', infectionObservation: 'Infektionsbeobachtungen / Beurteilbarkeit', personalImpact: 'Persönliche Auswirkungen', preferences: 'Wünsche und Entscheidungen', selfManagement: 'Ressourcen und Unterstützungsbedarf', actualAction: 'Tatsächliche Reaktion', response: 'Beobachtetes Ergebnis' };
 const translate: Record<string, string> = { left: 'Links', right: 'Rechts', midline: 'Mittig', bilateral: 'Beidseitig', not_applicable: 'Nicht anwendbar', documented: 'Dokumentiert', scheduled: 'Termin vereinbart', pending: 'Klärung offen', not_required: 'Als nicht erforderlich begründet' };
 export function WoundDocumentationDetailScreen() {
-    const { id } = useLocalSearchParams<{
+    const { id, bereich } = useLocalSearchParams<{
         id: string;
+        bereich?: string;
     }>(), { profile } = useAuth();
     const nativeOwner = isKnownWoundEditorRole(profile?.roleKey) && woundUuid(profile?.tenantId) && woundUuid(profile?.id) ? { tenantId: profile.tenantId, profileId: profile.id, role: profile.roleKey } : null;
     const workspaceOwner = useRef<WoundEditorOwner | null>(nativeOwner);
     if (nativeOwner)
         workspaceOwner.current = nativeOwner;
-    return <WoundDocumentationWorkspace key={JSON.stringify([id, workspaceOwner.current])}/>;
+    return <WoundDocumentationWorkspace key={JSON.stringify([id, workspaceOwner.current, initialWoundTab(bereich)])}/>;
 }
 function WoundDocumentationWorkspace() {
-    const [workspaceTab, setWorkspaceTab] = useState<WoundRecordTab>('overview');
-    const { id } = useLocalSearchParams<{
+    const { id, bereich } = useLocalSearchParams<{
         id: string;
-    }>(), tenant = useServiceTenantId(), { profile } = useAuth(), permissions = usePermissions(), router = useRouter(), styles = useWoundEntryStyles(), [treatmentCorrectionId, setTreatmentCorrectionId] = useState<string | null>(null), [correctionAssessmentId, setCorrectionAssessmentId] = useState<string | null>(null), [showLifecycle, setShowLifecycle] = useState(false), [careMode, setCareMode] = useState<'plan' | 'dressing' | null>(null), [careRefresh, setCareRefresh] = useState(0);
+        bereich?: string;
+    }>();
+    const [workspaceTab, setWorkspaceTab] = useState<WoundRecordTab>(() => initialWoundTab(bereich));
+    const tenant = useServiceTenantId(), { profile } = useAuth(), permissions = usePermissions(), router = useRouter(), styles = useWoundEntryStyles(), [treatmentCorrectionId, setTreatmentCorrectionId] = useState<string | null>(null), [correctionAssessmentId, setCorrectionAssessmentId] = useState<string | null>(null), [showLifecycle, setShowLifecycle] = useState(false), [careMode, setCareMode] = useState<'plan' | 'dressing' | null>(null), [careRefresh, setCareRefresh] = useState(0);
     const editorOwner = useRef<WoundEditorOwner | null>(isKnownWoundEditorRole(profile?.roleKey) && woundUuid(profile?.tenantId) && woundUuid(profile?.id) ? { tenantId: profile.tenantId, profileId: profile.id, role: profile.roleKey } : null).current;
     const editorScope = JSON.stringify([id, isKnownWoundEditorRole(profile?.roleKey) && woundUuid(profile?.tenantId) && woundUuid(profile?.id) ? { tenantId: profile.tenantId, profileId: profile.id, role: profile.roleKey } : editorOwner]);
     const editorLifetime = useRef({ scope: editorScope, token: Symbol('native wound editor owner') });
@@ -223,13 +227,14 @@ function WoundDocumentationWorkspace() {
  </>;
     return <WoundPage title="Wundakte" subtitle={`${q.data.clientName} · ${text(w.body_location)}`}>
    {q.refreshError && <ErrorState message={q.refreshError} onRetry={refreshDetail}/>}
-   <WoundRecordWorkspace key={[tenant, profile?.id, permissions.roleKey, id, String(w.client_id)].join(':')} scope={{ tenantId: tenant ?? '', actorId: profile?.id ?? '', role: permissions.roleKey, clientId: String(w.client_id), woundId: id }} wound={q.data} canWrite={permissions.can('pflege.wounds.manage') && !comparisonBlocked.current} canReadPlans={permissions.can('pflege.orders.view')} canReadTreatment={permissions.can('pflege.treatment.view')} canEgk={permissions.can('ti.egk.view')} tab={workspaceTab} onChangeTab={setWorkspaceTab} actions={locked => <View style={[styles.panel, styles.toolbar]}>
+   <WoundRecordWorkspace key={[tenant, profile?.id, permissions.roleKey, id, String(w.client_id)].join(':')} scope={{ tenantId: tenant ?? '', actorId: profile?.id ?? '', role: permissions.roleKey, clientId: String(w.client_id), woundId: id }} wound={q.data} canWrite={permissions.can('pflege.wounds.manage') && !comparisonBlocked.current} canReadPlans={permissions.can('pflege.orders.view')} canReadTreatment={permissions.can('pflege.treatment.view')} canEgk={permissions.can('ti.egk.view')} tab={workspaceTab} onChangeTab={setWorkspaceTab} onAssessment={['draft', 'active', 'healing', 'deteriorated'].includes(String(w.status)) ? () => openDetailEditor('assessment') : undefined} actions={locked => <View style={[styles.panel, styles.toolbar]}>
      <View style={styles.badge}><Text style={styles.body}>{status}</Text></View>
      <View style={styles.actions}>
        {permissions.can('pflege.wounds.manage') ? <PremiumButton size="sm" title="Befund erfassen" accessibilityLabel="Tatsächliches Wundassessment ergänzen" disabled={locked || !!q.refreshError || !['draft', 'active', 'healing', 'deteriorated'].includes(String(w.status))} onPress={() => openDetailEditor('assessment')}/> : null}
  {permissions.can('pflege.wounds.manage') ? <PremiumButton size="sm" title={['healed', 'archived'].includes(String(w.status)) ? 'Wundfall wiederöffnen' : 'Abschluss dokumentieren'} variant="secondary" disabled={locked || !!q.refreshError || q.loading || !['draft', 'active', 'healing', 'deteriorated', 'healed', 'archived'].includes(String(w.status))} onPress={() => openDetailEditor('lifecycle')}/> : null}
  {permissions.can('pflege.wounds.manage') && permissions.can('pflege.orders.view') ? <PremiumButton size="sm" title="Neue Planfassung" accessibilityLabel="Wundplan als neue Fassung dokumentieren" variant="secondary" disabled={locked || !!q.refreshError || q.loading || !['draft', 'active', 'healing', 'deteriorated'].includes(String(w.status))} onPress={() => openDetailEditor('plan')}/> : null}
  {permissions.can('pflege.wounds.manage') && permissions.can('pflege.orders.view') && permissions.can('pflege.treatment.view') && permissions.can('pflege.treatment.manage') ? <PremiumButton size="sm" title="Verbandwechsel erfassen" accessibilityLabel="Tatsächlichen Verbandwechsel oder Versorgung dokumentieren" disabled={locked || !!q.refreshError || q.loading} onPress={() => openDetailEditor('dressing')}/> : null}
+       <PremiumButton title="Wundfotos" size="sm" variant="secondary" disabled={locked} onPress={() => setWorkspaceTab('measurement')}/>
        <PremiumButton title="Aktualisieren" variant="ghost" size="sm" accessibilityLabel="Wundfall aktualisieren" disabled={locked} onPress={refreshDetail}/>
      </View>
    </View>} caseDetails={caseDetails} findings={findings} coordination={<WoundPathWorkspacePanel catalogScope={{ tenantId: tenant ?? '', actorId: profile?.id ?? '', role: permissions.roleKey }} key={`${tenant}:${profile?.id}:${permissions.roleKey}:${permissions.permissions.join(',')}:${id}:path`} tenantId={tenant ?? ''} clientId={String(q.data.row.client_id)} woundId={id} actorId={profile?.id ?? ''} source={q.data} canRead={nativeRead} canWrite={permissions.can('pflege.wounds.manage')} canPlan={permissions.can('pflege.wounds.manage') && permissions.can('pflege.orders.view')} canDress={permissions.can('pflege.wounds.manage') && permissions.can('pflege.orders.view') && permissions.can('pflege.treatment.view') && permissions.can('pflege.treatment.manage')} canContact={permissions.can('pflege.treatment.manage')} canReview={permissions.can('pflege.documentation.sign')} readBlocked={comparisonBlocked.current} onAssessment={() => openDetailEditor('assessment')} onPlan={() => openDetailEditor('plan')} onDressing={() => openDetailEditor('dressing')} onLifecycle={() => openDetailEditor('lifecycle')}/>} photoEvidence={<WoundPhotoReferenceEvidence key={`${tenant}:${profile?.id}:${profile?.roleKey}:${id}:${String(q.data.row.client_id)}`} source={q.data} tenantId={tenant ?? ''} profileId={profile?.id ?? ''} profileRole={profile?.roleKey ?? null} runtimeTenantId={permissions.tenantId} runtimeRole={permissions.roleKey} woundId={id} canRead={nativeRead} readBlocked={comparisonBlocked.current} readTicket={comparisonTicket} isCurrentReceipt={isCurrentComparisonReceipt}/>}/>

@@ -3,9 +3,16 @@ export const BODY_MAP_FIGURES = ['older-man', 'older-woman', 'adult-man', 'adult
 export type WoundFigure = typeof BODY_MAP_FIGURES[number];
 const REGIONS = ['torso', 'hand', 'foot', 'eye', 'ear', 'head', 'back', 'arm', 'knee', 'pelvis'] as const;
 const CATEGORIES = ['Hautbefund', 'Wunde', 'Verletzung', 'Druckstelle', 'Katheterstelle', 'Sonstiges'] as const;
+const FINDINGS = ['Rötung', 'Schwellung', 'Hämatom', 'Narbe', 'Hautreizung'] as const;
+export const WOUND_BODY_BRIDGE_VERSION = 2;
+const VIEWS = ['front', 'side', 'back', 'free'] as const;
+export type WoundBodyMapView = {
+  figure: WoundFigure; region: typeof REGIONS[number] | null;
+  side: 'left' | 'right'; cameraView: typeof VIEWS[number]; detailAngle: number;
+};
 type Vector = [number, number, number];
 export type WoundBodyMark = {
-  name: string; kind: typeof CATEGORIES[number]; text: string; figure: WoundFigure;
+  name: string; kind: typeof CATEGORIES[number]; finding?: typeof FINDINGS[number]; text: string; figure: WoundFigure;
   focusRegion: typeof REGIONS[number] | null; side: 'left' | 'right';
   point?: Vector; target: Vector; yaw: number; pitch: number; height: number;
   detailAngle: number; anatomyIndex: number; clinical: boolean;
@@ -40,6 +47,7 @@ export function readBodyMark(value: unknown): WoundBodyMark | null {
   const isChild = mark.figure === 'boy' || mark.figure === 'girl';
   return {
     name: mark.name.trim(), kind: mark.kind, text: mark.text.trim(), figure: mark.figure,
+    ...(mark.finding && FINDINGS.includes(mark.finding) ? { finding: mark.finding } : {}),
     focusRegion: mark.focusRegion, side: mark.side, ...(diagram ? { diagram } : { point: mark.point }),
     target: mark.target, yaw: mark.yaw, pitch: mark.pitch, height: mark.height,
     detailAngle: Number.isInteger(mark.detailAngle) && numeric(mark.detailAngle, 0, 4) ? mark.detailAngle : 0,
@@ -58,6 +66,16 @@ export function bodyMapMessage(value: unknown) {
   if (message.type === 'caresuite-body-mark') {
     const mark = readBodyMark(message.mark);
     if (mark) return { type: 'mark' as const, mark };
+  }
+  if (message.type === 'caresuite-body-expand' && typeof message.open === 'boolean' && message.view
+    && typeof message.view === 'object' && !Array.isArray(message.view)) {
+    const view = message.view as WoundBodyMapView;
+    if (BODY_MAP_FIGURES.includes(view.figure) && (view.region === null || REGIONS.includes(view.region))
+      && ['left', 'right'].includes(view.side) && VIEWS.includes(view.cameraView)
+      && Number.isInteger(view.detailAngle) && numeric(view.detailAngle, 0, 4)) {
+      return { type: 'expand' as const, open: message.open,
+        view: { figure: view.figure, region: view.region, side: view.side, cameraView: view.cameraView, detailAngle: view.detailAngle } };
+    }
   }
   return null;
 }

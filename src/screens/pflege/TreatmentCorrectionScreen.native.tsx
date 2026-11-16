@@ -1,5 +1,6 @@
 // Generated native presentation from src/screens/pflege/TreatmentCorrectionScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { WOUND_CORRECTION_TEMPLATE_FIELDS } from '@/lib/pflege/woundTemplates';
 import { woundUuid } from '@/lib/pflege/woundCareDomain';
 import { treatmentEventTimeDisplay, treatmentRecordedTimeDisplay } from "../../lib/pflege/treatmentTimeDisplay.native.ts";
 import { woundEditorAccess as captureWoundEditorAccess, isKnownWoundEditorRole, WoundEditorRequestGuard, type WoundEditorAccess } from "../../lib/pflege/woundEditorRequestGuard.native.ts";
@@ -101,7 +102,7 @@ function CorrectionForm({ access, executionId, tenant, actorId, role, canView, c
     const ctx = guard.current.canShow(readEpoch, readTicket, q.data) ? (baseline.current && guard.current.sameCurrentOriginal(baseline.current) ? baseline.current : q.data) : null, head = ctx ? headFor(ctx) : null;
     function change(key: keyof TreatmentCorrectionRequest, value: string) { if (write.locked || !guard.current.mayWrite(readEpoch, readTicket, q.data) || confirmed)
         return; baseline.current ??= q.data ?? null; setDraft(d => ({ ...d, [key]: value })); }
-    const field = (key: keyof TreatmentCorrectionRequest, label: string) => <WoundTextInput scope={access.woundId ? { tenantId: tenant, actorId, role } : undefined} key={key} label={label} accessibilityLabel={label} value={draft[key]} onChangeText={v => change(key, v)} editable={!write.locked && guard.current.mayWrite(readEpoch, readTicket, q.data) && !confirmed} multiline maxLength={2000}/>;
+    const field = (key: keyof typeof WOUND_CORRECTION_TEMPLATE_FIELDS, label: string) => <WoundTextInput scope={access.woundId ? { tenantId: tenant, actorId, role } : undefined} key={key} templateField={WOUND_CORRECTION_TEMPLATE_FIELDS[key]} label={label} accessibilityLabel={label} value={draft[key]} onChangeText={v => change(key, v)} editable={!write.locked && guard.current.mayWrite(readEpoch, readTicket, q.data) && !confirmed} multiline maxLength={2000}/>;
     async function save() {
         if (!guard.current.canRead())
             return;

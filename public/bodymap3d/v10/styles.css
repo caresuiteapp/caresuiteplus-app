@@ -113,14 +113,16 @@ h2 { font-size: 1.08rem; line-height: 1.3; font-weight: 720; letter-spacing: -.0
 .viewer.expanded {
   position: fixed;
   z-index: 6;
-  inset: 12px;
+  inset: 0;
   display: flex;
   flex-direction: column;
   overflow: auto;
-  box-shadow: 0 0 0 22px #102538d6,0 12px 60px #06142055;
+  border-radius: 0;
+  padding: max(10px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right))
+    max(10px, env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-left));
 }
 .viewer.expanded .stage { flex:1 0 180px; min-height:180px; height:auto; }
-.viewer.expanded .viewer-tools, .viewer.expanded .viewer-controls { flex-shrink:0; }
+.viewer.expanded :is(.viewer-tools,.viewer-controls,.viewer-heading,.embed-pickers,.marker-tools) { flex-shrink:0; }
 .stage.is-grabbing { cursor: grabbing; }
 .stage.is-marking { cursor: crosshair; }
 .stage canvas, .stage-markers { position: absolute; inset: 0; width: 100%; height: 100%; }
@@ -163,8 +165,33 @@ h2 { font-size: 1.08rem; line-height: 1.3; font-weight: 720; letter-spacing: -.0
 .orientation span { padding: 4px 7px; border: 1px solid #a2bac876; border-radius: 6px; background: #1e3549e8; color: #ecf7fa; font-size: .68rem; font-weight: 650; }
 .stage.light :is(.stage-tag,.orientation span) { background:#f3fcffe8; border-color:#b6cbd5; color:#254d63; }
 .marker { position: absolute; z-index: 2; pointer-events: auto; width: 37px; height: 37px; display: grid; place-items: center; padding: 0; transform: translate(-50%, -50%); border-radius: 50%; box-shadow: 0 2px 10px #0d213355; }
-.marker.wound { color: var(--red); background: #fff5f5; border: 1.6px solid var(--red); }
+.marker.wound { --marker-color: #b92648; color: var(--marker-color); background: #fff; border: 2px solid var(--marker-color); }
 .marker.wound svg { width: 19px; height: 19px; stroke-width: 2.7; }
+.marker-caption {
+  position: absolute;
+  inset-inline-start: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+  max-width: clamp(76px, 22vw, 172px);
+  padding: 4px 7px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid var(--marker-color);
+  color: #142f44;
+  font-size: .73rem;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+.marker.label-left .marker-caption { inset-inline-start: auto; inset-inline-end: calc(100% + 6px); }
+.hide-mark-captions .marker-caption, #anatomy-wounds .marker-caption { display: none; }
+.marker-tools { display: flex; align-items: end; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.marker-tools label { display: grid; gap: 4px; min-width: 0; flex: 1 1 190px; color: var(--muted); font-size: .75rem; font-weight: 650; }
+.marker-tools select { min-height: 37px; min-width: 0; border: 1px solid var(--line); border-radius: 8px; padding-inline: 7px; background: #f5f9fb; color: var(--ink); }
+.marker-tools button[aria-pressed="true"] { border-color: #84b4c2; background: #e5f5f8; }
+.note-button .note-x { color: var(--marker-color, var(--red)); }
 .marker.zone { color: #fff; background: #146573; border: 2px solid #fff; font-weight: 750; font-size: .84rem; width: 31px; height: 31px; }
 .marker.anatomical-point { width: 20px; height: 20px; color: #114653; background: #f2fbfaf5; border: 1px solid #77a7ae; font-weight: 750; font-size: .66rem; box-shadow: 0 1px 5px #0d213321; }
 .anatomical-leader { position: absolute; z-index: 1; height: 1px; transform-origin: left center; background: #edfafa; box-shadow: 0 0 0 1px #20354755; pointer-events: none; }
@@ -288,7 +315,6 @@ dialog::backdrop { background: #071d30b5; backdrop-filter: blur(3px); }
   .viewer-actions > .icon-button { min-width: 34px; }
   .viewer-actions > #back-overview { padding-inline:7px; font-size:.75rem; }
   .viewer-actions > #back-overview svg { display:none; }
-  .viewer.expanded { inset:5px; }
   .viewer-controls .side-options { flex: 1 1 100%; }
   .views button { font-size: .75rem; padding-inline: 3px; }
   .viewer-tools .primary-button { min-height: 40px; padding-inline: 8px; }
@@ -319,9 +345,9 @@ dialog::backdrop { background: #071d30b5; backdrop-filter: blur(3px); }
 [data-embed] .viewer-heading { padding: 0 0 7px; }
 [data-embed] .viewer-heading h2 { font-size: .91rem; }
 [data-embed] .viewer-heading p { display: none; }
-[data-embed] .embed-pickers { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 8px; }
-[data-embed] .embed-pickers label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-weight: 650; font-size: .75rem; }
-[data-embed] .embed-pickers select {
+:is([data-embed],.viewer.expanded) .embed-pickers { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 8px; margin-bottom: 8px; }
+.embed-pickers label { display: grid; gap: 4px; min-width: 0; color: var(--muted); font-weight: 650; font-size: .75rem; }
+.embed-pickers select {
   width: 100%;
   min-height: 38px;
   padding-inline: 7px;
@@ -335,6 +361,7 @@ dialog::backdrop { background: #071d30b5; backdrop-filter: blur(3px); }
 [data-embed] .views button { min-height: 33px; }
 [data-embed] .stage { min-height: 0; height: clamp(280px, 83vw, 420px); }
 [data-embed] .viewer.expanded .stage { min-height: 180px; height: auto; }
+[data-embed] .viewer.expanded { border-radius: 0; }
 [data-embed="location"] .note-detail { display: none; }
 @media (max-width: 385px) {
   [data-embed] .viewer { padding: 7px; }

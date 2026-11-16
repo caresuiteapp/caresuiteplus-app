@@ -235,14 +235,14 @@ async function openEmployeePortalBrowserCamera(): Promise<EmployeePortalMediaPic
   });
 }
 
-export async function openEmployeePortalCamera(): Promise<EmployeePortalMediaPickerResult> {
+export async function openEmployeePortalCamera(photoOnly = false): Promise<EmployeePortalMediaPickerResult> {
   try {
     if (Platform.OS === 'web') return openEmployeePortalBrowserCamera();
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) return cameraPermissionError(permission.canAskAgain);
 
     const result = await ImagePicker.launchCameraAsync({
-      mediaTypes: ['images', 'videos'],
+      mediaTypes: photoOnly ? ['images'] : ['images', 'videos'],
       allowsEditing: false,
       quality: 0.85,
       videoMaxDuration: 60,

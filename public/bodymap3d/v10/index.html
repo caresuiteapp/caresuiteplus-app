@@ -68,8 +68,8 @@
             <button type="button" class="icon-button" id="stage-light" aria-label="Hellen Ansichtsmodus einschalten" title="Hellen Ansichtsmodus einschalten" aria-pressed="false">
               <svg aria-hidden="true"><use href="#i-light"/></svg>
             </button>
-            <button type="button" class="icon-button" id="viewer-expand" aria-label="Großansicht öffnen" title="Großansicht öffnen" aria-pressed="false">
-              <svg aria-hidden="true"><use href="#i-expand"/></svg>
+            <button type="button" class="subtle-button fullscreen-button" id="viewer-expand" aria-pressed="false">
+              <svg aria-hidden="true"><use href="#i-expand"/></svg> <span>Vollbild</span>
             </button>
           </div>
         </header>
@@ -122,6 +122,10 @@
             </button>
           </div>
         </div>
+        <div class="marker-tools" id="marker-tools" hidden>
+          <label for="marker-select">Markierungen<select id="marker-select"></select></label>
+          <button class="subtle-button" id="marker-labels" type="button" aria-pressed="true">Beschriftungen</button>
+        </div>
         <p class="viewer-help muted" id="viewer-help" aria-live="polite">Beim Zoomen lässt sich der Bildausschnitt verschieben.</p>
       </section>
 
@@ -173,6 +177,11 @@
           <option>Verletzung</option>
           <option>Druckstelle</option>
           <option>Katheterstelle</option>
+          <option data-finding disabled hidden>Rötung</option>
+          <option data-finding disabled hidden>Schwellung</option>
+          <option data-finding disabled hidden>Hämatom</option>
+          <option data-finding disabled hidden>Narbe</option>
+          <option data-finding disabled hidden>Hautreizung</option>
           <option>Sonstiges</option>
         </select>
         <label for="note-text" class="note-detail">Beobachtung <span class="muted">(optional)</span></label>

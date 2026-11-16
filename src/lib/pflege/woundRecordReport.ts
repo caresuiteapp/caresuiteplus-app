@@ -66,7 +66,7 @@ export function describeWoundEntry(entry: WoundEntry): WoundDisplayLine[] {
         ...(cost === null ? [] : [['Betrag', euro(cost)] as WoundDisplayLine])];
     }
     case 'note': return labeled(d, [['description', 'Wundbeschreibung'], ['treatment', 'Wundbehandlung']]);
-    case 'body_mark': return labeled(d, [['name', 'Lokalisation'], ['kind', 'Kategorie'], ['text', 'Beobachtung']]);
+    case 'body_mark': return labeled(d, [['name', 'Lokalisation'], ['kind', 'Kategorie'], ['finding', 'Einordnung'], ['text', 'Beobachtung']]);
   }
 }
 
@@ -127,7 +127,20 @@ export function woundRecordSeries(entries: WoundEntry[], assessments: RecordPayl
     points: series.points.sort((a, b) => Date.parse(a.at) - Date.parse(b.at) || a.id.localeCompare(b.id)) }));
 }
 
-export type WoundReportMode = 'timeline' | 'assessment' | 'entry' | 'prescription' | 'delivery';
+export function woundFactorCounts(entries: WoundEntry[]) {
+  const counts = new Map<keyof typeof COMPLICATING_FACTORS, number>();
+  for (const entry of entries) {
+    if (entry.kind !== 'anamnesis' || !Array.isArray(entry.payload.factors)) continue;
+    for (const factor of new Set(entry.payload.factors)) {
+      if (typeof factor !== 'string' || !Object.hasOwn(COMPLICATING_FACTORS, factor)) continue;
+      const key = factor as keyof typeof COMPLICATING_FACTORS;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+  }
+  return [...counts].map(([key, count]) => ({ key, label: COMPLICATING_FACTORS[key], count }));
+}
+
+export type WoundReportMode = 'timeline' | 'assessment' | 'entry' | 'charts' | 'diabetic_foot' | 'tracheostomy' | 'prescription' | 'delivery';
 type ReportArgs = {
   wound: AmbulatoryWound & { corrections: RecordPayload[] };
   entries: WoundEntry[];
@@ -139,6 +152,8 @@ type ReportArgs = {
 };
 const TITLES: Record<WoundReportMode, string> = {
   timeline: 'Wundakte · Verlauf', assessment: 'Wundbefund · Einzelansicht', entry: 'Wundakte · Einzeleintrag',
+  charts: 'Wundakte · Verlaufsdiagramme', diabetic_foot: 'Diabetischer Fuß · Befunde und Verlauf',
+  tracheostomy: 'Tracheostomie · Aufnahme, Verlauf und Einweisung',
   prescription: 'Rezeptvorschlag zur ärztlichen Prüfung', delivery: 'Lieferschein · dokumentierte Lieferung',
 };
 
@@ -162,6 +177,36 @@ export async function generateWoundReport({ wound, entries, media = [], care, tr
   }
   function fields(rows: WoundDisplayLine[]) { for (const [label, value] of rows) text(label + '  ·  ' + value); }
   function section(title: string) { space(24); y += 4; text(title, 'heading'); }
+  function charts() {
+    const seriesList = woundRecordSeries(entries, wound.assessments);
+    if (!seriesList.length) text('Im ausgewählten Wundfall liegen noch keine datierten Messwerte vor.');
+    for (const series of seriesList) {
+      const high = Math.max(1, ...series.points.map(p => p.value));
+      for (let start = 0; start < series.points.length; start += 35) {
+        space(72); section(series.title + ' (' + series.unit + ')');
+        const points = series.points.slice(start, start + 35), base = y + 40;
+        const span = 158 / points.length;
+        pdf.setDrawColor('#a3b5c5');
+        pdf.line(22, base, 180, base);
+        pdf.setFillColor('#337aa8');
+        for (const [i, point] of points.entries()) {
+          const h = 34 * point.value / high;
+          const width = Math.min(14, Math.max(1, span - 2));
+          const left = 22 + (i + .5) * span - width / 2;
+          pdf.rect(left, base - h, width, Math.max(.3, h), 'F');
+        }
+        y = base + 7;
+        text('Skala bis ' + formatWoundNumber(high) + ' ' + series.unit + ' · Werte ' +
+          (start + 1) + '–' + (start + points.length) + ' von ' + series.points.length, 'small');
+        text(date(points[0].at) + ' bis ' + date(points.at(-1)?.at), 'small');
+      }
+    }
+    const factors = woundFactorCounts(entries);
+    if (factors.length) {
+      section('Dokumentierte Einflussfaktoren');
+      fields(factors.map(({ label, count }) => [label, `${count} dokumentierte Nennungen`]));
+    }
+  }
   text('CareSuite HealthOS · Pflege', 'small');
   text(TITLES[mode], 'heading');
   fields([['Klient:in', wound.clientName], ['Wunde', getText(wound.row.body_location)],
@@ -175,7 +220,8 @@ export async function generateWoundReport({ wound, entries, media = [], care, tr
       'Ausgabe der dokumentierten Lieferung mit ihrem Belegbezug.');
     section('Artikel und Menge');
     fields(describeWoundEntry(record)); fields([['Datum', date(record.observed_at)], ['Erfasst durch', record.recorded_by_name]]);
-  } else {
+  } else if (mode === 'charts') charts();
+  else {
     if (mode === 'timeline') {
       section('Aufnahme des Wundfalls');
       fields(labeled(wound.row, [['wound_type', 'Wundart'], ['etiology', 'Ursache'], ['onset_date', 'Entstehung'], ['acquired_where', 'Umstände'], ['treatment_plan', 'Planangabe']]));
@@ -204,6 +250,7 @@ export async function generateWoundReport({ wound, entries, media = [], care, tr
       }
     }
     const selectedEntries = mode === 'timeline' ? entries : mode === 'entry' ? entries.filter(e => e.id === selected)
+      : mode === 'diabetic_foot' || mode === 'tracheostomy' ? entries.filter(e => e.kind === mode)
       : entries.filter(e => e.kind === 'measurement' && e.payload.assessmentId === selected);
     for (const e of selectedEntries.slice().sort((a,b) => Date.parse(a.observed_at) - Date.parse(b.observed_at))) {
       section(ENTRY_LABELS[e.kind] + ' · ' + date(e.observed_at));
@@ -236,22 +283,7 @@ export async function generateWoundReport({ wound, entries, media = [], care, tr
       const documented = consumptions.flatMap(e => { const cents = materialCost(e.payload); return cents === null ? [] : [cents]; });
       fields([['Erfasste Kosten', documented.length ? euro(documented.reduce((a,b) => a + b,0)) : 'Kein Einheitspreis erfasst'],
         ['Verbrauchseinträge ohne Preis', String(consumptions.length - documented.length)]]);
-      for (const series of woundRecordSeries(entries, wound.assessments)) {
-        space(66); section(series.title + ' (' + series.unit + ')');
-        const points = series.points.slice(-35), base = y + 40;
-        const high = Math.max(1, ...points.map(p => p.value));
-        const span = 158 / Math.max(1, points.length);
-        pdf.setDrawColor('#a3b5c5');
-        pdf.line(22, base, 22 + span * points.length, base);
-        pdf.setFillColor('#337aa8');
-        for (const [i, point] of points.entries()) {
-          const h = 34 * point.value / high;
-          pdf.rect(22 + i * span + 1, base - h, Math.max(1, span - 2), Math.max(.3,h), 'F');
-        }
-        y = base + 7;
-        text(formatWoundNumber(high) + ' ' + series.unit + ' · ' + points.length + ' dargestellte Messwerte', 'small');
-        text(date(points[0].at) + ' bis ' + date(points.at(-1)?.at), 'small');
-      }
+      charts();
     }
   }
 

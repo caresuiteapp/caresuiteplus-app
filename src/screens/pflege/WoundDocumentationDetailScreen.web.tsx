@@ -1,3 +1,4 @@
+import { initialWoundTab, type WoundRecordTab } from '@/components/pflege/wounds/woundAreas';
 import {isKnownWoundEditorRole} from '@/lib/pflege/woundEditorRequestGuard.web';
 import {useEffect,useRef,useState} from 'react';
 import {Text,View} from 'react-native';
@@ -15,7 +16,7 @@ import {WoundLifecycleScreen} from './WoundLifecycleScreen.web';
 import {WoundCareScreen,WoundCareHistoryPanel} from './WoundCareScreen.web';
 import {WoundAssessmentComparison} from '@/components/pflege/WoundAssessmentComparison.web';
 import {WoundPhotoReferenceEvidence} from '@/components/pflege/WoundPhotoReferenceEvidence.web';
-import {WoundRecordWorkspace,type WoundRecordTab} from '@/components/pflege/wounds/WoundRecordWorkspace';
+import {WoundRecordWorkspace} from '@/components/pflege/wounds/WoundRecordWorkspace';
 import {WoundFacts,WoundPage,WoundSection} from '@/components/pflege/wounds/WoundWorkspaceLayout';
 import {useWoundEntryStyles} from '@/components/pflege/wounds/woundEntryStyles';
 import {woundStatusLabels} from '@/lib/pflege/woundReadOriginal.web';
@@ -29,14 +30,15 @@ const details=(v:unknown)=>v&&typeof v==='object'&&!Array.isArray(v)?v as Record
 const labels:Record<string,string>={bodyLocation:'Lokalisation',side:'Körperseite',woundType:'Fachliche Einordnung',etiology:'Ursache / Klärungsstand',onsetDate:'Entstehungsdatum',onsetUnknownReason:'Kenntnisstand zum Entstehungsdatum',acquiredWhere:'Entstehungsumstände',description:'Wundsituation',basisStatus:'Ärztliche Grundlage – Status',basisReference:'Anordnungsbezug / Begründung / offener Status',physician:'Ärztliche Person',reviewStatus:'Kontrollabstimmung',reviewPendingReason:'Offener Abstimmungsbedarf',carePlan:'Geplante Versorgung',measurementMethod:'Messmethode / Einschränkungen',woundBed:'Wundbett',exudate:'Exsudat',odor:'Geruch',woundEdge:'Wundrand',surroundingSkin:'Wundumgebung',infectionObservation:'Infektionsbeobachtungen / Beurteilbarkeit',personalImpact:'Persönliche Auswirkungen',preferences:'Wünsche und Entscheidungen',selfManagement:'Ressourcen und Unterstützungsbedarf',actualAction:'Tatsächliche Reaktion',response:'Beobachtetes Ergebnis'};
 const translate:Record<string,string>={left:'Links',right:'Rechts',midline:'Mittig',bilateral:'Beidseitig',not_applicable:'Nicht anwendbar',documented:'Dokumentiert',scheduled:'Termin vereinbart',pending:'Klärung offen',not_required:'Als nicht erforderlich begründet'};
 export function WoundDocumentationDetailScreen(){
- const {id}=useLocalSearchParams<{id:string}>(),{profile}=useAuth();
+ const {id,bereich}=useLocalSearchParams<{id:string;bereich?:string}>(),{profile}=useAuth();
  const nativeOwner=isKnownWoundEditorRole(profile?.roleKey)&&woundUuid(profile?.tenantId)&&woundUuid(profile?.id)?{tenantId:profile.tenantId,profileId:profile.id,role:profile.roleKey}:null;
  const workspaceOwner=useRef<WoundEditorOwner|null>(nativeOwner);if(nativeOwner)workspaceOwner.current=nativeOwner;
- return <WoundDocumentationWorkspace key={JSON.stringify([id,workspaceOwner.current])}/>;
+ return <WoundDocumentationWorkspace key={JSON.stringify([id,workspaceOwner.current,initialWoundTab(bereich)])}/>;
 }
 function WoundDocumentationWorkspace(){
- const [workspaceTab,setWorkspaceTab]=useState<WoundRecordTab>('overview');
- const {id}=useLocalSearchParams<{id:string}>(),tenant=useServiceTenantId(),{profile}=useAuth(),permissions=usePermissions(),router=useRouter(),styles=useWoundEntryStyles(),[treatmentCorrectionId,setTreatmentCorrectionId]=useState<string|null>(null),[correctionAssessmentId,setCorrectionAssessmentId]=useState<string|null>(null),[showLifecycle,setShowLifecycle]=useState(false),[careMode,setCareMode]=useState<'plan'|'dressing'|null>(null),[careRefresh,setCareRefresh]=useState(0);
+ const {id,bereich}=useLocalSearchParams<{id:string;bereich?:string}>();
+ const [workspaceTab,setWorkspaceTab]=useState<WoundRecordTab>(()=>initialWoundTab(bereich));
+ const tenant=useServiceTenantId(),{profile}=useAuth(),permissions=usePermissions(),router=useRouter(),styles=useWoundEntryStyles(),[treatmentCorrectionId,setTreatmentCorrectionId]=useState<string|null>(null),[correctionAssessmentId,setCorrectionAssessmentId]=useState<string|null>(null),[showLifecycle,setShowLifecycle]=useState(false),[careMode,setCareMode]=useState<'plan'|'dressing'|null>(null),[careRefresh,setCareRefresh]=useState(0);
  const editorOwner=useRef<WoundEditorOwner|null>(isKnownWoundEditorRole(profile?.roleKey)&&woundUuid(profile?.tenantId)&&woundUuid(profile?.id)?{tenantId:profile.tenantId,profileId:profile.id,role:profile.roleKey}:null).current;
  const editorScope=JSON.stringify([id,isKnownWoundEditorRole(profile?.roleKey)&&woundUuid(profile?.tenantId)&&woundUuid(profile?.id)?{tenantId:profile.tenantId,profileId:profile.id,role:profile.roleKey}:editorOwner]);
  const editorLifetime=useRef({scope:editorScope,token:Symbol('native wound editor owner')});
@@ -144,6 +146,7 @@ function WoundDocumentationWorkspace(){
      wound={q.data} canWrite={permissions.can('pflege.wounds.manage')&&!comparisonBlocked.current}
      canReadPlans={permissions.can('pflege.orders.view')} canReadTreatment={permissions.can('pflege.treatment.view')}
      canEgk={permissions.can('ti.egk.view')} tab={workspaceTab} onChangeTab={setWorkspaceTab}
+     onAssessment={['draft','active','healing','deteriorated'].includes(String(w.status))?()=>openDetailEditor('assessment'):undefined}
      actions={locked=><View style={[styles.panel,styles.toolbar]}>
      <View style={styles.badge}><Text style={styles.body}>{status}</Text></View>
      <View style={styles.actions}>
@@ -151,6 +154,7 @@ function WoundDocumentationWorkspace(){
  {permissions.can('pflege.wounds.manage')?<PremiumButton size="sm" title={['healed','archived'].includes(String(w.status))?'Wundfall wiederöffnen':'Abschluss dokumentieren'} variant="secondary" disabled={locked||!!q.refreshError||q.loading||!['draft','active','healing','deteriorated','healed','archived'].includes(String(w.status))} onPress={()=>openDetailEditor('lifecycle')}/>:null}
  {permissions.can('pflege.wounds.manage')&&permissions.can('pflege.orders.view')?<PremiumButton size="sm" title="Neue Planfassung" accessibilityLabel="Wundplan als neue Fassung dokumentieren" variant="secondary" disabled={locked||!!q.refreshError||q.loading||!['draft','active','healing','deteriorated'].includes(String(w.status))} onPress={()=>openDetailEditor('plan')}/>:null}
  {permissions.can('pflege.wounds.manage')&&permissions.can('pflege.orders.view')&&permissions.can('pflege.treatment.view')&&permissions.can('pflege.treatment.manage')?<PremiumButton size="sm" title="Verbandwechsel erfassen" accessibilityLabel="Tatsächlichen Verbandwechsel oder Versorgung dokumentieren" disabled={locked||!!q.refreshError||q.loading} onPress={()=>openDetailEditor('dressing')}/>:null}
+       <PremiumButton title="Wundfotos" size="sm" variant="secondary" disabled={locked} onPress={()=>setWorkspaceTab('measurement')}/>
        <PremiumButton title="Aktualisieren" variant="ghost" size="sm" accessibilityLabel="Wundfall aktualisieren" disabled={locked} onPress={refreshDetail}/>
      </View>
    </View>}

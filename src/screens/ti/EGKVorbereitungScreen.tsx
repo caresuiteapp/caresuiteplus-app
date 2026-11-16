@@ -21,7 +21,7 @@ export function EGKVorbereitungScreen() {
         moduleLabel="eGK"
         title="Vorbereitung eGK-Auslesen"
         subtitle="Elektronische Gesundheitskarte"
-        description="Kartenleser ist im Demo konfiguriert. Produktiv-Integration über TI-Connector und Edge Function ti-provider-proxy."
+        description="Die Verbindung zu einem TI-Kartenterminal ist noch nicht eingerichtet. Das Einlesen der elektronischen Gesundheitskarte ist hier noch nicht verfügbar."
         icon="💳"
         accentColor={colors.cyan}
       />

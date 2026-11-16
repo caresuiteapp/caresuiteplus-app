@@ -2,21 +2,24 @@ import { useMemo, useRef, useState, type ComponentProps, type MouseEvent } from 
 import { Keyboard, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
-import { ErrorState, LoadingState, PremiumInput } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { appendWoundTemplates, mergeWoundCatalogItems, WOUND_CATALOG_LABELS, type WoundCatalogItem } from '@/lib/pflege/woundRecordDomain';
 import type { WoundRecordUserScope } from '@/lib/pflege/woundRecordService';
+import { readWoundTemplateCode, WOUND_TEMPLATE_FIELDS, woundTemplateMatches, type WoundTemplateField } from '@/lib/pflege/woundTemplates';
 import { spacing, typography } from '@/theme';
 import { useWoundCatalog } from './useWoundCatalog';
+import { WoundTabs } from './WoundWorkspaceLayout';
 
 type Props = ComponentProps<typeof PremiumInput> & {
   scope?: WoundRecordUserScope;
+  templateField?: WoundTemplateField;
   label: string;
   value: string;
   onChangeText: (value: string) => void;
 };
 
-export function WoundTextInput({ scope, label, value, onChangeText, editable = true, multiline,
+export function WoundTextInput({ scope, templateField, label, value, onChangeText, editable = true, multiline,
   maxLength = 2000, onPressIn, ...props }: Props) {
   const [openedFor, setOpenedFor] = useState<string | null>(null);
   const input = useRef<TextInput>(null);
@@ -58,7 +61,7 @@ export function WoundTextInput({ scope, label, value, onChangeText, editable = t
   return <>
     {Platform.OS === 'web' && enabled ? <div style={{ minWidth: 0 }} onDoubleClick={doubleClick}>{control}</div> : control}
     {enabled && scope && openedFor === identity && <WoundTemplatesPopup key={identity} scope={scope}
-      label={label} value={value} maxLength={maxLength} multiline={!!multiline} close={close}
+      label={label} field={templateField} value={value} maxLength={maxLength} multiline={!!multiline} close={close}
       onInsert={next => { if (enabled && next.length <= maxLength) { onChangeText(next); close(); } }} />}
   </>;
 }
@@ -67,22 +70,35 @@ const inputStyles = StyleSheet.create({
   trigger: { minWidth: 30, minHeight: 28, alignItems: 'center', justifyContent: 'center', borderRadius: 8 },
 });
 
-function WoundTemplatesPopup({ scope, label, value, maxLength, multiline, close, onInsert }: {
-  scope: WoundRecordUserScope; label: string; value: string; maxLength: number; multiline: boolean;
+const TEMPLATE_PAGE = 18;
+const TEMPLATE_TABS = [
+  { key: 'field', label: 'Für dieses Feld', icon: 'align-left' },
+  { key: 'all', label: 'Alle Vorlagen', icon: 'layers' },
+] as const;
+
+function WoundTemplatesPopup({ scope, label, field, value, maxLength, multiline, close, onInsert }: {
+  scope: WoundRecordUserScope; label: string; field?: WoundTemplateField; value: string; maxLength: number; multiline: boolean;
   close: () => void; onInsert: (value: string) => void;
 }) {
   const { c } = useCareLightPalette();
   const [search, setSearch] = useState('');
+  const [view, setView] = useState<'field' | 'all'>(field ? 'field' : 'all');
+  const [limit, setLimit] = useState(TEMPLATE_PAGE);
   const [selected, setSelected] = useState<WoundCatalogItem[]>([]);
   const query = useWoundCatalog(scope);
   const items = useMemo(() => [
     ...mergeWoundCatalogItems(query.data ?? [], 'description'),
     ...mergeWoundCatalogItems(query.data ?? [], 'treatment'),
   ], [query.data]);
-  const needle = search.trim().toLocaleLowerCase('de');
+  const activeView = search.trim() ? 'all' : view;
   const received = !!query.data || !!query.error || !!query.refreshError;
-  const visible = (received ? items : []).filter(item => [item.name, item.text, WOUND_CATALOG_LABELS[item.kind]]
-    .some(text => text.toLocaleLowerCase('de').includes(needle)));
+  const visible = (received ? items : [])
+    .map(item => {
+      const itemField = readWoundTemplateCode(item.code)?.field;
+      return { item, field: itemField, label: itemField ? WOUND_TEMPLATE_FIELDS[itemField].label : WOUND_CATALOG_LABELS[item.kind] };
+    })
+    .filter(row => (activeView === 'all' || row.field === field)
+      && woundTemplateMatches([row.item.name, row.item.text, row.label, WOUND_CATALOG_LABELS[row.item.kind]], search));
   const next = appendWoundTemplates(value, selected.map(item => item.text), multiline);
   const overLimit = next.length > maxLength;
   const styles = useMemo(() => StyleSheet.create({
@@ -106,32 +122,36 @@ function WoundTemplatesPopup({ scope, label, value, maxLength, multiline, close,
     maxWidth={710} maxHeightRatio={0.88} onClose={close}
     footerActions={[
       { title: 'Abbrechen', variant: 'secondary', onPress: close },
-      { title: 'In Feld einfügen', disabled: !selected.length || overLimit, onPress: () => onInsert(next) },
+      { title: 'In Feld einfügen', variant: 'primary', disabled: !selected.length || overLimit, onPress: () => onInsert(next) },
     ]}
     footerContent={<Text accessibilityLiveRegion="polite" style={styles.muted}>
       {selected.length === 1 ? '1 Baustein ausgewählt' : `${selected.length} Bausteine ausgewählt`}
       {overLimit ? ` · ${next.length - maxLength} Zeichen zu viel` : ''}
     </Text>}>
     <View style={styles.stack}>
+      {field && <WoundTabs tabs={TEMPLATE_TABS} value={activeView} label="Vorlagenauswahl"
+        onChange={nextView => { setView(nextView); setLimit(TEMPLATE_PAGE); if (nextView === 'field') setSearch(''); }} />}
       <PremiumInput label="Textbausteine suchen" accessibilityLabel="Textbausteine suchen"
-        placeholder="Name, Kategorie oder Text" value={search} onChangeText={setSearch} autoFocus={Platform.OS === 'web'} />
+        placeholder="In allen Vorlagen suchen" value={search} onChangeText={text => { setSearch(text); setLimit(TEMPLATE_PAGE); }} />
       {!received && <LoadingState message="Textbausteine werden geladen …" />}
       {(query.error || query.refreshError) && <ErrorState message={query.error || query.refreshError || ''} onRetry={query.refresh} />}
       {received && !visible.length && <Text style={styles.muted}>Keine passenden Textbausteine.</Text>}
       <View style={styles.options}>
-        {visible.map(item => {
+        {visible.slice(0, limit).map(({ item, label: topicLabel }) => {
           const checked = selected.some(row => row.id === item.id);
           return <Pressable key={item.id} accessibilityRole="checkbox" accessibilityState={{ checked }}
             style={[styles.item, checked && styles.checked]} onPress={() => toggle(item)}>
             <Feather name={checked ? 'check-square' : 'square'} size={19} color={c.text} accessible={false} />
             <View style={styles.copy}>
               <Text style={styles.title}>{item.name}</Text>
-              <Text style={styles.muted}>{WOUND_CATALOG_LABELS[item.kind]}</Text>
+              {activeView === 'all' && <Text style={styles.muted}>{topicLabel}</Text>}
               <Text style={styles.text}>{item.text}</Text>
             </View>
           </Pressable>;
         })}
       </View>
+      {visible.length > limit && <PremiumButton title="Weitere Vorlagen anzeigen" size="sm" variant="secondary"
+        onPress={() => setLimit(value => value + TEMPLATE_PAGE)} />}
     </View>
   </PlatformModal>;
 }

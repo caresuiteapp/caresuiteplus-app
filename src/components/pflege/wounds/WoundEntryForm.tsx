@@ -1,3 +1,4 @@
+import { WOUND_ENTRY_TEMPLATE_FIELDS } from '@/lib/pflege/woundTemplates';
 import { useState } from 'react';
 import { Pressable, Text, View } from 'react-native';
 import { ErrorState, FilterChipGroup, InfoBanner, PremiumButton } from '@/components/ui';
@@ -34,6 +35,7 @@ export function WoundEntryForm({ kind, scope, birthDate, locked, onSave, onClose
   const set = (key: string, value: string) => setValues(prev => ({ ...prev, [key]: value }));
   const input = (key: string, label: string, number = false, multiline = true) =>
     <WoundTextInput key={key} label={label} accessibilityLabel={label} scope={number || kind === 'material' ? undefined : scope}
+      templateField={WOUND_ENTRY_TEMPLATE_FIELDS[kind]?.[key]}
       value={values[key] ?? ''} onChangeText={value => set(key, value)}
       multiline={multiline && !number} editable={!locked} maxLength={number ? 12 : 2000}
       keyboardType={number ? 'decimal-pad' : 'default'} />;

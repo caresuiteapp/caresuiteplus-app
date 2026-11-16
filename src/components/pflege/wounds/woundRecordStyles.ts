@@ -23,6 +23,8 @@ export function useWoundRecordStyles() {
     tile: { gap: spacing.xs, borderColor: c.border, borderWidth: 1, borderRadius: 13,
       padding: spacing.sm, minWidth: 106, flexGrow: 1, flexBasis: 130, backgroundColor: c.surface },
     image: { width: '100%', height: 340, backgroundColor: c.surfaceAlt, borderRadius: 12 },
+    thumbnail: { width: '100%', height: 166, backgroundColor: c.surface, borderRadius: 10, overflow: 'hidden' },
+    thumbnailState: { justifyContent: 'center', alignItems: 'center', padding: spacing.sm },
     divider: { height: 1, backgroundColor: c.border },
     barTrack: { height: 10, borderRadius: 5, backgroundColor: c.surfaceAlt, minWidth: 0 },
     bar: { height: 10, borderRadius: 5, backgroundColor: c.cyan },

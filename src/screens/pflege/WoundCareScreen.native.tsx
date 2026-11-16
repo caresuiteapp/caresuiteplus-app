@@ -1,6 +1,7 @@
 // Generated native presentation from src/screens/pflege/WoundCareScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
 import {nativeCrypto as crypto} from '@/lib/platform/nativeWorkflowEnvironment.native';
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { WOUND_CARE_TEMPLATE_FIELDS } from '@/lib/pflege/woundTemplates';
 import { woundEditorAccess as captureWoundEditorAccess, isKnownWoundEditorRole, WoundEditorRequestGuard, type WoundEditorAccess } from "../../lib/pflege/woundEditorRequestGuard.native.ts";
 import { useMemo, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
@@ -92,7 +93,7 @@ function CareForm({ access, id, tenant, actorId, mode, role, canView, canManage,
             next[moment + 'Reason'] = '';
         } if (key === 'reviewStatus')
         next.reviewPendingReason = ''; return next; }); }
-    const field = (key: string, label: string) => <WoundTextInput scope={catalogScope} key={key} label={label} accessibilityLabel={label} value={draft[key] ?? ''} onChangeText={v => change(key, v)} editable={!write.locked && guard.current.mayWrite(readEpoch, readTicket, q.data) && !confirmed} multiline maxLength={2000}/>;
+    const field = (key: string, label: string) => <WoundTextInput scope={WOUND_CARE_TEMPLATE_FIELDS[key] ? catalogScope : undefined} templateField={WOUND_CARE_TEMPLATE_FIELDS[key]} key={key} label={label} accessibilityLabel={label} value={draft[key] ?? ''} onChangeText={v => change(key, v)} editable={!write.locked && guard.current.mayWrite(readEpoch, readTicket, q.data) && !confirmed} multiline maxLength={2000}/>;
     const catalogScope = { tenantId: tenant, actorId, role };
     const catalogDisabled = write.locked || !guard.current.mayWrite(readEpoch, readTicket, q.data) || confirmed;
     const append = (key: string, value: string) => {

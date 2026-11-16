@@ -1,3 +1,4 @@
+import { WOUND_CORRECTION_TEMPLATE_FIELDS } from '@/lib/pflege/woundTemplates';
 import {woundUuid} from '@/lib/pflege/woundCareDomain';
 import {woundEditorAccess as captureWoundEditorAccess,isKnownWoundEditorRole,WoundEditorRequestGuard,type WoundEditorAccess} from '@/lib/pflege/woundEditorRequestGuard.web';
 import {useEffect,useMemo,useRef,useState} from 'react';
@@ -48,7 +49,7 @@ function CorrectionForm({access,woundId,assessmentId,tenant,actorId,role,canView
  const dirty=Object.values(draft).some(Boolean),write=useWoundSubmission<WoundAssessmentCorrectionRequest>(dirty&&!confirmed,guard.current.canRead(),async(requestId,payload,replay)=>guard.current.execute(requestId,payload,replay,()=>writeWoundAssessmentCorrection(tenant,requestId,payload,role,replay),readEpoch,readTicket,q.data),()=>setConfirmed(true));
  const ctx=guard.current.canShow(readEpoch,readTicket,q.data)?(baseline.current&&guard.current.sameCurrentOriginal(baseline.current)?baseline.current:q.data):null,source=ctx?.wound.assessments.find(a=>a.id===assessmentId),head=ctx?headFor(ctx,assessmentId):null;
  function change(key:keyof WoundAssessmentCorrectionRequest,value:string){if(write.locked||!guard.current.mayWrite(readEpoch,readTicket,q.data)||confirmed)return;baseline.current??=q.data??null;setDraft(d=>({...d,[key]:value}));}
- const field=(key:keyof WoundAssessmentCorrectionRequest,label:string)=><WoundTextInput scope={{tenantId:tenant,actorId,role}} key={key} label={label} accessibilityLabel={label} value={draft[key]} onChangeText={v=>change(key,v)} editable={!write.locked&&guard.current.mayWrite(readEpoch,readTicket,q.data)&&!confirmed} multiline maxLength={2000}/>;
+ const field=(key:keyof typeof WOUND_CORRECTION_TEMPLATE_FIELDS,label:string)=><WoundTextInput scope={{tenantId:tenant,actorId,role}} key={key} templateField={WOUND_CORRECTION_TEMPLATE_FIELDS[key]} label={label} accessibilityLabel={label} value={draft[key]} onChangeText={v=>change(key,v)} editable={!write.locked&&guard.current.mayWrite(readEpoch,readTicket,q.data)&&!confirmed} multiline maxLength={2000}/>;
  async function save(){if(!guard.current.canRead())return;
   if(write.uncertain){await write.retry();return;}if(!guard.current.mayWrite(readEpoch,readTicket,q.data)||write.locked||confirmed){write.setError('Aktuellen eigenen Originalstand und Schreibzugriff zuerst prüfen.');return;}
 if(baseline.current&&!guard.current.sameCurrentOriginal(baseline.current)){write.setError('Geladenen vollständigen Originalstand zuerst ausdrücklich als Grundlage prüfen.');return;}

@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { woundUuid } from '../../src/lib/pflege/woundCareDomain.ts';
+import { initialWoundTab } from '../../src/components/pflege/wounds/woundAreas.ts';
 import { captureWoundComparisonOriginals, sameWoundComparisonOriginal } from '../../src/lib/pflege/woundAssessmentComparison.web.ts';
 const id = n => `11111111-1111-4111-8111-${String(n).padStart(12, '0')}`;
 const tenant = id(1), client = id(2), wound = id(3), actor = id(4);
@@ -16,21 +17,21 @@ const prefix = stripTypeScriptTypes(screen.slice(start, screen.indexOf(' if(acti
 const branch = screen.slice(screen.indexOf(' if(activeEditor){',start),screen.indexOf(" if(!permissions.can('pflege.wounds.view'))",start));
 const expression = branch.match(/const editor=([^\n]+);/)[1].replace(/<(TreatmentCorrectionScreen|WoundAssessmentCorrectionScreen|WoundCareScreen|WoundLifecycleScreen)[^\n]*?\/>/g,(_,name)=>JSON.stringify(name));
 const branchSource=`if(activeEditor)return ${expression};if(!nativeRead)return "denied";`;
-const makeWorkspace = new Function('useEffect', 'useRef', 'useState', 'useLocalSearchParams', 'useServiceTenantId', 'useAuth', 'usePermissions', 'useRouter', 'useWoundEntryStyles', 'useAsyncQuery', 'fetchWoundWithCorrections', 'woundUuid', 'captureWoundComparisonOriginals', 'sameWoundComparisonOriginal','isKnownWoundEditorRole', `${prefix}\nreturn {readComparisonContext,currentDetail,refreshDetail,openDetailEditor,closeDetailEditor,activeEditor,nativeRead,editorBranch(){${branchSource};return null;}};`);
+const makeWorkspace = new Function('useEffect', 'useRef', 'useState', 'useLocalSearchParams', 'useServiceTenantId', 'useAuth', 'usePermissions', 'useRouter', 'useWoundEntryStyles', 'useAsyncQuery', 'fetchWoundWithCorrections', 'woundUuid', 'captureWoundComparisonOriginals', 'sameWoundComparisonOriginal','isKnownWoundEditorRole','initialWoundTab', `${prefix}\nreturn {readComparisonContext,currentDetail,refreshDetail,openDetailEditor,closeDetailEditor,activeEditor,nativeRead,editorBranch(){${branchSource};return null;}};`);
 // Source-extracted caller logic with local hook/query adapters. This is not a React, browser, layout or database execution.
 function workspace() {
   const slots = [], cleanups = [], routes = [];
   let index = 0, reads = 0, refreshes = 0;
   const env = { tenant, wound, profile: { id: actor, tenantId: tenant, roleKey: 'business_admin' }, runtimeTenant: tenant, role: 'business_admin', rights: { 'pflege.wounds.view': true, 'pflege.wounds.manage': true, 'pflege.orders.view': true, 'pflege.treatment.view': true, 'pflege.treatment.manage': true }, data: null, original: source(), flags: { loading: false, refreshing: false, error: null, refreshError: null, previewData: false, tableMissing: false, cacheMeta: { fromCache: false } } };
   function useRef(value) { const i = index++; return slots[i] ??= { current: value }; }
-  function useState(value) { const i = index++; if (!(i in slots)) slots[i] = value; return [slots[i], v => { slots[i] = typeof v === 'function' ? v(slots[i]) : v; }]; }
+  function useState(value) { const i = index++; if (!(i in slots)) slots[i] = typeof value === 'function' ? value() : value; return [slots[i], v => { slots[i] = typeof v === 'function' ? v(slots[i]) : v; }]; }
   function useEffect(fn) { const i = index++; if (!(i in slots)) { slots[i] = true; cleanups.push(fn()); } }
   function render() {
     index = 0;
     return makeWorkspace(useEffect, useRef, useState, () => ({ id: env.wound }), () => env.tenant, () => ({ profile: env.profile }),
       () => ({ tenantId: env.runtimeTenant, roleKey: env.role, can: key => env.rights[key] === true }), () => ({ push: route => routes.push(route) }), () => ({}),
       () => ({ data: env.data, ...env.flags, refresh: () => { refreshes++; return Promise.resolve(); } }), async () => { reads++; return { ok: true, data: structuredClone(env.original) }; },
-      woundUuid, captureWoundComparisonOriginals, sameWoundComparisonOriginal,isKnownWoundEditorRole);
+      woundUuid, captureWoundComparisonOriginals, sameWoundComparisonOriginal,isKnownWoundEditorRole,initialWoundTab);
   }
   async function read() { const result = await render().readComparisonContext(); if (result.ok) env.data = result.data; return result; }
   return { env, routes, render, read, dispose: () => cleanups.forEach(fn => fn?.()), get reads() { return reads; }, get refreshes() { return refreshes; } };
@@ -78,7 +79,7 @@ test('Unmount verwirft alte Detailaktionen, ohne neue Abfrage oder Navigation', 
 });
 test('Ganze sichtbare Akte wird erst nach aktuellem Vollread angezeigt; eigener Editor bleibt beim Nachladen erhalten', () => {
   const gate = screen.indexOf('if(!currentDetail()||!q.data)'); assert.ok(gate > screen.indexOf('if(activeEditor){')); assert.ok(gate < screen.indexOf(' const w=q.data.row'));
-  assert.match(screen, /WoundDocumentationWorkspace key=\{JSON.stringify\(\[id,workspaceOwner.current\]\)\}/);
+  assert.match(screen, /WoundDocumentationWorkspace key=\{JSON.stringify\(\[id,workspaceOwner.current,initialWoundTab\(bereich\)\]\)\}/);
 });
 for (const [kind, component, target] of [['plan','WoundCareScreen'],['dressing','WoundCareScreen'],['lifecycle','WoundLifecycleScreen'],['assessment_correction','WoundAssessmentCorrectionScreen',id(10)],['treatment_correction','TreatmentCorrectionScreen',id(99)]]) test(`Laufender ${kind}-Editor bleibt bei vorübergehendem Leseverlust derselbe Renderzweig`, async () => {
   const w = await ready(); w.render().openDetailEditor(kind,target); const active = w.render().activeEditor; assert.equal(w.render().editorBranch(),component);

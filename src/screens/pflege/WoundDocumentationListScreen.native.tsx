@@ -19,6 +19,7 @@ import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { fetchAmbulatoryWoundList } from "../../lib/pflege/ambulatoryWoundService.native.ts";
 import { captureWoundListOriginal, filterWoundList, woundListText, woundStatusLabels } from "../../lib/pflege/woundReadOriginal.native.ts";
 import { woundUuid } from '@/lib/pflege/woundCareDomain';
+import { WOUND_RECORD_TABS, woundCaseRoute, type WoundRecordTab } from '@/components/pflege/wounds/woundAreas';
 const VIEWS = [
     { key: 'cases', label: 'Übersicht', icon: 'grid' },
     { key: 'statistics', label: 'Wundstatistik', icon: 'bar-chart-2' },
@@ -36,6 +37,7 @@ function WoundListWorkspace(props: WoundReadProps & {
     const router = useRouter(), { c } = useCareLightPalette();
     const styles = useWoundEntryStyles();
     const [view, setView] = useState<typeof VIEWS[number]['key']>('cases');
+    const [area, setArea] = useState<WoundRecordTab>('overview');
     const [search, setSearch] = useState(''), [filter, setFilter] = useState('all'), [visible, setVisible] = useState(50);
     const selection = useRef({ search, filter, visible });
     selection.current = { search, filter, visible };
@@ -50,7 +52,7 @@ function WoundListWorkspace(props: WoundReadProps & {
         if (!pool || !ownSelection() || !woundUuid(id)
             || !filterWoundList(pool, search, filter).slice(0, visible).some(item => item.row.id === id))
             return;
-        router.push(`/pflege/wunden/${id}` as never);
+        router.push(woundCaseRoute(id, area) as never);
     }
     function create() { if (q.mayManage())
         router.push('/pflege/wunden/new' as never); }
@@ -86,8 +88,12 @@ function WoundListWorkspace(props: WoundReadProps & {
       </View>
       {view === 'statistics' && <WoundStatisticsPanel scope={scope}/>}
       {view === 'catalog' && <WoundCatalogEditor scope={scope} edit={props.canManage}/>}
-      {view === 'cases' && <View style={styles.columns}>
-        <WoundSection title="Wundfälle" style={styles.mainColumn} actions={<PremiumButton title="Aktualisieren" size="sm" variant="ghost" accessibilityLabel="Wundfälle aktualisieren" onPress={q.refresh} disabled={q.loading}/>}>
+      {view === 'cases' && <>
+      <WoundSection title="Bereiche der Wunddokumentation">
+        <WoundTabs tabs={WOUND_RECORD_TABS} value={area} onChange={setArea} label="Bereich für Wundfall auswählen"/>
+      </WoundSection>
+      <View style={styles.columns}>
+        <WoundSection title="Wundfälle" style={styles.mainColumn} subtitle={area === 'overview' ? undefined : `Wähle einen Wundfall für „${WOUND_RECORD_TABS.find(tab => tab.key === area)?.label}“.`} actions={<PremiumButton title="Aktualisieren" size="sm" variant="ghost" accessibilityLabel="Wundfälle aktualisieren" onPress={q.refresh} disabled={q.loading}/>}>
           {!q.ready ? (q.loading
                 ? <LoadingState message="Wundfälle werden geladen …"/>
                 : <ErrorState message={q.error}/>) : <>
@@ -128,6 +134,6 @@ function WoundListWorkspace(props: WoundReadProps & {
         <WoundSection title="3D-Körperkarte" style={styles.mapColumn}>
           <WoundBodyMapFrame view="preview" figure="adult-man"/>
         </WoundSection>
-      </View>}
+      </View></>}
   </WoundPage>;
 }

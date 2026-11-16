@@ -1,6 +1,7 @@
 import * as Crypto from 'expo-crypto';
 import * as DocumentPicker from 'expo-document-picker';
 import { File } from 'expo-file-system';
+import { openEmployeePortalCamera, readEmployeePortalMediaBytes, releaseEmployeePortalMediaUri } from '@/lib/portal/employeePortalMediaPicker';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { enforcePermission } from '@/lib/permissions';
@@ -149,6 +150,22 @@ export async function chooseWoundFiles(kind: WoundMediaKind) {
     }
   }
   return files;
+}
+
+export async function takeWoundPhoto() {
+  const result = await openEmployeePortalCamera(true);
+  if (!result.ok) throw Error(result.error);
+  const photo = result.media;
+  if (!photo) return null;
+  try {
+    if (!/^image\/(jpeg|png|webp)$/.test(photo.mimeType)) throw Error('Bitte ein Foto im JPEG-, PNG- oder WebP-Format aufnehmen.');
+    if (photo.sizeBytes && photo.sizeBytes > WOUND_MEDIA_LIMIT) throw Error('Das Foto ist größer als 25 MB.');
+    const bytes = await readEmployeePortalMediaBytes(photo.uri);
+    return await prepareWoundFile(photo.fileName, photo.mimeType, new Uint8Array(bytes).buffer);
+  } finally {
+    releaseEmployeePortalMediaUri(photo.uri);
+    if (/^file:\/\//i.test(photo.uri)) { try { new File(photo.uri).delete(); } catch { /* App cache cleanup remains available. */ } }
+  }
 }
 
 export async function uploadWoundMedia(scope: WoundRecordScope, input: {

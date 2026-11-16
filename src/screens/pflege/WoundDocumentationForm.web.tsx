@@ -1,3 +1,5 @@
+import { woundCaseRoute } from '@/components/pflege/wounds/woundAreas';
+import { WOUND_DRAFT_TEMPLATE_FIELDS } from '@/lib/pflege/woundTemplates';
 import { useRef, useState } from 'react';
 import { Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -103,7 +105,7 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
   }
 
   const field = (key: string, label: string, multiline = true) => <WoundTextInput key={key} label={label}
-    scope={STRUCTURED_FIELDS.has(key) ? undefined : catalogScope}
+    scope={STRUCTURED_FIELDS.has(key) ? undefined : catalogScope} templateField={WOUND_DRAFT_TEMPLATE_FIELDS[key]}
     accessibilityLabel={label} value={draft[key] ?? ''} onChangeText={value => change(key, value)}
     editable={!write.locked} maxLength={key === 'onsetDate' ? 10 : 2000} multiline={multiline} />;
   const chips = (key: string, options: { key: string; label: string }[]) =>
@@ -140,7 +142,11 @@ function WoundForm({ mode, woundId, tenant, role, canView, canManage, permission
         : 'Eigenständiges Wundassessment gespeichert. Der bestehende Versorgungsplan und Fallstatus wurden dadurch nicht automatisch freigegeben oder geändert.'} />
       <View style={styles.actions}>
         <PremiumButton title="Wundakte öffnen" disabled={write.busy}
-          onPress={() => router.replace(`/pflege/wunden/${mode === 'create' ? confirmed : woundId}` as never)} />
+          onPress={() => router.replace(woundCaseRoute(mode === 'create' ? confirmed : woundId!) as never)} />
+        {mode === 'create' ? <PremiumButton title="Wundbefund für Fotos erfassen" variant="secondary"
+          disabled={write.busy} onPress={() => router.replace(`/pflege/wunden/${confirmed}/assessment` as never)} />
+          : <PremiumButton title="Wundfotos öffnen" variant="secondary"
+            disabled={write.busy} onPress={() => router.replace(woundCaseRoute(woundId!, 'measurement') as never)} />}
       </View>
     </WoundSection>
   </WoundPage>;

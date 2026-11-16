@@ -1,3 +1,4 @@
+import { WOUND_CARE_TEMPLATE_FIELDS } from '@/lib/pflege/woundTemplates';
 import {woundEditorAccess as captureWoundEditorAccess,isKnownWoundEditorRole,WoundEditorRequestGuard,type WoundEditorAccess} from '@/lib/pflege/woundEditorRequestGuard.web';
 import {useMemo,useRef,useState} from 'react';
 import {StyleSheet,Text,View} from 'react-native';
@@ -48,7 +49,7 @@ function CareForm({access,id,tenant,actorId,mode,role,canView,canManage,onClose,
  const write=useWoundSubmission<WoundCareRequest>(dirty&&!confirmed,guard.current.canRead(),async(requestId,payload,replay)=>guard.current.execute(requestId,payload,replay,()=>writeWoundCare(tenant,requestId,payload,role,replay),readEpoch,readTicket,q.data),()=>setConfirmed(true));
  function touch(){if(!guard.current.mayWrite(readEpoch,readTicket,q.data)||write.locked||confirmed)return;baseline.current??=q.data??null;setEdited(true);}
  function change(key:string,value:string){if(write.locked||!guard.current.mayWrite(readEpoch,readTicket,q.data)||confirmed)return;touch();setDraft(d=>{const next={...d,[key]:value};if(key==='basisState'){if(Object.hasOwn(next,'medicalOrderId'))next.medicalOrderId='';if(Object.hasOwn(next,'planId'))next.planId='';next.basisReason='';}for(const moment of ['painBefore','painAfter'])if(key===moment+'State'){next[moment+'Score']='';next[moment+'Reason']='';}if(key==='reviewStatus')next.reviewPendingReason='';return next;});}
- const field=(key:string,label:string)=><WoundTextInput scope={catalogScope} key={key} label={label} accessibilityLabel={label} value={draft[key]??''} onChangeText={v=>change(key,v)} editable={!write.locked&&guard.current.mayWrite(readEpoch,readTicket,q.data)&&!confirmed} multiline maxLength={2000}/>;
+ const field=(key:string,label:string)=><WoundTextInput scope={WOUND_CARE_TEMPLATE_FIELDS[key]?catalogScope:undefined} templateField={WOUND_CARE_TEMPLATE_FIELDS[key]} key={key} label={label} accessibilityLabel={label} value={draft[key]??''} onChangeText={v=>change(key,v)} editable={!write.locked&&guard.current.mayWrite(readEpoch,readTicket,q.data)&&!confirmed} multiline maxLength={2000}/>;
  const catalogScope={tenantId:tenant,actorId,role};
  const catalogDisabled=write.locked||!guard.current.mayWrite(readEpoch,readTicket,q.data)||confirmed;
  const append=(key:string,value:string)=>{

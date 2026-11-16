@@ -2,14 +2,18 @@ import { WoundSection, WoundTabs } from './WoundWorkspaceLayout';
 import { useState } from 'react';
 import { Text, View } from 'react-native';
 import * as Crypto from 'expo-crypto';
+import { MobileSelect } from '@/components/mobile/MobileSelect';
 import { ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
 import { EMPTY_WOUND_CATALOG_ITEM as EMPTY, WOUND_CATALOG_LABELS as LABELS, mergeWoundCatalogItems, woundNumber, type WoundCatalogItem, type WoundCatalogKind } from '@/lib/pflege/woundRecordDomain';
 import { saveWoundCatalogItem, type WoundRecordUserScope } from '@/lib/pflege/woundRecordService';
 import { WOUND_STARTER_ARTICLES } from '@/lib/pflege/woundStarterCatalog';
+import { isWoundTemplateField, readWoundTemplateCode, WOUND_TEMPLATE_FIELDS, woundTemplateCode, woundTemplateMatches } from '@/lib/pflege/woundTemplates';
 import { useWoundRecordStyles } from './woundRecordStyles';
 import { useWoundCatalog } from './useWoundCatalog';
 
 const EMPTY_SEARCH = 'Bezeichnung, Lieferant oder Artikelnummer suchen';
+const TEMPLATE_FIELDS = Object.fromEntries(Object.entries(WOUND_TEMPLATE_FIELDS)
+  .map(([key, field]) => [key, field.label] as const).sort((a, b) => a[1].localeCompare(b[1], 'de')));
 
 export function WoundCatalogPanel({ scope, kind, onInsert, embedded = false, edit, disabled = false }: {
   scope: WoundRecordUserScope; kind: WoundCatalogKind; onInsert?: (item: WoundCatalogItem) => void;
@@ -23,13 +27,15 @@ export function WoundCatalogPanel({ scope, kind, onInsert, embedded = false, edi
   const query = useWoundCatalog(scope, shown);
   const searchLabel = kind === 'article' ? EMPTY_SEARCH : 'Textbausteine durchsuchen';
   const visible = mergeWoundCatalogItems(query.data ?? [], kind, WOUND_STARTER_ARTICLES).filter(item =>
-    [item.name, item.supplier, item.code, item.text].some(field => field.toLocaleLowerCase('de').includes(search.trim().toLocaleLowerCase('de'))));
+    woundTemplateMatches([item.name, item.supplier, item.text, kind === 'article' ? item.code : (TEMPLATE_FIELDS[readWoundTemplateCode(item.code)?.field ?? ''] ?? '')], search));
   const update = (key: 'name' | 'text' | 'supplier' | 'code' | 'unit', value: string) => setDraft(prev => prev ? { ...prev, [key]: value } : prev);
+  const assignment = kind !== 'article' && draft ? readWoundTemplateCode(draft.code) : null;
 
   function open(item?: WoundCatalogItem) {
     setError('');
     setPrice(item?.unit_cents == null ? '' : String(item.unit_cents / 100).replace('.', ','));
-    setDraft(item?.updated_at ? item : { ...EMPTY, ...item, id: Crypto.randomUUID(), kind, updated_at: '' });
+    const code = item?.code ?? (kind === 'article' ? '' : woundTemplateCode(null));
+    setDraft(item?.updated_at ? item : { ...EMPTY, ...item, id: Crypto.randomUUID(), kind, code, updated_at: '' });
   }
 
   async function save() {
@@ -66,6 +72,9 @@ export function WoundCatalogPanel({ scope, kind, onInsert, embedded = false, edi
       {draft && <View style={styles.panel}>
         <Text style={styles.title}>{draft.updated_at ? 'Eintrag bearbeiten' : 'Neuer Eintrag'}</Text>
         <PremiumInput label="Bezeichnung" accessibilityLabel="Bezeichnung" value={draft.name} onChangeText={value => update('name', value)} maxLength={160} editable={!disabled && !busy} />
+        {kind !== 'article' && <MobileSelect label="Vorschlagen im Textfeld" value={assignment?.field ?? ''}
+          empty="Nur unter „Alle Vorlagen“" options={TEMPLATE_FIELDS} disabled={disabled || busy}
+          onChange={key => update('code', woundTemplateCode(isWoundTemplateField(key) ? key : null, assignment?.standardId))} />}
         {kind === 'article' ? <View style={styles.row}>
           {([['supplier', 'Lieferant oder Hersteller', 160], ['code', 'Artikelnummer oder PZN', 80], ['unit', 'Einheit', 40]] as const).map(([key, label, max]) =>
             <View key={key} style={styles.field}><PremiumInput label={label} accessibilityLabel={label} value={draft[key]} onChangeText={value => update(key, value)}
@@ -84,6 +93,9 @@ export function WoundCatalogPanel({ scope, kind, onInsert, embedded = false, edi
       {!visible.length && !query.loading && <Text style={styles.muted}>Keine passenden Einträge im Katalog.</Text>}
       {!!visible.length && <View style={styles.row}>{visible.slice(0, count).map(item => <View key={item.id} style={[styles.panel, styles.galleryCard]}>
         <Text style={styles.title}>{item.name}</Text>
+        {kind !== 'article' && <Text style={styles.muted}>
+          {TEMPLATE_FIELDS[readWoundTemplateCode(item.code)?.field ?? ''] ?? 'Allgemeine Vorlage'}
+        </Text>}
         {kind === 'article' && <Text style={styles.muted}>{[item.supplier, item.code, item.unit,
           !item.updated_at ? 'Produktfamilie' : item.unit_cents == null ? 'Preis offen' : (item.unit_cents / 100).toLocaleString('de-DE', { style: 'currency', currency: 'EUR' })].filter(Boolean).join(' · ')}</Text>}
         {!!item.text && <Text style={styles.text}>{item.text}</Text>}

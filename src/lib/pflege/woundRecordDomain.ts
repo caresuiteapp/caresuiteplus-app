@@ -1,4 +1,5 @@
 import { TISSUE_LABELS, woundPlanimetry, type WoundMeasurement } from './woundPlanimetry.ts';
+import { DEFAULT_WOUND_SNIPPETS, readWoundTemplateCode, woundTemplateCode, type WoundTemplateKind } from './woundTemplates.ts';
 
 export const RISK_SCALES = {
   norton: { label: 'Norton', domains: [
@@ -66,18 +67,11 @@ export type WoundMedia = {
   id: string; kind: WoundMediaKind; file_name: string; mime_type: string;
   observed_at: string; size_bytes: number; assessment_id: string | null;
 };
-export type WoundCatalogKind = 'description' | 'treatment' | 'article';
+export type WoundCatalogKind = WoundTemplateKind | 'article';
 export type WoundCatalogItem = {
   id: string; kind: WoundCatalogKind; name: string; text: string;
   supplier: string; code: string; unit: string; unit_cents: number | null; updated_at: string;
 };
-
-export const DEFAULT_WOUND_SNIPPETS = [
-  { id: 'bed', kind: 'description', name: 'Wundbett und Wundrand', text: 'Wundbett beurteilt. Gewebeanteile, Exsudat und Befund am Wundrand einzeln dokumentiert.' },
-  { id: 'environment', kind: 'description', name: 'Wundumgebung', text: 'Haut der Wundumgebung hinsichtlich Farbe, Feuchtigkeit, Temperatur und Auffälligkeiten beurteilt.' },
-  { id: 'response', kind: 'treatment', name: 'Versorgung und Reaktion', text: 'Die durchgeführten Versorgungsschritte, das verwendete Material und die beobachtete Reaktion sind dokumentiert.' },
-  { id: 'review', kind: 'treatment', name: 'Weiteres Vorgehen', text: 'Die nächste Kontrolle und Zuständigkeit wurden abgestimmt.' },
-] as const;
 
 export const EMPTY_WOUND_CATALOG_ITEM = { name: '', text: '', supplier: '', code: '', unit: '', unit_cents: null };
 export const WOUND_CATALOG_LABELS: Record<WoundCatalogKind, string> = {
@@ -90,9 +84,26 @@ export function mergeWoundCatalogItems(
   items: readonly WoundCatalogItem[], kind: WoundCatalogKind, starterArticles: readonly WoundCatalogItem[] = [],
 ): WoundCatalogItem[] {
   const saved = items.filter(item => item.kind === kind);
-  const defaults = kind === 'article' ? starterArticles : DEFAULT_WOUND_SNIPPETS.filter(item => item.kind === kind)
-    .map(item => ({ ...EMPTY_WOUND_CATALOG_ITEM, ...item, updated_at: '' }));
-  return [...saved, ...defaults.filter(item => !saved.some(row => row.name === item.name && row.supplier === item.supplier))];
+  if (kind === 'article') return [...saved, ...starterArticles.filter(item =>
+    !saved.some(row => row.name === item.name && row.supplier === item.supplier))];
+
+  const standards = DEFAULT_WOUND_SNIPPETS.filter(item => item.kind === kind);
+  const overridden = new Set<string>();
+  const own = saved.map(row => {
+    const assignment = readWoundTemplateCode(row.code);
+    if (assignment) {
+      if (assignment.standardId) overridden.add(assignment.standardId);
+      return row;
+    }
+    const sameName = standards.filter(item => item.name === row.name && row.supplier === '');
+    if (sameName.length !== 1) return row;
+    const [standard] = sameName;
+    overridden.add(standard.id);
+    return { ...row, code: woundTemplateCode(standard.field, standard.id) };
+  });
+  return [...own, ...standards.filter(item => !overridden.has(item.id)).map(({ id, name, text, field }) => ({
+    ...EMPTY_WOUND_CATALOG_ITEM, id, kind, name, text, updated_at: '', code: woundTemplateCode(field, id),
+  }))];
 }
 
 export function appendWoundTemplates(value: string, templates: readonly string[], multiline: boolean): string {

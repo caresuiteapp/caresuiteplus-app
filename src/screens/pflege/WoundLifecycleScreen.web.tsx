@@ -48,7 +48,8 @@ function LifecycleForm({access,id,tenant,actorId,role,canView,canManage,onClose}
  const latest=guard.current.canShow(readEpoch,readTicket,q.data)?q.data?.assessments[0]:null;
  const actualTime=(v:unknown)=>typeof v==='string'&&Number.isFinite(Date.parse(v))?new Intl.DateTimeFormat('de-DE',{timeZone:'Europe/Berlin',dateStyle:'short',timeStyle:'short'}).format(new Date(v)):'Nicht gesondert bestätigt';
  const value=(v:unknown)=>typeof v==='string'&&v.trim()?v:'Nicht dokumentiert';
- const field=(key:'reason'|'decisionBasis'|'handover',label:string)=><WoundTextInput scope={{tenantId:tenant,actorId,role}} label={label} accessibilityLabel={label} value={draft[key]} onChangeText={value=>{if(!write.locked&&guard.current.mayWrite(readEpoch,readTicket,q.data)&&!confirmed)setDraft(d=>({...d,[key]:value}));}} editable={!write.locked&&guard.current.mayWrite(readEpoch,readTicket,q.data)&&!confirmed} multiline maxLength={2000}/>;
+ const field=(key:'reason'|'decisionBasis'|'handover',label:string)=><WoundTextInput scope={{tenantId:tenant,actorId,role}}
+  templateField={key==='reason'?(action==='reopen'?'reopening':'closure'):key==='decisionBasis'?'decision_basis':'handover'} label={label} accessibilityLabel={label} value={draft[key]} onChangeText={value=>{if(!write.locked&&guard.current.mayWrite(readEpoch,readTicket,q.data)&&!confirmed)setDraft(d=>({...d,[key]:value}));}} editable={!write.locked&&guard.current.mayWrite(readEpoch,readTicket,q.data)&&!confirmed} multiline maxLength={2000}/>;
  async function save(){if(!guard.current.canRead())return;
   if(write.uncertain){await write.retry();return;}if(!guard.current.mayWrite(readEpoch,readTicket,q.data)||write.locked||confirmed){write.setError('Aktuellen eigenen Originalstand und Schreibzugriff zuerst prüfen.');return;}
   if(!w||!q.data||q.refreshError||q.loading||!action){write.setError('Aktuellen Fall und vollständigen Verlauf zuerst laden.');return;}

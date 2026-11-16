@@ -1,6 +1,6 @@
 import { WoundSection } from './WoundWorkspaceLayout';
 import { useEffect, useRef, useState } from 'react';
-import { Text, View } from 'react-native';
+import { Pressable, Text, View } from 'react-native';
 import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { ErrorState, FilterChipGroup, InfoBanner, PremiumButton } from '@/components/ui';
 import { CareSuiteImage } from '@/components/images/CareSuiteImage';
@@ -8,7 +8,7 @@ import { WoundMeasurementFrame } from '@/components/clinicalMedia/WoundMeasureme
 import { currentMedicationEventTime, MedicationEventTimeInput, medicationEventInstant } from '@/components/pflege/MedicationEventTimeInput';
 import { useVoiceMessage } from '@/hooks/office/useDocumentationVoice';
 import { formatWoundDate, formatWoundNumber, validateWoundMeasurement, type WoundMedia, type WoundMediaKind } from '@/lib/pflege/woundRecordDomain';
-import { chooseWoundFiles, prepareWoundFile, uploadWoundMedia, woundImageDataUrl, woundMediaUrl,
+import { chooseWoundFiles, prepareWoundFile, takeWoundPhoto, uploadWoundMedia, woundImageDataUrl, woundMediaUrl,
   type WoundFile, type WoundRecordData, type WoundRecordScope, type WoundRecordWrite } from '@/lib/pflege/woundRecordService';
 import { woundMeasurementEditor } from '@/lib/pflege/woundMeasurementEditor';
 import { TISSUE_LABELS, type WoundMeasurement } from '@/lib/pflege/woundPlanimetry';
@@ -18,6 +18,7 @@ type AssessmentOption = { key: string; label: string };
 type Props = {
   scope: WoundRecordScope; data: WoundRecordData; kind: WoundMediaKind; assessments: AssessmentOption[];
   canWrite: boolean; locked: boolean; refresh: () => Promise<boolean>;
+  onAssessment?: () => void;
   onSave: (entry: WoundRecordWrite) => Promise<void>;
 };
 
@@ -32,7 +33,31 @@ function AudioComment({ uri }: { uri: string }) {
   </View>;
 }
 
-export function WoundMediaPanel({ scope, data, kind, assessments, canWrite, locked, refresh, onSave }: Props) {
+function WoundPhotoThumbnail({ scope, file, onOpen, disabled }: {
+  scope: WoundRecordScope; file: WoundMedia; onOpen: () => void; disabled: boolean;
+}) {
+  const styles = useWoundRecordStyles();
+  const { tenantId, actorId, role, clientId, woundId } = scope;
+  const [uri, setUri] = useState('');
+  const [failed, setFailed] = useState(false);
+  const canPreview = file.size_bytes <= 4 * 1024 * 1024;
+  useEffect(() => {
+    if (!canPreview) return;
+    let active = true;
+    void woundMediaUrl({ tenantId, actorId, role, clientId, woundId }, file)
+      .then(url => { if (active) setUri(url); })
+      .catch(() => { if (active) setFailed(true); });
+    return () => { active = false; };
+  }, [tenantId, actorId, role, clientId, woundId, file, canPreview]);
+  return <Pressable accessibilityRole="button" accessibilityLabel={`Wundfoto ${file.file_name} öffnen`}
+    disabled={disabled} onPress={onOpen} style={[styles.thumbnail, !uri && styles.thumbnailState]}>
+    {uri ? <CareSuiteImage source={{ uri }} style={styles.thumbnail} resizeMode="contain" onError={() => {
+      setUri(''); setFailed(true);
+    }} /> : <Text style={styles.muted}>{failed || !canPreview ? 'Original öffnen' : 'Vorschau wird geladen …'}</Text>}
+  </Pressable>;
+}
+
+export function WoundMediaPanel({ scope, data, kind, assessments, canWrite, locked, refresh, onAssessment, onSave }: Props) {
   const styles = useWoundRecordStyles();
   const photo = kind !== 'voice', wound = kind === 'wound_photo';
   const title = kind === 'voice' ? 'Gesprochene Kommentare' : wound ? 'Wundfotos' : 'Bilder zur Pflegeanamnese';
@@ -40,14 +65,15 @@ export function WoundMediaPanel({ scope, data, kind, assessments, canWrite, lock
   const [time, setTime] = useState(currentMedicationEventTime);
   const [assessment, setAssessment] = useState(''), [consent, setConsent] = useState('');
   const [upload, setUpload] = useState(false), [notice, setNotice] = useState('');
-  const [busy, setBusy] = useState(false), [error, setError] = useState(''), [count, setCount] = useState(10);
+  const [busy, setBusy] = useState(false), [error, setError] = useState(''), [count, setCount] = useState(6);
   const [selected, setSelected] = useState<{ file: WoundMedia; uri: string; editor: boolean } | null>(null);
   const [measurement, setMeasurement] = useState<WoundMeasurement | null>(null);
   const flight = useRef(false), alive = useRef(true);
   const voice = useVoiceMessage();
   useEffect(() => { alive.current = true; return () => { alive.current = false; }; }, []);
   const observed = medicationEventInstant(time);
-  const availableConsents = photo ? data.consents.filter(item => Date.parse(item.granted_at) <= Date.parse(observed)) : [];
+  const availableConsents = photo ? data.consents.filter(item => Date.parse(item.granted_at) <= Date.parse(observed)
+    && (!item.expires_at || Date.parse(item.expires_at) > Date.now())) : [];
   const consentId = availableConsents.find(item => item.id === consent)?.id ?? (availableConsents.length === 1 ? availableConsents[0].id : null);
   const assessmentId = assessments.find(item => item.key === assessment)?.key ?? (assessments.length === 1 ? assessments[0].key : null);
   const items = data.media.filter(item => item.kind === kind);
@@ -65,6 +91,11 @@ export function WoundMediaPanel({ scope, data, kind, assessments, canWrite, lock
   async function chooseFiles() {
     const next = await chooseWoundFiles(kind);
     if (alive.current) setFiles(prev => [...prev, ...next]);
+  }
+
+  async function capturePhoto() {
+    const next = await takeWoundPhoto();
+    if (next && alive.current) setFiles(previous => [...previous, next]);
   }
 
   async function saveFiles() {
@@ -92,21 +123,31 @@ export function WoundMediaPanel({ scope, data, kind, assessments, canWrite, lock
     if (alive.current) setFiles(previous => [...previous, file]);
   }
 
-  return <WoundSection title={title} actions={canWrite ? <PremiumButton
+  return <WoundSection title={title} subtitle={wound ? 'Fotos der Wunde, Bildvorschau und digitale Vermessung' : undefined}
+    actions={canWrite ? <PremiumButton
     title={upload ? 'Hinzufügen schließen' : photo ? 'Bilder hinzufügen' : 'Kommentar hinzufügen'}
     disabled={busy || locked || voice.isRecording || files.length > 0} size="sm" variant="secondary"
-    onPress={() => setUpload(value => !value)} /> : undefined}>
+    onPress={() => {
+      if (!upload) setTime(currentMedicationEventTime());
+      setUpload(value => !value);
+    }} /> : undefined}>
     <View style={styles.stack}>
+      {wound && !assessments.length && <View style={styles.panel}>
+        <Text style={styles.text}>Für die Zuordnung neuer Wundfotos wird zuerst ein Wundbefund benötigt.</Text>
+        {onAssessment && <PremiumButton title="Wundbefund erfassen" size="sm" onPress={onAssessment} disabled={busy || locked} />}
+      </View>}
       {upload && <View style={styles.panel}>
         <MedicationEventTimeInput label={photo ? 'Aufnahmezeitpunkt der ausgewählten Bilder' : 'Zeitpunkt des Kommentars'}
           value={time} onChange={setTime} disabled={busy || locked || files.length > 0} />
-        {wound && (assessments.length ? <FilterChipGroup wrap options={assessments} value={assessmentId ?? ''}
-          onChange={busy || files.length ? undefined : setAssessment} /> : <InfoBanner variant="info" message="Lege zuerst den zugehörigen Wundbefund an. Dann lassen sich die Bilder diesem Befund zuordnen." />)}
+        {wound && !!assessments.length && <FilterChipGroup wrap options={assessments} value={assessmentId ?? ''}
+          onChange={busy || files.length ? undefined : setAssessment} />}
         {photo && (!availableConsents.length ? <InfoBanner variant="warning" message="Für den Aufnahmezeitpunkt fehlt eine aktuell gültige Fotoeinwilligung in der Klientenakte." /> :
           <FilterChipGroup wrap value={consentId ?? ''} options={availableConsents.map(item => ({
             key: item.id, label: 'Fotoeinwilligung vom ' + formatWoundDate(item.granted_at),
           }))} onChange={busy || files.length ? undefined : setConsent} />)}
         <View style={styles.row}>
+          {photo && <PremiumButton title="Foto aufnehmen" size="sm" onPress={() => run(capturePhoto)}
+            disabled={busy || !canUpload} />}
           <PremiumButton title={photo ? 'Bilddateien auswählen' : 'Audiodateien auswählen'} size="sm" variant="secondary"
             onPress={() => run(chooseFiles)} disabled={busy || !canUpload || voice.isRecording} />
           {!photo && voice.isSupported && <PremiumButton title={voice.isRecording ? 'Aufnahme beenden' : 'Mikrofon starten'}
@@ -129,6 +170,7 @@ export function WoundMediaPanel({ scope, data, kind, assessments, canWrite, lock
       {!!notice && <InfoBanner variant="success" message={notice} />}
       {!items.length && <Text style={styles.muted}>{photo ? 'Keine freigegebenen Bilder zugeordnet.' : 'Noch keine gesprochenen Kommentare.'}</Text>}
       {!!items.length && <View style={styles.row}>{items.slice(0, count).map(file => <View key={file.id} style={[styles.panel, styles.galleryCard]}>
+        {photo && <WoundPhotoThumbnail scope={scope} file={file} disabled={busy || locked} onOpen={() => run(() => open(file, false))} />}
         <Text style={styles.title}>{file.file_name}</Text>
         <Text style={styles.muted}>{formatWoundDate(file.observed_at)} · {formatWoundNumber(file.size_bytes / 1024, 0)} KB</Text>
         <View style={styles.row}>

@@ -2,7 +2,8 @@
 
 const $ = (id) => document.getElementById(id);
 const svg = (icon) => `<svg aria-hidden="true"><use href="#i-${icon}"/></svg>`;
-const viewMode = new URLSearchParams(location.search).get("view");
+const params = new URLSearchParams(location.search);
+const viewMode = params.get("view");
 const locationPicker = viewMode === "location";
 const compact = viewMode === "preview" || locationPicker;
 if (compact) document.documentElement.dataset.embed = viewMode;
@@ -60,6 +61,7 @@ const state = {
 };
 const notes = [];
 let canWrite = false;
+let hostBridgeVersion = 0;
 let figureRequest = 0;
 const stageError = $("stage-error");
 const markerNodes = new Map();
@@ -95,6 +97,13 @@ const el = {
 };
 const figureSelect = $("embed-figure");
 const areaSelect = $("embed-region");
+const markerSelect = $("marker-select");
+const markerColors = {
+  Hautbefund:"#146573", Wunde:"#b92648", Verletzung:"#b74024", Druckstelle:"#82328c",
+  Katheterstelle:"#1764a5", Rötung:"#b12745", Schwellung:"#784293", Hämatom:"#53368e",
+  Narbe:"#466174", Hautreizung:"#9d4b15", Sonstiges:"#536779",
+};
+const noteType = (note) => note.finding ?? note.kind;
 
 function makeButton(className, label, action) {
   const node = document.createElement("button");
@@ -300,10 +309,8 @@ function refreshUI() {
   sculpt.showScalp(state.region?.key==="head" && state.detailAngle===3);
   el.viewerTitle.textContent = state.region?.label || "Körperansicht";
   el.caption.textContent = state.figure.label + (state.region?.paired ? " · " + sideNames[state.side] : "");
-  if (compact) {
-    figureSelect.value = state.figure.key;
-    areaSelect.value = state.region?.key ?? "";
-  }
+  figureSelect.value = state.figure.key;
+  areaSelect.value = state.region?.key ?? "";
   el.overview.hidden = state.region === null;
   el.sides.hidden = !state.region?.paired;
   el.tag.innerHTML = svg(state.region ? state.region.icon : "rotate") + (state.region ? "Detailansicht" : "Ganzkörper · 360°");
@@ -548,6 +555,7 @@ function placeMarkers() {
     if(!node.hidden) {
       node.style.left=x+"px";
       node.style.top=y+"px";
+      node.classList.toggle("label-left",x>el.stage.clientWidth * .62);
     }
   }
   const active = state.clinical && state.anatomyLabels && !state.mark;
@@ -581,9 +589,15 @@ function placeMarkers() {
 }
 
 function woundMarker(note) {
-  const marker=makeButton("marker wound",`${note.kind} · ${note.name} öffnen`,()=>openNote(note));
-  marker.title=`${note.kind} · ${note.name}`;
+  const marker=makeButton("marker wound",`${noteType(note)} · ${note.name} öffnen`,()=>openNote(note));
+  marker.title=`${noteType(note)} · ${note.name}`;
+  marker.style.setProperty("--marker-color",markerColors[noteType(note)] ?? markerColors.Sonstiges);
   marker.innerHTML=svg("cross");
+  const label=document.createElement("span");
+  label.className="marker-caption";
+  label.textContent=note.name;
+  label.setAttribute("aria-hidden","true");
+  marker.append(label);
   return marker;
 }
 
@@ -592,6 +606,15 @@ function refreshNotes() {
   markerNodes.clear();
   const items=notes.filter(note=>note.figure===state.figure.key);
   el.noteCount.textContent=items.length;
+  $("marker-tools").hidden=items.length===0;
+  markerSelect.replaceChildren(new Option("Markierung wählen",""),...items.map((note,index)=>
+    new Option(note.name+" · "+noteType(note),String(index))));
+  markerSelect.onchange=()=>{
+    if (markerSelect.value==="") return;
+    const note=items[Number(markerSelect.value)];
+    markerSelect.value="";
+    if (note) showNoteOnModel(note);
+  };
   if (isDiagramView()) refreshDiagramMarkers();
   if (!items.length) {
     el.notes.innerHTML='<p class="muted no-notes">Für diese Figur gibt es noch keine Markierung.</p>';
@@ -603,44 +626,46 @@ function refreshNotes() {
       el.markerArea.append(marker);
       markerNodes.set(note,marker);
     }
-    const item=makeButton("note-button",note.name+" anzeigen",()=>{
-      if (note.diagram) {
-        if (state.region?.key!=="pelvis") selectRegion(regions.find(region=>region.key==="pelvis"),false);
-        if (state.anatomyIndex!==note.diagram.view) {
-          state.anatomyIndex=note.diagram.view;
-          renderAnatomy();
-        }
-        openNote(note);
-        return;
-      }
-      const needsClinical = Boolean(note.clinical) !== state.clinical;
-      if (needsClinical) {
-        state.clinical=Boolean(note.clinical);
-        state.anatomyIndex=note.anatomyIndex || 0;
-        sculpt.clinical(state.clinical);
-      }
-      const [x,y]=sculpt.project(note.point);
-      if (needsClinical || !sculpt.visible(x,y,note.point) || (state.region?.key ?? null) !== note.focusRegion || state.side !== note.side) {
-        state.region=regions.find(region=>region.key===note.focusRegion) || null;
-        state.side=note.side;
-        state.detailAngle=note.detailAngle ?? 0;
-        const closeup=areaPose();
-        state.cameraView="free";
-        sculpt.transition({...closeup,yaw:note.yaw,pitch:note.pitch,target:note.target ?? note.point,height:note.height},true);
-        refreshUI();
-        if (state.region?.angles) anglePicker.value=String(state.detailAngle);
-      }
-      openNote(note);
-    });
+    const item=makeButton("note-button",note.name+" anzeigen",()=>showNoteOnModel(note));
+    item.style.setProperty("--marker-color",markerColors[noteType(note)] ?? markerColors.Sonstiges);
     item.innerHTML=`<span class="note-x">${svg("cross")}</span><span class="detail-name"></span>${svg("arrow")}`;
     const content=item.querySelector(".detail-name");
     content.textContent=note.name;
     const category=document.createElement("small");
-    category.textContent=note.kind+(note.sample ? " · Beispiel" : "");
+    category.textContent=noteType(note)+(note.sample ? " · Beispiel" : "");
     content.append(category);
     return item;
   }));
   placeMarkers();
+}
+
+function showNoteOnModel(note) {
+  if (note.diagram) {
+    if (state.region?.key!=="pelvis") selectRegion(regions.find(region=>region.key==="pelvis"),false);
+    if (state.anatomyIndex!==note.diagram.view) {
+      state.anatomyIndex=note.diagram.view;
+      renderAnatomy();
+    }
+  } else {
+    const needsClinical = Boolean(note.clinical) !== state.clinical;
+    if (needsClinical) {
+      state.clinical=Boolean(note.clinical);
+      state.anatomyIndex=note.anatomyIndex || 0;
+      sculpt.clinical(state.clinical);
+    }
+    const [x,y]=sculpt.project(note.point);
+    if (needsClinical || !sculpt.visible(x,y,note.point) || (state.region?.key ?? null) !== note.focusRegion || state.side !== note.side) {
+      state.region=regions.find(region=>region.key===note.focusRegion) || null;
+      state.side=note.side;
+      state.detailAngle=note.detailAngle ?? 0;
+      const closeup=areaPose();
+      state.cameraView="free";
+      sculpt.transition({...closeup,yaw:note.yaw,pitch:note.pitch,target:note.target ?? note.point,height:note.height},true);
+      refreshUI();
+      if (state.region?.angles) anglePicker.value=String(state.detailAngle);
+    }
+  }
+  openNote(note);
 }
 
 function openNote(note) {
@@ -657,7 +682,7 @@ function openNote(note) {
   el.name.setCustomValidity("");
   el.name.placeholder=draft.diagram ? "Z. B. linke Leiste" : "Z. B. linker Unterarm";
   el.name.value=draft.name;
-  el.kind.value=draft.kind;
+  el.kind.value=noteType(draft);
   el.text.value=draft.text;
   el.deleteNote.hidden=true;
   el.name.readOnly=Boolean(draft.id);
@@ -701,10 +726,14 @@ el.form.addEventListener("submit",event=>{
     return;
   }
   if (!canWrite || !draft || draft.id) return;
-  const note={...draft,name,kind:locationPicker ? "Wunde" : el.kind.value,text:locationPicker ? "" : el.text.value.trim()};
+  const detailed=!locationPicker && hostBridgeVersion>=2 && el.kind.selectedOptions[0]?.hasAttribute("data-finding");
+  const kind=locationPicker ? "Wunde" : detailed ? "Hautbefund" : el.kind.value;
+  const note={...draft,name,kind,text:locationPicker ? "" : el.text.value.trim()};
+  if (detailed) note.finding=el.kind.value;
   notifyHost({type:"caresuite-body-mark",mark:note});
   applyMode(false);
   el.dialog.close();
+  if (el.panel.classList.contains("expanded")) void toggleFullscreen(false);
   el.status.textContent=locationPicker ? "Lokalisation für den Wundfall übernommen." : "Markierung zur Wundakte übernommen.";
 });
 
@@ -715,6 +744,10 @@ function notifyHost(message) {
 window.setCareWoundContext = (context) => {
   if (!context || !Array.isArray(context.marks)) return;
   canWrite = context.canWrite === true && viewMode !== "preview";
+  hostBridgeVersion = context.bridgeVersion === 2 ? 2 : 0;
+  for (const option of el.kind.querySelectorAll("option[data-finding]")) {
+    option.hidden=option.disabled=hostBridgeVersion<2;
+  }
   el.markerButton.disabled = !canWrite;
   if (!canWrite) applyMode(false);
   if (viewMode === "preview") el.markerButton.hidden = true;
@@ -722,12 +755,26 @@ window.setCareWoundContext = (context) => {
   if (landmarkData) refreshNotes();
   if (context.figure && !landmarkData && !figureRequest) {
     const startFigure = figures.find(figure => figure.key === context.figure) || figures[0];
-    void chooseFigure(startFigure,true);
+    void chooseFigure(startFigure,true).then(()=>{
+      if (!context.view || !landmarkData) return;
+      const remembered = context.view;
+      recentSide=remembered.side;
+      selectRegion(regions.find(region=>region.key===remembered.region) ?? null,false);
+      state.side=remembered.side;
+      state.cameraView=remembered.cameraView;
+      state.detailAngle=remembered.detailAngle;
+      sculpt.transition(areaPose(),true);
+      refreshUI();
+      if (state.region?.angles) anglePicker.value=String(state.detailAngle);
+    });
   }
 };
 window.addEventListener("message", event => {
   if (event.source === window.parent && event.origin === location.origin && event.data?.type === "caresuite-wound-context") {
     window.setCareWoundContext(event.data);
+  }
+  if (event.source === window.parent && event.origin === location.origin && event.data?.type === "caresuite-close-body-expand") {
+    setExpanded(false);
   }
 });
 
@@ -924,21 +971,46 @@ el.anatomyStage.addEventListener("keydown",event=>{
   moveDiagramCursor(diagramKeyboard.x+motion[0]*step,diagramKeyboard.y+motion[1]*step);
 });
 
-function setExpanded(open) {
+function setExpanded(open, focus = true) {
   el.panel.classList.toggle("expanded",open);
   document.body.classList.toggle("preview-expanded",open);
   for (const node of document.querySelectorAll(".top, #page-heading, .models, .side, .preview-footer")) {
     node.inert=open;
   }
-  const label=open ? "Großansicht schließen" : "Großansicht öffnen";
+  const label=open ? "Vollbild schließen" : "Vollbild";
   el.expand.setAttribute("aria-label",label);
   el.expand.setAttribute("aria-pressed",open);
   el.expand.title=label;
-  el.expand.innerHTML=svg(open ? "collapse" : "expand");
-  el.expand.focus({preventScroll:true});
+  el.expand.innerHTML=svg(open ? "collapse" : "expand") + "<span>"+label+"</span>";
+  if (focus) el.expand.focus({preventScroll:true});
 }
 
-el.expand.addEventListener("click",()=>setExpanded(!el.panel.classList.contains("expanded")));
+async function toggleFullscreen(open) {
+  const view={ figure:state.figure.key,region:state.region?.key ?? null,side:state.side,
+    detailAngle:state.detailAngle,cameraView:state.cameraView };
+  if (window.ReactNativeWebView && hostBridgeVersion>=2) {
+    notifyHost({type:"caresuite-body-expand",open,view});
+    return;
+  }
+  if (!open && document.fullscreenElement) {
+    await document.exitFullscreen();
+    return;
+  }
+  if (open && document.fullscreenEnabled && document.documentElement.requestFullscreen) {
+    try { await document.documentElement.requestFullscreen(); return; }
+    catch { /* The parent expands the same frame where fullscreen is unavailable. */ }
+  }
+  setExpanded(open);
+  notifyHost({type:"caresuite-body-expand",open,view});
+}
+
+document.addEventListener("fullscreenchange",()=>setExpanded(Boolean(document.fullscreenElement)));
+el.expand.addEventListener("click",()=>void toggleFullscreen(!el.panel.classList.contains("expanded")));
+$("marker-labels").addEventListener("click",event=>{
+  const visible=event.currentTarget.getAttribute("aria-pressed")!=="true";
+  event.currentTarget.setAttribute("aria-pressed",String(visible));
+  el.panel.classList.toggle("hide-mark-captions",!visible);
+});
 el.light.addEventListener("click",()=>{
   const light=el.stage.classList.toggle("light");
   sculpt.examLight(light);
@@ -949,7 +1021,7 @@ el.light.addEventListener("click",()=>{
 document.addEventListener("keydown",event=>{
   if (event.key!=="Escape" || el.dialog.open) return;
   if (isDiagramView() && state.mark) applyMode(false);
-  else if (!state.mark && el.panel.classList.contains("expanded")) setExpanded(false);
+  else if (!state.mark && el.panel.classList.contains("expanded")) void toggleFullscreen(false);
 });
 
 el.markerButton.addEventListener("click",event=>{
@@ -974,17 +1046,16 @@ if (!sculpt.ready) {
   for (const id of ["mark-mode","zoom-in","zoom-out","zoom-reset"]) $(id).disabled=true;
 } else {
   renderControls();
-  if (compact) {
-    for (const figure of figures) figureSelect.add(new Option(figure.label, figure.key));
-    areaSelect.add(new Option("Ganzkörper", ""));
-    for (const region of regions) areaSelect.add(new Option(region.label, region.key));
-    figureSelect.addEventListener("change", () => {
-      const figure = figures.find(item => item.key === figureSelect.value);
-      if (figure) void chooseFigure(figure);
-    });
-    areaSelect.addEventListener("change", () => selectRegion(regions.find(item => item.key === areaSelect.value) ?? null, false));
-    $("embed-pickers").hidden = false;
-  } else modelThumbnails();
+  for (const figure of figures) figureSelect.add(new Option(figure.label, figure.key));
+  areaSelect.add(new Option("Ganzkörper", ""));
+  for (const region of regions) areaSelect.add(new Option(region.label, region.key));
+  figureSelect.addEventListener("change", () => {
+    const figure = figures.find(item => item.key === figureSelect.value);
+    if (figure) void chooseFigure(figure);
+  });
+  areaSelect.addEventListener("change", () => selectRegion(regions.find(item => item.key === areaSelect.value) ?? null, false));
+  $("embed-pickers").hidden = false;
+  if (!compact) modelThumbnails();
   if (locationPicker) {
     $("note-submit-label").textContent = "Lokalisation übernehmen";
     applyMode(false);
@@ -997,6 +1068,7 @@ if (!sculpt.ready) {
     placeMarkers();
   });
   el.markerButton.disabled=true;
+  if (params.get("full")==="1") setExpanded(true,false);
   notifyHost({type:"caresuite-body-ready"});
   if (window.parent === window && !window.ReactNativeWebView) void chooseFigure(figures[0],true);
 }

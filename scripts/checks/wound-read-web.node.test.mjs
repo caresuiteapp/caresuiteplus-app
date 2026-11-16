@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { stripTypeScriptTypes } from 'node:module';
 import { captureWoundListOriginal, filterWoundList, sameWoundReadOriginal } from '../../src/lib/pflege/woundReadOriginal.web.ts';
 import { careAssessmentRuntimeAccess } from '../../src/lib/careAssessment/careAssessmentRuntimeAccess.web.ts';
+import { woundCaseRoute } from '../../src/components/pflege/wounds/woundAreas.ts';
 
 const id = n => `11111111-1111-4111-8111-${String(n).padStart(12, '0')}`;
 const owner = { tenantId: id(1), profileId: id(2), role: 'nurse' };
@@ -115,15 +116,19 @@ test('Gleichwertige Objekt-Schlüsselreihenfolge bleibt lesbar, vertauschte Hist
 // Execute the actual imperative list handlers; router and state setters are local probes, not a React/browser proof.
 const listSource = readFileSync(new URL('../../src/screens/pflege/WoundDocumentationListScreen.web.tsx', import.meta.url), 'utf8');
 const handlerSource = stripTypeScriptTypes(listSource.slice(listSource.indexOf('  function ownSelection()'), listSource.indexOf('  if (!q.canRead')));
-function listHandlers(q, selection = { current: { search: '', filter: 'all', visible: 50 } }) {
+function listHandlers(q, selection = { current: { search: '', filter: 'all', visible: 50 } }, area = 'overview') {
   const routes = [], setters = [], { search, filter, visible } = selection.current;
-  const actions = new Function('q', 'selection', 'search', 'filter', 'visible', 'router', 'setSearch', 'setFilter', 'setVisible', 'woundUuid', 'filterWoundList', 'woundStatusLabels', `${handlerSource}\nreturn { open, create, changeSearch, changeFilter, showMore };`)
-    (q, selection, search, filter, visible, { push: route => routes.push(route) }, v => setters.push(v), v => setters.push(v), v => setters.push(v), v => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v), filterWoundList, { active: 'Aktiv', healed: 'Abgeheilt' });
+  const actions = new Function('q', 'selection', 'search', 'filter', 'visible', 'router', 'setSearch', 'setFilter', 'setVisible', 'woundUuid', 'filterWoundList', 'woundStatusLabels', 'woundCaseRoute', 'area', `${handlerSource}\nreturn { open, create, changeSearch, changeFilter, showMore };`)
+    (q, selection, search, filter, visible, { push: route => routes.push(route) }, v => setters.push(v), v => setters.push(v), v => setters.push(v), v => typeof v === 'string' && /^[0-9a-f-]{36}$/i.test(v), filterWoundList, { active: 'Aktiv', healed: 'Abgeheilt' }, woundCaseRoute, area);
   return { actions, routes, setters, selection };
 }
 test('Echte Listenaktion öffnet genau die gewählte sichtbare native Wund-ID', async () => {
   const h = await ready(), p = listHandlers(h.value); p.actions.open(id(11)); assert.deepEqual(p.routes, [`/pflege/wunden/${id(11)}`]);
   p.actions.open(id(99)); assert.equal(p.routes.length, 1);
+});
+test('Ein gewählter Arbeitsbereich führt unmittelbar zu den Wundfotos des ausgewählten Falls', async () => {
+  const h = await ready(), p = listHandlers(h.value, undefined, 'measurement');
+  p.actions.open(id(11)); assert.deepEqual(p.routes, [`/pflege/wunden/${id(11)}?bereich=measurement`]);
 });
 test('Alte Listenöffnung, Filter und Mehr-Anzeige bleiben nach einer sofortigen Suchänderung wirkungslos', async () => {
   const h = await ready(), p = listHandlers(h.value); p.actions.changeSearch('unpassend'); p.actions.open(id(10)); p.actions.changeFilter('healed'); p.actions.showMore();
