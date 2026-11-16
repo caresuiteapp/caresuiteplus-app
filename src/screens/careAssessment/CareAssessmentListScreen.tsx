@@ -29,7 +29,7 @@ const STATUS: Record<CareAssessmentListItem['status'], string> = {
   archived: 'Archiviert',
 };
 
-export function CareAssessmentListScreen({ subjectType }: { subjectType: CareAssessmentSubjectType }) {
+export function CareAssessmentListScreen({ subjectType, openPlanning = false }: { subjectType: CareAssessmentSubjectType; openPlanning?: boolean }) {
   const router = useRouter();
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
@@ -57,7 +57,7 @@ export function CareAssessmentListScreen({ subjectType }: { subjectType: CareAss
   ).length;
   return (
     <ScreenShell
-      title={resident ? 'Stationäres Pflegeassessment' : 'Pflegeassessment'}
+      title={openPlanning ? 'Bewohnerplanung' : resident ? 'Stationäres Pflegeassessment' : 'Pflegeassessment'}
       rightSlot={canManage ? (
         <PremiumButton title="Assessment anlegen" size="sm" onPress={() => router.push(`${base}/new` as never)} />
       ) : undefined}
@@ -81,7 +81,7 @@ export function CareAssessmentListScreen({ subjectType }: { subjectType: CareAss
           <PremiumInput label="Nach Name suchen" value={search} onChangeText={setSearch} />
           {!visible.length ? <Text style={styles.meta}>Keine passenden Assessments.</Text> : null}
           {visible.map((item) => (
-            <Pressable key={item.id} style={styles.card} onPress={() => router.push(`${base}/${item.id}` as never)}>
+            <Pressable key={item.id} style={styles.card} accessibilityRole="button" onPress={() => router.push(`${base}/${item.id}${openPlanning ? '?section=measures' : ''}` as never)}>
               <View style={styles.flex}>
                 <Text style={styles.title}>{item.subjectName}</Text>
                 <Text style={styles.meta}>

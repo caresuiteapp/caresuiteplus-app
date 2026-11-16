@@ -104,6 +104,7 @@ function assessment(row: Row, children: Row[][]): CareAssessment {
         approverName: String(row.approver_name_snapshot ?? ''),
         topics: createEmptyTopics().map((empty) => mappedTopics.find((item) => item.topicKey === empty.topicKey) ?? empty),
         ...(firstRiskMatrix !== undefined ? { firstRiskMatrix } : {}),
+        ...(row.planning_model !== undefined ? { planningModel: row.planning_model as CareAssessment['planningModel'] } : {}),
         risks: riskRows.map(risk),
         measures: measureRows.map(measure),
         evaluations: evaluationRows.map((entry) => ({
@@ -277,6 +278,7 @@ export const careAssessmentRepository = {
                 assessment: {
                     reason: value.reason,
                     reason_detail: value.reasonDetail,
+                    planning_model: value.planningModel,
                     next_review_at: value.nextReviewAt,
                     person_statement: value.personStatement,
                     statement_source: value.statementSource,

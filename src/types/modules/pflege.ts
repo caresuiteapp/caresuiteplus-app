@@ -18,6 +18,7 @@ export type CarePlanTask = {
   escalationPath?: string;
   evaluationCriteria?: string;
   nextEvaluationAt?: string | null;
+  notes?: string;
 };
 
 export type CarePlan = TenantScopedEntity &

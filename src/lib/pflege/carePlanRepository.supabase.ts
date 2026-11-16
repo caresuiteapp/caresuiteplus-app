@@ -93,6 +93,7 @@ function mapTask(row: Row): CarePlanTask {
     escalationPath: text(row.escalation_path),
     evaluationCriteria: text(row.evaluation_criteria),
     nextEvaluationAt: row.next_evaluation_date ? text(row.next_evaluation_date) : null,
+    notes: text(row.notes),
   };
 }
 

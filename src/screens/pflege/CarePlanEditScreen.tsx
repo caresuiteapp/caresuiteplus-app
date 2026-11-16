@@ -79,6 +79,7 @@ export function CarePlanEditScreen() {
         escalationPath: task.escalationPath,
         evaluationCriteria: task.evaluationCriteria,
         nextEvaluationAt: task.nextEvaluationAt,
+        notes: task.notes,
         status: task.status === 'abgeschlossen' ? 'completed' : 'active',
         sortOrder: index,
       })),

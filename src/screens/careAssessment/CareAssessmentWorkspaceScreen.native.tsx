@@ -9,6 +9,11 @@ import { careAssessmentRuntimeAccess, assertCareAssessmentRuntimeReadAccess } fr
 import { ContinenceProfilePanel } from "./ContinenceProfilePanel.native.tsx";
 import { AssessmentRiskMatrix } from './AssessmentRiskMatrix';
 import { AssessmentPlanTopicContext } from './AssessmentPlanTopicContext';
+import { CarePlanningTemplatePicker, type PlanningTemplateTarget } from '@/components/pflege/CarePlanningTemplatePicker';
+import { carePlanningModels } from '@/lib/pflege/carePlanningModels';
+import { appendPlanningText, type PlanningTemplateKind } from '@/lib/pflege/carePlanningTemplates';
+import { buildAssessmentPlanDocument } from '@/lib/pflege/carePlanDocument';
+import { printCarePlan } from "../../lib/pflege/printCarePlan.native.ts";
 import { assessmentReasonChoices, assertAssessmentLifecycleReceipt, type AssessmentLifecycleRequest } from '@/lib/careAssessment/assessmentLifecycleDomain';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { sameWoundJson, woundUuid } from '@/lib/pflege/woundCareDomain';
@@ -36,7 +41,7 @@ import { useResidentList } from '@/hooks/useResidentList';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { hasPermission } from '@/lib/permissions';
-import { CARE_ASSESSMENT_TOPIC_LABELS, CARE_RISK_CATALOG, QPR_2026_CHECKS, addCareAssessmentEvaluation, calculateCareAssessmentCompleteness, createCareAssessment, fetchEligibleCareClients, fetchCareAssessment, getRiskLabel, saveCareAssessment, transitionCareAssessment, } from '@/lib/careAssessment';
+import { CARE_ASSESSMENT_TOPIC_LABELS, CARE_RISK_CATALOG, QPR_2026_CHECKS, addCareAssessmentEvaluation, calculateCareAssessmentCompleteness, createCareAssessment, fetchEligibleCareClients, fetchCareAssessment, fetchCareAssessments, getRiskLabel, saveCareAssessment, transitionCareAssessment, } from '@/lib/careAssessment';
 import type { CareAssessment, CareAssessmentMeasure, CareAssessmentRisk, CareAssessmentSubjectType, CareAssessmentTopicKey, } from '@/types/modules/careAssessment';
 import { colors, radius, spacing, typography } from '@/theme';
 type Selectable = {
@@ -246,6 +251,10 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
     useEffect(() => { navigationAlive.current = true; return () => { navigationAlive.current = false; readBoundary.current = null; queryAttempt.current = null; }; }, []);
     const [section, setSection] = useState<Section>(() => sections.find(item => item.key === requestedSection)?.key ?? 'person');
     const [measureTopic, setMeasureTopic] = useState('all');
+    const [templateTarget, setTemplateTarget] = useState<PlanningTemplateTarget | null>(null);
+    const [showEarlierPlans, setShowEarlierPlans] = useState(false);
+    const [earlierPlanId, setEarlierPlanId] = useState('');
+    const [copyingMeasures, setCopyingMeasures] = useState(false);
     const [riskToAdd, setRiskToAdd] = useState('');
     const qualityNavigation = useRef({ leaving: false, active: false, instrumentLeave: null as (() => Promise<boolean>) | null, planLeave: null as (() => Promise<boolean>) | null, pathLeave: null as (() => Promise<boolean>) | null, path: { busy: false, dirty: false, uncertain: false } as AssessmentPathPhase, instrument: null as {
             loading: boolean;
@@ -307,6 +316,18 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
     const envelopeCurrent = !!queryEnvelope && !!readBoundary.current && isCurrentCareAssessmentReadEnvelope(readBoundary.current, queryEnvelope);
     const queryAssessment = resident ? query.data as CareAssessment | null : envelopeCurrent ? queryEnvelope!.assessment : null;
     const staleEnvelope = !resident && !!query.data && !envelopeCurrent;
+    const subjectId = queryAssessment?.subjectId;
+    const earlierPlans = useAsyncQuery(async () => {
+        if (!tenantId || !subjectId)
+            return { ok: false as const, error: 'Pflegefall noch nicht geladen.' };
+        const result = await fetchCareAssessments(tenantId, subjectType, profile?.roleKey);
+        if (!result.ok)
+            return result;
+        return { ok: true as const, data: result.data.filter(item => item.subjectId === subjectId && item.id !== id) };
+    }, [tenantId, profile?.id, profile?.roleKey, subjectId, subjectType, id], {
+        enabled: showEarlierPlans && !!subjectId && (resident || canReadPlan), retryCount: 0,
+        queryKey: `assessment-plan-kopie:${tenantId}:${profile?.id}:${subjectId}:${id}`,
+    });
     const [baseline, setBaseline] = useState<CareAssessmentDraftBaseline | null>(null);
     const [instrumentState, setInstrumentState] = useState<{
         packet: AssessmentInstrumentPacket | null;
@@ -359,7 +380,7 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
         throw Error('Aktuellen Pflegeplan-Lesestand erneut bestätigen.'); const published = acceptCareAssessmentConfirmedRead(boundary, ticket, provenance, loaded, current.context); const accepted = confirmCareAssessmentDraftWrite(loaded, captured, current.context); readBoundary.current = published.boundary; query.setData(published.envelope); setBaseline(accepted.baseline); setValue(accepted.value); setNeedsReload(false); }
     async function reloadConfirmedDraft() { const pending = pendingDraft.current; if (!pending)
         throw Error('Ursprüngliche bestätigte Schreibanfrage fehlt. Der Formularstand bleibt erhalten.'); assertCurrentReadContext(pending.context); const ticket = currentReadTicket(); const loaded = await fetchCareAssessment(pending.context.tenantId, pending.context.assessmentId, pending.context.subjectType, pending.context.roleKey as NonNullable<typeof profile>['roleKey']); assertCurrentReadContext(pending.context); if (!loaded.ok)
-        throw Error(loaded.error); assertAssessmentDraftStoredRead(pending.request, { assessmentId: loaded.data.id, draftRevision: loaded.data.draftRevision, status: loaded.data.status, firstRiskMatrix: loaded.data.firstRiskMatrix }); const current = workspaceState.current; if (!sameDraftContext(pending.context, current.context) || !sameWoundJson(current.value, pending.editable) || !sameWoundJson(current.baseline, pending.baseline))
+        throw Error(loaded.error); assertAssessmentDraftStoredRead(pending.request, { assessmentId: loaded.data.id, draftRevision: loaded.data.draftRevision, status: loaded.data.status, firstRiskMatrix: loaded.data.firstRiskMatrix, planningModel: loaded.data.planningModel }); const current = workspaceState.current; if (!sameDraftContext(pending.context, current.context) || !sameWoundJson(current.value, pending.editable) || !sameWoundJson(current.baseline, pending.baseline))
         throw Error('Ursprünglicher Schreib- oder Formularbezug inzwischen geändert. Bestätigten Stand gesondert laden.'); acceptConfirmed(loaded.data, pending.context, ticket, pending.provenance); }
     const submission = useMedicationSubmission<AssessmentDraftRequest>(dirty || instrumentState.dirty || planState.dirty || pathPhase.dirty || pathPhase.uncertain || retainedPathJournal, async (requestId, payload, replay) => {
         const current = workspaceState.current;
@@ -487,12 +508,12 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
             risks: current.risks.map((item, i) => i === index ? ({ ...item, ...next }) : item),
         }) : current);
     };
-    const patchMeasure = (index: number, next: Partial<CareAssessmentMeasure>) => {
+    const patchMeasure = (index: number, next: Partial<CareAssessmentMeasure> | ((measure: CareAssessmentMeasure) => Partial<CareAssessmentMeasure>)) => {
         if (!resident && (workspaceState.current.writeLocked || qualityNavigation.current.leaving || qualityNavigation.current.path.busy || qualityNavigation.current.path.dirty || qualityNavigation.current.path.uncertain || retainedJournals.reference.current.assessment || retainedJournals.reference.current.plan))
             return;
         setValue((current) => current ? ({
             ...current,
-            measures: current.measures.map((item, i) => i === index ? ({ ...item, ...next }) : item),
+            measures: current.measures.map((item, i) => i === index ? ({ ...item, ...(typeof next === 'function' ? next(item) : next) }) : item),
         }) : current);
     };
     function addRisk() {
@@ -631,6 +652,60 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
     const availableRisks = CARE_RISK_CATALOG.filter(risk => !value.risks.some(entry => entry.riskKey === risk.key));
     const canOpenRelatedRecord = !readBlocked && !dirty && !pending && !instrumentState.dirty &&
         !planState.dirty && !pathPhase.dirty && !pathPhase.busy && !pathPhase.uncertain && !retainedPathJournal;
+    const currentAssessment = value;
+    const savedPlan = resident ? (!query.error && !query.refreshError ? queryAssessment : null) : (!readBlocked ? panelAssessment : null);
+    function chooseMeasureText(index: number, key: 'personalGoal' | 'intervention' | 'personContribution', label: string, kinds: readonly PlanningTemplateKind[]) {
+        if (!currentAssessment.planningModel || locked)
+            return undefined;
+        return <PremiumButton title="Textbausteine" accessibilityLabel={`Textbausteine für ${label}`} size="sm" variant="secondary" onPress={() => setTemplateTarget({ label, kinds, onInsert: template => patchMeasure(index, measure => ({
+                    [key]: appendPlanningText(measure[key], template, currentAssessment.subjectName),
+                })) })}/>;
+    }
+    async function copyEarlierMeasures() {
+        if (!tenantId || !subjectId || locked || copyingMeasures || earlierPlans.error || earlierPlans.refreshError ||
+            !earlierPlans.data?.some(item => item.id === earlierPlanId && item.subjectId === subjectId))
+            return;
+        setCopyingMeasures(true);
+        try {
+            const result = await fetchCareAssessment(tenantId, earlierPlanId, subjectType, profile?.roleKey);
+            if (!navigationAlive.current)
+                return;
+            if (!result.ok)
+                return setMessage(result.error);
+            if (result.data.tenantId !== tenantId || result.data.subjectId !== subjectId || result.data.subjectType !== subjectType) {
+                return setMessage('Die ausgewählte Planung gehört zu einer anderen Pflegesituation.');
+            }
+            if (!result.data.measures.length)
+                return setMessage('Die gewählte Planung enthält keine Maßnahmen.');
+            if (resident && !['draft', 'in_progress'].includes(currentAssessment.status))
+                return;
+            patch({
+                ...(currentAssessment.planningModel !== undefined ? { planningModel: result.data.planningModel ?? currentAssessment.planningModel } : {}),
+                measures: result.data.measures.map(({ id: _sourceId, ...measure }) => ({ ...measure, status: 'planned', relatedRiskKey: null, nextEvaluationAt: null })),
+            });
+            setMeasureTopic('all');
+            setShowEarlierPlans(false);
+            setMessage('Maßnahmen übernommen. Ziele, Umfang und Evaluationstermine für die aktuelle Situation prüfen.');
+        }
+        catch {
+            if (navigationAlive.current)
+                setMessage('Die frühere Planung konnte nicht gelesen werden.');
+        }
+        finally {
+            if (navigationAlive.current)
+                setCopyingMeasures(false);
+        }
+    }
+    async function printPlan() {
+        if (!savedPlan || savedPlan.tenantId !== tenantId || savedPlan.id !== id || (!resident && !workspaceState.current.canReadPlan))
+            return;
+        try {
+            await printCarePlan(buildAssessmentPlanDocument(savedPlan));
+        }
+        catch (error) {
+            setMessage(error instanceof Error ? error.message : 'Der Dokumentationsbogen konnte nicht geöffnet werden.');
+        }
+    }
     const assessmentBody = (<>
       {value.reassessmentRequired ? <InfoBanner variant="danger" title="Neubewertung erforderlich" message={value.destabilizationSummary || 'Relevantes Ereignis vorhanden.'}/> : null}
       {locked ? <InfoBanner variant="info" title="Bearbeitung gesperrt" message="Rechte, Bearbeitungsstatus oder eine laufende Speicherprüfung verhindern Änderungen. Übergebene Assessments benötigen einen gesonderten Rückgabe- oder Fortschreibungsablauf."/> : null}
@@ -757,7 +832,27 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
         </SectionPanel>
         </>) : null}
 
-      {section === 'measures' ? (<SectionPanel title="Individuelle Maßnahmenplanung" subtitle="Pflegeprobleme, Ressourcen und Ziele mit den geplanten Maßnahmen verbinden">
+      {section === 'measures' ? (<SectionPanel title="Individuelle Maßnahmenplanung" subtitle={resident ? 'Stationäre Pflege' : 'Ambulante Pflege'}>
+          <View style={styles.actions}>
+            <Text style={styles.fieldCaption}>Pflegemodell für Textbausteine</Text>
+            <FilterChipGroup wrap options={carePlanningModels.map(model => ({ ...model }))} value={value.planningModel ?? undefined} onChange={locked || value.planningModel === undefined ? undefined : planningModel => patch({ planningModel })}/>
+          </View>
+          <View style={styles.actions}>
+            {savedPlan?.measures.length ? <PremiumButton title="Gespeicherten Plan drucken" variant="secondary" onPress={printPlan}/> : null}
+            {!locked ? <PremiumButton title={showEarlierPlans ? 'Übernahme schließen' : 'Frühere Maßnahmenplanung öffnen'} variant="secondary" disabled={copyingMeasures} onPress={() => setShowEarlierPlans(value => !value)}/> : null}
+          </View>
+          {showEarlierPlans && !locked ? <View style={styles.card}>
+            {earlierPlans.loading ? <LoadingState message="Planungen derselben Akte werden geladen…"/> : null}
+            {earlierPlans.error ? <ErrorState message={earlierPlans.error} onRetry={earlierPlans.refresh}/> : null}
+            {earlierPlans.data?.length ? <FilterChipGroup wrap options={earlierPlans.data.map(item => ({
+                        key: item.id, label: `Version ${item.version} · ${new Date(item.updatedAt).toLocaleDateString('de-DE')}`,
+                    }))} value={earlierPlanId} onChange={copyingMeasures ? undefined : setEarlierPlanId}/> : null}
+            {earlierPlanId ? <>
+              <Text style={styles.check}>Die Kopie ersetzt die Maßnahmen im geöffneten Entwurf. Der nächste Evaluationstermin wird neu festgelegt.</Text>
+              <PremiumButton title="Maßnahmen in diesen Entwurf übernehmen" loading={copyingMeasures} disabled={copyingMeasures} onPress={copyEarlierMeasures}/>
+            </> : null}
+            {!earlierPlans.loading && !earlierPlans.error && !earlierPlans.data?.length ? <Text style={styles.check}>In dieser Akte liegt keine frühere Planung vor.</Text> : null}
+          </View> : null}
           {!resident ? (<FilterChipGroup wrap options={[
                     { key: 'all', label: 'Alle Maßnahmen' },
                     ...value.topics.map(topic => ({ key: topic.topicKey, label: topicLabel(topic.topicKey) })),
@@ -792,12 +887,12 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
                             ]} value={item.relatedRiskKey ?? ''} onChange={locked ? undefined : next => patchMeasure(index, { relatedRiskKey: next || null })}/>
                     </>) : null}
                 </>) : null}
-              <PremiumInput label="Individuelles Pflegeziel" value={item.personalGoal} onChangeText={(next) => patchMeasure(index, { personalGoal: next })} multiline editable={!locked}/>
-              <PremiumInput label="Konkrete Durchführung" value={item.intervention} onChangeText={(next) => patchMeasure(index, { intervention: next })} multiline editable={!locked}/>
+              <PremiumInput label="Individuelles Pflegeziel" value={item.personalGoal} onChangeText={(next) => patchMeasure(index, { personalGoal: next })} multiline editable={!locked} labelAccessory={chooseMeasureText(index, 'personalGoal', 'Individuelles Pflegeziel', ['goal'])}/>
+              <PremiumInput label="Konkrete Durchführung" value={item.intervention} onChangeText={(next) => patchMeasure(index, { intervention: next })} multiline editable={!locked} labelAccessory={chooseMeasureText(index, 'intervention', 'Konkrete Durchführung', ['measure', 'standard'])}/>
               <PremiumInput label="Zeitpunkt / Situation" value={item.timing} onChangeText={(next) => patchMeasure(index, { timing: next })} editable={!locked}/>
               <PremiumInput label="Häufigkeit" value={item.frequency} onChangeText={(next) => patchMeasure(index, { frequency: next })} editable={!locked}/>
               <PremiumInput label="Verantwortliche Rolle" value={item.responsibleRole} onChangeText={(next) => patchMeasure(index, { responsibleRole: next })} editable={!locked}/>
-              <PremiumInput label="Mitwirkung der Person" value={item.personContribution} onChangeText={(next) => patchMeasure(index, { personContribution: next })} multiline editable={!locked}/>
+              <PremiumInput label="Mitwirkung der Person" value={item.personContribution} onChangeText={(next) => patchMeasure(index, { personContribution: next })} multiline editable={!locked} labelAccessory={chooseMeasureText(index, 'personContribution', 'Mitwirkung der Person', ['resource'])}/>
               <PremiumInput label="Mitwirkung von An- und Zugehörigen" value={item.relativesContribution} onChangeText={(next) => patchMeasure(index, { relativesContribution: next })} multiline editable={!locked}/>
               <PremiumInput label="Warn- und Abbruchkriterien" value={item.warningSigns} onChangeText={(next) => patchMeasure(index, { warningSigns: next })} multiline editable={!locked}/>
               <PremiumInput label="Eskalationsweg" value={item.escalationPath} onChangeText={(next) => patchMeasure(index, { escalationPath: next })} multiline editable={!locked}/>
@@ -886,6 +981,7 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
             void changeSection('quality'); }}/>) : null}
         </View>
       </View>
+      {templateTarget && value.planningModel && tenantId && !locked ? <CarePlanningTemplatePicker key={`${tenantId}:${profile?.id}:${value.id}:${value.planningModel}:${templateTarget.label}`} model={value.planningModel} target={templateTarget} setting={resident ? 'stationaer' : 'ambulant'} tenantId={tenantId} role={profile?.roleKey} actorId={profile?.id} clientName={value.subjectName} canEditLibrary={resident ? canManage : hasPermission(profile?.roleKey, 'pflege.plans.manage')} onClose={() => setTemplateTarget(null)}/> : null}
   </>);
     return <ScreenShell title={!resident && !canReadPlan ? 'Pflegeassessment' : `${value.subjectName} · Pflegeassessment`} subtitle={!resident && !canReadPlan ? undefined : `Version ${value.version} · ${completeness.percent} % technisch vollständig`} rightSlot={!resident && !canReadPlan ? undefined : <PremiumBadge label={value.status} variant={value.status === 'approved' ? 'green' : 'cyan'}/>}>{resident ? assessmentBody : <>
     {!canReadPlan ? <ErrorState message="Aktuelles Pflegeplan-Leserecht im eigenen Benutzer- und Mandantenbezug erforderlich. Angefangene Formulare und ursprüngliche Speicheranfragen bleiben erhalten."/> : null}

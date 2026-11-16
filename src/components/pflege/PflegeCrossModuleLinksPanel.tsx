@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { PremiumButton, SectionPanel } from '@/components/ui';
 import {
   buildPflegeCrossModuleLinks,
+  type CarePlanLinkScope,
   type PflegeCrossModuleContext,
 } from '@/lib/pflege/pflegeCrossModuleLinks';
 import { colors, spacing, typography } from '@/theme';
@@ -10,17 +11,20 @@ import { colors, spacing, typography } from '@/theme';
 type PflegeCrossModuleLinksPanelProps = {
   context: PflegeCrossModuleContext;
   title?: string;
+  scope?: CarePlanLinkScope;
 };
 
 export function PflegeCrossModuleLinksPanel({
   context,
   title = 'Verknüpfungen',
+  scope,
 }: PflegeCrossModuleLinksPanelProps) {
   const router = useRouter();
-  const links = buildPflegeCrossModuleLinks(context);
+  const links = buildPflegeCrossModuleLinks(context, scope);
+  if (!links.length) return null;
 
   return (
-    <SectionPanel title={title} subtitle="Modulübergreifende Navigation">
+    <SectionPanel title={title}>
       <View style={styles.list}>
         {links.map((link) => (
           <View key={link.id} style={styles.item}>
@@ -34,7 +38,9 @@ export function PflegeCrossModuleLinksPanel({
               title="Öffnen"
               size="sm"
               variant="secondary"
-              onPress={() => router.push(link.href as never)}
+              onPress={() => {
+                if (buildPflegeCrossModuleLinks(context, scope).some(current => current.id === link.id)) router.push(link.href as never);
+              }}
             />
           </View>
         ))}

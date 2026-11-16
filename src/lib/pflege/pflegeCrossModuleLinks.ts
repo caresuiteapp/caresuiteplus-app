@@ -1,6 +1,7 @@
 /**
  * Consistent cross-module navigation links for Pflege detail and form screens.
  */
+import type { PermissionKey } from '@/types/permissions';
 export type PflegeCrossModuleContext =
   | 'care-plan'
   | 'vital-reading'
@@ -20,6 +21,11 @@ export type PflegeCrossModuleLink = {
 };
 
 type LinkDef = PflegeCrossModuleLink;
+export type CarePlanLinkScope = {
+  clientId: string;
+  carePlanId: string;
+  can: (permission: PermissionKey) => boolean;
+};
 
 const LINK_CATALOG: Record<string, LinkDef> = {
   plans: {
@@ -91,7 +97,25 @@ const CONTEXT_ORDER: Record<PflegeCrossModuleContext, string[]> = {
   'care-documentation': ['plans', 'vitals', 'sis', 'medication'],
 };
 
-export function buildPflegeCrossModuleLinks(context: PflegeCrossModuleContext): PflegeCrossModuleLink[] {
+export function buildPflegeCrossModuleLinks(context: PflegeCrossModuleContext, scope?: CarePlanLinkScope): PflegeCrossModuleLink[] {
+  if (context === 'care-plan' && scope) {
+    const client = encodeURIComponent(scope.clientId);
+    const plan = encodeURIComponent(scope.carePlanId);
+    const entries: { link: PflegeCrossModuleLink; permissions: PermissionKey[] }[] = [
+      { permissions: ['pflege.plans.view'], link: { ...LINK_CATALOG.sis, label: 'Pflegeassessment und Anamnese' } },
+      { permissions: ['pflege.diagnoses.view'], link: { id: 'diagnoses', label: 'Pflegediagnosen', description: 'Pflegerelevante Diagnosen und Befunde', href: '/pflege/diagnosen', icon: '🩺' } },
+      { permissions: ['pflege.medications.view'], link: LINK_CATALOG.medication },
+      { permissions: ['pflege.vitals.view'], link: { ...LINK_CATALOG.vitals, description: 'Messwerte, Flüssigkeitsbilanz und Glasgow-Koma-Skala' } },
+      { permissions: ['pflege.evaluations.view'], link: { id: 'evaluation', label: 'Pflegeevaluation', description: 'Wirkung und Prüftermine dieses Pflegeplans', href: `/pflege/evaluation?carePlanId=${plan}`, icon: '📈' } },
+      { permissions: ['pflege.documentation.view'], link: { ...LINK_CATALOG.documentation, label: 'Berichteblatt', href: `/pflege/dokumentation?clientId=${client}` } },
+      { permissions: ['pflege.proofs.view'], link: { id: 'proofs', label: 'Tätigkeitsnachweise', description: 'Geplante und dokumentierte Pflegeleistungen', href: '/pflege/leistungsnachweise', icon: '✓' } },
+      { permissions: ['pflege.risks.view'], link: { id: 'risks', label: 'Risikobewertung', description: 'Pflegerelevante Risiken und Verlauf', href: '/pflege/risiken', icon: '☷' } },
+      { permissions: ['pflege.wounds.view'], link: { ...LINK_CATALOG.wounds, description: 'Wundverlauf und Norton-/Braden-Erfassung' } },
+      { permissions: ['office.clients.view', 'inventory.view', 'inventory.audit_view'], link: { id: 'supplies', label: 'Hygiene und Pflegeprodukte', description: 'Material und fallbezogene Hygiene', href: `/pflege/inventar?clientId=${client}`, icon: '▤' } },
+      { permissions: ['office.documents.view', 'office.clients.view', 'office.clients.view_sensitive'], link: { id: 'forms', label: 'Formulare', description: 'Dokumentenvorlagen für Pflege', href: `/office/document-catalog?module=pflege&clientId=${client}`, icon: '▧' } },
+    ];
+    return entries.filter(entry => entry.permissions.every(scope.can)).map(entry => entry.link);
+  }
   return CONTEXT_ORDER[context]
     .map((key) => LINK_CATALOG[key])
     .filter((link): link is LinkDef => link != null);

@@ -25,7 +25,7 @@ export function makeAssessmentDraftRequest(value: CareAssessment, intent: 'save'
         if (issue)
             throw Error(issue);
     }
-    const assessment = { reason: value.reason, reason_detail: value.reasonDetail, next_review_at: value.nextReviewAt, person_statement: value.personStatement, statement_source: value.statementSource, statement_source_name: value.statementSourceName, conversation_participants: value.conversationParticipants, communication_support: value.communicationSupport, information_source_summary: value.informationSourceSummary, professional_summary: value.professionalSummary, change_summary: value.changeSummary, destabilization_summary: value.destabilizationSummary, first_risk_matrix: value.firstRiskMatrix ?? undefined };
+    const assessment = { reason: value.reason, reason_detail: value.reasonDetail, next_review_at: value.nextReviewAt, person_statement: value.personStatement, statement_source: value.statementSource, statement_source_name: value.statementSourceName, conversation_participants: value.conversationParticipants, communication_support: value.communicationSupport, information_source_summary: value.informationSourceSummary, professional_summary: value.professionalSummary, change_summary: value.changeSummary, destabilization_summary: value.destabilizationSummary, first_risk_matrix: value.firstRiskMatrix ?? undefined, planning_model: value.planningModel };
     const request = { assessmentId: value.id, expectedRevision: String(value.draftRevision), payloadJson: JSON.stringify({ assessment, topics: value.topics, risks: value.risks, measures: value.measures, instrumentPacket: instrumentPacket ? structuredClone(instrumentPacket) : null, planLifecyclePacket: planLifecyclePacket ? structuredClone(planLifecyclePacket) : null }), intent };
     const error = validateAssessmentDraftRequest(request);
     if (error)
@@ -108,10 +108,14 @@ export function assertAssessmentDraftStoredRead(request: AssessmentDraftRequest,
         draftRevision?: unknown;
         status?: unknown;
         firstRiskMatrix?: unknown;
+        planningModel?: unknown;
     };
     if (!r || typeof r !== 'object' || r.assessmentId !== request.assessmentId || !Number.isSafeInteger(r.draftRevision) || Number(r.draftRevision) <= Number(request.expectedRevision) || (request.intent === 'review' ? r.status !== 'professional_review' : !['draft', 'in_progress'].includes(String(r.status))))
         throw Error('Gespeicherter Assessmentstand stimmt nicht mit der bestätigten Anfrage überein.');
-    const expectedMatrix: unknown = JSON.parse(request.payloadJson).assessment.first_risk_matrix;
+    const fields = JSON.parse(request.payloadJson).assessment;
+    const expectedMatrix: unknown = fields.first_risk_matrix;
+    if (fields.planning_model !== undefined && fields.planning_model !== r.planningModel)
+        throw Error('Das gespeicherte Pflegemodell ist noch nicht bestätigt.');
     if (expectedMatrix !== undefined && (!isCareRiskMatrix(r.firstRiskMatrix) || !sameWoundJson(expectedMatrix, r.firstRiskMatrix)))
         throw Error('Der gespeicherte Stand der Risikomatrix ist noch nicht bestätigt.');
     return { assessmentId: request.assessmentId, draftRevision: Number(r.draftRevision), status: String(r.status) };

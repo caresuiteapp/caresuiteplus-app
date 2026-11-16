@@ -161,6 +161,7 @@ export type CareAssessment = {
   topics: CareAssessmentTopic[];
   /** Absent until the database supports the matrix. Null means nothing has been entered. */
   firstRiskMatrix?: CareRiskMatrix | null;
+  planningModel?: 'atl' | 'aedl' | 'fedl' | 'roper' | 'orem' | 'henderson' | null;
   risks: CareAssessmentRisk[];
   measures: CareAssessmentMeasure[];
   evaluations: CareAssessmentEvaluation[];
