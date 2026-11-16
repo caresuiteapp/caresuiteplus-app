@@ -14,6 +14,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { calculateCareAssessmentCompleteness, createEmptyTopics } from './catalog';
+import { readCareRiskMatrix } from './firstRiskMatrix';
 
 type Row = Record<string, unknown>;
 const unavailable = <T>(): ServiceResult<T> => ({ ok: false, error: SERVICE_ERRORS.supabaseUnavailable });
@@ -79,6 +80,7 @@ function measure(row: Row): CareAssessment['measures'][number] {
 function assessment(row: Row, children: Row[][]): CareAssessment {
   const [topicRows, riskRows, measureRows, evaluationRows, events, links, versionRows] = children;
   const mappedTopics = topicRows.map(topic);
+  const firstRiskMatrix = readCareRiskMatrix(row.first_risk_matrix);
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
@@ -112,6 +114,8 @@ function assessment(row: Row, children: Row[][]): CareAssessment {
     assessorName: String(row.assessor_name_snapshot ?? '—'),
     approverName: String(row.approver_name_snapshot ?? ''),
     topics: createEmptyTopics().map((empty) => mappedTopics.find((item) => item.topicKey === empty.topicKey) ?? empty),
+    ...(firstRiskMatrix !== undefined ? { firstRiskMatrix } : {}),
+    ...(row.planning_model !== undefined ? { planningModel: row.planning_model as CareAssessment['planningModel'] } : {}),
     risks: riskRows.map(risk),
     measures: measureRows.map(measure),
     evaluations: evaluationRows.map((entry) => ({
@@ -269,6 +273,7 @@ export const careAssessmentRepository = {
         assessment: {
           reason: value.reason,
           reason_detail: value.reasonDetail,
+          planning_model: value.planningModel,
           next_review_at: value.nextReviewAt,
           person_statement: value.personStatement,
           statement_source: value.statementSource,

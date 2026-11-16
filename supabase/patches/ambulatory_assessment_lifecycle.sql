@@ -10,7 +10,7 @@ alter table care_private.assessment_lifecycle_requests enable row level security
 revoke all on care_private.assessment_lifecycle_requests from public,anon,authenticated;
 create or replace function care_private.apply_ambulatory_assessment_lifecycle(request_id uuid,payload jsonb)
 returns jsonb language plpgsql security definer set search_path='' as $$
-declare actor uuid:=public.resolve_current_profile_id();tenant uuid:=public.current_tenant_id();actor_name text;subject uuid;v public.care_assessments%rowtype;client public.clients%rowtype;previous care_private.assessment_lifecycle_requests%rowtype;action text:=payload->>'action';reason text:=payload->>'reason';detail text:=coalesce(payload->>'reasonDetail','');return_reason text:=coalesce(payload->>'returnReason','');snapshot jsonb;result jsonb;topic_key text;
+declare actor uuid:=public.resolve_current_profile_id();tenant uuid:=public.current_tenant_id();actor_name text;subject uuid;v public.care_assessments%rowtype;source_assessment public.care_assessments%rowtype;client public.clients%rowtype;previous care_private.assessment_lifecycle_requests%rowtype;action text:=payload->>'action';reason text:=payload->>'reason';detail text:=coalesce(payload->>'reasonDetail','');return_reason text:=coalesce(payload->>'returnReason','');snapshot jsonb;result jsonb;topic_key text;
 begin
  if auth.uid() is null or tenant is null or public.has_permission('pflege.assessments.manage') is not true or public.has_permission('pflege.plans.view') is not true then raise exception 'Keine Berechtigung.' using errcode='42501';end if;
  select coalesce(nullif(p.display_name,''),p.email,'Pflegefachperson') into actor_name from public.profiles p where p.id=actor and p.tenant_id=tenant and p.is_active;
@@ -26,13 +26,30 @@ begin
  end if;
  if action='create' then
   if coalesce(payload->>'assessmentId','x')<>'' or coalesce(payload->>'expectedRevision','x')<>'' or coalesce(payload->>'expectedVersion','x')<>'' or return_reason<>'' or coalesce(reason,'') not in ('initial','scheduled_review','event_triggered','hospital_return','care_level_change','other') or (reason<>'initial' and nullif(btrim(detail),'') is null) then raise exception 'Erstellungsanlass oder leere Ausgangsfassung fehlt.' using errcode='23514';end if;
+  if payload ? 'fromAssessmentId' then
+   if reason='initial' or jsonb_typeof(payload->'fromAssessmentId') is distinct from 'string' then
+    raise exception 'Der Bezug zum vorherigen Assessment ist ungültig.' using errcode='23514';
+   end if;
+   select * into source_assessment from public.care_assessments a
+    where a.id=(payload->>'fromAssessmentId')::uuid and a.tenant_id=tenant
+      and a.subject_type='client' and a.subject_id=subject
+      and a.status in ('approved','professional_review','superseded')
+    for share;
+   if source_assessment.id is null then
+    raise exception 'Vorheriges Assessment für diesen Pflegefall nicht verfügbar.' using errcode='42501';
+   end if;
+  end if;
   insert into public.care_assessments(tenant_id,subject_type,subject_id,subject_name_snapshot,variant,reason,reason_detail,status,version,assessor_profile_id,assessor_name_snapshot,created_by,updated_by)
   values(tenant,'client',subject,btrim(concat_ws(' ',client.first_name,client.last_name)),'ambulant',reason,detail,'draft',1,actor,actor_name,auth.uid(),auth.uid()) returning * into v;
   foreach topic_key in array array['cognition_communication','mobility','disease_demands','self_care','social_relationships','living_environment'] loop
    insert into public.care_assessment_topics(tenant_id,assessment_id,topic_key) values(tenant,v.id,topic_key);
   end loop;
+  if source_assessment.id is not null then
+   insert into public.care_assessment_links(tenant_id,assessment_id,entity_type,entity_id,relation,label,created_by)
+   values(tenant,v.id,'care_assessment',source_assessment.id,'previous_assessment','Vorheriges Assessment',auth.uid());
+  end if;
  else
-  if nullif(btrim(return_reason),'') is null or coalesce(reason,'x')<>'' or detail<>'' then raise exception 'Rückgabe muss ausdrücklich begründet sein.' using errcode='23514';end if;
+  if nullif(btrim(return_reason),'') is null or coalesce(reason,'x')<>'' or detail<>'' or payload ? 'fromAssessmentId' then raise exception 'Rückgabe muss ausdrücklich begründet sein.' using errcode='23514';end if;
   select * into v from public.care_assessments a where a.id=(payload->>'assessmentId')::uuid and a.tenant_id=tenant and a.subject_type='client' and a.subject_id=subject for update;
   if v.id is null or v.status<>'professional_review' then raise exception 'Nur übergebene ambulante Assessments können zurückgegeben werden.' using errcode='23514';end if;
   if (payload->>'expectedRevision')::integer is distinct from v.draft_revision or (payload->>'expectedVersion')::integer is distinct from v.version then raise exception 'Assessmentstand geändert. Neu laden.' using errcode='40001';end if;
@@ -45,6 +62,7 @@ begin
  end if;
  select * into v from public.care_assessments a where a.id=v.id;
  result:=jsonb_build_object('assessmentId',v.id,'subjectId',subject,'action',action,'draftRevision',v.draft_revision,'version',v.version,'status',v.status);
+ if source_assessment.id is not null then result:=result||jsonb_build_object('fromAssessmentId',source_assessment.id);end if;
  insert into care_private.assessment_lifecycle_requests(tenant_id,request_id,actor_id,assessment_id,payload,result) values(tenant,request_id,actor,v.id,payload,result);
  return result;
 end $$;

@@ -1,11 +1,11 @@
 import { useRouter } from 'expo-router';
 import { DedicatedListScreen } from '@/components/einzelseiten/DedicatedListScreen';
+import { CareAssessmentListScreen } from '@/screens/careAssessment';
 import {
   fetchActivityPlans,
   fetchDailyStructure,
   fetchMealPlans,
   fetchOccupancyList,
-  fetchResidentPlanning,
   fetchRoomList,
   fetchStationaerRisksList,
 } from '@/lib/stationaer/stationaerDedicatedService';
@@ -104,23 +104,7 @@ export function ActivitiesPlanningScreen() {
 }
 
 export function ResidentPlanningScreen() {
-  const router = useRouter();
-  return (
-    <DedicatedListScreen
-      title="Bewohnerplanung"
-      eyebrow="STATIONÄR · INDIVIDUELLE PLANUNG"
-      subtitle="Pflegeschwerpunkte und Reviews"
-      queryFn={fetchResidentPlanning}
-      searchKeys={['residentName', 'roomNumber', 'careFocus']}
-      getItemId={(item) => item.id}
-      onOpen={() => router.push('/stationaer/(tabs)/bewohner' as never)}
-      renderMeta={(item) => ({
-        primary: item.residentName,
-        secondary: `Zimmer ${item.roomNumber} · Fokus ${item.careFocus}`,
-        badge: `Review ${formatDate(item.nextReviewAt)}`,
-      })}
-    />
-  );
+  return <CareAssessmentListScreen subjectType="resident" openPlanning />;
 }
 
 export function StationaerRisksListScreen() {

@@ -1,5 +1,6 @@
 -- LOCAL REVIEW ONLY. NOT EXECUTED. Apply after ambulatory_plan_amendments.sql.
 -- Client measures retain IDs and created_at on general draft saves. Stationary path unchanged.
+-- Requires the matrix and model columns from 20261116121000 and 20261116123100.
 begin;
 create table if not exists care_private.assessment_write_authorizations(
  assessment_id uuid not null,transaction_key text not null,actor_id uuid not null,
@@ -39,6 +40,11 @@ BEGIN
   UPDATE public.care_assessments SET
     reason = COALESCE(p->>'reason', reason),
     reason_detail = COALESCE(p->>'reason_detail', ''),
+    first_risk_matrix = CASE
+      WHEN v.subject_type='client' AND p ? 'first_risk_matrix'
+        THEN NULLIF(p->'first_risk_matrix','null'::jsonb)
+      ELSE first_risk_matrix END,
+    planning_model = CASE WHEN p ? 'planning_model' THEN p->>'planning_model' ELSE planning_model END,
     next_review_at = NULLIF(p->>'next_review_at', '')::TIMESTAMPTZ,
     person_statement = COALESCE(p->>'person_statement', ''),
     statement_source = COALESCE(p->>'statement_source', statement_source),

@@ -7,6 +7,7 @@ import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/component
 import { useCarePlanList } from "../../hooks/useCarePlanList.native.ts";
 import { useCareRuntimePermissions as usePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
 import { fetchCarePlanList } from '@/lib/pflege/carePlanListService';
+import { spacing } from '@/theme';
 import { CarePermissionStatus } from "./CarePermissionStatus.native.tsx";
 /** Arbeitsplan 053 — /pflege/planung */
 export function PflegeplanungListScreen() {
@@ -16,27 +17,37 @@ export function PflegeplanungListScreen() {
     const isReadOnly = !can('pflege.plans.manage');
     const canCreate = can('pflege.plans.manage');
     const list = useCarePlanList();
+    const assessmentAction = can('pflege.plans.view') ? (<PremiumButton title="Pflegeassessment öffnen" variant="secondary" size="sm" onPress={() => {
+            if (can('pflege.plans.view'))
+                router.push('/pflege/sis' as never);
+        }}/>) : null;
     if (permissions.loading || permissions.error) {
         return (<ScreenShell title="Pflegeplanung" scroll={false}>
         <CarePermissionStatus state={permissions}/>
       </ScreenShell>);
     }
     if (list.loading && list.allItems.length === 0) {
-        return (<ScreenShell title="Pflegeplanung" subtitle="Wird geladen…" scroll={false}>
+        return (<ScreenShell title="Pflegeplanung" rightSlot={assessmentAction} scroll={false}>
         <LoadingState message="Pflegepläne werden geladen…"/>
       </ScreenShell>);
     }
     if (list.error && list.allItems.length === 0) {
-        return (<ScreenShell title="Pflegeplanung" subtitle="Fehler" scroll={false}>
+        return (<ScreenShell title="Pflegeplanung" rightSlot={assessmentAction} scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh}/>
       </ScreenShell>);
     }
-    return (<ScreenShell title="Pflegeplanung" subtitle={`Pflegepläne und Maßnahmen · ${roleLabel ?? 'Demo'}${isReadOnly ? ' · Lesemodus' : ''}`} rightSlot={canCreate ? (<PremiumButton title="+ Neu" size="sm" onPress={() => { if (list.isCurrent() && can('pflege.plans.manage'))
-            router.push('/pflege/planung/new' as never); }}/>) : null} scroll={false}>
+    return (<ScreenShell title="Pflegeplanung" subtitle={`Pflegepläne und Maßnahmen · ${roleLabel ?? 'Demo'}${isReadOnly ? ' · Lesemodus' : ''}`} rightSlot={<View style={styles.actions}>
+          {assessmentAction}
+          {canCreate ? <PremiumButton title="Pflegeplan anlegen" size="sm" onPress={() => { if (list.isCurrent() && can('pflege.plans.manage'))
+                router.push('/pflege/planung/new' as never); }}/> : null}
+        </View>} scroll={false}>
       <View style={styles.content}>
         {list.isEmpty && !list.hasActiveFilters ? (<EmptyState title="Keine Pflegepläne" message="Es sind noch keine Pflegepläne angelegt."/>) : (<CarePlansListView list={list}/>)}
       </View>
     </ScreenShell>);
 }
 void fetchCarePlanList;
-const styles = StyleSheet.create({ content: { flex: 1 } });
+const styles = StyleSheet.create({
+    content: { flex: 1 },
+    actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+});

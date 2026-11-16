@@ -6,6 +6,7 @@ import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/component
 import { useCarePlanList } from '@/hooks/useCarePlanList.web';
 import { useCareRuntimePermissions as usePermissions } from '@/hooks/pflege/useCareRuntimePermissions.web';
 import { fetchCarePlanList } from '@/lib/pflege/carePlanListService';
+import { spacing } from '@/theme';
 import { CarePermissionStatus } from './CarePermissionStatus.web';
 
 /** Arbeitsplan 053 — /pflege/planung */
@@ -16,6 +17,11 @@ export function PflegeplanungListScreen() {
   const isReadOnly = !can('pflege.plans.manage');
   const canCreate = can('pflege.plans.manage');
   const list = useCarePlanList();
+  const assessmentAction = can('pflege.plans.view') ? (
+    <PremiumButton title="Pflegeassessment öffnen" variant="secondary" size="sm" onPress={() => {
+      if (can('pflege.plans.view')) router.push('/pflege/sis' as never);
+    }} />
+  ) : null;
 
   if (permissions.loading || permissions.error) {
     return (
@@ -27,7 +33,7 @@ export function PflegeplanungListScreen() {
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <ScreenShell title="Pflegeplanung" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Pflegeplanung" rightSlot={assessmentAction} scroll={false}>
         <LoadingState message="Pflegepläne werden geladen…" />
       </ScreenShell>
     );
@@ -35,7 +41,7 @@ export function PflegeplanungListScreen() {
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <ScreenShell title="Pflegeplanung" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Pflegeplanung" rightSlot={assessmentAction} scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
       </ScreenShell>
     );
@@ -46,13 +52,14 @@ export function PflegeplanungListScreen() {
       title="Pflegeplanung"
       subtitle={`Pflegepläne und Maßnahmen · ${roleLabel ?? 'Demo'}${isReadOnly ? ' · Lesemodus' : ''}`}
       rightSlot={
-        canCreate ? (
-          <PremiumButton
-            title="+ Neu"
+        <View style={styles.actions}>
+          {assessmentAction}
+          {canCreate ? <PremiumButton
+            title="Pflegeplan anlegen"
             size="sm"
             onPress={() => { if (list.isCurrent() && can('pflege.plans.manage')) router.push('/pflege/planung/new' as never); }}
-          />
-        ) : null
+          /> : null}
+        </View>
       }
       scroll={false}
     >
@@ -69,4 +76,7 @@ export function PflegeplanungListScreen() {
 
 void fetchCarePlanList;
 
-const styles = StyleSheet.create({ content: { flex: 1 } });
+const styles = StyleSheet.create({
+  content: { flex: 1 },
+  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+});
