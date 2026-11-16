@@ -7,10 +7,13 @@ export type CarePlanTask = {
   frequency: string;
   status: WorkflowStatus;
   category?: string;
+  description?: string;
   goal?: string;
   intervention?: string;
   timing?: string;
   responsibleRole?: string;
+  personContribution?: string;
+  relativesContribution?: string;
   warningSigns?: string;
   escalationPath?: string;
   evaluationCriteria?: string;

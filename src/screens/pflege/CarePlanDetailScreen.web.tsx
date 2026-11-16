@@ -118,7 +118,7 @@ export function CarePlanDetailScreen() {
             label="Gültig bis"
             value={plan.validUntil ? formatDate(plan.validUntil) : 'Unbefristet'}
           />
-          <DetailInfoRow label="Zusammenfassung" value={plan.summary} />
+          <DetailInfoRow label="Pflegeprobleme und Unterstützungsbedarf" value={plan.summary} />
           <DetailInfoRow label="Pflegeziele" value={plan.goals || '—'} />
           <DetailInfoRow label="Ressourcen" value={plan.resources || '—'} />
           <DetailInfoRow label="Risiken" value={plan.risks || '—'} />
@@ -137,7 +137,7 @@ export function CarePlanDetailScreen() {
           <DetailInfoRow label="Aktive Verordnungen" value={String(plan.activeOrderCount)} />
         </SectionPanel>
 
-        <SectionPanel title="Pflegeaufgaben" subtitle={`${plan.tasks.length} Aufgaben`}>
+        <SectionPanel title="Individuelle Maßnahmen" subtitle={`${plan.tasks.length} Maßnahmen`}>
           {plan.tasks.length === 0 ? (
             <EmptyState title="Keine Aufgaben" message="Diesem Plan sind keine Aufgaben zugeordnet." />
           ) : (
@@ -152,8 +152,14 @@ export function CarePlanDetailScreen() {
                   />
                 </View>
                 <Text style={styles.taskFreq}>{task.frequency}</Text>
-                {task.goal ? <Text style={styles.taskText}>Ziel: {task.goal}</Text> : null}
-                {task.intervention ? <Text style={styles.taskText}>Durchführung: {task.intervention}</Text> : null}
+                {task.description && task.description !== task.intervention ? <DetailInfoRow label="Pflegeproblem oder Unterstützungsbedarf" value={task.description} /> : null}
+                {task.personContribution ? <DetailInfoRow label="Eigenbeitrag der Person" value={task.personContribution} /> : null}
+                {task.goal ? <DetailInfoRow label="Pflegeziel" value={task.goal} /> : null}
+                {task.intervention ? <DetailInfoRow label="Durchführung" value={task.intervention} /> : null}
+                {task.responsibleRole ? <DetailInfoRow label="Zuständigkeit" value={task.responsibleRole} /> : null}
+                {task.relativesContribution ? <DetailInfoRow label="Unterstützung durch Angehörige" value={task.relativesContribution} /> : null}
+                {task.evaluationCriteria ? <DetailInfoRow label="Kriterium für die Evaluation" value={task.evaluationCriteria} /> : null}
+                {task.nextEvaluationAt ? <DetailInfoRow label="Nächste Evaluation" value={formatDate(task.nextEvaluationAt)} /> : null}
                 {task.warningSigns ? <Text style={styles.taskWarning}>Warnkriterien: {task.warningSigns}</Text> : null}
                 {task.escalationPath ? <Text style={styles.taskWarning}>Eskalation: {task.escalationPath}</Text> : null}
               </PremiumCard>
@@ -204,6 +210,5 @@ const styles = StyleSheet.create({
   },
   taskLabel: { ...typography.bodyStrong, flex: 1 },
   taskFreq: { ...typography.caption, color: colors.cyan },
-  taskText: { ...typography.body, color: colors.textSecondary, marginTop: 4 },
   taskWarning: { ...typography.caption, color: colors.warning, marginTop: 4 },
 });

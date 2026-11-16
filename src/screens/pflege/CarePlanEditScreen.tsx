@@ -67,11 +67,14 @@ export function CarePlanEditScreen() {
       items: plan.tasks.map((task, index) => ({
         title: task.label,
         category: task.category,
+        description: task.description,
         goal: task.goal,
         intervention: task.intervention,
         frequency: task.frequency,
         timing: task.timing,
         responsibleRole: task.responsibleRole,
+        personContribution: task.personContribution,
+        relativesContribution: task.relativesContribution,
         warningSigns: task.warningSigns,
         escalationPath: task.escalationPath,
         evaluationCriteria: task.evaluationCriteria,
@@ -103,8 +106,8 @@ export function CarePlanEditScreen() {
         <FormScreenHero eyebrow="PFLEGE · FORTSCHREIBUNG" title="Pflegeplan fachlich fortschreiben" meta="Jedes Speichern erzeugt eine neue unveränderbare Version" icon="✏️" formMode="edit" accentColor={colors.cyan} />
         <SectionPanel title="Pflegefachliche Planung">
           <PremiumInput label="Bezeichnung *" value={title} onChangeText={setTitle} />
-          <PremiumInput label="Versorgungssituation *" value={summary} onChangeText={setSummary} multiline />
-          <PremiumInput label="Ressourcen" value={resources} onChangeText={setResources} multiline />
+          <PremiumInput label="Pflegeprobleme und Unterstützungsbedarf *" value={summary} onChangeText={setSummary} multiline />
+          <PremiumInput label="Fähigkeiten und Ressourcen" value={resources} onChangeText={setResources} multiline />
           <PremiumInput label="Risiken" value={risks} onChangeText={setRisks} multiline />
           <PremiumInput label="Pflegeziele *" value={goals} onChangeText={setGoals} multiline />
           <PremiumInput label="Gültig bis (optional)" value={validUntil} onChangeText={setValidUntil} />

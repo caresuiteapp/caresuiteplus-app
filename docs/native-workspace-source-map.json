@@ -5851,7 +5851,7 @@
     {
       "web": "src/screens/pflege/CarePlanDetailScreen.web.tsx",
       "native": "src/screens/pflege/CarePlanDetailScreen.native.tsx",
-      "sourceHash": "2c0f52e46592181d864ccf20d3d6ea677943035efa8c6e9d64af7879ad0d2154",
+      "sourceHash": "03a9f0b6ccd2006c5b953309f249945f87f85d150e52efdd3867a7e3d80f8712",
       "environment": []
     },
     {
