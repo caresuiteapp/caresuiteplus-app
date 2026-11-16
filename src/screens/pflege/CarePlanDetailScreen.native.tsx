@@ -1,5 +1,6 @@
 // Generated native presentation from src/screens/pflege/CarePlanDetailScreen.web.tsx. Update through scripts/port-native-workspaces.mjs.
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
+import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useFlowRouter as useRouter } from "../../hooks/useFlowRouter.ts";
@@ -16,6 +17,8 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
+import { buildCarePlanDocument } from '@/lib/pflege/carePlanDocument';
+import { printCarePlan } from "../../lib/pflege/printCarePlan.native.ts";
 import { colors, spacing, typography } from '@/theme';
 function formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('de-DE', {
@@ -48,6 +51,7 @@ export function CarePlanDetailScreen() {
     const tenantId = useServiceTenantId();
     const isReadOnly = !can('pflege.plans.manage');
     const roleKey = profile?.roleKey ?? 'nurse';
+    const [printError, setPrintError] = useState('');
     const { data: plan, vitals, loading, error, refresh, notFound, isCurrent, } = useCarePlanDetail(id);
     if (loading || permissionsLoading) {
         return (<ScreenShell title="Pflegeplan" subtitle="Wird geladen…">
@@ -68,12 +72,26 @@ export function CarePlanDetailScreen() {
     if (typeof id !== 'string' || plan.id !== id || !tenantId || plan.tenantId !== tenantId) {
         return <ScreenShell title="Pflegeplan"><ErrorState message="Der geladene Pflegeplan gehört nicht zur aktuellen Auswahl. Bitte neu laden." onRetry={refresh}/></ScreenShell>;
     }
+    const savedPlan = plan;
+    async function printDocument() {
+        if (!isCurrent() || !can('pflege.plans.view'))
+            return;
+        setPrintError('');
+        try {
+            await printCarePlan(buildCarePlanDocument(savedPlan));
+        }
+        catch (error) {
+            setPrintError(error instanceof Error ? error.message : 'Der Dokumentationsbogen konnte nicht geöffnet werden.');
+        }
+    }
     return (<ScreenShell title={plan.title} subtitle={`${plan.clientName} · ${roleLabel ?? 'Demo'}`} rightSlot={<View style={styles.headerActions}>
+          <PremiumButton title="Dokumentationsbogen drucken" size="sm" variant="secondary" onPress={printDocument}/>
           {!isReadOnly ? (<PremiumButton title="Fortschreiben" size="sm" onPress={() => { if (isCurrent() && can('pflege.plans.manage'))
                 router.push(`/pflege/planung/${plan.id}/edit` as never); }}/>) : null}
           <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()}/>
         </View>}>
       <CarePlanDetailHero plan={plan} roleKey={roleKey} isReadOnly={isReadOnly}/>
+      {printError ? <ErrorState message={printError}/> : null}
 
       {isReadOnly ? (<LockedActionBanner title="Lesemodus" message="Sie können Pflegepläne einsehen, aber nicht bearbeiten." roleLabel={roleLabel}/>) : null}
 
@@ -108,6 +126,7 @@ export function CarePlanDetailScreen() {
                 </View>
                 <Text style={styles.taskFreq}>{task.frequency}</Text>
                 {task.description && task.description !== task.intervention ? <DetailInfoRow label="Pflegeproblem oder Unterstützungsbedarf" value={task.description}/> : null}
+                {task.category ? <DetailInfoRow label="Pflegemodell und Bereich" value={task.category}/> : null}
                 {task.personContribution ? <DetailInfoRow label="Eigenbeitrag der Person" value={task.personContribution}/> : null}
                 {task.goal ? <DetailInfoRow label="Pflegeziel" value={task.goal}/> : null}
                 {task.intervention ? <DetailInfoRow label="Durchführung" value={task.intervention}/> : null}
@@ -115,6 +134,7 @@ export function CarePlanDetailScreen() {
                 {task.relativesContribution ? <DetailInfoRow label="Unterstützung durch Angehörige" value={task.relativesContribution}/> : null}
                 {task.evaluationCriteria ? <DetailInfoRow label="Kriterium für die Evaluation" value={task.evaluationCriteria}/> : null}
                 {task.nextEvaluationAt ? <DetailInfoRow label="Nächste Evaluation" value={formatDate(task.nextEvaluationAt)}/> : null}
+                {task.notes ? <DetailInfoRow label="Individuelle Bemerkungen" value={task.notes}/> : null}
                 {task.warningSigns ? <Text style={styles.taskWarning}>Warnkriterien: {task.warningSigns}</Text> : null}
                 {task.escalationPath ? <Text style={styles.taskWarning}>Eskalation: {task.escalationPath}</Text> : null}
               </PremiumCard>)))}
@@ -126,7 +146,7 @@ export function CarePlanDetailScreen() {
           {vitals.length === 0 ? (<EmptyState title="Vitalwerte separat prüfen" message="Diese Planansicht lädt keine Vitalmessungen. Vorhandene Messungen und fällige Kontrollen prüfen Sie im Bereich Vitalwerte."/>) : (vitals.map((reading) => (<VitalReadingListCard key={reading.id} reading={reading} onPress={() => router.push(`/pflege/vitalwerte/${reading.id}` as never)}/>)))}
         </SectionPanel>
 
-        <PflegeCrossModuleLinksPanel context="care-plan"/>
+        <PflegeCrossModuleLinksPanel context="care-plan" title="Leistungsübersicht" scope={{ clientId: plan.clientId, carePlanId: plan.id, can: permission => isCurrent() && can(permission) }}/>
       </ScrollView>
     </ScreenShell>);
 }
