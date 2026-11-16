@@ -7,9 +7,12 @@ import { PlanEvaluationPanel } from "./PlanEvaluationPanel.native.tsx";
 import { useCareRuntimePermissions as usePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
 import { careAssessmentRuntimeAccess, assertCareAssessmentRuntimeReadAccess } from "../../lib/careAssessment/careAssessmentRuntimeAccess.native.ts";
 import { ContinenceProfilePanel } from "./ContinenceProfilePanel.native.tsx";
+import { AssessmentRiskMatrix } from './AssessmentRiskMatrix';
+import { AssessmentPlanTopicContext } from './AssessmentPlanTopicContext';
 import { assessmentReasonChoices, assertAssessmentLifecycleReceipt, type AssessmentLifecycleRequest } from '@/lib/careAssessment/assessmentLifecycleDomain';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { sameWoundJson, woundUuid } from '@/lib/pflege/woundCareDomain';
+import { matchesSearchQuery } from '@/lib/search/tenantSearchMatch';
 import { createCareAssessmentReadBoundary, beginCareAssessmentRead, acceptCareAssessmentQueryRead, captureCareAssessmentPendingRead, acceptCareAssessmentConfirmedRead, isCurrentCareAssessmentReadEnvelope, type CareAssessmentReadScope, type CareAssessmentReadBoundary, type CareAssessmentReadEnvelope, type CareAssessmentPendingRead, type CareAssessmentReadTicket } from "../../lib/careAssessment/careAssessmentReadBoundary.native.ts";
 import { useMedicationSubmission } from "../../hooks/useMedicationSubmission.native.ts";
 import { makeAssessmentDraftRequest, assertAssessmentDraftStoredRead, type AssessmentDraftRequest } from "../../lib/careAssessment/assessmentDraftRequestDomain.native.ts";
@@ -44,19 +47,28 @@ type Selectable = {
     careLevel?: string | null;
 };
 const sections = [
-    { key: 'person', label: 'Person & Originalton', short: '01' },
-    { key: 'topics', label: 'Sechs Themenfelder', short: '02' },
-    { key: 'mental', label: 'Psychosozial & Schutz', short: '03' },
-    { key: 'palliative', label: 'Palliativ & besondere Lebenslagen', short: '04' },
-    { key: 'coordination', label: 'Beratung & Koordination', short: '05' },
-    { key: 'risks', label: 'Risikoeinschätzungen', short: '06' },
-    { key: 'measures', label: 'Maßnahmenplanung', short: '07' },
-    { key: 'quality', label: 'Prüfung & Freigabe', short: '08' },
-    { key: 'evaluation', label: 'Evaluation', short: '09' },
-    { key: 'history', label: 'Verlauf & Versionen', short: '10' },
+    { key: 'person', label: 'Gespräch und Wünsche' },
+    { key: 'topics', label: 'Themenfelder' },
+    { key: 'risks', label: 'Risikomatrix' },
+    { key: 'measures', label: 'Maßnahmenplanung' },
+    { key: 'quality', label: 'Planprüfung und Pflegevisite' },
+    { key: 'evaluation', label: 'Evaluation' },
+    { key: 'history', label: 'Verlauf und Versionen' },
+    { key: 'mental', label: 'Psychosozial und Schutz' },
+    { key: 'palliative', label: 'Palliativversorgung' },
+    { key: 'coordination', label: 'Beratung und Koordination' },
 ] as const;
 type Section = (typeof sections)[number]['key'];
 const inDays = (days: number) => new Date(Date.now() + days * 86400000).toISOString();
+const followUpReasons = {
+    care_visit: { reason: 'scheduled_review', label: 'Pflegevisite' },
+    case_conference: { reason: 'event_triggered', label: 'Fallbesprechung' },
+} as const;
+const reasonOptions = [
+    ...assessmentReasonChoices.map(option => option.key === 'initial' ? { ...option, label: 'Erstgespräch' } : option),
+    { key: 'care_visit', label: followUpReasons.care_visit.label },
+    { key: 'case_conference', label: followUpReasons.case_conference.label },
+];
 function CreateClient() {
     const tenantId = useServiceTenantId();
     const { profile } = useAuth();
@@ -78,12 +90,18 @@ function CreateForm({ subjectType, items, loading, error }: {
     const router = useRouter();
     const tenantId = useServiceTenantId();
     const { profile } = useAuth();
+    const { clientId, fromAssessmentId } = useLocalSearchParams<{
+        clientId?: string;
+        fromAssessmentId?: string;
+    }>();
     const [subjectId, setSubjectId] = useState('');
+    const [clientSearch, setClientSearch] = useState('');
     const [saving, setSaving] = useState(false);
     const [actionError, setActionError] = useState<string | null>(null);
     const resident = subjectType === 'resident';
     const [reason, setReason] = useState('');
     const [reasonDetail, setReasonDetail] = useState('');
+    const [selectedFromLink, setSelectedFromLink] = useState(false);
     const [createdId, setCreatedId] = useState<string | null>(null);
     const confirmedId = useRef<string | null>(null);
     const creation = useMedicationSubmission<AssessmentLifecycleRequest>(!resident && (!!subjectId || !!reason || !!reasonDetail), async (requestId, payload) => {
@@ -97,18 +115,36 @@ function CreateForm({ subjectType, items, loading, error }: {
     const creationLocked = !resident && (creation.locked || !!createdId);
     const base = resident ? '/stationaer/assessment' : '/pflege/sis';
     const canManage = hasPermission(profile?.roleKey, resident ? 'stationaer.assessments.manage' : 'pflege.assessments.manage');
-    useEffect(() => { if (resident && !subjectId && items[0])
-        setSubjectId(items[0].id); }, [items, subjectId, resident]);
+    useEffect(() => {
+        if (resident && !subjectId && items[0])
+            setSubjectId(items[0].id);
+        if (resident || selectedFromLink || loading || !clientId)
+            return;
+        if (items.some(item => item.id === clientId))
+            setSubjectId(clientId);
+        setSelectedFromLink(true);
+    }, [clientId, items, loading, resident, selectedFromLink, subjectId]);
+    const searchTerms = clientSearch.trim().split(/[\s,]+/).filter(Boolean);
+    const visibleClients = items.filter(item => item.id === subjectId ||
+        searchTerms.every(term => matchesSearchQuery(term, item.firstName, item.lastName)));
+    const followUpReason = reason === 'care_visit' || reason === 'case_conference' ? followUpReasons[reason] : null;
+    const linkedPriorAssessment = subjectId === clientId && woundUuid(fromAssessmentId) ? fromAssessmentId : undefined;
     async function create() {
-        if (!tenantId || !subjectId || creationLocked)
+        const selected = items.find(item => item.id === subjectId);
+        if (!tenantId || !selected || creationLocked || !canManage)
             return;
         if (!resident) {
-            await creation.submit({ action: 'create', subjectId, assessmentId: '', expectedRevision: '', expectedVersion: '', reason, reasonDetail, returnReason: '' });
+            if (reason !== 'initial' && !reasonDetail.trim())
+                return;
+            await creation.submit({
+                action: 'create', subjectId, assessmentId: '', expectedRevision: '', expectedVersion: '',
+                reason: followUpReason?.reason ?? reason,
+                reasonDetail: followUpReason ? `${followUpReason.label} · ${reasonDetail.trim()}` : reasonDetail.trim(),
+                returnReason: '',
+                ...(reason !== 'initial' && linkedPriorAssessment ? { fromAssessmentId: linkedPriorAssessment } : {}),
+            });
             return;
         }
-        const selected = items.find((item) => item.id === subjectId);
-        if (!selected)
-            return;
         setSaving(true);
         const result = await createCareAssessment(tenantId, {
             subjectType,
@@ -133,19 +169,20 @@ function CreateForm({ subjectType, items, loading, error }: {
       {!loading && !items.length ? (<EmptyState title={resident ? 'Keine aktive Bewohnerin oder kein aktiver Bewohner' : 'Kein aktiver Pflegefall'} message={resident
                 ? 'Vorher muss eine Person im stationären Fachbereich aufgenommen werden.'
                 : 'Die Auswahl zeigt ausschließlich Personen mit aktiver Pflege-Zuordnung. Assist-Klient:innen werden nicht übernommen.'}/>) : (<SectionPanel title={resident ? 'Bewohner:in' : 'Klient:in'}>
-          <InfoBanner variant="info" title={resident ? 'Stationärer Aufnahmebestand' : 'Eigenständiger Pflege-Klientenstamm'} message={resident
-                ? 'Es werden ausschließlich aktive Bewohner:innen angeboten.'
-                : 'Es werden ausschließlich ausdrücklich in Pflege aufgenommene Personen angeboten. Keine Assist-Übernahme.'}/>
-          <FilterChipGroup wrap options={items.map((item) => ({
+          {!resident ? <PremiumInput label="Pflegeklient:innen suchen" value={clientSearch} onChangeText={setClientSearch} editable={!creationLocked}/> : null}
+          <FilterChipGroup wrap options={visibleClients.map(item => ({
                 key: item.id,
                 label: `${item.lastName}, ${item.firstName}${item.careLevel ? ` · ${item.careLevel}` : ''}`,
-            }))} value={subjectId} onChange={(next) => { if (!creationLocked)
-            setSubjectId(next); }}/>
-          {!resident ? <><FilterChipGroup wrap options={[...assessmentReasonChoices]} value={reason} onChange={(next) => { if (!creationLocked)
-            setReason(next); }}/><PremiumInput label="Konkreter Anlass der Erhebung" value={reasonDetail} onChangeText={setReasonDetail} multiline maxLength={2000} editable={!creationLocked}/></> : null}
-          <PremiumInput label={resident ? "Verantwortliche Pflegefachperson" : "Dokumentierende Person"} value={profile?.displayName ?? ''} editable={false}/>
-          <PremiumButton title="Pflegeprozess starten" disabled={!subjectId || !canManage || saving || creationLocked || (!resident && !reason)} loading={saving || creation.busy} onPress={create}/>
+            }))} value={subjectId} onChange={creationLocked ? undefined : setSubjectId}/>
+          {!visibleClients.length ? <Text style={styles.fieldCaption}>Keine passenden Pflegefälle gefunden.</Text> : null}
+          <PremiumInput label={resident ? 'Verantwortliche Pflegefachperson' : 'Dokumentierende Person'} value={profile?.displayName ?? ''} editable={false}/>
         </SectionPanel>)}
+      {!resident && subjectId && !createdId ? (<SectionPanel title="Gesprächsanlass">
+          {linkedPriorAssessment && reason !== 'initial' ? <Text style={styles.check}>Der Folgeentwurf wird mit dem vorherigen Assessment verknüpft.</Text> : null}
+          <FilterChipGroup wrap options={reasonOptions} value={reason} onChange={creationLocked ? undefined : setReason}/>
+          <PremiumInput label={reason === 'initial' ? 'Anlass und Hintergrund' : 'Was hat das Gespräch ausgelöst? *'} value={reasonDetail} onChangeText={setReasonDetail} multiline maxLength={followUpReason ? 1978 : 2000} editable={!creationLocked}/>
+        </SectionPanel>) : null}
+      {!createdId && !loading && items.length ? (<PremiumButton title="Pflegeassessment als Entwurf anlegen" disabled={!subjectId || !canManage || saving || creationLocked || (!resident && (!reason || (reason !== 'initial' && !reasonDetail.trim())))} loading={saving || creation.busy} onPress={create}/>) : null}
     </ScreenShell>);
 }
 export function CareAssessmentWorkspaceScreen({ subjectType, mode }: {
@@ -167,9 +204,9 @@ function AmbulantRuntimeWorkspace() {
     const mentalAccess = { canRead: runtimeAccess.canRead && permissions.can('pflege.risks.view') && permissions.can('office.clients.view_sensitive'), canWrite: runtimeAccess.canManage && permissions.can('pflege.risks.manage') && permissions.can('office.clients.view_sensitive'), canRelease: runtimeAccess.canManage && permissions.can('pflege.risks.manage') && permissions.can('pflege.audit.view') && permissions.can('office.clients.view_sensitive'), canReview: runtimeAccess.canManage && permissions.can('pflege.documentation.sign') && permissions.can('pflege.audit.view') && permissions.can('office.clients.view_sensitive') };
     const palliativeAccess = { canRead: runtimeAccess.canRead && permissions.can('pflege.orders.view') && permissions.can('office.documents.view') && permissions.can('office.clients.view_sensitive'), canWrite: runtimeAccess.canManage && permissions.can('pflege.orders.manage') && permissions.can('office.documents.view') && permissions.can('office.clients.view_sensitive'), canRelease: runtimeAccess.canManage && permissions.can('pflege.orders.manage') && permissions.can('pflege.audit.view') && permissions.can('office.documents.view') && permissions.can('office.clients.view_sensitive'), canReview: runtimeAccess.canManage && permissions.can('pflege.documentation.sign') && permissions.can('pflege.audit.view') && permissions.can('office.documents.view') && permissions.can('office.clients.view_sensitive') };
     const coordinationAccess = { canRead: runtimeAccess.canRead && permissions.can('beratung.cases.view') && permissions.can('office.appointments.view') && permissions.can('office.documents.view') && permissions.can('communication.view_center') && permissions.can('communication.view_client_threads') && permissions.can('office.clients.view_sensitive'), canWrite: runtimeAccess.canManage && permissions.can('pflege.orders.manage') && permissions.can('beratung.cases.view') && permissions.can('office.appointments.view') && permissions.can('office.documents.view') && permissions.can('communication.view_center') && permissions.can('communication.view_client_threads') && permissions.can('office.clients.view_sensitive'), canRelease: runtimeAccess.canManage && permissions.can('pflege.orders.manage') && permissions.can('pflege.audit.view') && permissions.can('beratung.cases.view') && permissions.can('office.documents.view') && permissions.can('communication.view_client_threads') && permissions.can('office.clients.view_sensitive'), canReview: runtimeAccess.canManage && permissions.can('pflege.documentation.sign') && permissions.can('pflege.audit.view') && permissions.can('beratung.cases.view') && permissions.can('office.documents.view') && permissions.can('communication.view_client_threads') && permissions.can('office.clients.view_sensitive') };
-    return <Workspace subjectType="client" runtimeAccess={runtimeAccess} mentalAccess={mentalAccess} palliativeAccess={palliativeAccess} coordinationAccess={coordinationAccess}/>;
+    return <Workspace subjectType="client" runtimeAccess={runtimeAccess} mentalAccess={mentalAccess} palliativeAccess={palliativeAccess} coordinationAccess={coordinationAccess} canReadReports={permissions.can('pflege.documentation.view')} canWriteReports={permissions.can('pflege.documentation.create')}/>;
 }
-function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess, coordinationAccess }: {
+function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess, coordinationAccess, canReadReports, canWriteReports }: {
     subjectType: CareAssessmentSubjectType;
     runtimeAccess?: ReturnType<typeof careAssessmentRuntimeAccess>;
     mentalAccess?: {
@@ -190,9 +227,12 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
         canRelease: boolean;
         canReview: boolean;
     };
+    canReadReports?: boolean;
+    canWriteReports?: boolean;
 }) {
-    const { id } = useLocalSearchParams<{
+    const { id, section: requestedSection } = useLocalSearchParams<{
         id?: string;
+        section?: string;
     }>();
     const router = useRouter();
     const tenantId = useServiceTenantId();
@@ -204,7 +244,9 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
     const evaluationLeave = useRef<() => Promise<boolean>>(async () => true);
     const navigationAlive = useRef(true), readBoundary = useRef<CareAssessmentReadBoundary | null>(null), queryAttempt = useRef<CareAssessmentQueryAttempt | null>(null), lastSavedPlan = useRef<CareAssessment | null>(null);
     useEffect(() => { navigationAlive.current = true; return () => { navigationAlive.current = false; readBoundary.current = null; queryAttempt.current = null; }; }, []);
-    const [section, setSection] = useState<Section>('person');
+    const [section, setSection] = useState<Section>(() => sections.find(item => item.key === requestedSection)?.key ?? 'person');
+    const [measureTopic, setMeasureTopic] = useState('all');
+    const [riskToAdd, setRiskToAdd] = useState('');
     const qualityNavigation = useRef({ leaving: false, active: false, instrumentLeave: null as (() => Promise<boolean>) | null, planLeave: null as (() => Promise<boolean>) | null, pathLeave: null as (() => Promise<boolean>) | null, path: { busy: false, dirty: false, uncertain: false } as AssessmentPathPhase, instrument: null as {
             loading: boolean;
             dirty: boolean;
@@ -317,7 +359,7 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
         throw Error('Aktuellen Pflegeplan-Lesestand erneut bestätigen.'); const published = acceptCareAssessmentConfirmedRead(boundary, ticket, provenance, loaded, current.context); const accepted = confirmCareAssessmentDraftWrite(loaded, captured, current.context); readBoundary.current = published.boundary; query.setData(published.envelope); setBaseline(accepted.baseline); setValue(accepted.value); setNeedsReload(false); }
     async function reloadConfirmedDraft() { const pending = pendingDraft.current; if (!pending)
         throw Error('Ursprüngliche bestätigte Schreibanfrage fehlt. Der Formularstand bleibt erhalten.'); assertCurrentReadContext(pending.context); const ticket = currentReadTicket(); const loaded = await fetchCareAssessment(pending.context.tenantId, pending.context.assessmentId, pending.context.subjectType, pending.context.roleKey as NonNullable<typeof profile>['roleKey']); assertCurrentReadContext(pending.context); if (!loaded.ok)
-        throw Error(loaded.error); assertAssessmentDraftStoredRead(pending.request, { assessmentId: loaded.data.id, draftRevision: loaded.data.draftRevision, status: loaded.data.status }); const current = workspaceState.current; if (!sameDraftContext(pending.context, current.context) || !sameWoundJson(current.value, pending.editable) || !sameWoundJson(current.baseline, pending.baseline))
+        throw Error(loaded.error); assertAssessmentDraftStoredRead(pending.request, { assessmentId: loaded.data.id, draftRevision: loaded.data.draftRevision, status: loaded.data.status, firstRiskMatrix: loaded.data.firstRiskMatrix }); const current = workspaceState.current; if (!sameDraftContext(pending.context, current.context) || !sameWoundJson(current.value, pending.editable) || !sameWoundJson(current.baseline, pending.baseline))
         throw Error('Ursprünglicher Schreib- oder Formularbezug inzwischen geändert. Bestätigten Stand gesondert laden.'); acceptConfirmed(loaded.data, pending.context, ticket, pending.provenance); }
     const submission = useMedicationSubmission<AssessmentDraftRequest>(dirty || instrumentState.dirty || planState.dirty || pathPhase.dirty || pathPhase.uncertain || retainedPathJournal, async (requestId, payload, replay) => {
         const current = workspaceState.current;
@@ -456,7 +498,10 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
     function addRisk() {
         if (!value)
             return;
-        const item = CARE_RISK_CATALOG.find((candidate) => !value.risks.some((risk) => risk.riskKey === candidate.key)) ?? CARE_RISK_CATALOG[0];
+        const item = CARE_RISK_CATALOG.find(candidate => candidate.key === riskToAdd && !value.risks.some(risk => risk.riskKey === candidate.key));
+        if (!item)
+            return;
+        setRiskToAdd('');
         patch({ risks: [...value.risks, {
                     riskKey: item.key, state: 'unclear', urgency: 'timely', evidence: '', protectiveFactors: '',
                     professionalRationale: '', counselingProvided: '', personDecision: '', refusalDocumented: false,
@@ -464,13 +509,13 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
                     nextReviewAt: resident ? inDays(30) : null,
                 }] });
     }
-    function addMeasure() {
+    function addMeasure(topic: CareAssessmentTopicKey | null = null) {
         if (!value)
             return;
         const risk = resident ? value.risks.find((item) => item.state === 'present' || item.state === 'unclear') : undefined;
         patch({ measures: [...value.measures, {
                     title: risk ? `Maßnahme: ${getRiskLabel(risk.riskKey)}` : 'Neue Pflegemaßnahme',
-                    relatedTopicKey: null, relatedRiskKey: risk?.riskKey ?? null, personalGoal: '', intervention: '',
+                    relatedTopicKey: topic, relatedRiskKey: risk?.riskKey ?? null, personalGoal: '', intervention: '',
                     timing: '', frequency: '', responsibleRole: resident ? 'Pflegefachperson' : '', personContribution: '',
                     relativesContribution: '', warningSigns: '', escalationPath: '', evaluationCriteria: '',
                     nextEvaluationAt: resident ? inDays(30) : null, status: 'planned',
@@ -580,6 +625,12 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
             return resident ? 'Wohnen und Häuslichkeit' : 'Haushaltsführung';
         return CARE_ASSESSMENT_TOPIC_LABELS[key];
     };
+    const selectedPlanTopic = value.topics.find(topic => topic.topicKey === measureTopic);
+    const previousAssessmentId = value.links.find(link => link.entity_type === 'care_assessment' &&
+        link.relation === 'previous_assessment' && woundUuid(link.entity_id) && link.entity_id !== value.id)?.entity_id;
+    const availableRisks = CARE_RISK_CATALOG.filter(risk => !value.risks.some(entry => entry.riskKey === risk.key));
+    const canOpenRelatedRecord = !readBlocked && !dirty && !pending && !instrumentState.dirty &&
+        !planState.dirty && !pathPhase.dirty && !pathPhase.busy && !pathPhase.uncertain && !retainedPathJournal;
     const assessmentBody = (<>
       {value.reassessmentRequired ? <InfoBanner variant="danger" title="Neubewertung erforderlich" message={value.destabilizationSummary || 'Relevantes Ereignis vorhanden.'}/> : null}
       {locked ? <InfoBanner variant="info" title="Bearbeitung gesperrt" message="Rechte, Bearbeitungsstatus oder eine laufende Speicherprüfung verhindern Änderungen. Übergebene Assessments benötigen einen gesonderten Rückgabe- oder Fortschreibungsablauf."/> : null}
@@ -609,7 +660,7 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
           <Text style={styles.eyebrow}>{resident ? 'STATIONÄRES PFLEGEASSESSMENT' : 'AMBULANTES PFLEGEASSESSMENT'}</Text>
           <Text style={styles.focusTitle}>{value.subjectName}</Text>
           <Text style={styles.focusMeta}>
-            Version {value.version} · {value.assessorName || 'Pflegefachperson offen'} · {completeness.percent} % technisch vollständig
+            Version {value.version} · {value.assessorName || 'Pflegefachperson offen'}
           </Text>
         </View>
         <View style={styles.progressTrack}>
@@ -624,8 +675,7 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
 
       <View style={[styles.workspaceGrid, compact && styles.workspaceGridCompact]}>
         <ScrollView horizontal={compact} showsHorizontalScrollIndicator={false} style={[styles.sectionRail, compact && styles.sectionRailCompact]} contentContainerStyle={compact ? styles.sectionRailContentCompact : undefined}>
-          {sections.map((item) => (<Pressable key={item.key} accessibilityRole="button" accessibilityState={{ selected: section === item.key }} onPress={() => changeSection(item.key)} style={[styles.navItem, section === item.key && styles.navItemActive]}>
-              <Text style={[styles.navNumber, section === item.key && styles.navNumberActive]}>{item.short}</Text>
+          {sections.filter(item => !resident || !['mental', 'palliative', 'coordination'].includes(item.key)).map((item) => (<Pressable key={item.key} accessibilityRole="button" accessibilityState={{ selected: section === item.key }} onPress={() => changeSection(item.key)} style={[styles.navItem, section === item.key && styles.navItemActive]}>
               <Text style={[styles.navLabel, section === item.key && styles.navLabelActive]}>{item.label}</Text>
             </Pressable>))}
           {!compact ? (<View style={styles.legalNote}>
@@ -634,30 +684,36 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
             </View>) : null}
         </ScrollView>
 
-        <View style={styles.documentCanvas}>
+        <View style={[styles.documentCanvas, compact && styles.documentCanvasCompact]}>
 
-      {section === 'person' ? (<SectionPanel title="Was bewegt Sie im Augenblick?" subtitle="Originalton getrennt von der Fachperspektive">
+      {section === 'person' ? (<SectionPanel title="Gespräch und Sicht der pflegebedürftigen Person" subtitle="Was ist Ihnen im Alltag wichtig? Wobei wünschen Sie sich Unterstützung?">
+          <Text style={styles.fieldCaption}>Wer schildert die Situation?</Text>
           <FilterChipGroup wrap options={[
                 { key: 'person', label: 'Person selbst' }, { key: 'relative', label: 'An-/Zugehörige' },
                 { key: 'representative', label: 'Vertretung' }, { key: 'professional', label: 'Fachperson' },
                 { key: 'not_possible', label: 'Aussage nicht möglich' },
             ]} value={value.statementSource} onChange={(next) => { if (!locked)
             patch({ statementSource: next }); }}/>
-          <PremiumInput label="Originalton / geäußerte Sichtweise" value={value.personStatement} onChangeText={(next) => patch({ personStatement: next })} multiline editable={!locked}/>
+          <PremiumInput label={value.statementSource === 'person' ? 'Sicht und Wünsche in eigenen Worten' : 'Übermittelte Sicht und Wünsche'} value={value.personStatement} onChangeText={(next) => patch({ personStatement: next })} multiline editable={!locked}/>
           <PremiumInput label="Quelle beziehungsweise Name" value={value.statementSourceName} onChangeText={(next) => patch({ statementSourceName: next })} editable={!locked}/>
           <PremiumInput label="Gesprächsbeteiligte" value={value.conversationParticipants.join(', ')} onChangeText={(next) => patch({ conversationParticipants: next.split(',').map((item) => item.trim()).filter(Boolean) })} editable={!locked}/>
           <PremiumInput label="Kommunikationsunterstützung" value={value.communicationSupport} onChangeText={(next) => patch({ communicationSupport: next })} multiline editable={!locked}/>
           <PremiumInput label="Informationsquellen und offene Rückfragen" value={value.informationSourceSummary} onChangeText={(next) => patch({ informationSourceSummary: next })} multiline editable={!locked}/>
+          {value.reasonDetail ? <Text style={styles.check}>{value.reasonDetail}</Text> : null}
         </SectionPanel>) : null}
 
       {section === 'topics' ? value.topics.map((item, index) => (<SectionPanel key={item.topicKey} title={`${index + 1}. ${topicLabel(item.topicKey)}`}>
           <PremiumInput label="Perspektive der Person" value={item.personPerspective} onChangeText={(next) => patchTopic(item.topicKey, 'personPerspective', next)} multiline editable={!locked}/>
           <PremiumInput label="Ressourcen und Fähigkeiten" value={item.resources} onChangeText={(next) => patchTopic(item.topicKey, 'resources', next)} multiline editable={!locked}/>
-          <PremiumInput label="Beeinträchtigungen und Belastungen" value={item.impairments} onChangeText={(next) => patchTopic(item.topicKey, 'impairments', next)} multiline editable={!locked}/>
+          <PremiumInput label="Pflegeprobleme und Unterstützungsbedarf" value={item.impairments} onChangeText={(next) => patchTopic(item.topicKey, 'impairments', next)} multiline editable={!locked}/>
           <PremiumInput label="Wünsche, Ziele und Prioritäten" value={item.wishes} onChangeText={(next) => patchTopic(item.topicKey, 'wishes', next)} multiline editable={!locked}/>
           <PremiumInput label="Gewohnheiten und Biografie" value={item.habitsBiography} onChangeText={(next) => patchTopic(item.topicKey, 'habitsBiography', next)} multiline editable={!locked}/>
           <PremiumInput label="Pflegefachliche Einschätzung" value={item.professionalAssessment} onChangeText={(next) => patchTopic(item.topicKey, 'professionalAssessment', next)} multiline editable={!locked}/>
           <PremiumInput label="Handlungs- oder Assessmentbedarf" value={item.actionNeeded} onChangeText={(next) => patchTopic(item.topicKey, 'actionNeeded', next)} multiline editable={!locked}/>
+          {!resident ? <PremiumButton title="Maßnahmen zu diesem Themenfeld" variant="secondary" onPress={async () => {
+                    await changeSection('measures');
+                    setMeasureTopic(item.topicKey);
+                }}/> : null}
         </SectionPanel>)) : null}
 
       {section === 'mental' ? (!resident && mentalAccess ? <MentalHealthCarePathPanel tenantId={draftContext.tenantId} clientId={draftContext.subjectId} assessmentId={draftContext.assessmentId} actorId={draftContext.profileId} canRead={mentalAccess.canRead && !readBlocked} canWrite={mentalAccess.canWrite && !locked} canRelease={mentalAccess.canRelease && !locked} canReview={mentalAccess.canReview && !locked}/> : <InfoBanner variant="warning" message="Der geschützte psychosoziale Gesamtweg ist nur im ambulanten Pflegefall mit aktuellen Plan-, Risiko- und Sensitivitätsrechten verfügbar."/>) : null}
@@ -666,11 +722,16 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
 
       {section === 'coordination' ? (!resident && coordinationAccess ? <CounselingCoordinationPathPanel tenantId={draftContext.tenantId} clientId={draftContext.subjectId} assessmentId={draftContext.assessmentId} actorId={draftContext.profileId} canRead={coordinationAccess.canRead && !readBlocked} canWrite={coordinationAccess.canWrite && !locked} canRelease={coordinationAccess.canRelease && !locked} canReview={coordinationAccess.canReview && !locked}/> : <InfoBanner variant="warning" message="Der Beratungs- und Koordinationsweg ist nur im ambulanten Pflegefall mit aktuellen Assessment-, Beratungs-, Termin-, Dokument-, Kommunikations-, Sensitivitäts- und Audit-Rechten verfügbar."/>) : null}
 
-      {section === 'risks' ? (<SectionPanel title="Dynamische Risikoeinschätzungen">
-          <View style={{ gap: spacing.md }}>
-            <PremiumButton title="+ Risiko / Phänomen" disabled={locked} onPress={addRisk}/>
-            <PremiumButton title="3D-BodyMap öffnen" variant="secondary" onPress={() => router.push(bodyMap as never)}/>
-          </View>
+      {section === 'risks' ? (<>
+        {!resident ? (value.firstRiskMatrix === undefined
+                ? <InfoBanner variant="info" title="Risikomatrix" message="Die Datenbank stellt das Feld für die Risikomatrix noch nicht bereit."/>
+                : <AssessmentRiskMatrix value={value.firstRiskMatrix} locked={locked} ambulant onChange={firstRiskMatrix => patch({ firstRiskMatrix })}/>) : null}
+        <SectionPanel title="Vertiefte Risikoeinschätzungen">
+          {!locked && availableRisks.length ? (<View style={{ gap: spacing.sm }}>
+              <FilterChipGroup wrap options={availableRisks.map(({ key, label }) => ({ key, label }))} value={riskToAdd} onChange={setRiskToAdd}/>
+              <PremiumButton title="Vertiefte Einschätzung hinzufügen" disabled={!riskToAdd} onPress={addRisk}/>
+            </View>) : null}
+          <PremiumButton title="3D-BodyMap öffnen" variant="secondary" onPress={() => router.push(bodyMap as never)}/>
           {value.risks.map((item, index) => (<View key={`${item.riskKey}-${index}`} style={styles.card}>
               <Text style={styles.title}>{getRiskLabel(item.riskKey)}</Text>
               <FilterChipGroup wrap options={[
@@ -693,14 +754,45 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
               {!resident && item.riskKey === 'continence' ? <ContinenceProfilePanel risk={item} locked={locked} onChange={next => patchRisk(index, next)}/> : null}
               {!locked ? <PremiumButton title="Risiko entfernen" variant="ghost" onPress={() => patch({ risks: value.risks.filter((_, i) => i !== index) })}/> : null}
             </View>))}
-        </SectionPanel>) : null}
+        </SectionPanel>
+        </>) : null}
 
-      {section === 'measures' ? (<SectionPanel title="Individuelle Maßnahmenplanung">
-          <PremiumButton title="+ Maßnahme" disabled={locked} onPress={addMeasure}/>
-          {value.measures.map((item, index) => (<View key={item.id ?? index} style={styles.card}>
+      {section === 'measures' ? (<SectionPanel title="Individuelle Maßnahmenplanung" subtitle="Pflegeprobleme, Ressourcen und Ziele mit den geplanten Maßnahmen verbinden">
+          {!resident ? (<FilterChipGroup wrap options={[
+                    { key: 'all', label: 'Alle Maßnahmen' },
+                    ...value.topics.map(topic => ({ key: topic.topicKey, label: topicLabel(topic.topicKey) })),
+                    { key: 'unassigned', label: 'Ohne Themenfeld' },
+                ]} value={measureTopic} onChange={setMeasureTopic}/>) : null}
+          {selectedPlanTopic ? <AssessmentPlanTopicContext topic={selectedPlanTopic}/> : null}
+          <PremiumButton title="+ Maßnahme" disabled={locked} onPress={() => addMeasure(selectedPlanTopic?.topicKey)}/>
+          {value.measures.every(item => measureTopic !== 'all' && measureTopic !== (item.relatedTopicKey ?? 'unassigned')) ? (<EmptyState title="Keine Maßnahmen in dieser Ansicht" message="Planen Sie bei Bedarf ein Ziel und die passende Maßnahme."/>) : null}
+          {value.measures.map((item, index) => {
+                if (measureTopic !== 'all' && measureTopic !== (item.relatedTopicKey ?? 'unassigned'))
+                    return null;
+                const sourceTopic = !resident && !selectedPlanTopic ? value.topics.find(topic => topic.topicKey === item.relatedTopicKey) : undefined;
+                return (<View key={item.id ?? index} style={styles.card}>
               <PremiumInput label="Bezeichnung" value={item.title} onChangeText={(next) => patchMeasure(index, { title: next })} editable={!locked}/>
-              {!resident ? <><Text style={styles.fieldCaption}>Tatsächlichen Risikobezug auswählen</Text><FilterChipGroup wrap options={[{ key: '', label: 'Kein Risikobezug' }, ...Array.from(new Set(value.risks.map(r => r.riskKey))).map(key => ({ key, label: getRiskLabel(key) }))]} value={item.relatedRiskKey ?? ''} onChange={locked ? undefined : next => patchMeasure(index, { relatedRiskKey: next || null })}/><Text style={styles.fieldCaption}>Tatsächliches Themenfeld auswählen</Text><FilterChipGroup wrap options={[{ key: '', label: 'Kein Themenfeld' }, ...Array.from(new Set(value.topics.map(t => t.topicKey))).map(key => ({ key, label: topicLabel(key) }))]} value={item.relatedTopicKey ?? ''} onChange={locked ? undefined : next => patchMeasure(index, { relatedTopicKey: (next || null) as CareAssessmentTopicKey | null })}/></> : null}
-              <PremiumInput label="Persönliches Ziel" value={item.personalGoal} onChangeText={(next) => patchMeasure(index, { personalGoal: next })} multiline editable={!locked}/>
+              {!resident ? (<>
+                  <Text style={styles.fieldCaption}>Themenfeld der Maßnahme</Text>
+                  <FilterChipGroup wrap options={[
+                            { key: '', label: 'Ohne Themenfeld' },
+                            ...value.topics.map(topic => ({ key: topic.topicKey, label: topicLabel(topic.topicKey) })),
+                        ]} value={item.relatedTopicKey ?? ''} onChange={locked ? undefined : next => {
+                            const topic = value.topics.find(candidate => candidate.topicKey === next);
+                            patchMeasure(index, { relatedTopicKey: topic?.topicKey ?? null });
+                            if (measureTopic !== 'all')
+                                setMeasureTopic('all');
+                        }}/>
+                  {sourceTopic ? <AssessmentPlanTopicContext topic={sourceTopic}/> : null}
+                  {value.risks.length ? (<>
+                      <Text style={styles.fieldCaption}>Vertieft eingeschätztes Risiko</Text>
+                      <FilterChipGroup wrap options={[
+                                { key: '', label: 'Ohne Risikobezug' },
+                                ...value.risks.map(risk => ({ key: risk.riskKey, label: getRiskLabel(risk.riskKey) })),
+                            ]} value={item.relatedRiskKey ?? ''} onChange={locked ? undefined : next => patchMeasure(index, { relatedRiskKey: next || null })}/>
+                    </>) : null}
+                </>) : null}
+              <PremiumInput label="Individuelles Pflegeziel" value={item.personalGoal} onChangeText={(next) => patchMeasure(index, { personalGoal: next })} multiline editable={!locked}/>
               <PremiumInput label="Konkrete Durchführung" value={item.intervention} onChangeText={(next) => patchMeasure(index, { intervention: next })} multiline editable={!locked}/>
               <PremiumInput label="Zeitpunkt / Situation" value={item.timing} onChangeText={(next) => patchMeasure(index, { timing: next })} editable={!locked}/>
               <PremiumInput label="Häufigkeit" value={item.frequency} onChangeText={(next) => patchMeasure(index, { frequency: next })} editable={!locked}/>
@@ -712,7 +804,9 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
               <PremiumInput label="Woran erkennen wir Wirkung?" value={item.evaluationCriteria} onChangeText={(next) => patchMeasure(index, { evaluationCriteria: next })} multiline editable={!locked}/>
               <PremiumInput label="Nächste Evaluation (ISO-Datum)" value={item.nextEvaluationAt ?? ''} onChangeText={(next) => patchMeasure(index, { nextEvaluationAt: next || null })} editable={!locked}/>
               {!locked ? <PremiumButton title="Maßnahme entfernen" variant="ghost" onPress={() => patch({ measures: value.measures.filter((_, i) => i !== index) })}/> : null}
-            </View>))}
+            </View>);
+            })}
+          {!resident && value.measures.length ? (<PremiumButton title="Evaluation öffnen" variant="secondary" onPress={() => void changeSection('evaluation')}/>) : null}
         </SectionPanel>) : null}
 
       {section === 'quality' ? (<>
@@ -763,6 +857,15 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
         </>) : null}
 
       {section === 'history' ? (<>
+          {!resident ? (<SectionPanel title="Berichteblatt und Folgegespräche" subtitle="Abweichungen und Beobachtungen desselben Pflegefalls aufgreifen">
+              <View style={styles.actions}>
+                {canReadReports ? <PremiumButton title="Berichteblatt öffnen" variant="secondary" disabled={!canOpenRelatedRecord} onPress={() => router.push(`/pflege/dokumentation?clientId=${encodeURIComponent(value.subjectId)}` as never)}/> : null}
+                {canWriteReports ? <PremiumButton title="Abweichung oder Ereignis erfassen" variant="secondary" disabled={!canOpenRelatedRecord} onPress={() => router.push(`/pflege/berichte/new?clientId=${encodeURIComponent(value.subjectId)}` as never)}/> : null}
+                {typeof previousAssessmentId === 'string' ? <PremiumButton title="Vorheriges Assessment öffnen" variant="secondary" disabled={!canOpenRelatedRecord} onPress={() => router.push(`/pflege/sis/${previousAssessmentId}` as never)}/> : null}
+                {canManage && ['approved', 'professional_review', 'superseded'].includes(value.status) ? <PremiumButton title="Folgegespräch anlegen" variant="secondary" disabled={!canOpenRelatedRecord} onPress={() => router.push(`/pflege/sis/new?clientId=${encodeURIComponent(value.subjectId)}&fromAssessmentId=${encodeURIComponent(value.id)}` as never)}/> : null}
+              </View>
+              {dirty ? <Text style={styles.fieldCaption}>Vor dem Aktenwechsel den Zwischenstand speichern.</Text> : null}
+            </SectionPanel>) : null}
           {!resident ? <AssessmentPlanPaths pendingAssessment={retainedJournals.assessment} pendingPlan={retainedJournals.plan} assessmentId={draftContext.assessmentId} blocked={coreLocked || dirty || instrumentState.dirty || planState.dirty || needsReload || submission.locked} isCurrent={nativePanelCurrent} isLeaving={nativePanelLeaving} registerLeave={registerPathLeave} onPhase={pathStateChange}/> : null}
           <SectionPanel title="Versionsverlauf" subtitle="Freigaben und Statusübergänge bleiben unveränderbar nachvollziehbar">
             {!value.versionHistory.length ? <EmptyState title="Noch keine freigegebene Version" message="Beim Übergang zur fachlichen Prüfung und bei der Freigabe entsteht ein Snapshot."/> : value.versionHistory.map((entry) => (<View key={entry.id} style={styles.historyRow}>
@@ -777,7 +880,10 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
             {!value.events.length ? <EmptyState title="Keine offenen Fachereignisse" message="Relevante Ereignisse erscheinen hier und können eine Fortschreibung auslösen."/> : value.events.map((entry, index) => (<Text key={String(entry.id ?? index)} style={styles.historyText}>• {String(entry.summary ?? entry.event_type ?? 'Fachereignis')}</Text>))}
           </SectionPanel>
         </>) : null}
-      {!locked && section !== 'quality' ? <PremiumButton title="Zwischenstand speichern" loading={busy} onPress={() => save()}/> : null}
+      {!locked && section !== 'quality' ? (<PremiumButton title={resident ? 'Zwischenstand speichern' : 'Zur Speicherung und Planprüfung'} loading={busy} onPress={() => { if (resident)
+            void save();
+        else
+            void changeSection('quality'); }}/>) : null}
         </View>
       </View>
   </>);
@@ -829,8 +935,6 @@ const styles = StyleSheet.create({
     sectionRailContentCompact: { flexDirection: 'row', gap: spacing.xs },
     navItem: { minHeight: 58, minWidth: 190, borderRadius: 16, padding: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
     navItemActive: { backgroundColor: 'rgba(13,119,255,0.2)', borderWidth: 1, borderColor: 'rgba(68,166,255,0.55)' },
-    navNumber: { ...typography.caption, color: colors.textMuted, fontVariant: ['tabular-nums'] },
-    navNumberActive: { color: colors.cyan },
     navLabel: { ...typography.label, color: colors.textSecondary, flexShrink: 1 },
     navLabelActive: { color: colors.textPrimary },
     legalNote: { marginTop: spacing.md, padding: spacing.sm, borderRadius: 16, backgroundColor: 'rgba(28,75,118,0.26)' },
@@ -846,6 +950,7 @@ const styles = StyleSheet.create({
         gap: spacing.md,
         backgroundColor: 'rgba(255,255,255,0.92)',
     },
+    documentCanvasCompact: { width: '100%' },
     fieldCaption: { ...typography.caption, color: colors.textMuted },
     historyRow: { flexDirection: 'row', gap: spacing.sm, paddingVertical: spacing.sm, borderBottomWidth: 1, borderBottomColor: colors.borderSoft },
     historyDot: { width: 10, height: 10, borderRadius: 5, marginTop: 5, backgroundColor: colors.cyan },

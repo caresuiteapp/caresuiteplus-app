@@ -1,5 +1,5 @@
 import test from 'node:test';import assert from 'node:assert/strict';
-import {makeAssessmentDraftRequest,validateAssessmentDraftRequest,assertAssessmentDraftReceipt,runAssessmentDraftRequest} from '../../src/lib/careAssessment/assessmentDraftRequestDomain.ts';
+import {makeAssessmentDraftRequest,validateAssessmentDraftRequest,assertAssessmentDraftReceipt,assertAssessmentDraftStoredRead,runAssessmentDraftRequest} from '../../src/lib/careAssessment/assessmentDraftRequestDomain.ts';
 import {MedicationRequestState} from '../../src/lib/pflege/medicationRequestState.ts';
 const id='11111111-1111-4111-8111-111111111111';
 const instrumentPacket=()=>({schemaVersion:'1',tenantId:'22222222-2222-4222-8222-222222222222',assessmentId:id,subjectId:'33333333-3333-4333-8333-333333333333',actorId:'44444444-4444-4444-8444-444444444444',catalogRevision:'catalog-1',readAt:'2026-10-15T12:00:00Z',model:{key:'caresuite_pflegeassessment',version:'1',claim:'product_model'},selectionRevision:0,selectionUpdatedAt:null,selectedInstrumentIds:[],rationale:'Aktuelle fachliche Auswahl geprüft.',selectedOriginals:[]});
@@ -20,3 +20,15 @@ test('Bestätigte Schreibantwort wird als Erfolg zurückgegeben',async()=>assert
 test('Transportabbruch oder fehlerhafte Antwort bleibt unklar',async()=>{for(const invoke of [async()=>{throw Error('timeout');},async()=>({data:null,error:null}),async()=>({data:{...receipt(),draftRevision:12},error:null})])assert.equal((await runAssessmentDraftRequest(request(),invoke,rejection)).uncertain,true);});
 test('Bekannte Ablehnung wird von unklarem Verbindungsfehler unterschieden',async()=>{assert.equal((await runAssessmentDraftRequest(request(),async()=>({data:null,error:{}}),rejection)).uncertain,false);assert.equal((await runAssessmentDraftRequest(request(),async()=>({data:null,error:{}}),()=>({message:'Transport',definite:false}))).uncertain,true);});
 test('Doppelklick und unklarer Ausgang behalten ID, Revision, Inhalte und Absicht',()=>{const state=new MedicationRequestState(),r=request(),first=state.begin(r,()=>id);r.payloadJson='{}';assert.equal(state.begin(request()),null);state.settle(false,true);state.release();const next=state.begin(makeAssessmentDraftRequest({...value(),draftRevision:99},'review',instrumentPacket(),planPacket()));assert.equal(next.id,first.id);assert.equal(next.payload.expectedRevision,'12');assert.equal(next.payload.intent,'save');assert.notEqual(next.payload.payloadJson,'{}');assert.equal(next.replay,true);});
+
+
+test('Risikomatrix wird erst bei inhaltsgleicher Rücklesung als gespeichert bestätigt', () => {
+  const matrix = { otherLabel: '', cells: { 'mobility:fall': { present: true, furtherAssessment: null } }, counseling: {} };
+  const draft = makeAssessmentDraftRequest({ ...value(), firstRiskMatrix: matrix }, 'save');
+  assert.deepEqual(JSON.parse(draft.payloadJson).assessment.first_risk_matrix, matrix);
+  assert.throws(() => assertAssessmentDraftStoredRead(draft, receipt(draft)), /Risikomatrix/);
+  assert.throws(() => assertAssessmentDraftStoredRead(draft, { ...receipt(draft), firstRiskMatrix: { ...matrix, cells: {} } }), /Risikomatrix/);
+  assert.equal(assertAssessmentDraftStoredRead(draft, { ...receipt(draft), firstRiskMatrix: matrix }).assessmentId, id);
+  matrix.cells['mobility:fall'] = { present: false, furtherAssessment: true };
+  assert.throws(() => makeAssessmentDraftRequest({ ...value(), firstRiskMatrix: matrix }, 'save'), /Risikomatrix/);
+});

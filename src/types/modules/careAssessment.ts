@@ -8,6 +8,14 @@ export const CARE_ASSESSMENT_TOPIC_KEYS = [
 ] as const;
 
 export type CareAssessmentTopicKey = (typeof CARE_ASSESSMENT_TOPIC_KEYS)[number];
+export type RiskMatrixTopic = Exclude<CareAssessmentTopicKey, 'living_environment'>;
+export type RiskMatrixRisk = 'pressure_injury' | 'fall' | 'continence' | 'pain' | 'nutrition' | 'other';
+export type RiskMatrixCell = { present: boolean; furtherAssessment: boolean | null };
+export type CareRiskMatrix = {
+  otherLabel: string;
+  cells: Partial<Record<`${RiskMatrixTopic}:${RiskMatrixRisk}`, RiskMatrixCell>>;
+  counseling: Partial<Record<RiskMatrixTopic, boolean>>;
+};
 export type CareAssessmentSubjectType = 'client' | 'resident';
 
 export type CareAssessmentSubjectOption = {
@@ -151,6 +159,8 @@ export type CareAssessment = {
   assessorName: string;
   approverName: string;
   topics: CareAssessmentTopic[];
+  /** Absent until the database supports the matrix. Null means nothing has been entered. */
+  firstRiskMatrix?: CareRiskMatrix | null;
   risks: CareAssessmentRisk[];
   measures: CareAssessmentMeasure[];
   evaluations: CareAssessmentEvaluation[];

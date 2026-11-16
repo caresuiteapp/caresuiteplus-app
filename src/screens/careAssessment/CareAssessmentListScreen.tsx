@@ -1,19 +1,21 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
-  InfoBanner,
   LoadingState,
   PremiumBadge,
   PremiumButton,
+  PremiumInput,
   SectionPanel,
 } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { hasPermission } from '@/lib/permissions';
+import { matchesSearchQuery } from '@/lib/search/tenantSearchMatch';
 import { CARE_ASSESSMENT_VARIANT_LABELS, fetchCareAssessments } from '@/lib/careAssessment';
 import type { CareAssessmentListItem, CareAssessmentSubjectType } from '@/types/modules/careAssessment';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -45,6 +47,9 @@ export function CareAssessmentListScreen({ subjectType }: { subjectType: CareAss
     { enabled: !!tenantId },
   );
   const items = query.data ?? [];
+  const [search, setSearch] = useState('');
+  const searchTerms = search.trim().split(/[\s,]+/).filter(Boolean);
+  const visible = items.filter(item => searchTerms.every(term => matchesSearchQuery(term, item.subjectName)));
   const urgent = items.reduce((sum, item) => sum + item.urgentRiskCount, 0);
   const reviews = items.filter((item) =>
     item.reassessmentRequired ||
@@ -52,17 +57,11 @@ export function CareAssessmentListScreen({ subjectType }: { subjectType: CareAss
   ).length;
   return (
     <ScreenShell
-      title={resident ? 'SIS & Assessment Stationär' : 'SIS & Assessment Pflege'}
-      subtitle="Personenzentrierter Pflegeprozess · QPR 2026 · versionsgeführt"
+      title={resident ? 'Stationäres Pflegeassessment' : 'Pflegeassessment'}
       rightSlot={canManage ? (
-        <PremiumButton title="+ Neuaufnahme" size="sm" onPress={() => router.push(`${base}/new` as never)} />
+        <PremiumButton title="Assessment anlegen" size="sm" onPress={() => router.push(`${base}/new` as never)} />
       ) : undefined}
     >
-      <InfoBanner
-        variant="info"
-        title="Pflegeverständnis & Versorgungssicherheit"
-        message="Originalton, sechs Themenfelder, Risiken, fokussierte Assessments, Maßnahmen, Verlauf und fachliche Freigabe bilden einen geschlossenen Pflegeprozess."
-      />
       <View style={styles.kpis}>
         <SectionPanel title="Aktive Assessments"><Text style={styles.kpi}>{items.length}</Text></SectionPanel>
         <SectionPanel title="Review erforderlich"><Text style={styles.kpi}>{reviews}</Text></SectionPanel>
@@ -72,19 +71,21 @@ export function CareAssessmentListScreen({ subjectType }: { subjectType: CareAss
       {query.error && !items.length ? <ErrorState message={query.error} onRetry={query.refresh} /> : null}
       {!query.loading && !query.error && !items.length ? (
         <EmptyState
-          title="Noch kein SIS-/Assessmentprozess"
+          title="Noch kein Pflegeassessment"
           message="Starten Sie die erste personenzentrierte Informationssammlung."
           actionLabel={canManage ? 'Neuaufnahme starten' : undefined}
           onAction={canManage ? () => router.push(`${base}/new` as never) : undefined}
         />
       ) : (
-        <SectionPanel title={resident ? 'Bewohnerbezogene Pflegeprozesse' : 'Klientenbezogene Pflegeprozesse'}>
-          {items.map((item) => (
+        <SectionPanel title={resident ? 'Assessments der Bewohner:innen' : 'Assessments der Pflegeklient:innen'}>
+          <PremiumInput label="Nach Name suchen" value={search} onChangeText={setSearch} />
+          {!visible.length ? <Text style={styles.meta}>Keine passenden Assessments.</Text> : null}
+          {visible.map((item) => (
             <Pressable key={item.id} style={styles.card} onPress={() => router.push(`${base}/${item.id}` as never)}>
               <View style={styles.flex}>
                 <Text style={styles.title}>{item.subjectName}</Text>
                 <Text style={styles.meta}>
-                  {CARE_ASSESSMENT_VARIANT_LABELS[item.variant]} · Version {item.version} · {item.completenessPercent} %
+                  {CARE_ASSESSMENT_VARIANT_LABELS[item.variant]} · Version {item.version}
                 </Text>
                 <View style={styles.badges}>
                   <PremiumBadge label={STATUS[item.status]} variant={item.status === 'approved' ? 'green' : 'cyan'} />
