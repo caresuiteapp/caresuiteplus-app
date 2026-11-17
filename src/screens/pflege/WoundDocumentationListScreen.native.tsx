@@ -3,7 +3,7 @@ import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
 import { useRef, useState } from 'react';
 import { Pressable, View } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ErrorState, FilterChipGroup, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -15,6 +15,7 @@ import { WoundCatalogEditor } from '@/components/pflege/wounds/WoundCatalogPanel
 import { useWoundEntryStyles } from '@/components/pflege/wounds/woundEntryStyles';
 import { WoundPage, WoundSection, WoundTabs } from '@/components/pflege/wounds/WoundWorkspaceLayout';
 import { WoundBodyMapFrame } from '@/components/clinicalMedia/WoundBodyMapFrame';
+import { CareWorkspaceHeader } from '@/components/pflege/CareWorkspaceLayout';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { fetchAmbulatoryWoundList } from "../../lib/pflege/ambulatoryWoundService.native.ts";
 import { captureWoundListOriginal, filterWoundList, woundListText, woundStatusLabels } from "../../lib/pflege/woundReadOriginal.native.ts";
@@ -26,33 +27,41 @@ const VIEWS = [
     { key: 'catalog', label: 'Material und Textbausteine', icon: 'layers' },
 ] as const;
 export function WoundDocumentationListScreen() {
+    const { clientId } = useLocalSearchParams<{
+        clientId?: string;
+    }>();
+    const caseId = woundUuid(clientId) ? clientId : undefined;
     const serviceTenant = useServiceTenantId(), { profile } = useAuth(), permissions = usePermissions();
     const owner = profile && woundUuid(profile.tenantId) && woundUuid(profile.id) && profile.roleKey
         ? { tenantId: profile.tenantId!, profileId: profile.id, role: profile.roleKey } : null;
-    return <WoundListWorkspace key={JSON.stringify(owner)} owner={owner} serviceTenant={serviceTenant} runtimeTenant={permissions.tenantId} runtimeRole={permissions.roleKey} canView={permissions.can('pflege.wounds.view')} canManage={permissions.can('pflege.wounds.manage')} permissionStatus={permissions}/>;
+    return <WoundListWorkspace key={JSON.stringify([owner, caseId])} owner={owner} serviceTenant={serviceTenant} caseId={caseId} runtimeTenant={permissions.tenantId} runtimeRole={permissions.roleKey} canView={permissions.can('pflege.wounds.view')} canManage={permissions.can('pflege.wounds.manage')} permissionStatus={permissions}/>;
 }
 function WoundListWorkspace(props: WoundReadProps & {
     permissionStatus: CarePermissionStatusState;
+    caseId?: string;
 }) {
     const router = useRouter(), { c } = useCareLightPalette();
     const styles = useWoundEntryStyles();
     const [view, setView] = useState<typeof VIEWS[number]['key']>('cases');
     const [area, setArea] = useState<WoundRecordTab>('overview');
+    const [preview, setPreview] = useState(false);
+    const [caseId, setCaseId] = useState(props.caseId);
     const [search, setSearch] = useState(''), [filter, setFilter] = useState('all'), [visible, setVisible] = useState(50);
-    const selection = useRef({ search, filter, visible });
-    selection.current = { search, filter, visible };
+    const selection = useRef({ caseId, search, filter, visible });
+    selection.current = { caseId, search, filter, visible };
     const q = useWoundRead(props, 'list', owner => fetchAmbulatoryWoundList(owner.tenantId, owner.role), captureWoundListOriginal);
-    const items = q.data ?? [], filtered = filterWoundList(items, search, filter);
+    const caseItems = (pool: NonNullable<typeof q.data>) => caseId ? pool.filter(item => item.row.client_id === caseId) : pool;
+    const items = caseItems(q.data ?? []), filtered = filterWoundList(items, search, filter);
     function ownSelection() {
         const now = selection.current;
-        return q.current() && now.search === search && now.filter === filter && now.visible === visible;
+        return q.current() && now.caseId === caseId && now.search === search && now.filter === filter && now.visible === visible;
     }
-    function open(id: string) {
+    function open(id: string, target = area) {
         const pool = q.current();
         if (!pool || !ownSelection() || !woundUuid(id)
-            || !filterWoundList(pool, search, filter).slice(0, visible).some(item => item.row.id === id))
+            || !filterWoundList(caseItems(pool), search, filter).slice(0, visible).some(item => item.row.id === id))
             return;
-        router.push(woundCaseRoute(id, area) as never);
+        router.push(woundCaseRoute(id, target) as never);
     }
     function create() { if (q.mayManage())
         router.push('/pflege/wunden/new' as never); }
@@ -70,6 +79,13 @@ function WoundListWorkspace(props: WoundReadProps & {
         setFilter(value);
         setVisible(50);
     }
+    function clearCaseFilter() {
+        if (!ownSelection())
+            return;
+        selection.current = { ...selection.current, caseId: undefined, visible: 50 };
+        setCaseId(undefined);
+        setVisible(50);
+    }
     function showMore() {
         if (!ownSelection())
             return;
@@ -82,16 +98,14 @@ function WoundListWorkspace(props: WoundReadProps & {
   </WoundPage>;
     const scope = { tenantId: props.owner.tenantId, actorId: props.owner.profileId, role: props.owner.role };
     return <WoundPage title="Wunddokumentation">
+      <CareWorkspaceHeader icon="crosshair" title="Wundfälle und Verlauf" subtitle={caseId ? items[0]?.clientName ?? 'Gewählte Pflegeakte' : 'Ambulante Pflege'}/>
       <View style={styles.toolbar}>
         <WoundTabs tabs={VIEWS} value={view} onChange={setView} label="Wunddokumentation"/>
         {props.canManage && <PremiumButton title="Wundfall anlegen" size="sm" onPress={create} disabled={!q.ready} leadingIcon={<Feather name="plus" size={17} color="#fff" accessible={false}/>}/>}
       </View>
-      {view === 'statistics' && <WoundStatisticsPanel scope={scope}/>}
+      {view === 'statistics' && <WoundStatisticsPanel scope={scope} initialClientId={caseId}/>}
       {view === 'catalog' && <WoundCatalogEditor scope={scope} edit={props.canManage}/>}
       {view === 'cases' && <>
-      <WoundSection title="Bereiche der Wunddokumentation">
-        <WoundTabs tabs={WOUND_RECORD_TABS} value={area} onChange={setArea} label="Bereich für Wundfall auswählen"/>
-      </WoundSection>
       <View style={styles.columns}>
         <WoundSection title="Wundfälle" style={styles.mainColumn} subtitle={area === 'overview' ? undefined : `Wähle einen Wundfall für „${WOUND_RECORD_TABS.find(tab => tab.key === area)?.label}“.`} actions={<PremiumButton title="Aktualisieren" size="sm" variant="ghost" accessibilityLabel="Wundfälle aktualisieren" onPress={q.refresh} disabled={q.loading}/>}>
           {!q.ready ? (q.loading
@@ -101,6 +115,7 @@ function WoundListWorkspace(props: WoundReadProps & {
               <PremiumInput label="Klient:in, Lokalisation oder Wund-ID" placeholder="Wundfälle suchen" value={search} onChangeText={changeSearch}/>
               <FilterChipGroup wrap options={[{ key: 'all', label: 'Alle Status' }, ...Object.entries(woundStatusLabels).map(([key, label]) => ({ key, label }))]} value={filter} onChange={changeFilter}/>
             </>}
+            {caseId && <PremiumButton title="Alle zugänglichen Pflegeakten anzeigen" variant="ghost" size="sm" onPress={clearCaseFilter}/>}
             {!filtered.length ? <View style={styles.empty}>
               <Feather name="clipboard" size={20} color={c.muted} accessible={false}/>
               <Text style={styles.body}>{items.length ? 'Keine Wundfälle für diese Suche' : 'Noch keine Wundfälle vorhanden'}</Text>
@@ -115,24 +130,27 @@ function WoundListWorkspace(props: WoundReadProps & {
                 {filtered.slice(0, visible).map(({ row, clientName }, index) => {
                         const id = String(row.id), location = woundListText(row.body_location), type = woundListText(row.wound_type);
                         const status = woundStatusLabels[String(row.status)];
-                        return <Pressable key={id} accessibilityRole="button" accessibilityLabel={[clientName, location, type, status].filter(Boolean).join(', ')} onPress={() => open(id)} style={({ pressed }) => [
-                                styles.record, index > 0 && styles.divider, pressed && styles.recordActive,
-                            ]}>
-                    <View style={styles.identity}>
+                        return <View key={id} style={[styles.record, index > 0 && styles.divider]}>
+                    <Pressable style={styles.identity} accessibilityRole="button" accessibilityLabel={[clientName, location, type, status].filter(Boolean).join(', ')} onPress={() => open(id)}>
                       <Text style={styles.body}>{clientName}</Text>
                       <Text style={styles.muted}>{[location, type].filter(Boolean).join(' · ')}</Text>
+                      <Text style={styles.muted}>{status}</Text>
+                    </Pressable>
+                    <View style={styles.actions}>
+                      <PremiumButton size="sm" variant="ghost" title="Fotos" accessibilityLabel={`Wundfotos ${clientName} ${location}`} onPress={() => open(id, 'measurement')}/>
+                      <PremiumButton size="sm" variant="ghost" title="Karte" accessibilityLabel={`Körperkarte ${clientName} ${location}`} onPress={() => open(id, 'bodymap')}/>
                     </View>
-                    <View style={styles.badge}><Text style={styles.muted}>{status}</Text></View>
-                    <Feather name="chevron-right" size={18} color={c.muted} accessible={false}/>
-                  </Pressable>;
+                  </View>;
                     })}
               </View>
             </>}
             {visible < filtered.length && <PremiumButton title="Weitere 50 anzeigen" size="sm" variant="secondary" onPress={showMore}/>}
           </>}
         </WoundSection>
-        <WoundSection title="3D-Körperkarte" style={styles.mapColumn}>
-          <WoundBodyMapFrame view="preview" figure="adult-man"/>
+        <WoundSection title="Wundfall öffnen" style={styles.mapColumn}>
+          <WoundTabs tabs={WOUND_RECORD_TABS} value={area} onChange={setArea} label="Bereich für Wundfall auswählen"/>
+          <PremiumButton title={preview ? '3D-Vorschau schließen' : '3D-Körperkarte ansehen'} size="sm" variant="secondary" onPress={() => setPreview(value => !value)}/>
+          {preview ? <WoundBodyMapFrame view="preview" figure="adult-man"/> : null}
         </WoundSection>
       </View></>}
   </WoundPage>;

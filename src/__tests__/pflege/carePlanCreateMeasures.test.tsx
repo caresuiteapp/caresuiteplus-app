@@ -2,17 +2,31 @@
 import { act, type ReactNode } from 'react';
 import { createRoot } from 'react-dom/client';
 import { expect, it, vi } from 'vitest';
-import { CarePlanCreateScreen } from '@/screens/pflege/CarePlanCreateScreen';
+import { CarePlanCreateScreen, CarePlanEditor } from '@/screens/pflege/CarePlanCreateScreen';
 import type { PlanningTemplateTarget } from '@/components/pflege/CarePlanningTemplatePicker';
+import type { CarePlanDetail } from '@/types/modules/pflege';
 
 const save = vi.hoisted(() => vi.fn(async (..._args: unknown[]) => ({ ok: true, data: { id: 'synthetic-plan' } })));
+const revise = vi.hoisted(() => vi.fn(async (..._args: unknown[]) => ({ ok: true, data: { id: 'previous-plan' } })));
 const loadPlan = vi.hoisted(() => vi.fn());
 const subjects = [{ id: 'own-client', firstName: 'Nora', lastName: 'Beispiel' }];
 const previousPlan = { id: 'previous-plan', tenantId: 'own-tenant', clientId: 'own-client', title: 'Mobilitätsplanung',
   validFrom: '2026-10-01', validUntil: '2026-10-30' };
 
-vi.mock('@/lib/pflege/carePlanListService', () => ({ createCarePlan: save, fetchCarePlanList: vi.fn() }));
+vi.mock('@/lib/pflege/carePlanListService', () => ({ createCarePlan: save, updateCarePlan: revise, fetchCarePlanList: vi.fn() }));
 vi.mock('@/lib/pflege/carePlanDetailService', () => ({ fetchCarePlanDetail: loadPlan }));
+vi.mock('expo-router', () => ({ useLocalSearchParams: () => ({}) }));
+vi.mock('expo-crypto', () => ({ randomUUID: () => 'synthetic-request' }));
+vi.mock('@/hooks/pflege/useCareRuntimePermissions', () => ({
+  useCareRuntimePermissions: () => ({ canAll: () => true, permissions: ['pflege.plans.view', 'pflege.plans.manage'], roleKey: 'nurse' }),
+}));
+vi.mock('@/design/tokens/carelightadaptive', () => ({ useCareLightPalette: () => ({ c: {} }) }));
+vi.mock('@/components/pflege/CareWorkspaceLayout', () => ({
+  CareWorkspaceHeader: () => null,
+  CareWorkspaceColumns: ({ children, aside }: { children: ReactNode; aside: ReactNode }) => <>{children}{aside}</>,
+  CareWorkspaceTabs: ({ tabs, onChange }: { tabs: { label: string; key: string }[]; onChange: (key: string) => void }) =>
+    <nav>{tabs.map(tab => <button key={tab.key} onClick={() => onChange(tab.key)}>{tab.label}</button>)}</nav>,
+}));
 vi.mock('@/components/pflege/CarePlanningTemplatePicker', () => ({
   CarePlanningTemplatePicker: ({ target, onClose }: { target: PlanningTemplateTarget; onClose: () => void }) => (
     <button onClick={() => {
@@ -27,7 +41,7 @@ vi.mock('@/hooks/useTenantId', () => ({ useServiceTenantId: () => 'own-tenant' }
 vi.mock('@/hooks/useFlowRouter', () => ({ useFlowRouter: () => ({ back() {}, replace() {} }) }));
 vi.mock('@/hooks/core', () => ({
   useAsyncQuery: (_request: unknown, _keys: unknown, options: { queryKey?: string; enabled: boolean }) => ({
-    data: options.queryKey ? (options.enabled ? [previousPlan] : undefined) : subjects,
+    data: options.queryKey?.startsWith('pflegeplan-kopie') ? (options.enabled ? [previousPlan] : undefined) : subjects,
     loading: false,
   }),
 }));
@@ -49,6 +63,8 @@ vi.mock('@/components/ui', () => ({
     <>{options.map(option => <button key={option.key} onClick={() => onChange?.(option.key)}>{option.label}</button>)}</>
   ),
   ErrorState: ({ message }: { message: string }) => <div>{message}</div>,
+  InfoBanner: () => null,
+  EmptyState: () => null,
   LoadingState: () => null,
   SuccessState: ({ message }: { message: string }) => <div>{message}</div>,
 }));
@@ -67,9 +83,8 @@ it('sends all completed measures with their own care needs, goals and responsibi
   };
   try {
     await act(async () => root.render(<CarePlanCreateScreen />));
+    await act(async () => button('Beispiel, Nora').click());
     await act(async () => {
-      button('Beispiel, Nora').click();
-      button('Weitere Maßnahme hinzufügen').click();
       write('Bezeichnung *', 'Morgendliche Versorgung');
       write('Pflegeprobleme und Unterstützungsbedarf *', 'Unterstützung beim Aufstehen');
       write('Fähigkeiten und Ressourcen', 'Die Person kann selbstständig sitzen');
@@ -85,7 +100,11 @@ it('sends all completed measures with their own care needs, goals and responsibi
     );
     await act(async () => button('Pflegeplan speichern').click());
     expect(save).not.toHaveBeenCalled();
-    expect(host.textContent).toContain('Maßnahme 1 braucht');
+    expect(host.textContent).toContain('Legen Sie mindestens eine individuelle Maßnahme an.');
+    await act(async () => {
+      button('Weitere Maßnahme hinzufügen').click();
+      button('Weitere Maßnahme hinzufügen').click();
+    });
     await act(async () => {
       for (const [index, title, goal] of [[0, 'Aufstehen begleiten', 'Transfer mit Unterstützung'], [1, 'Trinken unterstützen', 'Getränk erreichbar']] as const) {
         write('Maßnahme *', title, index);
@@ -100,6 +119,7 @@ it('sends all completed measures with their own care needs, goals and responsibi
     await act(async () => button('Pflegeplan speichern').click());
     expect(save).toHaveBeenCalledExactlyOnceWith('own-tenant', 'nurse', expect.objectContaining({
       clientId: 'own-client',
+      planningModel: 'atl',
       items: [
         expect.objectContaining({ title: 'Aufstehen begleiten', goal: 'Transfer mit Unterstützung', category: 'ATL (Juchli)', sortOrder: 0 }),
         expect.objectContaining({
@@ -107,8 +127,8 @@ it('sends all completed measures with their own care needs, goals and responsibi
           description: 'Erreicht das Glas schlecht', personContribution: 'Kann aus dem Becher trinken', responsibleRole: 'Pflegekraft',
         }),
       ],
-    }));
-    expect(host.textContent).toContain('Der Pflegeplan und seine Maßnahmen wurden als Entwurf gespeichert.');
+    }), expect.objectContaining({ effectivePermissions: expect.arrayContaining(['pflege.plans.manage']) }));
+    expect(host.textContent).toContain('Der Pflegeplan wurde als Entwurf gespeichert.');
   } finally {
     await act(async () => root.unmount());
     host.remove();
@@ -138,7 +158,7 @@ it('copies the selected case plan into a new draft with fresh evaluation dates',
     await click('Vorhandene Planung übernehmen');
     await click('Mobilitätsplanung · 2026-10-01');
     await click('In neuen Entwurf übernehmen');
-    expect(loadPlan).toHaveBeenCalledWith('previous-plan', 'own-tenant', 'nurse');
+    expect(loadPlan).toHaveBeenCalledWith('previous-plan', 'own-tenant', 'nurse', expect.any(Object));
     expect(host.textContent).toContain('Übernommen aus „Mobilitätsplanung“.');
     await click('Pflegeplan speichern');
     expect(save).toHaveBeenCalledOnce();
@@ -148,6 +168,40 @@ it('copies the selected case plan into a new draft with fresh evaluation dates',
     expect(data.items).toMatchObject([{ title: 'Weg zur Küche begleiten', category: 'Roper · Bewegung',
       notes: 'Den gewohnten Weg wählen', status: 'active' }]);
     expect(data.items[0].nextEvaluationAt).toBeUndefined();
+  } finally {
+    await act(async () => root.unmount());
+    host.remove();
+  }
+});
+
+it('retains the measure identity and version when editing a real drinking schedule', async () => {
+  revise.mockClear();
+  const plan = { ...previousPlan, clientName: 'Nora Beispiel', version: 3, planningModel: 'orem',
+    summary: 'Ein Getränk muss bereitgestellt werden', goals: 'Trinken selbst übernehmen', tasks: [{
+      id: 'existing-measure', label: 'Getränk anbieten', status: 'aktiv', itemState: 'active',
+      intervention: 'Abgesprochene Einteilung', goal: 'Selbst trinken', frequency: 'Mo · 09:00',
+      activity: { kind: 'drinking', days: [1], times: ['09:00'], subject: 'Vereinbartes Getränk', offeredMl: 125, equipment: 'Eigener Becher' },
+    }],
+  } as unknown as CarePlanDetail;
+  Object.assign(globalThis, { IS_REACT_ACT_ENVIRONMENT: true });
+  const host = document.createElement('div');
+  document.body.append(host);
+  const root = createRoot(host);
+  const click = (name: string) => act(async () => [...host.querySelectorAll('button')].find(node => node.textContent === name)!.click());
+  try {
+    await act(async () => root.render(<CarePlanEditor plan={plan} />));
+    await click('Trinkplan');
+    const field = host.querySelector<HTMLInputElement>('input[aria-label="Uhrzeiten *"]')!;
+    await act(async () => {
+      field.value = '08:00, 11:30';
+      field.dispatchEvent(new Event('input', { bubbles: true }));
+    });
+    await click('Neue Planversion speichern');
+    expect(revise).toHaveBeenCalledWith('own-tenant', 'nurse', expect.objectContaining({
+      id: 'previous-plan', expectedVersion: 3, planningModel: 'orem',
+      items: [expect.objectContaining({ id: 'existing-measure', frequency: 'Mo · 08:00, 11:30',
+        activity: expect.objectContaining({ offeredMl: 125, times: ['08:00', '11:30'] }) })],
+    }), expect.any(Object));
   } finally {
     await act(async () => root.unmount());
     host.remove();

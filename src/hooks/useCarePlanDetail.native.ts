@@ -67,7 +67,7 @@ export function useCarePlanDetail(planId: string | undefined) {
         ownFrame.error = null;
         update(value => value + 1);
         try {
-            const result = await fetchCarePlanDetail(planId!, owner!.tenantId, owner!.roleKey);
+            const result = await fetchCarePlanDetail(planId!, owner!.tenantId, owner!.roleKey, { effectivePermissions: ownFrame.grants });
             if (!ownFrame.alive || !current() || ownFrame.ticket !== ticket)
                 return;
             if (!result.ok)

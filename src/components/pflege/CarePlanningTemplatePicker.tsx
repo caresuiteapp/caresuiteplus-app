@@ -4,6 +4,7 @@ import * as Crypto from 'expo-crypto';
 import { ErrorState, FilterChipGroup, InfoBanner, PremiumButton, PremiumInput } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import type { RoleKey } from '@/types';
+import type { PermissionKey } from '@/types/permissions';
 import {
   carePlanningModels, planningDomains, planningGroups,
   type CarePlanningDomain, type CarePlanningModel, type CarePlanningSetting,
@@ -21,7 +22,7 @@ export type PlanningTemplateTarget = {
   onInsert: (template: CarePlanningTemplate) => void;
 };
 
-export function CarePlanningTemplatePicker({ target, model, setting, tenantId, role, actorId, clientName, canEditLibrary, onClose }: {
+export function CarePlanningTemplatePicker({ target, model, setting, tenantId, role, actorId, clientName, canEditLibrary, effectivePermissions, onClose }: {
   target: PlanningTemplateTarget;
   model: CarePlanningModel;
   setting: CarePlanningSetting;
@@ -30,11 +31,13 @@ export function CarePlanningTemplatePicker({ target, model, setting, tenantId, r
   actorId?: string;
   clientName: string;
   canEditLibrary: boolean;
+  effectivePermissions?: readonly PermissionKey[];
   onClose: () => void;
 }) {
-  const scope = { tenantId, role, setting };
+  const scope = { tenantId, role, setting, permission: { effectivePermissions } };
   const templates = useAsyncQuery(() => fetchOwnPlanningTemplates(scope, model),
-    [tenantId, actorId, role, setting, model], { enabled: !!tenantId && !!actorId, retryCount: 0 });
+    [tenantId, actorId, role, setting, model, effectivePermissions], { enabled: !!tenantId && !!actorId, retryCount: 0,
+      queryKey: `pflegebausteine:${tenantId}:${actorId}:${role}` });
   const [search, setSearch] = useState('');
   const [group, setGroup] = useState('all');
   const [kind, setKind] = useState('all');

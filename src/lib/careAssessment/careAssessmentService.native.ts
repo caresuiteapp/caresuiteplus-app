@@ -9,12 +9,13 @@ import { calculateCareAssessmentCompleteness } from "./catalog.native.ts";
 import type { RoleKey, ServiceResult } from '@/types';
 import type { CareAssessment, CareAssessmentListItem, CareAssessmentStatus, CareAssessmentSubjectOption, CareAssessmentSubjectType, CareAssessmentEvaluation, } from '@/types/modules/careAssessment';
 import { enforcePermission } from '@/lib/permissions';
+import type { PermissionEnforcementContext } from '@/lib/permissions/enforce';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { careAssessmentRepository } from "./careAssessmentRepository.supabase.native.ts";
 const viewPermission = (type: CareAssessmentSubjectType) => type === 'resident' ? 'stationaer.residents.view' : 'pflege.plans.view';
 const managePermission = (type: CareAssessmentSubjectType) => type === 'resident' ? 'stationaer.assessments.manage' : 'pflege.assessments.manage';
-export async function fetchEligibleCareClients(tenantId: string, role?: RoleKey | null): Promise<ServiceResult<CareAssessmentSubjectOption[]>> {
-    const denied = enforcePermission<CareAssessmentSubjectOption[]>(role, viewPermission('client'));
+export async function fetchEligibleCareClients(tenantId: string, role?: RoleKey | null, permissions?: PermissionEnforcementContext): Promise<ServiceResult<CareAssessmentSubjectOption[]>> {
+    const denied = enforcePermission<CareAssessmentSubjectOption[]>(role, viewPermission('client'), permissions);
     if (denied)
         return denied;
     const tenant = guardServiceTenant(tenantId);

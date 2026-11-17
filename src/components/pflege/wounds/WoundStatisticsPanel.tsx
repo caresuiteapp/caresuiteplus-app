@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Text, View } from 'react-native';
-import { ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
+import { CareDateInput } from '@/components/inputs/CareDateInput';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { fetchWoundClients } from '@/lib/pflege/ambulatoryWoundService';
 import { COMPLICATING_FACTORS, formatWoundNumber } from '@/lib/pflege/woundRecordDomain';
@@ -14,13 +15,13 @@ function validCalendarDate(value: string) {
     && new Date(value).toISOString().slice(0, 10) === value;
 }
 
-export function WoundStatisticsPanel({ scope }: { scope: WoundRecordUserScope }) {
+export function WoundStatisticsPanel({ scope, initialClientId }: { scope: WoundRecordUserScope; initialClientId?: string }) {
   const styles = useWoundRecordStyles();
   const { tenantId, actorId, role } = scope;
   const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Berlin', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date());
   const [from, setFrom] = useState(today.slice(0, 4) + '-01-01'), [to, setTo] = useState(today);
   const [range, setRange] = useState({ from, to });
-  const [clientId, setClientId] = useState<string>();
+  const [clientId, setClientId] = useState(initialClientId);
   const [warning, setWarning] = useState('');
   const people = useAsyncQuery(() => fetchWoundClients(tenantId, role), [tenantId, actorId, role], {
     queryKey: [tenantId, actorId, role, 'wound-statistics-clients'].join(':'),
@@ -53,10 +54,8 @@ export function WoundStatisticsPanel({ scope }: { scope: WoundRecordUserScope })
           {(people.error || people.refreshError) && <ErrorState message={people.error || people.refreshError || ''} onRetry={people.refresh} />}
         </View>
         <View style={[styles.field, styles.row]}>
-          <View style={styles.field}><PremiumInput label="Von" accessibilityLabel="Von (JJJJ-MM-TT)"
-            placeholder="JJJJ-MM-TT" value={from} onChangeText={setFrom} maxLength={10} /></View>
-          <View style={styles.field}><PremiumInput label="Bis" accessibilityLabel="Bis (JJJJ-MM-TT)"
-            placeholder="JJJJ-MM-TT" value={to} onChangeText={setTo} maxLength={10} /></View>
+          <View style={styles.field}><CareDateInput label="Von" value={from} onChange={setFrom} showFormatHint={false} /></View>
+          <View style={styles.field}><CareDateInput label="Bis" value={to} onChange={setTo} showFormatHint={false} /></View>
         </View>
       </View>
       <View style={styles.row}>

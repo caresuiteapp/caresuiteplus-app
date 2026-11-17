@@ -2,18 +2,19 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { enforcePermission } from '@/lib/permissions';
+import type { PermissionEnforcementContext } from '@/lib/permissions/enforce';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import type { RoleKey, ServiceResult } from '@/types';
 import { readCompleteCarePlanRows } from './carePlanCompleteRead';
 import type { CarePlanningDomain, CarePlanningModel, CarePlanningSetting } from './carePlanningModels';
 import type { CarePlanningTemplate, PlanningTemplateKind } from './carePlanningTemplates';
 
-type Scope = { tenantId: string; role: RoleKey | null | undefined; setting: CarePlanningSetting };
+type Scope = { tenantId: string; role: RoleKey | null | undefined; setting: CarePlanningSetting; permission?: PermissionEnforcementContext };
 
-function denied<T>({ tenantId, role, setting }: Scope, write = false): ServiceResult<T> | null {
+function denied<T>({ tenantId, role, setting, permission }: Scope, write = false): ServiceResult<T> | null {
   const readPermission = setting === 'ambulant' ? 'pflege.plans.view' : 'stationaer.residents.view';
   const writePermission = setting === 'ambulant' ? 'pflege.plans.manage' : 'stationaer.assessments.manage';
-  return enforcePermission<T>(role, readPermission) ?? (write ? enforcePermission<T>(role, writePermission) : null) ?? guardServiceTenant(tenantId);
+  return enforcePermission<T>(role, readPermission, permission) ?? (write ? enforcePermission<T>(role, writePermission, permission) : null) ?? guardServiceTenant(tenantId);
 }
 
 function mapTemplate(row: Record<string, unknown>): CarePlanningTemplate {

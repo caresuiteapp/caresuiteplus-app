@@ -1,6 +1,7 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { CarePlanDetail } from '@/types/modules/pflege';
 import { enforcePermission } from '@/lib/permissions';
+import type { PermissionEnforcementContext } from '@/lib/permissions/enforce';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import { carePlanLiveRepository } from './carePlanRepository.supabase';
@@ -9,8 +10,9 @@ export async function fetchCarePlanDetail(
   planId: string,
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  permissions?: PermissionEnforcementContext,
 ): Promise<ServiceResult<CarePlanDetail>> {
-  const denied = enforcePermission<CarePlanDetail>(actorRoleKey, 'pflege.plans.view');
+  const denied = enforcePermission<CarePlanDetail>(actorRoleKey, 'pflege.plans.view', permissions);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;

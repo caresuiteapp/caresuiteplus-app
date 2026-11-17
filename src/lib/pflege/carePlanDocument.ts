@@ -2,6 +2,7 @@ import type { CarePlanDetail } from '@/types/modules/pflege';
 import type { CareAssessment } from '@/types/modules/careAssessment';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { carePlanningModels, type CarePlanningModel } from './carePlanningModels';
+import { carePlanActivityLabels, planActivityFrequency } from './carePlanActivities';
 import { CARE_ASSESSMENT_TOPIC_LABELS } from '../careAssessment/catalog';
 
 type Field = readonly [label: string, content: string | null | undefined];
@@ -51,18 +52,25 @@ export function buildCarePlanDocument(plan: CarePlanDetail): string {
   return makeDocument({
     title: plan.title, subject: plan.clientName, setting: 'Ambulante Pflege', version: plan.version ?? 1,
     status: WORKFLOW_STATUS_LABELS[plan.status],
-    header: [['Pflegegrad', plan.careLevel], ['Wohnort', plan.city], ['Zuständige Pflegekraft', plan.employeeName],
+    header: [['Pflegemodell', carePlanningModels.find(model => model.key === plan.planningModel)?.label],
+      ['Pflegegrad', plan.careLevel], ['Wohnort', plan.city], ['Zuständige Pflegekraft', plan.employeeName],
       ['Gültig ab', date(plan.validFrom)], ['Gültig bis', date(plan.validUntil)], ['Nächste Planprüfung', date(plan.reviewDueAt)],
       ['Freigabe am', date(plan.approvedAt)], ['Freigegeben durch', plan.approvedByName]],
     sections: [
       { title: 'Pflegebedarf und Ziele', fields: [['Pflegeprobleme', plan.summary], ['Ressourcen', plan.resources],
         ['Risiken und Einflussfaktoren', plan.risks], ['Pflegeziele', plan.goals]] },
       ...plan.tasks.map((task, index) => ({ title: `${index + 1}. ${task.label}`, fields: [
+        ['Planungsbereich', task.activity ? carePlanActivityLabels[task.activity.kind] : undefined],
+        ['Geplante Termine', task.activity ? planActivityFrequency(task.activity) : undefined],
+        ['Angebot oder Position', task.activity?.subject],
+        ['Hilfsmittel', task.activity?.equipment],
+        ['Geplante Angebotsmenge je Termin', task.activity?.offeredMl != null ? `${task.activity.offeredMl} ml` : undefined],
         ['Pflegemodell und Bereich', task.category], ['Pflegeproblem', task.description], ['Eigenbeitrag', task.personContribution],
         ['Pflegeziel', task.goal], ['Durchführung', task.intervention], ['Zeitpunkt', task.timing], ['Häufigkeit', task.frequency],
         ['Zuständigkeit', task.responsibleRole], ['Beiträge der Angehörigen', task.relativesContribution], ['Warn- und Abbruchkriterien', task.warningSigns],
         ['Eskalationsweg', task.escalationPath], ['Evaluationskriterium', task.evaluationCriteria], ['Nächste Evaluation', date(task.nextEvaluationAt)],
-        ['Individuelle Bemerkungen', task.notes], ['Status', WORKFLOW_STATUS_LABELS[task.status]],
+        ['Individuelle Bemerkungen', task.notes], ['Status', task.itemState === 'cancelled' ? 'Aus dem Plan genommen' :
+          task.itemState === 'paused' ? 'Pausiert' : WORKFLOW_STATUS_LABELS[task.status]],
       ] satisfies Field[] })),
     ],
   });

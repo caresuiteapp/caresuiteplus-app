@@ -15,6 +15,7 @@ import type {
   CareAssessmentEvaluation,
 } from '@/types/modules/careAssessment';
 import { enforcePermission } from '@/lib/permissions';
+import type { PermissionEnforcementContext } from '@/lib/permissions/enforce';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { careAssessmentRepository } from './careAssessmentRepository.supabase';
 
@@ -26,8 +27,9 @@ const managePermission = (type: CareAssessmentSubjectType) =>
 export async function fetchEligibleCareClients(
   tenantId: string,
   role?: RoleKey | null,
+  permissions?: PermissionEnforcementContext,
 ): Promise<ServiceResult<CareAssessmentSubjectOption[]>> {
-  const denied = enforcePermission<CareAssessmentSubjectOption[]>(role, viewPermission('client'));
+  const denied = enforcePermission<CareAssessmentSubjectOption[]>(role, viewPermission('client'), permissions);
   if (denied) return denied;
   const tenant = guardServiceTenant(tenantId);
   return tenant ?? careAssessmentRepository.listEligibleCareClients(tenantId);

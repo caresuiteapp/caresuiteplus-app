@@ -1,5 +1,7 @@
 import type { TenantScopedEntity, WorkflowStatus } from '../core/base';
 import type { PortalScopedEntity, SensitivityLevel } from '../portal/visibility';
+import type { CarePlanActivity, CarePlanItemState } from '@/lib/pflege/carePlanActivities';
+import type { CarePlanningModel } from '@/lib/pflege/carePlanningModels';
 
 export type CarePlanTask = {
   id: string;
@@ -17,7 +19,10 @@ export type CarePlanTask = {
   warningSigns?: string;
   escalationPath?: string;
   evaluationCriteria?: string;
+  evaluationIntervalDays?: number | null;
   nextEvaluationAt?: string | null;
+  itemState?: CarePlanItemState;
+  activity?: CarePlanActivity | null;
   notes?: string;
 };
 
@@ -37,6 +42,7 @@ export type CarePlan = TenantScopedEntity &
     tasks: CarePlanTask[];
     primaryNurseId: string | null;
     assessmentId?: string | null;
+    planningModel?: CarePlanningModel | null;
     version?: number;
     reviewDueAt?: string | null;
     approvedAt?: string | null;

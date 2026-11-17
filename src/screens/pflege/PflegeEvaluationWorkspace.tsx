@@ -10,6 +10,7 @@ import { useAuth } from '@/lib/auth/context';
 import { fetchCarePlanEvaluations } from '@/lib/pflege/careQualityLiveService';
 import { evaluationOutcomeText, evaluationReviewReached, filterEvaluations, latestEvaluationIds, qualityWorklistDate, qualityWorklistId, type EvaluationFilter } from '@/lib/pflege/pflegeQualityWorklist';
 import { canShowDesktopCatalogRoute } from '@/liquid-command/navigation/appsWidgetsCatalogModel.shared';
+import { CareWorkspaceHeader } from '@/components/pflege/CareWorkspaceLayout';
 import { radius, spacing } from '@/theme';
 
 const route = '/pflege/evaluation';
@@ -36,12 +37,15 @@ export function PflegeEvaluationWorkspace() {
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const isCurrent = () => mounted.current && latest.current.revision === revision && latest.current.allowed && canShowDesktopCatalogRoute(route, latest.current.access);
 
-  return <ScreenShell title="Evaluationen" subtitle="Wirkung nachvollziehen und vereinbarte Prüftermine finden">
+  return <ScreenShell title="Evaluationen" compactHeader>
     {access.loading ? <LoadingState presentation="inline" message="Berechtigungen werden geprüft …" />
       : access.error ? <ErrorState presentation="inline" message={access.error} onRetry={access.refreshPermissions} />
       : !allowed || !tenantId ? <ErrorState presentation="inline" message="Für dieses Konto sind keine Pflegeevaluationen freigegeben." />
       : planId === null ? <ErrorState presentation="inline" message="Der verlinkte Pflegeplan ist ungültig." onRetry={() => { if (isCurrent()) router.replace(route as never); }} />
-      : <EvaluationWorklist key={revision} tenantId={tenantId} planId={planId} access={access} isCurrent={isCurrent} />}
+      : <>
+        <CareWorkspaceHeader title="Pflegeevaluation" subtitle={planId ? 'Evaluationen zu diesem Pflegeplan' : 'Wirkung und vereinbarte Prüftermine'} icon="check-square" />
+        <EvaluationWorklist key={revision} tenantId={tenantId} planId={planId} access={access} isCurrent={isCurrent} />
+      </>}
   </ScreenShell>;
 }
 

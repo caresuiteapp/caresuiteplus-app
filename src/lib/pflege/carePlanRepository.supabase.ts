@@ -7,11 +7,16 @@ import { readCompleteCarePlanRows } from './carePlanCompleteRead.ts';
 import { berlinCalendarDate } from './careTourWorkflow.ts';
 import { storedCalendarDay } from './carePlanDailyWorklist.ts';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
+import { planItemState, planModelKey, readPlanActivity, type CarePlanActivity } from './carePlanActivities';
+import type { CarePlanningModel } from './carePlanningModels';
 
 type Row = Record<string, unknown>;
 
 export type LiveCarePlanInput = {
   id?: string | null;
+  requestId?: string;
+  expectedVersion?: number | null;
+  planningModel?: CarePlanningModel | null;
   clientId: string;
   title: string;
   description: string;
@@ -24,6 +29,7 @@ export type LiveCarePlanInput = {
   primaryNurseId?: string | null;
   actorName: string;
   items: {
+    id?: string;
     title: string;
     category?: string;
     description?: string;
@@ -42,6 +48,7 @@ export type LiveCarePlanInput = {
     status?: string;
     sortOrder?: number;
     notes?: string;
+    activity?: CarePlanActivity | null;
   }[];
 };
 
@@ -92,8 +99,11 @@ function mapTask(row: Row): CarePlanTask {
     warningSigns: text(row.warning_signs),
     escalationPath: text(row.escalation_path),
     evaluationCriteria: text(row.evaluation_criteria),
+    evaluationIntervalDays: typeof row.evaluation_interval_days === 'number' ? row.evaluation_interval_days : null,
     nextEvaluationAt: row.next_evaluation_date ? text(row.next_evaluation_date) : null,
     notes: text(row.notes),
+    itemState: planItemState(row.status),
+    activity: readPlanActivity(row.planning_activity),
   };
 }
 
@@ -167,12 +177,30 @@ function mapListItem(row: Row, clients: Map<string, Row>, items: Row[], day: str
 }
 
 export const carePlanLiveRepository = {
-  async list(tenantId: string): Promise<ServiceResult<CarePlanListItem[]>> {
+  async listAssessmentSources(tenantId: string, clientId: string): Promise<ServiceResult<{ id: string; version: number; approvedAt: string }[]>> {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
-    const result = await readCompleteCarePlanRows((from, to) => fromUnknownTable(supabase, 'care_plans')
-      .select('*', { count: 'exact' }).eq('tenant_id', tenantId).neq('status', 'archived')
-      .order('id', { ascending: true }).range(from, to), row => row.tenant_id === tenantId && row.status !== 'archived');
+    const result = await readCompleteCarePlanRows((from, to) => fromUnknownTable(supabase, 'care_assessments')
+      .select('id,tenant_id,subject_id,subject_type,variant,status,version,approved_at', { count: 'exact' })
+      .eq('tenant_id', tenantId).eq('subject_id', clientId).eq('subject_type', 'client')
+      .eq('variant', 'ambulant').eq('status', 'approved').order('id', { ascending: true }).range(from, to),
+      row => row.tenant_id === tenantId && row.subject_id === clientId && row.subject_type === 'client' &&
+        row.variant === 'ambulant' && row.status === 'approved');
+    if (!result.ok) return result;
+    return { ok: true, data: result.data.map(row => ({
+      id: String(row.id), version: Number(row.version ?? 1), approvedAt: String(row.approved_at ?? ''),
+    })).sort((left, right) => right.approvedAt.localeCompare(left.approvedAt)) };
+  },
+
+  async list(tenantId: string, clientId?: string): Promise<ServiceResult<CarePlanListItem[]>> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return unavailable();
+    const result = await readCompleteCarePlanRows((from, to) => {
+      let query = fromUnknownTable(supabase, 'care_plans')
+        .select('*', { count: 'exact' }).eq('tenant_id', tenantId).neq('status', 'archived');
+      if (clientId) query = query.eq('client_id', clientId);
+      return query.order('id', { ascending: true }).range(from, to);
+    }, row => row.tenant_id === tenantId && row.status !== 'archived' && (!clientId || row.client_id === clientId));
     if (!result.ok) return result;
     const plans = result.data.filter(row => row.status !== 'archiviert').sort((a, b) => text(b.updated_at).localeCompare(text(a.updated_at)));
     const references = await loadReferences(tenantId, plans);
@@ -230,6 +258,7 @@ export const carePlanLiveRepository = {
         resources: text(row.resources),
         risks: text(row.risks),
         assessmentId: row.source_assessment_id ? text(row.source_assessment_id) : null,
+        planningModel: planModelKey(row.planning_model),
         version: Number(row.version ?? 1),
         reviewDueAt: row.review_due_at ? text(row.review_due_at) : null,
         approvedAt: row.approved_at ? text(row.approved_at) : null,
@@ -261,7 +290,9 @@ export const carePlanLiveRepository = {
         error: Parameters<typeof toGermanSupabaseError>[0];
       }>;
     };
-    const { data, error } = await rpc.rpc('save_live_care_plan', {
+    const { data, error } = input.requestId ? await rpc.rpc('write_ambulatory_care_plan', {
+      p_document: input,
+    }) : await rpc.rpc('save_live_care_plan', {
       p_plan_id: input.id ?? null,
       p_client_id: input.clientId,
       p_title: input.title.trim(),
@@ -278,9 +309,25 @@ export const carePlanLiveRepository = {
     });
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
     const id = text(data.id);
+    if (input.requestId && (id !== (input.id ?? input.requestId) || typeof data.version !== 'number')) {
+      return { ok: false, error: 'Der Speicherbeleg für diese Pflegeplanung konnte nicht geprüft werden.' };
+    }
+    if (input.requestId) {
+      const check = await fromUnknownTable(supabase, 'care_plans').select('id,tenant_id,client_id,version')
+        .eq('id', id).eq('tenant_id', tenantId).eq('client_id', input.clientId).maybeSingle();
+      const row = check.data as Row | null;
+      if (check.error || row?.id !== id || row.tenant_id !== tenantId || row.client_id !== input.clientId ||
+          typeof row.version !== 'number' || row.version < Number(data.version)) {
+        return { ok: false, error: 'Die gespeicherte Version konnte noch nicht bestätigt werden. Denselben Entwurf erneut speichern.' };
+      }
+      return { ok: true, data: { id } };
+    }
     const readback = await this.get(tenantId, id);
     if (!readback.ok) return readback;
     if (!readback.data) return { ok: false, error: 'Pflegeplan wurde nicht zurückgelesen.' };
+    if (readback.data.clientId !== input.clientId) {
+      return { ok: false, error: 'Die gespeicherte Version konnte noch nicht bestätigt werden.' };
+    }
     return { ok: true, data: { id } };
   },
 };

@@ -6,14 +6,16 @@ import { ErrorState, InfoBanner, PremiumButton, PremiumInput, SectionPanel } fro
 import { protocolFluidWindow, fluidQualityKeys } from '@/lib/pflege/protocolFluidWindow';
 import { protocolNames, protocolWhen } from '@/lib/pflege/dailyProtocolLabels';
 import type { ProtocolRecord } from '@/lib/pflege/dailyProtocolDomain';
+import { berlinEventCandidates } from '@/lib/pflege/medicationAdministrationDomain';
 import { useTreatmentCorrectionStyles } from "./TreatmentCorrectionScreen.native.tsx";
 const quality = { observedMeasured: 'Eigene Beobachtung · gemessen', observedEstimated: 'Eigene Beobachtung · geschätzt', reportedMeasured: 'Fremdangabe · gemessen angegeben', reportedEstimated: 'Fremdangabe · geschätzt angegeben' };
 const states = { included: 'Menge im Ausschnitt berücksichtigt', boundary_crossing: 'Sammlung überschreitet die Grenze · keine anteilige Zuordnung', unquantified: 'Tatsächlicher Vorgang ohne erhobene Menge', no_observation: 'Keine bestätigte tatsächliche Menge dieses Vorgangs' };
 const amount = (v: string | null) => v === null ? 'Nicht berechenbar / keine passende quantifizierte Quelle' : `${v} ml`;
-export function ProtocolFluidWindowPanel({ records, tenant, client, disabled }: {
+export function ProtocolFluidWindowPanel({ records, tenant, client, day, disabled }: {
     records: ProtocolRecord[];
     tenant: string;
     client: string;
+    day: string;
     disabled: boolean;
 }) {
     const styles = useTreatmentCorrectionStyles(), [from, setFrom] = useState(''), [to, setTo] = useState(''), [applied, setApplied] = useState<{
@@ -26,12 +28,31 @@ export function ProtocolFluidWindowPanel({ records, tenant, client, disabled }: 
     catch (e) {
         return { data: null, error: e instanceof Error ? e.message : 'Auswertung nicht vollständig verfügbar.' };
     } }, [records, tenant, client, applied]);
-    return <SectionPanel title="Dokumentierte Ein- und Ausfuhr im abgegrenzten Ausschnitt">
-  <InfoBanner variant="info" message="Trinkaufnahme, Urin und gesonderte Flüssigkeitsausfuhr aus diesem Protokollbestand. Infusionen, Sondenzufuhr, Nahrungswasser und nicht erhobene Verluste sind hier nicht angebunden. Dies ist keine vollständige oder medizinisch bewertete Flüssigkeitsbilanz."/>
+    function applyWindow(from: string, to: string) {
+        setCount(20);
+        setApplied({ from, to });
+    }
+    const [midnight] = berlinEventCandidates(day, '00:00');
+    function applyProtocolDay() {
+        if (!midnight)
+            return;
+        // Advance the calendar date instead of adding 24 hours to the Berlin window.
+        const tomorrow = new Date(day + 'T12:00:00Z');
+        tomorrow.setUTCDate(tomorrow.getUTCDate() + 1);
+        const [nextMidnight] = berlinEventCandidates(tomorrow.toISOString().slice(0, 10), '00:00');
+        if (!nextMidnight)
+            return;
+        setFrom(midnight);
+        setTo(nextMidnight);
+        applyWindow(midnight, nextMidnight);
+    }
+    return <SectionPanel title="Flüssigkeitsauswertung">
+  <InfoBanner variant="info" message="Die Auswertung verwendet dokumentierte Trinkaufnahme, Urin und weitere erfasste Ausfuhr. Mengen aus Infusionen, Sondenzufuhr und Nahrung liegen außerhalb dieses Protokolls."/>
+  <PremiumButton title="Gewählten Protokolltag auswerten" size="sm" variant="secondary" disabled={disabled || !midnight} onPress={applyProtocolDay}/>
   <PremiumInput label="Beginn mit Zeitzone, einschließlich (ISO-Zeitpunkt)" accessibilityLabel="Beginn des Mengenausschnitts" value={from} onChangeText={v => { setFrom(v); setApplied(null); }}/>
   <PremiumInput label="Ende mit Zeitzone, Einzelereignisse vor diesem Zeitpunkt" accessibilityLabel="Ende des Mengenausschnitts" value={to} onChangeText={v => { setTo(v); setApplied(null); }}/>
   <Text style={styles.body}>Bestätigte Intervallsammlungen werden nur vollständig zugeordnet. Eine Sammlung, die genau am Ende endet, gehört zum Ausschnitt; ein Einzelereignis genau am Ende gehört zum nächsten Ausschnitt.</Text>
-  <PremiumButton title="Diesen dokumentierten Ausschnitt auswerten" variant="secondary" disabled={disabled} onPress={() => { setCount(20); setApplied({ from, to }); }}/>
+  <PremiumButton title="Eigenen Zeitraum auswerten" variant="secondary" disabled={disabled} onPress={() => applyWindow(from, to)}/>
   {result.error ? <ErrorState message={result.error}/> : null}
   {result.data ? <>
    <Text style={styles.body}>Ausgewertet: {protocolWhen(result.data.from)} bis {protocolWhen(result.data.to)}. {result.data.rows.length} relevante aktuelle Originalbezüge.</Text>
