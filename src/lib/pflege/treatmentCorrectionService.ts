@@ -14,10 +14,18 @@ import {validateTreatmentSource,validateTreatmentCorrection,validateTreatmentCor
 import type {MedicationWriteResult} from './medicationAdministrationService';
 const database=()=>getServiceMode()==='supabase'?getSupabaseClient():null;
 const scope=<T,>(tenant:string,role:RoleKey|null,write=false)=>enforcePermission<T>(role,'pflege.treatment.view')??(write?enforcePermission<T>(role,'pflege.treatment.manage'):null)??guardServiceTenant(tenant);
+const correctionTable = 'clinical_treatment_corrections';
 async function read(db:NonNullable<ReturnType<typeof database>>,table:string,tenant:string,field?:string,value?:string,projection='*'){
  return loadCompleteMedicationHistory<Row>(async cursor=>{
   let q=fromUnknownTable(db,table).select(projection).eq('tenant_id',tenant).order('created_at',{ascending:false}).order('id',{ascending:false}).limit(250);if(field)q=q.eq(field,value);if(cursor)q=q.or(medicationHistoryFilter(cursor));
-  const result=await withServiceQueryTimeout(Promise.resolve(q),'Nachweis und Berichtigungen vollständig laden',20_000);if(result.error)throw Error(toGermanSupabaseError(result.error));return result.data;
+  const result=await withServiceQueryTimeout(Promise.resolve(q),'Nachweis und Berichtigungen vollständig laden',20_000);
+  if (result.error) {
+   if (table === correctionTable && result.error.code === '42501') {
+    throw Error('Für den Berichtigungsverlauf fehlt die Lesefreigabe.');
+   }
+   throw Error(toGermanSupabaseError(result.error));
+  }
+  return result.data;
  },tenant,r=>!field||r[field]===value);
 }
 export type TreatmentCorrectionContext={execution:Row;dressing:Row|null;corrections:Row[];clientName:string};
@@ -32,7 +40,7 @@ export async function fetchTreatmentCorrectionContext(tenant:string,id:string,ro
   if(rel.dressingId!=null){const permissions=enforcePermission(role,'pflege.wounds.view')??enforcePermission(role,'pflege.orders.view');if(permissions)throw Error('Für die gemeinsame Berichtigung dieses Verbandwechsels sind zusätzlich Wund- und Anordnungsleserechte erforderlich.');
    const d=await read(db,'ambulatory_wound_dressings',tenant,'id',String(rel.dressingId));dressing=d[0]??null;if(!dressing||dressing.execution_id!==id||dressing.client_id!==execution.client_id||dressing.wound_case_id!==rel.woundId)throw Error('Zugehöriger Original-Verbandwechsel nicht vollständig zugänglich.');
   }
-  const corrections=await read(db,'clinical_treatment_corrections',tenant,'execution_id',id);validateTreatmentCorrectionHistory(corrections,tenant,[execution]);
+  const corrections=await read(db,correctionTable,tenant,'execution_id',id);validateTreatmentCorrectionHistory(corrections,tenant,[execution]);
   const again=await withServiceQueryTimeout(Promise.resolve(fromUnknownTable(db,'clinical_treatment_executions').select('*').eq('tenant_id',tenant).eq('id',id).maybeSingle()),'Originalstand prüfen',20_000);if(again.error)throw Error(toGermanSupabaseError(again.error));if(!sameWoundJson(execution,again.data))throw Error('Originalnachweis während des Ladens geändert. Neu laden.');
   return {ok:true,data:{execution,dressing,corrections,clientName:[person.first_name,person.last_name].filter(v=>typeof v==='string').join(' ').trim()||'Name fehlt'}};
  }catch(e){return {ok:false,error:e instanceof Error?e.message:'Nachweisstand nicht vollständig geladen.'};}
@@ -41,7 +49,7 @@ export type TreatmentRecordList={executions:Row[];corrections:Row[];clientNames:
 export async function fetchTreatmentRecords(tenant:string,role:RoleKey|null):Promise<ServiceResult<TreatmentRecordList>>{
  const denied=scope<TreatmentRecordList>(tenant,role);if(denied)return denied;const db=database();if(!db)return {ok:false,error:'Behandlungspflegedatenbank nicht verbunden.'};
  try{
-  const [people,assignments,allExecutions,allCorrections]=await Promise.all([read(db,'clients',tenant,undefined,undefined,'id,tenant_id,first_name,last_name,status,deleted_at,created_at'),read(db,'client_module_assignments',tenant,'module_key','pflege'),read(db,'clinical_treatment_executions',tenant),read(db,'clinical_treatment_corrections',tenant)]);
+  const [people,assignments,allExecutions,allCorrections]=await Promise.all([read(db,'clients',tenant,undefined,undefined,'id,tenant_id,first_name,last_name,status,deleted_at,created_at'),read(db,'client_module_assignments',tenant,'module_key','pflege'),read(db,'clinical_treatment_executions',tenant),read(db,correctionTable,tenant)]);
   const active=new Set(assignments.filter(a=>a.is_active===true&&typeof a.status==='string'&&!['inactive','deactivated','archiviert'].includes(a.status)).map(a=>a.client_id));
   const clientNames=new Map(people.filter(p=>p.status==='active'&&p.deleted_at==null&&active.has(p.id)).map(p=>[String(p.id),[p.first_name,p.last_name].filter(v=>typeof v==='string').join(' ').trim()||'Name fehlt']));
   const executions=allExecutions.filter(e=>clientNames.has(String(e.client_id))),corrections=allCorrections.filter(c=>clientNames.has(String(c.client_id)));validateTreatmentCorrectionHistory(corrections,tenant,executions);
@@ -52,7 +60,7 @@ export async function fetchWoundCareWithTreatmentCorrections(tenant:string,id:st
  const ctx=await fetchWoundCareContext(tenant,id,role,dressing);if(!ctx.ok)return ctx;if(!dressing)return {ok:true,data:{...ctx.data,corrections:[],correctionLinks:[]}};
  const db=database();if(!db)return {ok:false,error:'Wunddatenbank nicht verbunden.'};
  try{
-  const client=String(ctx.data.wound.row.client_id),[corrections,correctionLinks,executions]=await Promise.all([read(db,'clinical_treatment_corrections',tenant,'wound_case_id',id),read(db,'wound_dressing_correction_links',tenant,'wound_case_id',id),read(db,'clinical_treatment_executions',tenant,'client_id',client)]);
+  const client=String(ctx.data.wound.row.client_id),[corrections,correctionLinks,executions]=await Promise.all([read(db,correctionTable,tenant,'wound_case_id',id),read(db,'wound_dressing_correction_links',tenant,'wound_case_id',id),read(db,'clinical_treatment_executions',tenant,'client_id',client)]);
   validateTreatmentCorrectionHistory(corrections,tenant,executions);validateDressingCorrectionLinks(corrections,correctionLinks,tenant,client,id,ctx.data.dressings);
   const after=await withServiceQueryTimeout(Promise.resolve(fromUnknownTable(db,'clinical_wound_cases').select('updated_at,status').eq('tenant_id',tenant).eq('id',id).maybeSingle()),'Wund-Berichtigungsstand prüfen',20_000);if(after.error)throw Error(toGermanSupabaseError(after.error));const w=after.data as Row|null;if(!w||w.updated_at!==ctx.data.wound.row.updated_at||w.status!==ctx.data.wound.row.status)throw Error('Wundverlauf während des Ladens geändert. Neu laden.');
   return {ok:true,data:{...ctx.data,corrections,correctionLinks}};
