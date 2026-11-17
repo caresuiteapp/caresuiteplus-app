@@ -1,14 +1,12 @@
 // Generated native presentation from src/components/documents/CentralCatalogWorkspace.web.tsx. Update through scripts/port-native-workspaces.mjs.
 import {useNativeWorkflowWindow} from '@/lib/platform/nativeWorkflowEnvironment.native';
 import {nativeURL as URL,nativeWindow as window,nativeBlob as Blob} from '@/lib/platform/nativeWorkflowEnvironment.native';
-import {NativeDiv,NativeStyle,NativeNav,NativeButton,NativeSpan,NativeAside,NativeH2,NativeLabel,NativeInput,NativeSelect,NativeOption,NativeStrong,NativeSmall,NativeEm,NativeH3,NativeP,NativeMain,NativeB,NativeSection,NativeArticle,NativeFieldset,NativeDetails,NativeSummary,NativeTable,NativeThead,NativeTr,NativeTh,NativeTbody,NativeTd,NativeIframe,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
+import {NativeDiv,NativeStyle,NativeNav,NativeButton,NativeSpan,NativeAside,NativeH2,NativeP,NativeLabel,NativeInput,NativeSelect,NativeOption,NativeStrong,NativeSmall,NativeEm,NativeH3,NativeMain,NativeB,NativeSection,NativeArticle,NativeFieldset,NativeDetails,NativeSummary,NativeTable,NativeThead,NativeTr,NativeTh,NativeTbody,NativeTd,NativeIframe,NativeWorkspaceStyleScope} from '@/components/layout/NativeWorkspaceElements.native';
 import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platform/nativeWorkspaceActions.native';
 import { shareNativeFile, printNativePdf } from '@/lib/platform/nativeFileDelivery.native';
 import { prepareNativeInvoiceLogo } from '@/lib/platform/nativeInvoiceLogo.native';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CENTRAL_DOCUMENT_CATALOG, filterCentralDocuments, findCentralDocument } from '@/data/seeds/documentCatalog/centralCatalog';
-import { CENTRAL_CATALOG_GROUPS } from '@/data/seeds/documentCatalog/centralCatalogTitles';
-import { centralFileName, centralMissingFields, createCentralSnapshot, newCentralDocumentId, refreshCentralSnapshot } from '@/lib/documents/centralCatalogModel';
+import { centralDocumentCategories, centralFileName, centralMissingFields, createCentralSnapshot, filterCentralDocumentDefinitions, newCentralDocumentId, refreshCentralSnapshot } from '@/lib/documents/centralCatalogModel';
 import type { ServiceResult } from '@/types';
 import type { CentralDocumentContext, CentralDocumentDefinition, CentralDocumentSnapshot, CentralDocumentStored, CentralDocumentTarget } from '@/types/documents/centralCatalog';
 import { centralCatalogCss } from "./centralCatalogCss.native.ts";
@@ -29,6 +27,10 @@ export type CentralCatalogWorkspaceProps = {
     tenantId: string;
     author: string;
     demo: boolean;
+    definitions: readonly CentralDocumentDefinition[];
+    loadingDefinitions?: boolean;
+    definitionsError?: string;
+    onRetryDefinitions?: () => void;
     clients: CentralCatalogEntityOption[];
     employees: CentralCatalogEntityOption[];
     loadingEntities: boolean;
@@ -68,8 +70,8 @@ async function logoImage(url: string): Promise<string | undefined> { if (!url)
     throw Error('Das Unternehmenslogo konnte nicht für die PDF-Ausgabe geladen werden.'); return logo.dataUrl; }
 export function CentralCatalogWorkspace(props: CentralCatalogWorkspaceProps) {
     const [query, setQuery] = useState('');
-    const [category, setCategory] = useState(CENTRAL_CATALOG_GROUPS.some((group) => group.key === props.category) ? props.category! : '');
-    const [module, setModule] = useState(props.module ?? '');
+    const [categoryFilter, setCategory] = useState(props.category ?? '');
+    const [moduleFilter, setModule] = useState(props.module ?? '');
     const [selectedKey, setSelectedKey] = useState(props.templateKey ?? '');
     const [tab, setTab] = useState<'catalog' | 'records'>(props.initialTab ?? 'catalog');
     const [copy, setCopy] = useState<CentralDocumentStored | null>(null);
@@ -87,9 +89,13 @@ export function CentralCatalogWorkspace(props: CentralCatalogWorkspaceProps) {
         await registerNavigationGuard?.(allowSwitch);
         return async () => await registerNavigationGuard?.(null);
     }), [allowSwitch, registerNavigationGuard]);
-    const visible = useMemo(() => filterCentralDocuments({ query, category, module }), [query, category, module]);
-    const selected = copy?.snapshot.definition ?? findCentralDocument(selectedKey);
-    const allModules = useMemo(() => [...new Set(CENTRAL_DOCUMENT_CATALOG.flatMap((d) => [...d.modules]))].sort(), []);
+    const categories = useMemo(() => centralDocumentCategories(props.definitions), [props.definitions]);
+    const allModules = useMemo(() => [...new Set(props.definitions.flatMap((d) => [...d.modules]))].sort(), [props.definitions]);
+    const category = categories.some((group) => group.key === categoryFilter) ? categoryFilter : '';
+    const module = allModules.includes(moduleFilter) ? moduleFilter : '';
+    const visible = useMemo(() => filterCentralDocumentDefinitions(props.definitions, { query, category, module }), [props.definitions, query, category, module]);
+    const selected = copy?.snapshot.definition ?? props.definitions.find((definition) => definition.key === selectedKey);
+    const catalogReady = !props.loadingDefinitions && !props.definitionsError;
     const mounted = useRef(true);
     useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
     const openStored = async (record: CentralDocumentStored, original = false) => {
@@ -121,27 +127,31 @@ export function CentralCatalogWorkspace(props: CentralCatalogWorkspaceProps) {
     };
     return <NativeWorkspaceStyleScope css={[centralCatalogCss, centralCatalogCss]}>{<NativeDiv className="csdc">
     <NativeStyle>{centralCatalogCss}</NativeStyle>
-    <NativeNav className="csdc-tabs" aria-label="Dokumentenkatalog"><NativeButton className={tab === 'catalog' ? 'active' : ''} aria-current={tab === 'catalog' ? 'page' : undefined} onClick={() => setTab('catalog')}>Vorlagenkatalog <NativeSpan>{CENTRAL_DOCUMENT_CATALOG.length}</NativeSpan></NativeButton><NativeButton className={tab === 'records' ? 'active' : ''} aria-current={tab === 'records' ? 'page' : undefined} disabled={editorBusy} onClick={async () => { if (tab === 'records' || await allowSwitch()) {
+    <NativeNav className="csdc-tabs" aria-label="Dokumentenkatalog"><NativeButton className={tab === 'catalog' ? 'active' : ''} aria-current={tab === 'catalog' ? 'page' : undefined} onClick={() => setTab('catalog')}>Vorlagenkatalog {catalogReady ? <NativeSpan>{props.definitions.length}</NativeSpan> : null}</NativeButton><NativeButton className={tab === 'records' ? 'active' : ''} aria-current={tab === 'records' ? 'page' : undefined} disabled={editorBusy} onClick={async () => { if (tab === 'records' || await allowSwitch()) {
         dirty.current = false;
         setTab('records');
     } }}>Gespeicherte Fassungen <NativeSpan>{props.records.length}{props.recordsHasMore ? '+' : ''}</NativeSpan></NativeButton></NativeNav>
     {tab === 'catalog' ? <NativeDiv className="csdc-workspace">
       <NativeAside className="csdc-panel csdc-catalog">
-        <NativeDiv className="csdc-panel-heading"><NativeH2>Vorlage auswählen</NativeH2><NativeSpan>{visible.length} Treffer</NativeSpan></NativeDiv>
+        <NativeDiv className="csdc-panel-heading"><NativeH2>Vorlage auswählen</NativeH2>{catalogReady ? <NativeSpan>{visible.length} Treffer</NativeSpan> : null}</NativeDiv>
+        {props.loadingDefinitions ? <NativeP role="status">Vorlagen werden geladen …</NativeP> : null}
+        {props.definitionsError ? <NativeDiv className="csdc-alert"><NativeP role="alert">{props.definitionsError}</NativeP>{props.onRetryDefinitions ? <NativeButton type="button" className="csdc-button secondary" onClick={props.onRetryDefinitions}>Vorlagen erneut laden</NativeButton> : null}</NativeDiv> : null}
+        {catalogReady ? <>
         <NativeLabel className="csdc-field">Suche<NativeInput type="search" placeholder="z. B. Leistungsnachweis, Wunde, Vertrag" value={query} onChange={(e) => setQuery(e.target.value)}/></NativeLabel>
-        <NativeLabel className="csdc-field">Fachbereich<NativeSelect value={category} onChange={(e) => setCategory(e.target.value)}><NativeOption value="">Alle {CENTRAL_CATALOG_GROUPS.length} Fachbereiche</NativeOption>{CENTRAL_CATALOG_GROUPS.map((g) => <NativeOption key={g.key} value={g.key}>{g.name}</NativeOption>)}</NativeSelect></NativeLabel>
+        <NativeLabel className="csdc-field">Fachbereich<NativeSelect value={category} onChange={(e) => setCategory(e.target.value)}><NativeOption value="">Alle {categories.length} Fachbereiche</NativeOption>{categories.map((g) => <NativeOption key={g.key} value={g.key}>{g.name}</NativeOption>)}</NativeSelect></NativeLabel>
         <NativeLabel className="csdc-field">Arbeitsbereich<NativeSelect value={module} onChange={(e) => setModule(e.target.value)}><NativeOption value="">Alle Arbeitsbereiche</NativeOption>{allModules.map((m) => <NativeOption key={m} value={m}>{moduleNames[m] ?? m}</NativeOption>)}</NativeSelect></NativeLabel>
         <NativeDiv className="csdc-catalog-list" aria-label="Vorlagen">
           {visible.length ? visible.map((d) => <NativeButton key={d.key} className={`csdc-template ${selectedKey === d.key ? 'selected' : ''}`} aria-pressed={selectedKey === d.key} disabled={editorBusy} onClick={async () => { if ((selectedKey === d.key && !copy) || !await allowSwitch())
-                return; dirty.current = false; setSelectedKey(d.key); setCopy(null); }}>
+                    return; dirty.current = false; setSelectedKey(d.key); setCopy(null); }}>
             <NativeSpan className="csdc-template-icon">{d.sourceMode === 'original' ? '↳' : d.layout === 'table' ? '▦' : d.layout === 'contract' ? '§' : '▤'}</NativeSpan>
             <NativeSpan><NativeStrong>{d.title}</NativeStrong><NativeSmall>{d.categoryName}</NativeSmall><NativeEm>{d.sourceMode === 'original' ? 'Original + Begleitblatt' : layoutNames[d.layout]} · {d.orientation === 'landscape' ? 'Querformat' : 'Hochformat'}</NativeEm></NativeSpan>
-          </NativeButton>) : <NativeDiv className="csdc-empty"><NativeH3>Keine passende Vorlage</NativeH3><NativeP>Ändern Sie die Suche oder setzen Sie die Filter zurück.</NativeP><NativeButton className="csdc-button secondary" onClick={() => { setQuery(''); setCategory(''); setModule(''); }}>Filter zurücksetzen</NativeButton></NativeDiv>}
+          </NativeButton>) : props.definitions.length ? <NativeDiv className="csdc-empty"><NativeH3>Keine passende Vorlage</NativeH3><NativeP>Ändern Sie die Suche oder setzen Sie die Filter zurück.</NativeP><NativeButton className="csdc-button secondary" onClick={() => { setQuery(''); setCategory(''); setModule(''); }}>Filter zurücksetzen</NativeButton></NativeDiv> : <NativeDiv className="csdc-empty"><NativeH3>Keine Vorlagen verfügbar</NativeH3></NativeDiv>}
         </NativeDiv>
+        </> : null}
       </NativeAside>
       <NativeMain className="csdc-editor-host">
-        {selectedKey && !selected ? <NativeP className="csdc-alert" role="alert">Diese Vorlage ist nicht mehr im aktuellen Katalog verfügbar. Wählen Sie eine andere Vorlage. Gespeicherte Fassungen bleiben im gleichnamigen Bereich erhalten.</NativeP> : null}
-        {selected ? <CentralCatalogEditor key={`${props.tenantId}:${selected.key}:${copy?.id ?? 'new'}`} definition={selected} {...props} copy={copy} onDraftChange={reportDirty} onWorkingChange={reportWorking}/> : <NativeDiv className="csdc-panel csdc-welcome"><NativeDiv className="csdc-welcome-symbol" aria-hidden="true">▤</NativeDiv><NativeSpan className="csdc-eyebrow">VORLAGEN UND AKTENABLAGE</NativeSpan><NativeH2>Welches Dokument benötigen Sie?</NativeH2><NativeP>Wählen Sie eine Vorlage und die passende Akte. Gespeicherte Angaben werden übernommen; eigene Ergänzungen bleiben bearbeitbar.</NativeP><NativeDiv className="csdc-steps"><NativeDiv><NativeB>01</NativeB><NativeStrong>Vorlage wählen</NativeStrong><NativeSpan>Suche und Fachbereiche führen zur passenden Unterlage.</NativeSpan></NativeDiv><NativeDiv><NativeB>02</NativeB><NativeStrong>Angaben ergänzen</NativeStrong><NativeSpan>Stammdaten übernehmen und Schnellauswahlen nutzen.</NativeSpan></NativeDiv><NativeDiv><NativeB>03</NativeB><NativeStrong>Dokument ablegen</NativeStrong><NativeSpan>PDF prüfen, drucken und in der zugehörigen Akte speichern.</NativeSpan></NativeDiv></NativeDiv></NativeDiv>}
+        {catalogReady && selectedKey && !selected ? <NativeP className="csdc-alert" role="alert">Diese Vorlage ist nicht mehr im aktuellen Katalog verfügbar. Wählen Sie eine andere Vorlage. Gespeicherte Fassungen bleiben im gleichnamigen Bereich erhalten.</NativeP> : null}
+        {selected ? <CentralCatalogEditor key={`${props.tenantId}:${selected.key}:${selected.version}:${copy?.id ?? 'new'}`} definition={selected} {...props} copy={copy} onDraftChange={reportDirty} onWorkingChange={reportWorking}/> : catalogReady ? <NativeDiv className="csdc-panel csdc-welcome"><NativeDiv className="csdc-welcome-symbol" aria-hidden="true">▤</NativeDiv><NativeSpan className="csdc-eyebrow">VORLAGEN UND AKTENABLAGE</NativeSpan><NativeH2>Welches Dokument benötigen Sie?</NativeH2><NativeP>Wählen Sie eine Vorlage und die passende Akte. Gespeicherte Angaben werden übernommen; eigene Ergänzungen bleiben bearbeitbar.</NativeP><NativeDiv className="csdc-steps"><NativeDiv><NativeB>01</NativeB><NativeStrong>Vorlage wählen</NativeStrong><NativeSpan>Suche und Fachbereiche führen zur passenden Unterlage.</NativeSpan></NativeDiv><NativeDiv><NativeB>02</NativeB><NativeStrong>Angaben ergänzen</NativeStrong><NativeSpan>Stammdaten übernehmen und Schnellauswahlen nutzen.</NativeSpan></NativeDiv><NativeDiv><NativeB>03</NativeB><NativeStrong>Dokument ablegen</NativeStrong><NativeSpan>PDF prüfen, drucken und in der zugehörigen Akte speichern.</NativeSpan></NativeDiv></NativeDiv></NativeDiv> : null}
       </NativeMain>
     </NativeDiv> : <NativeSection className="csdc-panel">
       <NativeDiv className="csdc-panel-heading"><NativeDiv><NativeH2>Gespeicherte Dokumentfassungen</NativeH2><NativeP>Jede Fassung hat eine eigene ID. Eine Bearbeitung erzeugt eine neue Fassung.</NativeP></NativeDiv><NativeButton className="csdc-button secondary" onClick={props.onRefresh}>Aktualisieren</NativeButton></NativeDiv>

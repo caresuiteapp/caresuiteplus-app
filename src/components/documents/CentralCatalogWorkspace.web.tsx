@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { CENTRAL_DOCUMENT_CATALOG, filterCentralDocuments, findCentralDocument } from '@/data/seeds/documentCatalog/centralCatalog';
-import { CENTRAL_CATALOG_GROUPS } from '@/data/seeds/documentCatalog/centralCatalogTitles';
-import { centralFileName, centralMissingFields, createCentralSnapshot, newCentralDocumentId, refreshCentralSnapshot } from '@/lib/documents/centralCatalogModel';
+import { centralDocumentCategories, centralFileName, centralMissingFields, createCentralSnapshot, filterCentralDocumentDefinitions, newCentralDocumentId, refreshCentralSnapshot } from '@/lib/documents/centralCatalogModel';
 import type { ServiceResult } from '@/types';
 import type { CentralDocumentContext, CentralDocumentDefinition, CentralDocumentSnapshot, CentralDocumentStored, CentralDocumentTarget } from '@/types/documents/centralCatalog';
 import { centralCatalogCss } from './centralCatalogCss.web';
@@ -14,6 +12,7 @@ type Original = { bytes: Uint8Array; fileName: string };
 type PdfResult = { bytes: Uint8Array; hash: string; pageCount: number };
 export type CentralCatalogWorkspaceProps = {
   tenantId: string; author: string; demo: boolean;
+  definitions: readonly CentralDocumentDefinition[]; loadingDefinitions?: boolean; definitionsError?: string; onRetryDefinitions?: () => void;
   clients: CentralCatalogEntityOption[]; employees: CentralCatalogEntityOption[]; loadingEntities: boolean; entityError?: string;
   permissions: { create: boolean; preview: boolean; export: boolean; save: boolean };
   module?: string; category?: string; clientId?: string; employeeId?: string; templateKey?: string;
@@ -58,8 +57,8 @@ async function logoImage(url: string): Promise<string | undefined> {
 }
 
 export function CentralCatalogWorkspace(props: CentralCatalogWorkspaceProps) {
-  const [query, setQuery] = useState(''); const [category, setCategory] = useState(CENTRAL_CATALOG_GROUPS.some((group) => group.key === props.category) ? props.category! : '');
-  const [module, setModule] = useState(props.module ?? '');
+  const [query, setQuery] = useState(''); const [categoryFilter, setCategory] = useState(props.category ?? '');
+  const [moduleFilter, setModule] = useState(props.module ?? '');
   const [selectedKey, setSelectedKey] = useState(props.templateKey ?? '');
   const [tab, setTab] = useState<'catalog' | 'records'>(props.initialTab ?? 'catalog');
   const [copy, setCopy] = useState<CentralDocumentStored | null>(null);
@@ -75,9 +74,13 @@ export function CentralCatalogWorkspace(props: CentralCatalogWorkspaceProps) {
     registerNavigationGuard?.(allowSwitch);
     return () => registerNavigationGuard?.(null);
   }, [allowSwitch, registerNavigationGuard]);
-  const visible = useMemo(() => filterCentralDocuments({ query, category, module }), [query, category, module]);
-  const selected = copy?.snapshot.definition ?? findCentralDocument(selectedKey);
-  const allModules = useMemo(() => [...new Set(CENTRAL_DOCUMENT_CATALOG.flatMap((d) => [...d.modules]))].sort(), []);
+  const categories = useMemo(() => centralDocumentCategories(props.definitions), [props.definitions]);
+  const allModules = useMemo(() => [...new Set(props.definitions.flatMap((d) => [...d.modules]))].sort(), [props.definitions]);
+  const category = categories.some((group) => group.key === categoryFilter) ? categoryFilter : '';
+  const module = allModules.includes(moduleFilter) ? moduleFilter : '';
+  const visible = useMemo(() => filterCentralDocumentDefinitions(props.definitions, { query, category, module }), [props.definitions, query, category, module]);
+  const selected = copy?.snapshot.definition ?? props.definitions.find((definition) => definition.key === selectedKey);
+  const catalogReady = !props.loadingDefinitions && !props.definitionsError;
   const mounted = useRef(true);
   useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
   const openStored = async (record: CentralDocumentStored, original = false) => {
@@ -93,23 +96,27 @@ export function CentralCatalogWorkspace(props: CentralCatalogWorkspaceProps) {
   };
   return <div className="csdc">
     <style>{centralCatalogCss}</style>
-    <nav className="csdc-tabs" aria-label="Dokumentenkatalog"><button className={tab === 'catalog' ? 'active' : ''} aria-current={tab === 'catalog' ? 'page' : undefined} onClick={() => setTab('catalog')}>Vorlagenkatalog <span>{CENTRAL_DOCUMENT_CATALOG.length}</span></button><button className={tab === 'records' ? 'active' : ''} aria-current={tab === 'records' ? 'page' : undefined} disabled={editorBusy} onClick={() => { if(tab==='records'||allowSwitch()){dirty.current=false;setTab('records');} }}>Gespeicherte Fassungen <span>{props.records.length}{props.recordsHasMore ? '+' : ''}</span></button></nav>
+    <nav className="csdc-tabs" aria-label="Dokumentenkatalog"><button className={tab === 'catalog' ? 'active' : ''} aria-current={tab === 'catalog' ? 'page' : undefined} onClick={() => setTab('catalog')}>Vorlagenkatalog {catalogReady ? <span>{props.definitions.length}</span> : null}</button><button className={tab === 'records' ? 'active' : ''} aria-current={tab === 'records' ? 'page' : undefined} disabled={editorBusy} onClick={() => { if(tab==='records'||allowSwitch()){dirty.current=false;setTab('records');} }}>Gespeicherte Fassungen <span>{props.records.length}{props.recordsHasMore ? '+' : ''}</span></button></nav>
     {tab === 'catalog' ? <div className="csdc-workspace">
       <aside className="csdc-panel csdc-catalog">
-        <div className="csdc-panel-heading"><h2>Vorlage auswählen</h2><span>{visible.length} Treffer</span></div>
+        <div className="csdc-panel-heading"><h2>Vorlage auswählen</h2>{catalogReady ? <span>{visible.length} Treffer</span> : null}</div>
+        {props.loadingDefinitions ? <p role="status">Vorlagen werden geladen …</p> : null}
+        {props.definitionsError ? <div className="csdc-alert"><p role="alert">{props.definitionsError}</p>{props.onRetryDefinitions ? <button type="button" className="csdc-button secondary" onClick={props.onRetryDefinitions}>Vorlagen erneut laden</button> : null}</div> : null}
+        {catalogReady ? <>
         <label className="csdc-field">Suche<input type="search" placeholder="z. B. Leistungsnachweis, Wunde, Vertrag" value={query} onChange={(e) => setQuery(e.target.value)} /></label>
-        <label className="csdc-field">Fachbereich<select value={category} onChange={(e) => setCategory(e.target.value)}><option value="">Alle {CENTRAL_CATALOG_GROUPS.length} Fachbereiche</option>{CENTRAL_CATALOG_GROUPS.map((g) => <option key={g.key} value={g.key}>{g.name}</option>)}</select></label>
+        <label className="csdc-field">Fachbereich<select value={category} onChange={(e) => setCategory(e.target.value)}><option value="">Alle {categories.length} Fachbereiche</option>{categories.map((g) => <option key={g.key} value={g.key}>{g.name}</option>)}</select></label>
         <label className="csdc-field">Arbeitsbereich<select value={module} onChange={(e) => setModule(e.target.value)}><option value="">Alle Arbeitsbereiche</option>{allModules.map((m) => <option key={m} value={m}>{moduleNames[m] ?? m}</option>)}</select></label>
         <div className="csdc-catalog-list" aria-label="Vorlagen">
           {visible.length ? visible.map((d) => <button key={d.key} className={`csdc-template ${selectedKey === d.key ? 'selected' : ''}`} aria-pressed={selectedKey === d.key} disabled={editorBusy} onClick={() => { if((selectedKey===d.key && !copy) || !allowSwitch())return; dirty.current=false;setSelectedKey(d.key); setCopy(null); }}>
             <span className="csdc-template-icon">{d.sourceMode === 'original' ? '↳' : d.layout === 'table' ? '▦' : d.layout === 'contract' ? '§' : '▤'}</span>
             <span><strong>{d.title}</strong><small>{d.categoryName}</small><em>{d.sourceMode === 'original' ? 'Original + Begleitblatt' : layoutNames[d.layout]} · {d.orientation === 'landscape' ? 'Querformat' : 'Hochformat'}</em></span>
-          </button>) : <div className="csdc-empty"><h3>Keine passende Vorlage</h3><p>Ändern Sie die Suche oder setzen Sie die Filter zurück.</p><button className="csdc-button secondary" onClick={() => { setQuery(''); setCategory(''); setModule(''); }}>Filter zurücksetzen</button></div>}
+          </button>) : props.definitions.length ? <div className="csdc-empty"><h3>Keine passende Vorlage</h3><p>Ändern Sie die Suche oder setzen Sie die Filter zurück.</p><button className="csdc-button secondary" onClick={() => { setQuery(''); setCategory(''); setModule(''); }}>Filter zurücksetzen</button></div> : <div className="csdc-empty"><h3>Keine Vorlagen verfügbar</h3></div>}
         </div>
+        </> : null}
       </aside>
       <main className="csdc-editor-host">
-        {selectedKey && !selected ? <p className="csdc-alert" role="alert">Diese Vorlage ist nicht mehr im aktuellen Katalog verfügbar. Wählen Sie eine andere Vorlage. Gespeicherte Fassungen bleiben im gleichnamigen Bereich erhalten.</p> : null}
-        {selected ? <CentralCatalogEditor key={`${props.tenantId}:${selected.key}:${copy?.id ?? 'new'}`} definition={selected} {...props} copy={copy} onDraftChange={reportDirty} onWorkingChange={reportWorking} /> : <div className="csdc-panel csdc-welcome"><div className="csdc-welcome-symbol" aria-hidden="true">▤</div><span className="csdc-eyebrow">VORLAGEN UND AKTENABLAGE</span><h2>Welches Dokument benötigen Sie?</h2><p>Wählen Sie eine Vorlage und die passende Akte. Gespeicherte Angaben werden übernommen; eigene Ergänzungen bleiben bearbeitbar.</p><div className="csdc-steps"><div><b>01</b><strong>Vorlage wählen</strong><span>Suche und Fachbereiche führen zur passenden Unterlage.</span></div><div><b>02</b><strong>Angaben ergänzen</strong><span>Stammdaten übernehmen und Schnellauswahlen nutzen.</span></div><div><b>03</b><strong>Dokument ablegen</strong><span>PDF prüfen, drucken und in der zugehörigen Akte speichern.</span></div></div></div>}
+        {catalogReady && selectedKey && !selected ? <p className="csdc-alert" role="alert">Diese Vorlage ist nicht mehr im aktuellen Katalog verfügbar. Wählen Sie eine andere Vorlage. Gespeicherte Fassungen bleiben im gleichnamigen Bereich erhalten.</p> : null}
+        {selected ? <CentralCatalogEditor key={`${props.tenantId}:${selected.key}:${selected.version}:${copy?.id ?? 'new'}`} definition={selected} {...props} copy={copy} onDraftChange={reportDirty} onWorkingChange={reportWorking} /> : catalogReady ? <div className="csdc-panel csdc-welcome"><div className="csdc-welcome-symbol" aria-hidden="true">▤</div><span className="csdc-eyebrow">VORLAGEN UND AKTENABLAGE</span><h2>Welches Dokument benötigen Sie?</h2><p>Wählen Sie eine Vorlage und die passende Akte. Gespeicherte Angaben werden übernommen; eigene Ergänzungen bleiben bearbeitbar.</p><div className="csdc-steps"><div><b>01</b><strong>Vorlage wählen</strong><span>Suche und Fachbereiche führen zur passenden Unterlage.</span></div><div><b>02</b><strong>Angaben ergänzen</strong><span>Stammdaten übernehmen und Schnellauswahlen nutzen.</span></div><div><b>03</b><strong>Dokument ablegen</strong><span>PDF prüfen, drucken und in der zugehörigen Akte speichern.</span></div></div></div> : null}
       </main>
     </div> : <section className="csdc-panel">
       <div className="csdc-panel-heading"><div><h2>Gespeicherte Dokumentfassungen</h2><p>Jede Fassung hat eine eigene ID. Eine Bearbeitung erzeugt eine neue Fassung.</p></div><button className="csdc-button secondary" onClick={props.onRefresh}>Aktualisieren</button></div>

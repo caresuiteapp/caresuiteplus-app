@@ -2,6 +2,7 @@ import {useMemo,useState,useRef,useEffect} from 'react';
 import {Pressable,StyleSheet,Text,View} from 'react-native';
 import {useRouter} from 'expo-router';
 import {ScreenShell} from '@/components/layout';
+import {DocumentRecommendations} from '@/components/documents/DocumentRecommendations.web';
 import {EmptyState,ErrorState,FilterChipGroup,InfoBanner,LoadingState,PremiumButton,PremiumInput,SectionPanel} from '@/components/ui';
 import {useAuth} from '@/lib/auth/context';
 import {useCareRuntimePermissions as usePermissions} from '@/hooks/pflege/useCareRuntimePermissions.web';
@@ -150,6 +151,9 @@ function VitalHistoryWorkspace({capture,scope,handoffScope,permissionState,onRea
           </View>
          </View>
 
+         {mayUseVitalHistoryChoiceActionWeb(choiceAction) ? (
+          <DocumentRecommendations module="pflege" workflow="vitals" clientId={person.id} title="Vorlagen für Vitalwerte" compact/>
+         ) : null}
          {history.loading||history.refreshing ? (
           <LoadingState message="Messungen, Folgedokumentationen und Korrekturvermerke werden geladen…"/>
          ) : history.error||history.refreshError ? (

@@ -2,6 +2,7 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
+import { DocumentRecommendations } from "../../components/documents/DocumentRecommendations.native.tsx";
 import { CarePlansListView } from "../../components/pflege/CarePlansListView.native.tsx";
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCarePlanList } from "../../hooks/useCarePlanList.native.ts";
@@ -34,6 +35,7 @@ export function PflegeplanungListScreen() {
     return (<ScreenShell title="Pflegeplanung" subtitle={`Pflegepläne und Maßnahmen · ${roleLabel ?? 'Demo'}${isReadOnly ? ' · Lesemodus' : ''}`} rightSlot={canCreate ? (<PremiumButton title="+ Neu" size="sm" onPress={() => { if (list.isCurrent() && can('pflege.plans.manage'))
             router.push('/pflege/planung/new' as never); }}/>) : null} scroll={false}>
       <View style={styles.content}>
+        {list.isCurrent() && can('pflege.plans.view') ? (<DocumentRecommendations module="pflege" workflow="care_plan" title="Vorlagen für Pflegeplanung" compact/>) : null}
         {list.isEmpty && !list.hasActiveFilters ? (<EmptyState title="Keine Pflegepläne" message="Es sind noch keine Pflegepläne angelegt."/>) : (<CarePlansListView list={list}/>)}
       </View>
     </ScreenShell>);

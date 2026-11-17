@@ -8,10 +8,11 @@ const dir=path.resolve('tmp/central-catalog/browser'); await fs.mkdir(dir,{recur
 const contents=`
 import React,{useState} from 'react'; import {createRoot} from 'react-dom/client';
 import {CentralCatalogWorkspace} from './src/components/documents/CentralCatalogWorkspace.web';
+import {CENTRAL_DOCUMENT_CATALOG} from './src/data/seeds/documentCatalog/centralCatalog';
 import {sha256FileHex} from './src/lib/crypto/sha256Hex';
 const T='11111111-1111-4111-8111-111111111111', A='22222222-2222-4222-8222-222222222222', B='33333333-3333-4333-8333-333333333333';
 const records=new Map(),files=new Map();
-function App(){const [list,setList]=useState([]);return <CentralCatalogWorkspace tenantId={T} author="Anna Fachkraft" demo={true} clients={[{id:A,label:'Mara Muster'},{id:B,label:'Ben Beispiel'}]} employees={[{id:A,label:'Anna Fachkraft'}]} loadingEntities={false} records={list} loadingRecords={false} permissions={{create:true,preview:true,export:true,save:true}}
+function App(){const [list,setList]=useState([]);return <CentralCatalogWorkspace tenantId={T} author="Anna Fachkraft" demo={true} definitions={CENTRAL_DOCUMENT_CATALOG} clients={[{id:A,label:'Mara Muster'},{id:B,label:'Ben Beispiel'}]} employees={[{id:A,label:'Anna Fachkraft'}]} loadingEntities={false} records={list} loadingRecords={false} permissions={{create:true,preview:true,export:true,save:true}}
 loadContext={async(target,id)=>{await new Promise(r=>setTimeout(r,id===A?100:10));if(![A,B,T].includes(id))return {ok:false,error:'Akte nicht gefunden'};return {ok:true,data:{tenantId:T,target,entityId:id,company:{name:'Pflege am Park GmbH',address:'Parkstraße 12\\n10115 Berlin',phone:'030 555 123',email:'kontakt@example.test'},subject:{name:target==='company'?'Pflege am Park GmbH':id===B?'Ben Beispiel':target==='employee'?'Anna Fachkraft':'Mara Muster',address:'Blumenstraße 8\\n10117 Berlin'},representative:{},payor:{},employee:{},sourceFetchedAt:new Date().toISOString()}};}}
 save={async(s,bytes)=>{const record={id:s.documentId,tenantId:T,title:s.definition.title,templateKey:s.definition.key,revision:s.revision,snapshot:JSON.parse(JSON.stringify(s)),state:'draft',pdfPath:null,pdfHash:sha256FileHex(bytes),createdAt:new Date().toISOString()};records.set(record.id,record);files.set(record.id,bytes);return {ok:true,data:record};}}
 download={async(r)=>({ok:true,data:files.get(r.id)})} onSaved={()=>setList([...records.values()])} onRefresh={()=>setList([...records.values()])}/>}createRoot(document.getElementById('root')).render(<App/>);

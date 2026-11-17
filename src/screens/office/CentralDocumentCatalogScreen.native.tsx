@@ -4,22 +4,22 @@ import {confirmNativeWorkspaceAction,runNativeWorkspaceEffect} from '@/lib/platf
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalSearchParams } from 'expo-router';
 import { DocumentsWorkspaceShell } from "../../components/documents/DocumentsWorkspaceShell.native.tsx";
-import { CENTRAL_DOCUMENT_CATALOG } from '@/data/seeds/documentCatalog/centralCatalog';
-import { CENTRAL_CATALOG_GROUPS } from '@/data/seeds/documentCatalog/centralCatalogTitles';
 import { CentralCatalogWorkspace } from "../../components/documents/CentralCatalogWorkspace.native.tsx";
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePermissions } from '@/hooks/usePermissions';
 import { fetchClientList } from '@/lib/office/clientListService';
 import { fetchEmployeeList } from '@/lib/office/employeeListService';
-import { downloadCentralDocument, listCentralDocuments, loadCentralContext, saveCentralDocument } from '@/lib/documents/centralCatalogService';
+import { downloadCentralDocument, listCentralDocumentDefinitions, listCentralDocuments, loadCentralContext, saveCentralDocument } from '@/lib/documents/centralCatalogService';
+import { centralDocumentCategories } from '@/lib/documents/centralCatalogModel';
 import { getServiceMode } from '@/lib/services/mode';
 import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
 import { documentRecordScope, normalizeDocumentModule } from '@/lib/documents/documentRecommendations';
 import { centralCatalogClientOptions, centralCatalogEmployeeOptions, type CentralCatalogEntityOption } from '@/lib/documents/centralCatalogEntities';
 import type { CentralContextRequest } from '@/lib/documents/centralCatalogService';
-import type { CentralDocumentSnapshot, CentralDocumentStored, CentralDocumentTarget } from '@/types/documents/centralCatalog';
+import type { CentralDocumentDefinition, CentralDocumentSnapshot, CentralDocumentStored, CentralDocumentTarget } from '@/types/documents/centralCatalog';
 const scalar = (value: string | string[] | undefined) => Array.isArray(value) ? value[0] : value;
+const NO_DEFINITIONS: readonly CentralDocumentDefinition[] = [];
 export function CentralDocumentCatalogScreen() {
     const navigationGuard = useRef<() => boolean | Promise<boolean>>(() => true);
     const registerNavigationGuard = useCallback((guard: (() => boolean | Promise<boolean>) | null) => { navigationGuard.current = guard ?? (() => true); }, []);
@@ -65,6 +65,33 @@ export function CentralDocumentCatalogScreen() {
     const [recordsError, setRecordsError] = useState('');
     const [loadingRecords, setLoadingRecords] = useState(false);
     const [refresh, setRefresh] = useState(0);
+    const demo = getServiceMode() !== 'supabase';
+    const [catalogAttempt, setCatalogAttempt] = useState(0);
+    const catalogScope = JSON.stringify([tenantId, roleKey, profile?.id, permissionScope, canView, demo, catalogAttempt]);
+    const [catalog, setCatalog] = useState<{
+        scope: string;
+        definitions?: readonly CentralDocumentDefinition[];
+        error?: string;
+    }>();
+    const currentCatalog = catalog?.scope === catalogScope ? catalog : undefined;
+    const definitions = currentCatalog?.definitions ?? NO_DEFINITIONS;
+    const categoryCount = useMemo(() => centralDocumentCategories(definitions).length, [definitions]);
+    useEffect(() => {
+        if (!tenantId || !canView)
+            return;
+        const request = new AbortController();
+        let active = true;
+        void withServiceQueryTimeout(listCentralDocumentDefinitions(tenantId, actor, request.signal), 'Vorlagenkatalog', 30000).then((result) => {
+            if (!active)
+                return;
+            setCatalog(result.ok ? { scope: catalogScope, definitions: result.data } : { scope: catalogScope, error: result.error });
+        }).catch(() => {
+            if (active)
+                setCatalog({ scope: catalogScope, error: 'Der Vorlagenkatalog konnte nicht geladen werden.' });
+            request.abort();
+        });
+        return () => { active = false; request.abort(); };
+    }, [actor, canView, catalogScope, tenantId]);
     useEffect(() => {
         let active = true;
         setLoadingEntities(false);
@@ -130,7 +157,7 @@ export function CentralDocumentCatalogScreen() {
         setRefresh((v) => v + 1);
     else
         setRecordPageState({ scope: recordScope, page: recordPage + 1 }); }, [recordsError, recordScope, recordPage]);
-    return <DocumentsWorkspaceShell active="catalog" title="Dokumentenkatalog" description="Vorlagen auswählen, gespeicherte Angaben übernehmen und Dokumente in der zugehörigen Akte ablegen." beforeNavigate={async () => await navigationGuard.current()} stats={<><NativeDiv className="dw-metric"><NativeStrong>{CENTRAL_DOCUMENT_CATALOG.length}</NativeStrong><NativeSpan>Vorlagen</NativeSpan></NativeDiv><NativeDiv className="dw-metric"><NativeStrong>{CENTRAL_CATALOG_GROUPS.length}</NativeStrong><NativeSpan>Fachbereiche</NativeSpan></NativeDiv><NativeDiv className="dw-metric"><NativeStrong>A4</NativeStrong><NativeSpan>Hoch- und Querformat</NativeSpan></NativeDiv></>}>
-    {!tenantId ? <NativeDiv role="alert" className="dw-alert">Für den Dokumentenkatalog ist ein zugeordnetes Unternehmen erforderlich.</NativeDiv> : !canView ? <NativeDiv role="alert" className="dw-alert">Sie haben keine Berechtigung zum Anzeigen des Dokumentenkatalogs.</NativeDiv> : <CentralCatalogWorkspace key={JSON.stringify([tenantId, roleKey, profile?.id, permissionScope, scalar(params.module), scalar(params.category), clientId, employeeId, scalar(params.templateKey), assignmentId, invoiceId, medicationId, woundId, period, scalar(params.tab)])} tenantId={tenantId} author={profile?.displayName || [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')} demo={getServiceMode() !== 'supabase'} clients={clients} employees={employees} loadingEntities={loadingEntities} entityError={entityError} onRefreshEntities={() => setEntityAttempt((value) => value + 1)} records={records.filter((record) => (!record.snapshot.definition.clinicalReviewRequired || can('office.clients.view_sensitive')) && (record.snapshot.context.target === 'company' || record.snapshot.context.target === 'client' && canClients && can('office.clients.view_sensitive') || record.snapshot.context.target === 'employee' && canEmployees))} recordsError={recordsError} loadingRecords={loadingRecords} recordsHasMore={recordsHasMore} onLoadMore={loadMore} module={normalizeDocumentModule(scalar(params.module))} category={scalar(params.category)} clientId={clientId} employeeId={employeeId} templateKey={scalar(params.templateKey)} initialTab={scalar(params.tab) === 'records' ? 'records' : 'catalog'} permissions={{ create: can('documents.create'), preview: can('documents.preview'), export: can('documents.pdf_create'), save: can('documents.save_to_file') }} loadContext={loadContext} save={save} download={download} onSaved={reload} onRefresh={reload} onNavigationGuardChange={registerNavigationGuard}/>}
+    return <DocumentsWorkspaceShell active="catalog" title="Dokumentenkatalog" description="Vorlagen auswählen, gespeicherte Angaben übernehmen und Dokumente in der zugehörigen Akte ablegen." beforeNavigate={async () => await navigationGuard.current()} stats={canView && currentCatalog?.definitions ? <><NativeDiv className="dw-metric"><NativeStrong>{definitions.length}</NativeStrong><NativeSpan>Vorlagen</NativeSpan></NativeDiv><NativeDiv className="dw-metric"><NativeStrong>{categoryCount}</NativeStrong><NativeSpan>Fachbereiche</NativeSpan></NativeDiv><NativeDiv className="dw-metric"><NativeStrong>A4</NativeStrong><NativeSpan>Hoch- und Querformat</NativeSpan></NativeDiv></> : undefined}>
+    {!tenantId ? <NativeDiv role="alert" className="dw-alert">Für den Dokumentenkatalog ist ein zugeordnetes Unternehmen erforderlich.</NativeDiv> : !canView ? <NativeDiv role="alert" className="dw-alert">Sie haben keine Berechtigung zum Anzeigen des Dokumentenkatalogs.</NativeDiv> : <CentralCatalogWorkspace key={JSON.stringify([tenantId, roleKey, profile?.id, permissionScope, scalar(params.module), scalar(params.category), clientId, employeeId, scalar(params.templateKey), assignmentId, invoiceId, medicationId, woundId, period, scalar(params.tab)])} tenantId={tenantId} author={profile?.displayName || [profile?.firstName, profile?.lastName].filter(Boolean).join(' ')} demo={demo} definitions={definitions} loadingDefinitions={!currentCatalog} definitionsError={currentCatalog?.error} onRetryDefinitions={() => setCatalogAttempt((attempt) => attempt + 1)} clients={clients} employees={employees} loadingEntities={loadingEntities} entityError={entityError} onRefreshEntities={() => setEntityAttempt((value) => value + 1)} records={records.filter((record) => (!record.snapshot.definition.clinicalReviewRequired || can('office.clients.view_sensitive')) && (record.snapshot.context.target === 'company' || record.snapshot.context.target === 'client' && canClients && can('office.clients.view_sensitive') || record.snapshot.context.target === 'employee' && canEmployees))} recordsError={recordsError} loadingRecords={loadingRecords} recordsHasMore={recordsHasMore} onLoadMore={loadMore} module={normalizeDocumentModule(scalar(params.module))} category={scalar(params.category)} clientId={clientId} employeeId={employeeId} templateKey={scalar(params.templateKey)} initialTab={scalar(params.tab) === 'records' ? 'records' : 'catalog'} permissions={{ create: can('documents.create'), preview: can('documents.preview'), export: can('documents.pdf_create'), save: can('documents.save_to_file') }} loadContext={loadContext} save={save} download={download} onSaved={reload} onRefresh={reload} onNavigationGuardChange={registerNavigationGuard}/>}
   </DocumentsWorkspaceShell>;
 }

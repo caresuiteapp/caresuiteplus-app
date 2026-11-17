@@ -1,10 +1,10 @@
 import { describe,it,expect,vi } from 'vitest';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { CentralCatalogWorkspace, type CentralCatalogWorkspaceProps } from '@/components/documents/CentralCatalogWorkspace.web';
-import { filterCentralDocuments } from '@/data/seeds/documentCatalog/centralCatalog';
+import { CENTRAL_DOCUMENT_CATALOG, filterCentralDocuments } from '@/data/seeds/documentCatalog/centralCatalog';
 
 const props: CentralCatalogWorkspaceProps = {
-  tenantId:'tenant-a',author:'Fachkraft',demo:true,clients:[],employees:[],loadingEntities:false,
+  tenantId:'tenant-a',author:'Fachkraft',demo:true,definitions:CENTRAL_DOCUMENT_CATALOG,clients:[],employees:[],loadingEntities:false,
   permissions:{create:true,preview:true,export:true,save:true},records:[],loadingRecords:false,
   loadContext:vi.fn(),save:vi.fn(),download:vi.fn(),onSaved:vi.fn(),onRefresh:vi.fn(),
 };
@@ -29,5 +29,20 @@ describe('central catalogue UI content (no visual layout assertion)',()=>{
     expect(html).toContain('Rechnung');
     const fallback=renderToStaticMarkup(<CentralCatalogWorkspace {...props} category="unknown-category"/>);
     expect((fallback.match(/class="csdc-template /g)??[]).length).toBe(450);
+  });
+  it('renders the database version selected by the route and shows a retry without falling back', () => {
+    const databaseEntry = { ...CENTRAL_DOCUMENT_CATALOG[0], key: 'csdc_pruefung_001', title: 'Neue Vorlagenfassung', version: 8, modules: ['neues-modul'] };
+    const html = renderToStaticMarkup(<CentralCatalogWorkspace {...props} demo={false} definitions={[databaseEntry]} module="neues-modul" templateKey={databaseEntry.key} />);
+    expect(html).toContain('Neue Vorlagenfassung');
+    expect(html).toContain('Entwurf · v8');
+    expect((html.match(/class="csdc-template /g) ?? [])).toHaveLength(1);
+    const loading = renderToStaticMarkup(<CentralCatalogWorkspace {...props} demo={false} definitions={[]} loadingDefinitions templateKey={databaseEntry.key} />);
+    expect(loading).toContain('Vorlagen werden geladen');
+    expect(loading).not.toContain('Diese Vorlage ist nicht mehr');
+    const failed = renderToStaticMarkup(<CentralCatalogWorkspace {...props} demo={false} definitions={[]} definitionsError="Datenbank nicht erreichbar" onRetryDefinitions={vi.fn()} templateKey={databaseEntry.key} />);
+    expect(failed).toContain('Datenbank nicht erreichbar');
+    expect(failed).toContain('Vorlagen erneut laden');
+    expect(failed).not.toContain('Keine passende Vorlage');
+    expect(failed).not.toContain('class="csdc-template ');
   });
 });

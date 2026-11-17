@@ -17,9 +17,9 @@ export {
 } from './ClientRecordTabPanels.tsx';
 
 const workflows: Record<string, DocumentWorkflow> = {
-  einwilligungen: 'client_contracts', medikation: 'medication', vitalwerte: 'care',
+  einwilligungen: 'client_contracts', medikation: 'medication', vitalwerte: 'vitals',
   nachweise: 'service_proof', einsaetze: 'assignment', aufgaben: 'assignment',
-  dokumentation: 'care', protokolle: 'care', pflege: 'care', risiken: 'incident',
+  dokumentation: 'care', protokolle: 'care', pflege: 'care_plan', risiken: 'incident',
   tagesstruktur: 'care', mahlzeiten: 'care', fallakte: 'consultation', beratungsanlass: 'consultation',
   portal: 'portal_access', abrechnung: 'invoice',
 };

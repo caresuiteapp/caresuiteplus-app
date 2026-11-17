@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations.web';
 import { CarePlansListView } from '@/components/pflege/CarePlansListView.web';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCarePlanList } from '@/hooks/useCarePlanList.web';
@@ -57,6 +58,9 @@ export function PflegeplanungListScreen() {
       scroll={false}
     >
       <View style={styles.content}>
+        {list.isCurrent() && can('pflege.plans.view') ? (
+          <DocumentRecommendations module="pflege" workflow="care_plan" title="Vorlagen für Pflegeplanung" compact />
+        ) : null}
         {list.isEmpty && !list.hasActiveFilters ? (
           <EmptyState title="Keine Pflegepläne" message="Es sind noch keine Pflegepläne angelegt." />
         ) : (
