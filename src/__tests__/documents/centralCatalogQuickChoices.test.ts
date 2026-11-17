@@ -1,7 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { CENTRAL_DOCUMENT_CATALOG } from '@/data/seeds/documentCatalog/centralCatalog';
+import { CENTRAL_CATALOG_CONTENT_REVISIONS } from '@/data/seeds/documentCatalog/centralCatalogContentRevisions';
 import { applyCentralQuickChoice, centralAdditionalQuickChoices, centralFieldQuickChoices, centralSectionQuickChoices, centralTableQuickChoices } from '@/lib/documents/centralCatalogQuickChoices';
-import { createCentralSnapshot } from '@/lib/documents/centralCatalogModel';
+import { CENTRAL_COMMON_FIELDS, createCentralSnapshot } from '@/lib/documents/centralCatalogModel';
 import type { CentralDocumentContext } from '@/types/documents/centralCatalog';
 
 const now = new Date('2026-10-14T12:00:00Z');
@@ -15,11 +16,12 @@ const context = (target: CentralDocumentContext['target']): CentralDocumentConte
 const snapshot = (key: string) => createCentralSnapshot(CENTRAL_DOCUMENT_CATALOG.find((definition) => definition.key === key)!, context('client'), 'Verantwortung A', 'document-a');
 
 describe('quick choices for every catalogue input', () => {
-  it('provides choices throughout the catalogue while requiring explicit facts for the new legal edition', () => {
+  it('keeps options for existing inputs and allows document-specific fields to require explicit facts', () => {
     let fields = 0, sections = 0, columns = 0, additional = 0;
     const missing: string[] = [];
     for (const definition of CENTRAL_DOCUMENT_CATALOG) {
       const current = createCentralSnapshot(definition, context(definition.target), 'Verantwortung A', 'document-a');
+      const revision = CENTRAL_CATALOG_CONTENT_REVISIONS[definition.key];
       for (const field of definition.fields) {
         fields++;
         if (definition.edition === '2027' && field.key.startsWith('legal_')) {
@@ -27,19 +29,26 @@ describe('quick choices for every catalogue input', () => {
           // must not be fabricated just to offer a one-click default.
           expect(field.required).toBe(true); expect(field.defaultValue).toBeUndefined();
           expect(current.values[field.key]).toBe('');
+        } else if (revision?.fieldLabels?.includes(field.label) && !CENTRAL_COMMON_FIELDS.has(field.key)) {
+          // The new purpose-specific label is an input prompt. Clinical
+          // observations and other facts must be entered or loaded from a source.
+          expect(field.defaultValue).toBeUndefined();
         } else if (!centralFieldQuickChoices(current, field, 'Verantwortung A', now).some((item) => item.value && !item.unavailable)) missing.push(`${definition.key}:field:${field.label}`);
       }
       for (const section of definition.sections) { sections++; if (!centralSectionQuickChoices(current, section).some((item) => item.value && !item.unavailable)) missing.push(`${definition.key}:section:${section.heading}`); }
-      for (const column of definition.columns) { columns++; if (!centralTableQuickChoices(current, column, 0, 'Verantwortung A', now).some((item) => item.value && !item.unavailable)) missing.push(`${definition.key}:column:${column}`); }
+      for (const column of definition.columns) {
+        columns++;
+        if (!revision?.columns?.includes(column) && !centralTableQuickChoices(current, column, 0, 'Verantwortung A', now).some((item) => item.value && !item.unavailable)) missing.push(`${definition.key}:column:${column}`);
+      }
       additional++; if (!centralAdditionalQuickChoices(current).some((item) => item.value && !item.unavailable)) missing.push(`${definition.key}:additional`);
     }
     expect(missing).toEqual([]);
     expect(CENTRAL_DOCUMENT_CATALOG).toHaveLength(450);
-    expect({ fields, sections, columns, additional }).toEqual({ fields: 5946, sections: 611, columns: 763, additional: 450 });
+    expect({ fields, sections, columns, additional }).toEqual({ fields: 5877, sections: 596, columns: 861, additional: 450 });
   });
 
   it('offers admission resources and contract terms appropriate to the pictured fields', () => {
-    const admission = snapshot('csdc_aufnahme_002');
+    const admission = snapshot('csdc_aufnahme_001');
     const resources = admission.definition.fields.find((field) => field.label === 'Unterstützungsbedarf und vorhandene Ressourcen')!;
     expect(centralFieldQuickChoices(admission, resources, 'A', now).map((item) => item.label)).toContain('Hauswirtschaft');
     const contract = CENTRAL_DOCUMENT_CATALOG.find((definition) => definition.fields.some((field) => field.label === 'Vergütung, Eigenanteile und Abrechnungsverfahren'))!;
@@ -50,7 +59,7 @@ describe('quick choices for every catalogue input', () => {
   });
 
   it('combines selected blocks without losing manual text or inserting duplicates', () => {
-    const current = snapshot('csdc_aufnahme_002');
+    const current = snapshot('csdc_aufnahme_001');
     const field = current.definition.fields.find((item) => item.label === 'Unterstützungsbedarf und vorhandene Ressourcen')!;
     const [first, second] = centralFieldQuickChoices(current, field, 'A', now);
     const combined = applyCentralQuickChoice(applyCentralQuickChoice('Eigene genaue Beobachtung.', first), second);
@@ -85,18 +94,33 @@ describe('quick choices for every catalogue input', () => {
   });
 
   it('keeps measured quantities while selecting units and does not generate clinical values', () => {
-    const definition = CENTRAL_DOCUMENT_CATALOG.find((item) => item.columns.includes('Dosis / Einheit'))!;
-    const current = createCentralSnapshot(definition, context(definition.target), 'A', 'document-a');
-    const choices = centralTableQuickChoices(current, 'Dosis / Einheit', 0, 'A', now).filter((item) => !item.unavailable);
-    const milligrams = choices.find((item) => item.value === 'mg')!;
-    expect(applyCentralQuickChoice('2,5 ml', milligrams)).toBe('2,5 mg');
-    expect(applyCentralQuickChoice('', milligrams)).toBe('mg');
-    expect(applyCentralQuickChoice('2 – manuelle Besonderheit', milligrams)).toBe('2 – manuelle Besonderheit\nmg');
+    const current = snapshot('csdc_risiken_008');
+    const choices = centralTableQuickChoices(current, 'Gewicht (kg)', 0, 'A', now).filter((item) => !item.unavailable);
+    const kilograms = choices.find((item) => item.value === 'kg')!;
+    expect(applyCentralQuickChoice('72,5', kilograms)).toBe('72,5 kg');
+    expect(applyCentralQuickChoice('', kilograms)).toBe('kg');
+    expect(applyCentralQuickChoice('72 – manuelle Besonderheit', kilograms)).toBe('72 – manuelle Besonderheit\nkg');
     expect(choices.every((item) => !/\d/.test(item.value))).toBe(true);
   });
 
+  it('leaves revised medication administration facts to the source and the person documenting them', () => {
+    const current = snapshot('csdc_medikamente_006');
+    for (const column of ['Tatsächliche Dosis / Einheit', 'Applikationsweg', 'Status / Abweichungsgrund']) {
+      expect(current.definition.columns).toContain(column);
+      expect(centralTableQuickChoices(current, column, 0, 'A', now)).toEqual([
+        expect.objectContaining({ key: 'stored-cell', value: '', unavailable: expect.any(String) }),
+      ]);
+    }
+    const actualRouteIndex = current.definition.columns.indexOf('Applikationsweg');
+    current.context.sourceRows = [current.definition.columns.map((_, index) => index === actualRouteIndex ? 'Dokumentierte Anwendung aus der Akte' : '')];
+    current.tableOrigin = 'stored';
+    expect(centralTableQuickChoices(current, 'Applikationsweg', 0, 'A', now)).toEqual([
+      expect.objectContaining({ key: 'stored-cell', value: 'Dokumentierte Anwendung aus der Akte' }),
+    ]);
+  });
+
   it('offers dates in Berlin time without proposing a fictional birth date', () => {
-    const current = snapshot('csdc_aufnahme_002');
+    const current = snapshot('csdc_aufnahme_001');
     const date = current.definition.fields.find((item) => item.key === 'date')!;
     const birthDate = current.definition.fields.find((item) => item.key === 'birthDate')!;
     expect(centralFieldQuickChoices(current, date, 'A', new Date('2026-10-14T22:30:00Z'))[0].value).toBe('2026-10-15');
@@ -107,7 +131,7 @@ describe('quick choices for every catalogue input', () => {
     vi.useFakeTimers();
     try {
       vi.setSystemTime(new Date('2026-10-14T20:00:00Z'));
-      const current = snapshot('csdc_aufnahme_002');
+      const current = snapshot('csdc_aufnahme_001');
       const date = current.definition.fields.find((item) => item.key === 'date')!;
       const today = centralFieldQuickChoices(current, date, 'A').find((item) => item.label === 'Heute')!;
       expect(today.value).toBe('2026-10-14');
@@ -117,7 +141,7 @@ describe('quick choices for every catalogue input', () => {
   });
 
   it('does not restore a different original row after manual table changes', () => {
-    const current = snapshot('csdc_aufnahme_002');
+    const current = snapshot('csdc_aufnahme_001');
     current.context.sourceRows = [['Datum A', 'Gegenstand A'], ['Datum B', 'Gegenstand B']];
     current.tableRows = [['Datum B', 'Gegenstand B']]; current.tableOrigin = 'manual';
     const stored = centralTableQuickChoices(current, 'Gegenstand / Maßnahme', 0, 'A', now).find((item) => item.key === 'stored-cell')!;

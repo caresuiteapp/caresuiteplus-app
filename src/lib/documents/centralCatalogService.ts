@@ -26,6 +26,10 @@ const address = (row: Record<string, unknown>) => [
   [row.postal_code || row.zip, row.city].filter(Boolean).join(' '),
 ].filter(Boolean).join('\n');
 const missingColumn = (error: { code?: string } | null) => error?.code === '42703' || error?.code === 'PGRST204';
+const invoiceLineSchemas = [
+  ['Datum / Zeitraum', 'Gegenstand / Maßnahme', 'Ergebnis / Menge', 'Abweichung / Hinweis', 'Zuständigkeit'],
+  ['Leistungsdatum', 'Leistungsposition', 'Menge / Einheit und Bruttobetrag', 'Rechnungsbezug', 'Prüfhinweis'],
+] as const;
 
 async function loadCompanySource(client: NonNullable<ReturnType<typeof getSupabaseClient>>, tenantId: string) {
   const full = await fromUnknownTable(client, 'tenants').select('name,legal_name,street,house_number,postal_code,city,phone,email,website,vat_id,tax_number,register_court,register_number,ik_number,representative_name').eq('id', tenantId).maybeSingle();
@@ -182,18 +186,20 @@ async function enrichCentralContext(client: NonNullable<ReturnType<typeof getSup
     context.procedure = { ...context.procedure, assignmentId: request.assignmentId, period: str(visit.assignment_date) };
     context.sourceRows = centralActualServiceRows(definition, visit, employeeName);
   }
-  if (target === 'client' && request.invoiceId && definition.categoryKey === 'abrechnung') {
+  const acceptsInvoiceLines = (definition.key === 'csdc_abrechnung_004' || definition.key === 'csdc_abrechnung_005')
+    && definition.categoryKey === 'abrechnung' && definition.sourceMode === 'create' && definition.layout === 'table'
+    && invoiceLineSchemas.some(columns => columns.length === definition.columns.length
+      && columns.every((column, index) => column === definition.columns[index]));
+  if (target === 'client' && request.invoiceId && acceptsInvoiceLines) {
     const denied = await guard<CentralDocumentContext>(tenantId, actor, 'office.invoices.view'); if (denied) return denied;
-    const [invoice, items] = await Promise.all([
-      fromUnknownTable(client, 'invoices').select('id,client_id,invoice_number,invoice_date,service_period_from,service_period_to,service_month,recipient_name,total_amount,due_date').eq('tenant_id', tenantId).eq('id', request.invoiceId).maybeSingle(),
-      fromUnknownTable(client, 'invoice_items').select('service_date,description,quantity,unit,gross_amount').eq('tenant_id', tenantId).eq('invoice_id', request.invoiceId).order('sort_order', { ascending: true }),
-    ]);
-    for (const result of [invoice, items]) if (result.error) return { ok: false, error: toGermanSupabaseError(result.error) };
+    const invoice = await fromUnknownTable(client, 'invoices').select('id,client_id,invoice_number,service_period_from,service_period_to,service_month,recipient_name,due_date').eq('tenant_id', tenantId).eq('id', request.invoiceId).maybeSingle();
+    if (invoice.error) return { ok: false, error: toGermanSupabaseError(invoice.error) };
     if (!invoice.data || invoice.data.client_id !== entityId) return { ok: false, error: 'Die Rechnung gehört nicht zu dieser Klientenakte oder ist nicht verfügbar.' };
+    const items = await fromUnknownTable(client, 'invoice_items').select('service_date,description,quantity,unit,gross_amount').eq('tenant_id', tenantId).eq('invoice_id', request.invoiceId).order('sort_order', { ascending: true });
+    if (items.error) return { ok: false, error: toGermanSupabaseError(items.error) };
     const row = invoice.data;
-    if (row.recipient_name) context.payor.name = str(row.recipient_name);
     context.procedure = { ...context.procedure, invoiceId: request.invoiceId, invoiceNumber: str(row.invoice_number), period: [row.service_period_from, row.service_period_to].filter(Boolean).join(' bis ') || str(row.service_month), recipientName: str(row.recipient_name), dueDate: str(row.due_date) };
-    if (definition.layout === 'table') context.sourceRows = (items.data ?? []).map((item) => [str(item.service_date), str(item.description), `${str(item.quantity)} ${str(item.unit)}${item.gross_amount != null ? ` · ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(Number(item.gross_amount))}` : ''}`.trim(), `Rechnung ${str(row.invoice_number)}`, '']);
+    context.sourceRows = (items.data ?? []).map((item) => [str(item.service_date), str(item.description), `${str(item.quantity)} ${str(item.unit)}${item.gross_amount != null ? ` · ${new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(Number(item.gross_amount))}` : ''}`.trim(), `Rechnung ${str(row.invoice_number)}`, '']);
   }
   if (target === 'client' && request.medicationId && definition.categoryKey === 'medikamente') {
     const denied = await guard<CentralDocumentContext>(tenantId, actor, 'pflege.medications.view'); if (denied) return denied;

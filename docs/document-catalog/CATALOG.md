@@ -43,7 +43,7 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_aufnahme_001` | Anfragebogen und Erstkontaktprotokoll | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_aufnahme_002` | Aufnahmecheckliste | Klientenakte | Checkliste | Neuer bearbeitbarer Entwurf |
 | `csdc_aufnahme_003` | Klient:innen- beziehungsweise Bewohner:innen-Stammblatt | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_aufnahme_004` | Kontaktdatenblatt für Angehörige und Bezugspersonen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
+| `csdc_aufnahme_004` | Kontaktdatenblatt für Angehörige und Bezugspersonen | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_aufnahme_005` | Notfallkontakte | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_aufnahme_006` | Übersicht behandelnder Ärzt:innen, Therapeut:innen und Apotheken | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_aufnahme_007` | Kranken- und Pflegeversicherungsdaten | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
@@ -111,11 +111,11 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_pflegeplanung_003` | Biografische Informationen mit Versorgungsbezug | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_pflegeplanung_004` | Erfassung von Ressourcen und Unterstützungsbedarf | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_pflegeplanung_005` | Erfassung persönlicher Wünsche und Gewohnheiten | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_pflegeplanung_006` | Pflegerische Risikoeinschätzung | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_pflegeplanung_007` | Individueller Maßnahmenplan beziehungsweise Pflegeplanung | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_pflegeplanung_008` | Tagesstruktur und wiederkehrende Versorgungsabläufe | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_pflegeplanung_009` | Vereinbarte Pflegeziele | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_pflegeplanung_010` | Pflegebericht beziehungsweise Berichteblatt | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
+| `csdc_pflegeplanung_006` | Pflegerische Risikoeinschätzung | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_pflegeplanung_007` | Individueller Maßnahmenplan beziehungsweise Pflegeplanung | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_pflegeplanung_008` | Tagesstruktur und wiederkehrende Versorgungsabläufe | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_pflegeplanung_009` | Vereinbarte Pflegeziele | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_pflegeplanung_010` | Pflegebericht beziehungsweise Berichteblatt | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_pflegeplanung_011` | Evaluation der Maßnahmen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_pflegeplanung_012` | Dokumentation veränderter Versorgungssituationen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_pflegeplanung_013` | Dokumentation abgelehnter Leistungen und vereinbarter Alternativen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
@@ -142,10 +142,10 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_risiken_013` | Kontinenzeinschätzung | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_risiken_014` | Ausscheidungsprotokoll | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_risiken_015` | Beobachtung von Kognition, Orientierung und Verhalten | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_risiken_016` | Schlafbeobachtung | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
+| `csdc_risiken_016` | Schlafbeobachtung | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_risiken_017` | Mundgesundheitsassessment | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_risiken_018` | Dokumentation individuell erforderlicher Prophylaxen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_risiken_019` | Beratungsnachweis zu festgestellten Risiken | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_risiken_019` | Beratungsnachweis zu festgestellten Risiken | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_risiken_020` | Dokumentation von Wirksamkeit und Anpassung der Maßnahmen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 
 ## Behandlungspflege und ärztliche Zusammenarbeit
@@ -188,8 +188,8 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_medikamente_009` | Dokumentation verweigerter oder ausgefallener Medikamentengaben | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_medikamente_010` | Dokumentation von Einnahmeunterstützung | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_medikamente_011` | Medikamentenbestell- und Liefernachweis | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
-| `csdc_medikamente_012` | Medikamentenübernahme bei Aufnahme oder Rückkehr | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_medikamente_013` | Bestands- und Verfallsdatenkontrolle | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
+| `csdc_medikamente_012` | Medikamentenübernahme bei Aufnahme oder Rückkehr | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_medikamente_013` | Bestands- und Verfallsdatenkontrolle | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_medikamente_014` | Temperaturprotokoll für kühlpflichtige Arzneimittel | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_medikamente_015` | Betäubungsmittel-Bestands- und Verbleibsnachweis | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_medikamente_016` | Dokumentation von Arzneimittelfehlern | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
@@ -210,7 +210,7 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_wunden_008` | Schmerzbeobachtung bei Wundversorgung | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_wunden_009` | Dokumentation von Infektionszeichen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_wunden_010` | Kommunikation mit Ärzt:innen und Wundexpert:innen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_wunden_011` | Versorgungsplan für komplexe Wunden | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
+| `csdc_wunden_011` | Versorgungsplan für komplexe Wunden | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_wunden_012` | Tracheostomaversorgungsnachweis | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_wunden_013` | Absaugprotokoll | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_wunden_014` | Beatmungs- und Gerätekontrollprotokoll | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
@@ -275,11 +275,11 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_antraege_003` | Angaben zur verhinderten Pflegeperson | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_antraege_004` | Vereinbarung über Ersatzpflege | Klientenakte | Vertrag / Erklärung | Neuer bearbeitbarer Entwurf |
 | `csdc_antraege_005` | Stunden- oder tagebezogener Ersatzpflegenachweis | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
-| `csdc_antraege_006` | Rechnung und Erstattungsunterlagen | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_antraege_006` | Rechnung und Erstattungsunterlagen | Klientenakte | Checkliste | Neuer bearbeitbarer Entwurf |
 | `csdc_antraege_007` | Übersicht bereits verwendeter Leistungsbudgets | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_antraege_008` | Unterlagen zur Kurzzeitpflege | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_antraege_009` | Beratungsnachweis nach § 37 Absatz 3 SGB XI | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
-| `csdc_antraege_010` | Beratungsprotokoll zu Versorgungsbedarf und Entlastungsmöglichkeiten | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_antraege_009` | Beratungsnachweis nach § 37 Absatz 3 SGB XI – Begleitblatt | Klientenakte | Formular | Original + neues Begleitblatt |
+| `csdc_antraege_010` | Beratungsprotokoll zu Versorgungsbedarf und Entlastungsmöglichkeiten | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_antraege_011` | Antrag auf Pflegegrad beziehungsweise Höherstufung | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_antraege_012` | Antrag auf Pflegehilfsmittel | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_antraege_013` | Antrag auf wohnumfeldverbessernde Maßnahmen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
@@ -295,7 +295,7 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_einsatz_001` | Tourenplan | Unternehmensakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_einsatz_002` | Dienst- und Einsatzplan | Unternehmensakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_einsatz_003` | Klient:innenbezogenes Einsatzprofil | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_einsatz_004` | Aufgabenliste für einzelne Einsätze | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
+| `csdc_einsatz_004` | Aufgabenliste für einzelne Einsätze | Klientenakte | Checkliste | Neuer bearbeitbarer Entwurf |
 | `csdc_einsatz_005` | Einsatzbeginn- und Einsatzendenachweis | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_einsatz_006` | Leistungsnachweis mit Leistungsbestätigung | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_einsatz_007` | Dokumentation von Leistungsänderungen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
@@ -315,7 +315,7 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 
 | Katalog-ID | Dokument | Zielakte | Layout | Bereitstellung |
 | --- | --- | --- | --- | --- |
-| `csdc_stationaer_001` | Vorvertragliche Informationen | Klientenakte | Vertrag / Erklärung | Neuer bearbeitbarer Entwurf |
+| `csdc_stationaer_001` | Vorvertragliche Informationen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_stationaer_002` | Einzugs- und Aufnahmecheckliste | Klientenakte | Checkliste | Neuer bearbeitbarer Entwurf |
 | `csdc_stationaer_003` | Zimmerübergabeprotokoll | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_stationaer_004` | Inventar- und Eigentumsverzeichnis | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
@@ -353,7 +353,7 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_teilstationaer_010` | Mahlzeiten- und Ernährungsinformationen | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_teilstationaer_011` | Tagesbezogene Pflege- und Betreuungsdokumentation | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_teilstationaer_012` | Abwesenheits- und Stornierungsnachweis | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
-| `csdc_teilstationaer_013` | Kostenzusage und Abrechnungsunterlagen | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_teilstationaer_013` | Kostenzusage und Abrechnungsunterlagen – Begleitblatt | Klientenakte | Formular | Original + neues Begleitblatt |
 | `csdc_teilstationaer_014` | Überleitungs- beziehungsweise Entlassungsbericht | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_teilstationaer_015` | Rückgabeprotokoll für Medikamente, Hilfsmittel und Eigentum | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 
@@ -395,7 +395,7 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_palliativ_011` | Sterbeverlaufsdokumentation | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_palliativ_012` | Dokumentation der Versorgung nach dem Tod | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_palliativ_013` | Benachrichtigungsprotokoll | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
-| `csdc_palliativ_014` | Eigentums- und Schlüsselrückgabe | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
+| `csdc_palliativ_014` | Eigentums- und Schlüsselrückgabe | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_palliativ_015` | Abschluss der Versorgungsakte | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 
 ## Hygiene, Reinigung und Lebensmittel
@@ -483,7 +483,7 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | Katalog-ID | Dokument | Zielakte | Layout | Bereitstellung |
 | --- | --- | --- | --- | --- |
 | `csdc_zulassung_001` | Gewerbe- und Unternehmensunterlagen | Unternehmensakte | Formular | Original + neues Begleitblatt |
-| `csdc_zulassung_002` | Anerkennungsantrag für Angebote zur Unterstützung im Alltag | Unternehmensakte | Formular | Neuer bearbeitbarer Entwurf |
+| `csdc_zulassung_002` | Anerkennungsantrag für Angebote zur Unterstützung im Alltag | Unternehmensakte | Checkliste | Neuer bearbeitbarer Entwurf |
 | `csdc_zulassung_003` | Anerkennungsbescheid | Unternehmensakte | Formular | Original + neues Begleitblatt |
 | `csdc_zulassung_004` | Angebotskonzept und Leistungsbeschreibung | Unternehmensakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_zulassung_005` | Qualifikations- und Fachkraftnachweise | Unternehmensakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
@@ -506,16 +506,16 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_abrechnung_001` | Leistungsbestätigung beziehungsweise unterschriebener Leistungsnachweis | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_abrechnung_002` | Abrechnungsfähige Leistungsübersicht | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_abrechnung_003` | Monatsabrechnung je Klient:in oder Bewohner:in | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
-| `csdc_abrechnung_004` | Rechnung an Kostenträger | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
-| `csdc_abrechnung_005` | Privatrechnung beziehungsweise Eigenanteilsrechnung | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_abrechnung_004` | Rechnung an Kostenträger – interner Prüfentwurf | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_abrechnung_005` | Privat- und Eigenanteilsrechnung – interner Prüfentwurf | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_abrechnung_006` | Elektronischer Abrechnungsdatensatz und Übertragungsprotokoll | Klientenakte | Formular | Original + neues Begleitblatt |
-| `csdc_abrechnung_007` | Abrechnungsfreigabe | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_abrechnung_007` | Abrechnungsfreigabe | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_abrechnung_008` | Budgetübersicht je Leistungsart | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_abrechnung_009` | Kostenzusagen und Bewilligungen | Klientenakte | Formular | Original + neues Begleitblatt |
 | `csdc_abrechnung_010` | Absetzung, Rückweisung und Korrekturabrechnung | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_abrechnung_011` | Gutschrift und Stornorechnung | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_abrechnung_012` | Offene-Posten-Liste | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
-| `csdc_abrechnung_013` | Zahlungseingangs- und Zuordnungsnachweis | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
+| `csdc_abrechnung_013` | Zahlungseingangs- und Zuordnungsnachweis | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_abrechnung_014` | Mahnung | Klientenakte | Fensterbrief | Neuer bearbeitbarer Entwurf |
 | `csdc_abrechnung_015` | Erstattungsantrag | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_abrechnung_016` | Auslagen- und Fahrtkostenabrechnung | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
@@ -577,7 +577,7 @@ Originalunterlagen werden mit einem neuen Zuordnungsblatt hinterlegt. Dokumente 
 | `csdc_abschluss_002` | Übergabe an einen anderen Pflege- oder Betreuungsdienst | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_abschluss_003` | Entlassungs- beziehungsweise Abschlussbericht | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_abschluss_004` | Abschlussgespräch | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
-| `csdc_abschluss_005` | Dokumentation offener Versorgungsaufgaben | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
+| `csdc_abschluss_005` | Dokumentation offener Versorgungsaufgaben | Klientenakte | Tabelle quer | Neuer bearbeitbarer Entwurf |
 | `csdc_abschluss_006` | Medikamenten- und Hilfsmittelübergabe | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_abschluss_007` | Rückgabe von Eigentum und verwahrtem Geld | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
 | `csdc_abschluss_008` | Schlüsselrückgabe | Klientenakte | Formular | Neuer bearbeitbarer Entwurf |
