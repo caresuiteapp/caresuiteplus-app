@@ -19,6 +19,7 @@ vi.mock('@/components/ui',()=>({
 }));
 vi.mock('@/lib/auth/context',()=>({useAuth:()=>h.auth}));
 vi.mock('@/hooks/useTenantId',()=>({useServiceTenantId:()=>h.tenantId}));
+vi.mock('@/hooks/usePermissions',()=>({usePermissions:()=>({can:()=>true})}));
 vi.mock('@/hooks/pflege/useCareRuntimePermissions.web',()=>({useCareRuntimePermissions:()=>({tenantId:h.tenantId,roleKey:'business_admin',permissions:Object.freeze([]),can:()=>false,loading:h.loading,error:h.error,refreshPermissions:h.refresh})}));
 vi.mock('@/hooks/core/useAsyncQuery',()=>({useAsyncQuery:(_load:unknown,_deps:unknown,options:any)=>{h.query(options);return{loading:false,refreshing:false,error:null,refreshError:null,data:null,previewData:false,tableMissing:false,cacheMeta:{fromCache:false,partialDetail:false,usedDemoFallback:false},refresh:vi.fn()};}}));
 vi.mock('@/design/tokens/carelightadaptive',()=>({useCareLightPalette:()=>({c:{}})}));
@@ -71,6 +72,7 @@ describe.each([['Vitalwertübersicht',VitalReadingsListScreen],['Vitalwertdetail
   it('keeps the settled missing read permission denied',async()=>{
     await render(Screen);expect(host.querySelector('[role="alert"]')?.textContent).toContain('Leseberechtigung');
     expect(host.querySelector('button')).toBeNull();
+    expect(host.textContent).not.toContain('Vorlagen für Vitalwerte');
     expect(h.query.mock.calls.every(([options])=>options.enabled===false)).toBe(true);
   });
 });

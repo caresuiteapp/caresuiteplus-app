@@ -1,29 +1,29 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-const fixture = vi.hoisted(() => ({ rows: {} as Record<string, Record<string, unknown>[]>, denied: new Set<string>(), queries: [] as { table: string; filters: [string, unknown][]; columns: string; range?: [number, number] }[] }));
+const fixture = vi.hoisted(() => ({ rows: {} as Record<string, Record<string, unknown>[]>, denied: new Set<string>(), errors: new Set<string>(), queries: [] as { table: string; filters: [string, unknown][]; columns: string; range?: [number, number]; order: [string, boolean][] }[] }));
 vi.mock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
 vi.mock('@/lib/services/liveServiceGuard', () => ({ guardServiceTenant: () => null }));
 vi.mock('@/lib/permissions/actorPermissions', () => ({ enforceWithActor: async (_role: unknown, _tenant: unknown, _profile: unknown, permission: string) => fixture.denied.has(permission) ? { ok: false, error: 'Berechtigung fehlt' } : null }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({}) }));
 vi.mock('@/lib/supabase/untypedTable', () => ({ fromUnknownTable: (_client: unknown, table: string) => {
-  const query = { table, filters: [] as [string, unknown][], columns: '', range: undefined as [number, number] | undefined }; fixture.queries.push(query);
-  const result = () => { let rows = (fixture.rows[table] ?? []).filter((row) => query.filters.every(([key, value]) => row[key] === value)); if (query.range) rows = rows.slice(query.range[0], query.range[1] + 1); return { data: rows, error: null }; };
+  const query = { table, filters: [] as [string, unknown][], columns: '', range: undefined as [number, number] | undefined, order: [] as [string, boolean][] }; fixture.queries.push(query);
+  const result = () => { let rows = (fixture.rows[table] ?? []).filter((row) => query.filters.every(([key, value]) => row[key] === value)); if (query.range) rows = rows.slice(query.range[0], query.range[1] + 1); return { data: rows, error: fixture.errors.has(table) ? { message: 'unavailable' } : null }; };
   const request = {
     select: (columns: string) => { query.columns = columns; return request; },
     eq: (key: string, value: unknown) => { query.filters.push([key, value]); return request; },
-    order: () => request, limit: () => request,
+    order: (key: string, options?: { ascending: boolean }) => { query.order.push([key, options?.ascending ?? true]); return request; }, limit: () => request,
     range: (start: number, end: number) => { query.range = [start, end]; return request; },
     maybeSingle: async () => { const value = result(); return { data: value.data[0] ?? null, error: value.error }; },
     then: (resolve: (value: ReturnType<typeof result>) => unknown) => Promise.resolve(result()).then(resolve),
   }; return request;
 } }));
-import { loadCentralContext, listCentralDocuments } from '@/lib/documents/centralCatalogService';
+import { listCentralDocumentDefinitions, loadCentralContext, listCentralDocuments } from '@/lib/documents/centralCatalogService';
 import { CENTRAL_DOCUMENT_CATALOG } from '@/data/seeds/documentCatalog/centralCatalog';
 import { createCentralSnapshot } from '@/lib/documents/centralCatalogModel';
 
 const T = '11111111-1111-4111-8111-111111111111'; const C = '22222222-2222-4222-8222-222222222222'; const I = '33333333-3333-4333-8333-333333333333';
 const definition = (key: string) => CENTRAL_DOCUMENT_CATALOG.find((entry) => entry.key === key)!;
 beforeEach(() => {
-  fixture.denied.clear(); fixture.queries = [];
+  fixture.denied.clear(); fixture.errors.clear(); fixture.queries = [];
   fixture.rows = {
     tenants: [{ id: T, name: 'Unternehmen', legal_name: 'Pflege GmbH', street: 'Parkstraße', house_number: '12', postal_code: '10115', city: 'Berlin' }],
     tenant_document_settings: [{ tenant_id: T, logo_url: '' }], tenant_addresses: [],
@@ -77,5 +77,44 @@ describe('trusted procedure sources and paginated archive scope', () => {
     expect(query.filters).toContainEqual(['tenant_id', T]); expect(query.filters).toContainEqual(['entity_id', C]); expect(query.filters).toContainEqual(['target', 'client']);
     expect(query.range).toEqual([100, 199]);
     expect((await listCentralDocuments(T, { roleKey: 'business_admin' }, undefined, -1)).ok).toBe(false);
+  });
+});
+
+describe('central database template registry', () => {
+  const actor = { roleKey: 'business_admin' } as const;
+  const row = (key: string, version: number, reviewStatus = 'draft') => ({
+    template_key: key, version, review_status: reviewStatus,
+    definition_json: { ...definition('csdc_aufnahme_001'), key, version, title: `Datenbankvorlage ${key} v${version}` },
+  });
+
+  it('reads all pages and selects the latest exact definition without reactivating withdrawn templates', async () => {
+    const preceding = Array.from({ length: 98 }, (_, index) => row(`csdc_aaa_${String(index).padStart(3, '0')}`, 1));
+    const latest = row('csdc_aufnahme_001', 7);
+    fixture.rows.central_document_catalog = [
+      ...preceding, latest, row('csdc_aufnahme_002', 3, 'withdrawn'),
+      row('csdc_aufnahme_002', 2), row('csdc_auswertung_001', 1),
+    ];
+    const result = await listCentralDocumentDefinitions(T, actor);
+    expect(result.ok).toBe(true);
+    expect(result.data).toContainEqual(latest.definition_json);
+    expect(result.data?.map((entry) => entry.key)).not.toContain('csdc_aufnahme_002');
+    expect(result.data?.at(-1)?.key).toBe('csdc_auswertung_001');
+    expect(result.data).toHaveLength(100);
+    expect(fixture.queries.map((query) => query.range)).toEqual([[0, 99], [100, 199]]);
+    expect(fixture.queries.every((query) => query.table === 'central_document_catalog'
+      && JSON.stringify(query.order) === JSON.stringify([['template_key', true], ['version', false]]))).toBe(true);
+  });
+
+  it('reports a denied, unreachable or invalid registry without returning local definitions', async () => {
+    fixture.denied.add('office.documents.view');
+    expect((await listCentralDocumentDefinitions(T, actor)).ok).toBe(false);
+    expect(fixture.queries).toHaveLength(0);
+    fixture.denied.clear();
+    fixture.errors.add('central_document_catalog');
+    expect((await listCentralDocumentDefinitions(T, actor)).ok).toBe(false);
+    fixture.errors.clear();
+    fixture.rows.central_document_catalog = [row('csdc_aufnahme_001', 1)];
+    fixture.rows.central_document_catalog[0].definition_json = { key: 'csdc_aufname_001' };
+    expect((await listCentralDocumentDefinitions(T, actor)).ok).toBe(false);
   });
 });

@@ -40,6 +40,7 @@ vi.mock('@/components/ui', () => ({
 }));
 vi.mock('@/lib/auth/context', async () => ({useAuth: (await import('./vitalCaptureWorkspace.fixture')).useAuth}));
 vi.mock('@/hooks/useTenantId', async () => ({useServiceTenantId: (await import('./vitalCaptureWorkspace.fixture')).useServiceTenantId}));
+vi.mock('@/hooks/usePermissions', () => ({usePermissions: () => ({can: () => true})}));
 vi.mock('@/hooks/pflege/useCareRuntimePermissions.web', async () => ({useCareRuntimePermissions: (await import('./vitalCaptureWorkspace.fixture')).useCareRuntimePermissions}));
 vi.mock('@/hooks/core/useAsyncQuery', async () => ({useAsyncQuery: (await import('./vitalCaptureWorkspace.fixture')).useAsyncQuery}));
 vi.mock('@/hooks/useMedicationSubmission.web', async () => ({useMedicationSubmission: (await import('./vitalCaptureWorkspace.fixture')).useMedicationSubmission}));
@@ -107,6 +108,18 @@ afterEach(async () => {
 });
 
 describe('Vitalwerte · Übersicht und Erfassung', () => {
+  it('öffnet das Vitalwerteprotokoll mit der aktuell ausgewählten berechtigten Pflegeakte', async () => {
+    await page(<VitalReadingsListScreen/>);
+    expect(host.textContent).not.toContain('Vorlagen für Vitalwerte');
+    await click(mara.name);
+    const card = host.querySelector<HTMLButtonElement>('.cs-doc-rec-card');
+    expect(card?.textContent).toContain('Vitalwerteprotokoll');
+    await act(async () => card!.click());
+    const path = new URL(String(push.mock.calls[0]?.[0]), 'https://example.test');
+    expect(path.searchParams.get('clientId')).toBe(mara.id);
+    expect(path.searchParams.get('templateKey')).toBe('csdc_behandlungspflege_008');
+  });
+
   it('shows and filters the full catalog without an eligible case and sends no case-specific request', async () => {
     fixture.createPeople = [];
     await page(<VitalReadingCreateScreen/>);

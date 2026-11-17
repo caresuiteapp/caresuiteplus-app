@@ -300,6 +300,71 @@ export async function listCentralDocuments(tenantId: string, actor: Actor, filte
   })) };
 }
 
+const CATALOG_PAGE_SIZE = 100;
+const CATALOG_LOAD_ERROR = 'Die Vorlagen konnten nicht aus der zentralen Datenbank geladen werden.';
+
+function catalogDefinition(value: unknown): value is CentralDocumentDefinition {
+  if (!value || typeof value !== 'object') return false;
+  const definition = value as CentralDocumentDefinition;
+  const isText = (entry: unknown) => typeof entry === 'string';
+  return typeof definition.key === 'string'
+    && Number.isSafeInteger(definition.version) && definition.version > 0
+    && [definition.title, definition.categoryKey, definition.categoryName, definition.instructions].every(isText)
+    && ['client', 'employee', 'company'].includes(definition.target)
+    && ['create', 'original'].includes(definition.sourceMode)
+    && ['letter', 'contract', 'form', 'table', 'checklist'].includes(definition.layout)
+    && ['portrait', 'landscape'].includes(definition.orientation)
+    && ['draft', 'approved'].includes(definition.reviewStatus)
+    && typeof definition.legalReviewRequired === 'boolean' && typeof definition.clinicalReviewRequired === 'boolean'
+    && Array.isArray(definition.modules) && definition.modules.every(isText)
+    && Array.isArray(definition.fields) && definition.fields.every((field) =>
+      field && isText(field.key) && isText(field.label) && typeof field.required === 'boolean'
+      && ['text', 'multiline', 'date'].includes(field.type)
+      && (field.sourcePath === undefined || isText(field.sourcePath))
+      && (field.defaultValue === undefined || isText(field.defaultValue)))
+    && Array.isArray(definition.columns) && definition.columns.every(isText)
+    && Array.isArray(definition.sections) && definition.sections.every((section) =>
+      section && [section.key, section.heading, section.text].every(isText));
+}
+
+export async function listCentralDocumentDefinitions(tenantId: string, actor: Actor, signal?: AbortSignal): Promise<ServiceResult<readonly CentralDocumentDefinition[]>> {
+  const denied = await guard<readonly CentralDocumentDefinition[]>(tenantId, actor, 'office.documents.view');
+  if (denied) return denied;
+  if (getServiceMode() !== 'supabase') {
+    const { CENTRAL_DOCUMENT_CATALOG } = await import('@/data/seeds/documentCatalog/centralCatalog');
+    return { ok: true, data: CENTRAL_DOCUMENT_CATALOG };
+  }
+
+  const client = getSupabaseClient();
+  if (!client) return { ok: false, error: 'Datenverbindung nicht verfügbar.' };
+  const current = new Map<string, CentralDocumentDefinition | null>();
+  for (let offset = 0; ; offset += CATALOG_PAGE_SIZE) {
+    if (signal?.aborted) return { ok: false, error: CATALOG_LOAD_ERROR };
+    const request = fromUnknownTable(client, 'central_document_catalog')
+      .select('template_key,version,review_status,definition_json')
+      .order('template_key')
+      .order('version', { ascending: false })
+      .range(offset, offset + CATALOG_PAGE_SIZE - 1);
+    const { data, error } = await (signal ? request.abortSignal(signal) : request);
+    if (error || !data) return { ok: false, error: CATALOG_LOAD_ERROR };
+    for (const row of data) {
+      if (current.has(row.template_key)) continue;
+      if (row.review_status === 'withdrawn') {
+        current.set(row.template_key, null);
+        continue;
+      }
+      const definition: unknown = row.definition_json;
+      if (!catalogDefinition(definition) || definition.key !== row.template_key || definition.version !== row.version
+        || !['draft', 'approved'].includes(row.review_status)) {
+        return { ok: false, error: 'Die zentrale Datenbank enthält eine ungültige Vorlagenfassung.' };
+      }
+      current.set(definition.key, definition);
+    }
+    if (data.length < CATALOG_PAGE_SIZE) break;
+  }
+  return { ok: true, data: [...current.values()].filter((definition) => definition !== null) };
+}
+
 export async function downloadCentralDocument(record: CentralDocumentStored, actor: Actor, original = false): Promise<ServiceResult<Uint8Array>> {
   const denied = await guard<Uint8Array>(record.tenantId, actor, 'office.documents.view'); if (denied) return denied;
   if (record.snapshot.context.target === 'client' || record.snapshot.definition.clinicalReviewRequired) {

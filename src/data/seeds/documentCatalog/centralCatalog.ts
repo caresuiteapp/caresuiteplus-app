@@ -2,6 +2,7 @@ import { CENTRAL_CATALOG_GROUPS } from './centralCatalogTitles';
 import { centralDocumentSections } from './centralDocumentSections';
 import { careSuiteRelatedSections, careSuiteSoftwareContent } from './careSuiteSoftwareContent';
 import { clientLegalEdition2027 } from './clientLegalEdition2027';
+import { filterCentralDocumentDefinitions } from '@/lib/documents/centralCatalogModel';
 import type { CentralDocumentDefinition, CentralDocumentField, CentralDocumentLayout, CentralDocumentTarget } from '@/types/documents/centralCatalog';
 
 const CATEGORY_FIELDS: Record<string, string[]> = {
@@ -166,13 +167,7 @@ export function findCentralDocument(key: string): CentralDocumentDefinition | un
   return CENTRAL_DOCUMENT_CATALOG.find((item) => item.key === key);
 }
 export function filterCentralDocuments(input: { query?: string; category?: string; module?: string; target?: CentralDocumentTarget }): CentralDocumentDefinition[] {
-  const words = (input.query ?? '').trim().toLocaleLowerCase('de-DE').split(/\s+/).filter(Boolean);
-  return CENTRAL_DOCUMENT_CATALOG.filter((item) =>
-    (!input.category || item.categoryKey === input.category) &&
-    (!input.module || item.modules.includes(input.module)) &&
-    (!input.target || item.target === input.target) &&
-    words.every((word) => `${item.title} ${item.categoryName}`.toLocaleLowerCase('de-DE').includes(word)),
-  );
+  return filterCentralDocumentDefinitions(CENTRAL_DOCUMENT_CATALOG, input);
 }
 
 /** Gemeinsamer Aufruf aus Modulen, ohne eine Kopie ihrer Vorlagenbestände. */

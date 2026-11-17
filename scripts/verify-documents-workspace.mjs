@@ -19,6 +19,8 @@ const groups = {
     'documents/centralCatalogWorkspace.test.tsx',
     'documents/centralCatalogEditor.test.tsx',
     'documents/centralCatalogActionSafety.test.tsx',
+    'documents/documentRecommendations.test.ts',
+    'documents/documentRecommendationsUi.test.tsx',
   ],
   'Document library, uploads and file display': [
     'office/officeDocumentWorkspaceWeb.test.ts',
@@ -49,7 +51,8 @@ const groups = {
 const tests = Object.values(groups).flat().map(file => `src/__tests__/${file}`);
 const sqlTest = 'supabase/tests/document_workspace_review.test.mjs';
 const logoSqlTest = 'supabase/tests/document_logo_upload.test.mjs';
-const required = [vitest, 'node_modules/@electric-sql/pglite/package.json', sqlTest, logoSqlTest, 'supabase/migrations/20261016063709_document_workspace_review.sql', 'supabase/migrations/20261016072259_document_logo_upload.sql', ...tests];
+const catalogSqlTest = 'supabase/tests/central_document_catalog_reviews.test.mjs';
+const required = [vitest, 'node_modules/@electric-sql/pglite/package.json', sqlTest, logoSqlTest, catalogSqlTest, 'supabase/migrations/20261016063709_document_workspace_review.sql', 'supabase/migrations/20261016072259_document_logo_upload.sql', 'supabase/migrations/20261117080000_central_document_catalog_reviews.sql', ...tests];
 const missing = required.filter(file => !existsSync(resolve(root, file)));
 if (missing.length) {
   console.error(`[documents-release] Required project files are missing:\n${missing.map(file => `- ${file}`).join('\n')}`);
@@ -71,4 +74,5 @@ for (const [label, files] of Object.entries(groups)) {
 run(`${tests.length} focused document regression suites`, [vitest, 'run', '--maxWorkers=1', ...tests]);
 run('Local PostgreSQL document review permissions and transitions', ['--test', sqlTest]);
 run('Local PostgreSQL document logo upload permissions', ['--test', logoSqlTest]);
+run('Local PostgreSQL protection and review history for catalog versions', ['--test', catalogSqlTest]);
 console.log('\n[documents-release] All required checks passed. No remote database was changed.');

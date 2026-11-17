@@ -5,6 +5,7 @@ import { useMemo, useState, useRef, useEffect } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
+import { DocumentRecommendations } from "../../components/documents/DocumentRecommendations.native.tsx";
 import { EmptyState, ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import { useCareRuntimePermissions as usePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
@@ -230,6 +231,7 @@ function VitalHistoryWorkspace({ capture, scope, handoffScope, permissionState, 
           </View>
          </View>
 
+         {mayUseVitalHistoryChoiceActionWeb(choiceAction) ? (<DocumentRecommendations module="pflege" workflow="vitals" clientId={person.id} title="Vorlagen für Vitalwerte" compact/>) : null}
          {history.loading || history.refreshing ? (<LoadingState message="Messungen, Folgedokumentationen und Korrekturvermerke werden geladen…"/>) : history.error || history.refreshError ? (<ErrorState message={history.error ?? history.refreshError ?? ''} onRetry={() => reload('history')}/>) : !entries ? (<InfoBanner variant="info" message="Der aktuelle Verlauf ist noch nicht bestätigt. Laden Sie ihn erneut."/>) : (<>
            {types.length ? (<View style={styles.filters}>
              <Text accessibilityRole="header" style={styles.subtitle}>Nach Messart filtern</Text>

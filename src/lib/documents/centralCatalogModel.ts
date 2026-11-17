@@ -2,6 +2,23 @@ import type { CentralDocumentContext, CentralDocumentDefinition, CentralDocument
 
 export const CENTRAL_COMMON_FIELDS = new Set(['date', 'author', 'companyName', 'companyAddress', 'subjectName', 'subjectAddress', 'birthDate', 'careLevel', 'payorName', 'insuranceNumber', 'personnelNumber', 'jobTitle']);
 
+type CatalogFilter = { query?: string; category?: string; module?: string; target?: CentralDocumentDefinition['target'] };
+
+export function filterCentralDocumentDefinitions(definitions: readonly CentralDocumentDefinition[], input: CatalogFilter): CentralDocumentDefinition[] {
+  const words = (input.query ?? '').trim().toLocaleLowerCase('de-DE').split(/\s+/).filter(Boolean);
+  return definitions.filter((item) =>
+    (!input.category || item.categoryKey === input.category) &&
+    (!input.module || item.modules.includes(input.module)) &&
+    (!input.target || item.target === input.target) &&
+    words.every((word) => `${item.title} ${item.categoryName}`.toLocaleLowerCase('de-DE').includes(word)),
+  );
+}
+
+export function centralDocumentCategories(definitions: readonly CentralDocumentDefinition[]) {
+  return [...new Map(definitions.map((item) => [item.categoryKey, item.categoryName]))]
+    .map(([key, name]) => ({ key, name }));
+}
+
 export function newCentralDocumentId(): string {
   if (!globalThis.crypto?.randomUUID) throw new Error('Für Dokument-IDs wird eine sichere Browser-Verbindung benötigt.');
   return globalThis.crypto.randomUUID();

@@ -1,4 +1,5 @@
 import * as jsPdfModule from 'jspdf/dist/jspdf.es.min.js';
+import { CARESUITE_DOCUMENT_WORDMARK } from '@/design/careSuiteDocumentWordmark';
 import { registerCareSuitePdfFont, CARESUITE_PDF_FONT, createCareSuitePdfText } from './centuryGothicPdf';
 import { CENTRAL_COMMON_FIELDS } from './centralCatalogModel';
 import { sha256FileHex } from '@/lib/crypto/sha256Hex';
@@ -13,8 +14,16 @@ const INK = '#253A51';
 const MUTED = '#566B80';
 const LIGHT = '#F1F6FC';
 const RULE = '#D6E1EE';
-export const CENTRAL_PDF_LAYOUT = { letterWindow: { x: 20, y: 45, width: 85, height: 45, addressY: 62.7 }, portraitMargin: 20, landscapeMargin: 15 } as const;
+export const CENTRAL_PDF_LAYOUT = { letterWindow: { x: 20, y: 45, width: 85, height: 45, addressY: 62.7 }, portraitMargin: 20, landscapeMargin: 15, signatureSpace: 20 } as const;
 type CentralPdfResult = { bytes: Uint8Array; hash: string; pageCount: number; orientation: CentralDocumentSnapshot['definition']['orientation'] };
+const SERVICE_PROOF_SIGNATURES: Readonly<Record<string, readonly [string, string]>> = {
+  csdc_einsatz_006: ['Leistungserbringende Person', 'Klient:in / berechtigte Vertretung'],
+  csdc_alltag_016: ['Leistungserbringende Person', 'Klient:in / berechtigte Vertretung'],
+  csdc_abrechnung_001: ['Leistungserbringende Person', 'Klient:in / berechtigte Vertretung'],
+};
+const CONTRACT_CLOSING_SPACE = 58;
+const SIGNATURE_BLOCK_HEIGHT = CENTRAL_PDF_LAYOUT.signatureSpace + 12;
+const PROOF_CLOSING_SPACE = SIGNATURE_BLOCK_HEIGHT + 9;
 
 function displayDate(value: string) {
   return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value.split('-').reverse().join('.') : value;
@@ -29,6 +38,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
   if (JSON.stringify(snapshot).length > 1000000 || snapshot.tableRows.length > 1500) throw new Error('Der Dokumentinhalt ist zu groß. Bitte den Zeitraum oder die Anzahl der Tabellenzeilen reduzieren.');
   const { definition: d, values: v, context: c } = snapshot;
   const edition2027 = d.edition === '2027';
+  const proofSignatureRoles = d.sourceMode === 'create' ? SERVICE_PROOF_SIGNATURES[d.key] : undefined;
   const pdf = new jsPDF({ orientation: d.orientation, unit: 'mm', format: 'a4', compress: true });
   registerCareSuitePdfFont(pdf);
   const text = createCareSuitePdfText(pdf);
@@ -45,19 +55,25 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     return pdf.splitTextToSize(value.replace(/\r/g, ''), availableWidth) as string[];
   };
   const header = (continued = false) => {
+    const right = width - margin;
     pdf.setFillColor(BLUE); pdf.rect(margin, 13, 1.4, 15, 'F');
-    const nameWidth = contentWidth - (options.logoDataUrl ? 55 : 38);
-    const companyLines = wrap(v.companyName || 'Unternehmen ergänzen', nameWidth - 8, 13);
-    if (companyLines.length > 2) throw new Error('Der Unternehmensname ist für den Briefkopf zu lang. Bitte eine passende Kurzbezeichnung verwenden.');
-    font(13, true, NAVY); text(companyLines, margin + 5, 18, { lineHeightFactor: 1.25 });
+    const nameWidth = contentWidth - 50;
+    const company = v.companyName || 'Unternehmen ergänzen';
+    let companyLines = wrap(company, nameWidth - 8, 13);
+    const companySize = companyLines.length > 2 ? 11 : 13;
+    if (companySize === 11) companyLines = wrap(company, nameWidth - 8, companySize);
+    if (companyLines.length > 3) throw new Error('Der Unternehmensname ist für den Briefkopf zu lang. Bitte eine passende Kurzbezeichnung verwenden.');
+    font(companySize, true, NAVY); text(companyLines, margin + 5, companyLines.length === 3 ? 16 : 18, { lineHeightFactor: 1.25 });
     font(8, false, MUTED); text(edition2027 ? `Verträge & Einwilligungen · Ausgabe 2027${continued ? ' · Fortsetzung' : ''}` : continued ? 'Dokumentenkatalog · Fortsetzung' : 'Dokumentenkatalog · CareSuite HealthOS', margin + 5, 30);
+    pdf.setFillColor(NAVY); pdf.roundedRect(right - 48, 12, 48, 9, 1.4, 1.4, 'F');
+    pdf.addImage(CARESUITE_DOCUMENT_WORDMARK, 'PNG', right - 44, 14, 40, 5, 'care-suite-document-wordmark');
     if (options.logoDataUrl) {
       const props = pdf.getImageProperties(options.logoDataUrl);
-      const logoWidth = Math.min(34, 14 * props.width / props.height);
+      const logoWidth = Math.min(23, 10 * props.width / props.height);
       const logoHeight = logoWidth * props.height / props.width;
-      pdf.addImage(options.logoDataUrl, props.fileType, width - margin - logoWidth, 13, logoWidth, logoHeight);
+      pdf.addImage(options.logoDataUrl, props.fileType, right - logoWidth, 27.5 - logoHeight / 2, logoWidth, logoHeight, 'tenant-document-logo');
     }
-    font(8, true, BLUE); text('ENTWURF', width - margin, 33, { align: 'right' });
+    font(8, true, BLUE); text('ENTWURF', options.logoDataUrl ? right - 27 : right, 29.5, { align: 'right' });
     pdf.setDrawColor(RULE); pdf.setLineWidth(0.3); pdf.line(margin, 36, width - margin, 36);
   };
   const next = () => { pdf.addPage('a4', d.orientation); header(true); y = 44; lastPageLines = 0; };
@@ -83,7 +99,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
       for (let i = 0; i < take; i++) { font(size); text(lines[index++], margin, y); y += leading; lastPageLines++; }
       if (index < lines.length) next();
     }
-    y += longText ? (compactClosing ? 1.5 : 2) : 3;
+    y += longText ? (compactClosing ? 1.5 : 2) : proofSignatureRoles ? 1.5 : 3;
   };
   const heading = (value: string, size = 11) => {
     const lines = wrap(value, contentWidth, size);
@@ -147,7 +163,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     } else if (d.layout === 'table') paragraph(identity.replace(/\n/g,' · '),8.5,4.3);
     else field('Zuordnung', identity);
     paragraph(`Datum: ${displayDate(v.date || '')}    Verantwortlich: ${v.author || '[ergänzen]'}`, 8, 4.5);
-    paragraph(`Dokument-ID: ${snapshot.documentId} · Fassung ${snapshot.revision} · Vorlage ${d.version}`, 8, 4);
+    if (!proofSignatureRoles) paragraph(`Dokument-ID: ${snapshot.documentId} · Fassung ${snapshot.revision} · Vorlage ${d.version}`, 8, 4);
   }
   if (d.sourceMode === 'original') { heading('Begleitblatt zur Originalunterlage'); paragraph(d.instructions, 9, 4.8); }
   else if (d.legalReviewRequired) { paragraph('Vorlagenentwurf · Die rechtliche Freigabe für den konkreten Anwendungsbereich steht aus.', 8, 4.5); }
@@ -158,7 +174,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
   }
   for (const [index, section] of d.sections.entries()) {
     if (d.layout !== 'letter' || edition2027 && index > 0) heading(edition2027 ? `${String(index + 1).padStart(2, '0')}  ${section.heading.replace(/^(?:§\s*)?\d+[.\s]+/, '')}` : section.heading);
-    paragraph(snapshot.sectionTexts[section.key] ?? section.text, bodySize, bodyLeading, edition2027 && d.layout === 'contract' && index === d.sections.length - 1 && !snapshot.additionalText.trim() ? 50 : 0);
+    paragraph(snapshot.sectionTexts[section.key] ?? section.text, bodySize, bodyLeading, edition2027 && d.layout === 'contract' && index === d.sections.length - 1 && !snapshot.additionalText.trim() ? CONTRACT_CLOSING_SPACE + 2 : 0);
   }
   if (d.layout === 'letter' && v.enclosures?.trim()) { heading('Anlagen', 9); paragraph(v.enclosures, 9, 4.5); }
 
@@ -175,13 +191,19 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
       lastPageLines += Math.max(...headerLines.map((lines) => lines.length));
       y += headerHeight;
     };
-    const minimumRowHeight = 8.2;
-    room(headerHeight + minimumRowHeight); tableHeader();
     const rows = snapshot.tableRows.length ? snapshot.tableRows : [d.columns.map(() => '')];
+    const minimumRowHeight = 8.2;
+    const tableEndGap = proofSignatureRoles ? 7 : 10;
+    const reserveClosing = proofSignatureRoles && !snapshot.additionalText.trim() ? PROOF_CLOSING_SPACE + tableEndGap : 0;
+    room(headerHeight + minimumRowHeight + (rows.length === 1 ? reserveClosing : 0)); tableHeader();
     rows.forEach((row, rowIndex) => {
       const cellLines = d.columns.map((_, i) => wrap(row[i] || '—', widths[i] - 5, 8));
       let offset = 0;
       const maxLines = Math.max(...cellLines.map((lines) => lines.length));
+      const lastRowWithClosing = maxLines * 4.2 + 4 + reserveClosing;
+      if (reserveClosing && rowIndex === rows.length - 1 && lastRowWithClosing > bottom - y && lastRowWithClosing <= bottom - 44 - headerHeight) {
+        next(); tableHeader();
+      }
       while (offset < maxLines) {
         if (bottom - y + 0.000001 < minimumRowHeight) { next(); tableHeader(); }
         const available = Math.max(1, Math.floor((bottom - y - 4) / 4.2));
@@ -197,18 +219,33 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
         if (offset < maxLines) { next(); tableHeader(); }
       }
     });
-    y += 10;
+    y += tableEndGap;
   }
   const pageBeforeClosing = pdf.getNumberOfPages();
-  if (snapshot.additionalText.trim()) { heading('Individuelle Ergänzungen / Vereinbarungen'); paragraph(snapshot.additionalText, bodySize, bodyLeading, edition2027 && d.layout === 'contract' ? 50 : 0); }
-  if (d.layout === 'contract') {
+  if (snapshot.additionalText.trim()) { heading('Individuelle Ergänzungen / Vereinbarungen'); paragraph(snapshot.additionalText, bodySize, bodyLeading, edition2027 && d.layout === 'contract' ? CONTRACT_CLOSING_SPACE + 2 : 0); }
+  const signatureRoles = d.sourceMode === 'create'
+    ? proofSignatureRoles ?? (d.layout === 'contract' ? ['Unternehmen', 'Berechtigte Person'] : undefined)
+    : undefined;
+  if (signatureRoles) {
     if (edition2027) {
-      room(50);
+      room(CONTRACT_CLOSING_SPACE);
       heading('Erklärungen und Unterschriften');
-      paragraph('Die konkret bezeichneten Angaben und Anlagen wurden gemeinsam geprüft. Jede beteiligte Person erhält eine vollständige Kopie dieser Fassung.', 9, 4.5);
+      paragraph('Bitte prüfen Sie die Angaben und Anlagen vor der Unterzeichnung. Jede beteiligte Person erhält eine vollständige Kopie dieser Fassung.', 9, 4.5);
+    } else if (d.layout !== 'contract') {
+      room(PROOF_CLOSING_SPACE);
+      heading('Bestätigung der erbrachten Leistungen');
     }
-    room(22); y += 10; pdf.setDrawColor(RULE); pdf.line(margin, y, margin + contentWidth * 0.43, y); pdf.line(margin + contentWidth * 0.55, y, width - margin, y);
-    font(8, false, MUTED); text('Ort, Datum · Unternehmen', margin, y + 5); text('Ort, Datum · berechtigte Person', margin + contentWidth * 0.55, y + 5);
+    room(SIGNATURE_BLOCK_HEIGHT);
+    const signatureWidth = (contentWidth - 10) / 2;
+    for (const [i, role] of signatureRoles.entries()) {
+      const x = margin + i * (signatureWidth + 10);
+      font(9, true, NAVY); text(role, x, y);
+      const lineY = y + CENTRAL_PDF_LAYOUT.signatureSpace;
+      pdf.setDrawColor(RULE); pdf.setLineWidth(0.3); pdf.line(x, lineY, x + signatureWidth, lineY);
+      font(8, false, MUTED); text('Unterschrift', x, lineY + 5);
+      text('Name · Ort · Datum', x + signatureWidth, lineY + 5, { align: 'right' });
+    }
+    y += SIGNATURE_BLOCK_HEIGHT;
     lastPageLines += 2;
   }
   // Balance short final pages and keep closing fields with the contract.
@@ -227,7 +264,7 @@ function renderCentralDocumentPdfLayout(snapshot: CentralDocumentSnapshot, optio
     if (footerLines.length > 4) throw new Error('Die Unternehmensangaben sind für die Fußzeile zu lang. Bitte die Dokumenteinstellungen prüfen.');
     font(8, false, MUTED); if (footerLines.length) text(footerLines, margin, height - 21, { lineHeightFactor: 1.25 });
     font(8, true, BLUE); text(`ENTWURF · ${page} / ${pages}`, width - margin, height - 21, { align: 'right' });
-    font(8, false, MUTED); text(edition2027 ? `Ausgabe 2027 · Stand 21.10.2026 · ${snapshot.documentId} · v${snapshot.revision}` : `CareSuite HealthOS · ${snapshot.documentId} · v${snapshot.revision}`, margin, height - 5);
+    font(8, false, MUTED); text(`${d.key} · Vorlage ${d.version}  /  ${snapshot.documentId} · Fassung ${snapshot.revision}`, margin, height - 5);
   }
   pdf.setProperties({ title: d.title, author: v.author, creator: 'CareSuite HealthOS Dokumentenkatalog', subject: `Entwurf · ${snapshot.documentId}` });
   const bytes = new Uint8Array(pdf.output('arraybuffer'));

@@ -3,6 +3,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 import { CentralCatalogWorkspace, type CentralCatalogWorkspaceProps } from '@/components/documents/CentralCatalogWorkspace.web';
+import { CENTRAL_DOCUMENT_CATALOG } from '@/data/seeds/documentCatalog/centralCatalog';
 import { mapCentralContext } from '@/lib/documents/centralCatalogService';
 import type { CentralDocumentSnapshot } from '@/types/documents/centralCatalog';
 
@@ -17,7 +18,7 @@ describe('document editor persistence interactions (no browser layout assertion)
     const objectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('about:blank');
     const revokeUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     const props: CentralCatalogWorkspaceProps = {
-      tenantId: T, author: 'Anna', demo: true, clients: [{ id: C, label: 'Mara Muster' }], employees: [], loadingEntities: false,
+      tenantId: T, author: 'Anna', demo: true, definitions: CENTRAL_DOCUMENT_CATALOG, clients: [{ id: C, label: 'Mara Muster' }], employees: [], loadingEntities: false,
       permissions: { create: true, preview: true, export: true, save: true }, records: [], loadingRecords: false,
       clientId: C, templateKey: 'csdc_aufnahme_002',
       loadContext: async () => ({ ok: true, data: mapCentralContext({ tenantId: T, target: 'client', entityId: C,
@@ -77,7 +78,7 @@ describe('document editor persistence interactions (no browser layout assertion)
       tenantId: T, target: 'client', entityId: id, company: { name: 'Unternehmen GmbH' }, subject: { first_name: 'Mara', last_name: 'Muster' },
     }) }));
     const props: CentralCatalogWorkspaceProps = {
-      tenantId: T, author: 'Anna', demo: true, clients: [
+      tenantId: T, author: 'Anna', demo: true, definitions: CENTRAL_DOCUMENT_CATALOG, clients: [
         { id: C, label: 'Mara Muster', detail: 'Aufnahmeentwurf' },
         { id: otherId, label: 'Mara Muster', detail: 'Aktive Akte' },
         { id: C, label: 'Mara Muster', detail: 'Aufnahmeentwurf' },
@@ -111,7 +112,7 @@ describe('document editor persistence interactions (no browser layout assertion)
     const objectUrl = vi.spyOn(URL, 'createObjectURL').mockReturnValue('about:blank');
     const revokeUrl = vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     const props: CentralCatalogWorkspaceProps = {
-      tenantId: T, author: 'Anna', demo: true, clients: [{ id: C, label: 'Mara Muster' }], employees: [], loadingEntities: false,
+      tenantId: T, author: 'Anna', demo: true, definitions: CENTRAL_DOCUMENT_CATALOG, clients: [{ id: C, label: 'Mara Muster' }], employees: [], loadingEntities: false,
       permissions: { create: true, preview: true, export: true, save: true }, records: [], loadingRecords: false,
       clientId: C, templateKey: 'csdc_einsatz_006',
       loadContext: async () => ({ ok: true, data: { ...mapCentralContext({ tenantId: T, target: 'client', entityId: C, company: { name: companyName, street: 'Parkstraße 12', postal_code: '10115', city: 'Berlin' }, subject: { first_name: 'Mara', last_name: 'Muster' } }), procedure: { period: '2026-10-13' } } }),

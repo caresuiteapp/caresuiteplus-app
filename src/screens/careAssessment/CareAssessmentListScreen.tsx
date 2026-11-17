@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { ScreenShell } from '@/components/layout';
+import { DocumentRecommendations } from '@/components/documents/DocumentRecommendations';
 import {
   EmptyState,
   ErrorState,
@@ -63,6 +64,9 @@ export function CareAssessmentListScreen({ subjectType }: { subjectType: CareAss
         title="Pflegeverständnis & Versorgungssicherheit"
         message="Originalton, sechs Themenfelder, Risiken, fokussierte Assessments, Maßnahmen, Verlauf und fachliche Freigabe bilden einen geschlossenen Pflegeprozess."
       />
+      {!resident && tenantId && tenantId === profile?.tenantId && !query.loading && !query.error && query.data ? (
+        <DocumentRecommendations module="pflege" workflow="care_assessment" title="Vorlagen für Anamnese und Assessment" compact />
+      ) : null}
       <View style={styles.kpis}>
         <SectionPanel title="Aktive Assessments"><Text style={styles.kpi}>{items.length}</Text></SectionPanel>
         <SectionPanel title="Review erforderlich"><Text style={styles.kpi}>{reviews}</Text></SectionPanel>

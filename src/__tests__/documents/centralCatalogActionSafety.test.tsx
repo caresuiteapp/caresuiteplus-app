@@ -3,7 +3,7 @@ import { act } from 'react';
 import { createRoot } from 'react-dom/client';
 import { describe, expect, it, vi } from 'vitest';
 import { CentralCatalogWorkspace, type CentralCatalogWorkspaceProps } from '@/components/documents/CentralCatalogWorkspace.web';
-import { findCentralDocument } from '@/data/seeds/documentCatalog/centralCatalog';
+import { CENTRAL_DOCUMENT_CATALOG, findCentralDocument } from '@/data/seeds/documentCatalog/centralCatalog';
 import { createCentralSnapshot } from '@/lib/documents/centralCatalogModel';
 import { mapCentralContext } from '@/lib/documents/centralCatalogService';
 import type { ServiceResult } from '@/types';
@@ -18,7 +18,7 @@ const snapshot = createCentralSnapshot(findCentralDocument('csdc_einsatz_006')!,
 const stored: CentralDocumentStored = { id: snapshot.documentId, tenantId, templateKey: snapshot.definition.key, title: snapshot.definition.title, revision: 1, snapshot, state: 'draft', pdfPath: 'draft.pdf', pdfHash: 'a'.repeat(64), createdAt: snapshot.createdAt };
 
 function props(): CentralCatalogWorkspaceProps {
-  return { tenantId, author: 'Anna', demo: true, clients: [{ id: clientId, label: 'Mara Muster' }], employees: [], loadingEntities: false,
+  return { tenantId, author: 'Anna', demo: true, definitions: CENTRAL_DOCUMENT_CATALOG, clients: [{ id: clientId, label: 'Mara Muster' }], employees: [], loadingEntities: false,
     permissions: { create: true, preview: true, export: true, save: true }, records: [], loadingRecords: false,
     clientId, templateKey: snapshot.definition.key, loadContext: vi.fn(async () => ({ ok: true as const, data: context })),
     save: vi.fn(async () => ({ ok: true as const, data: stored })), download: vi.fn(), onSaved: vi.fn(), onRefresh: vi.fn() };
