@@ -347,7 +347,11 @@ function ModuleDesktopScreen({ tenantId, availableSignature, selectedArea, onSel
   const sidebarContent = (
           <View style={styles.sidebarInner}>
             <View style={styles.sidebarHeader}>
-              <View style={styles.sidebarHeading}><Text style={styles.eyebrow}>CARESUITE HEALTHOS</Text><Text style={styles.sidebarTitle}>Navigation · {moduleLabel}</Text></View>
+              <View style={styles.sidebarHeading}>
+                <Text style={styles.eyebrow}>CARESUITE HEALTHOS</Text>
+                <Text numberOfLines={1} style={styles.sidebarTitle}>Navigation</Text>
+                <Text numberOfLines={1} style={styles.sidebarNavigationContext}>{moduleLabel}</Text>
+              </View>
               <Pressable ref={navigationCloseRef} accessibilityRole="button" accessibilityLabel="Navigation schließen" onPress={closeNavigation} style={styles.closeSmall}><Text style={styles.closeSmallText}>‹</Text></Pressable>
             </View>
             <ScrollView testID="desktop-navigation-scroll" style={styles.navScroller} contentContainerStyle={styles.navScroll} showsVerticalScrollIndicator>
@@ -611,7 +615,8 @@ const styles = StyleSheet.create({
   sidebarReopenGlyph: { color: "#8BE8FF", fontSize: 21, fontWeight: "900" }, sidebarReopenLabel: { color: "#F2FBFF", fontSize: 13, lineHeight: 20, fontWeight: "700" }, sidebarReopenArrow: { color: "#8BE8FF", fontSize: 28, lineHeight: 28, fontWeight: "500" },
   navigationBackdrop: { flex: 1, backgroundColor: "rgba(0,5,16,0.68)", padding: 12, alignItems: "flex-start" }, sidebarDrawer: { backgroundColor: "#091B32", maxWidth: "100%" }, navScroller: { flex: 1, minHeight: 0 },
   sidebar: { flexShrink: 0, height: "100%", borderRadius: 28, overflow: "hidden" }, sidebarInner: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minHeight: 0, padding: 12 }, sidebarHeader: { minHeight: 61, flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 5, paddingBottom: 12, borderBottomWidth: 1, borderBottomColor: "rgba(139,211,255,0.16)" },
-  sidebarHeading: { flex: 1, minWidth: 0, gap: 2, hyphens: "auto" } as unknown as ViewStyle,
+  sidebarHeading: { flex: 1, minWidth: 0, gap: 2 },
+  sidebarNavigationContext: { color: "#CDE5F3", fontSize: 16, lineHeight: 22, fontWeight: "700" },
   eyebrow: { color: "#72DEFF", fontSize: 12, lineHeight: 18, fontWeight: "800", letterSpacing: 1.2 }, sidebarTitle: { color: "#FFF", fontSize: 22, fontWeight: "900" }, closeSmall: { minWidth: 44, minHeight: 44, flexShrink: 0, padding: 6, borderRadius: 12, borderWidth: 1, borderColor: "rgba(126,214,255,0.28)", alignItems: "center", justifyContent: "center" }, closeSmallText: { color: "#CDEFFF", fontSize: 25 },
   navScroll: { paddingTop: 10, paddingBottom: 12 }, navGroup: { marginBottom: 10 }, navGroupTitle: { color: "rgba(174,208,232,0.64)", fontSize: 13, fontWeight: "900", letterSpacing: 1.2, textTransform: "uppercase", paddingHorizontal: 8, marginBottom: 5 },
   navItem: { minHeight: 44, paddingVertical: 6, borderRadius: 14, paddingHorizontal: 7, flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 3, borderWidth: 1, borderColor: "transparent" }, navItemActive: { backgroundColor: "rgba(18,101,145,0.55)", borderColor: "rgba(104,222,255,0.38)" }, navIcon: { width: 38, height: 38, borderRadius: 10, backgroundColor: "transparent", alignItems: "center", justifyContent: "center" }, navGlyph: { color: "#93E7FF", fontSize: 14 }, navLabel: { flex: 1, minWidth: 0, color: "#E6F1FA", fontSize: 13, lineHeight: 19, fontWeight: "800" }, navArrow: { color: "rgba(137,216,245,0.56)", fontSize: 19 },
