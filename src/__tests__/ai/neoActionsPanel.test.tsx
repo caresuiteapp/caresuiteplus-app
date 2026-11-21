@@ -12,7 +12,7 @@ vi.mock('@/ai/neo/neoActionService', () => ({ createNeoAppointment: api.create, 
 vi.mock('@/lib/assist/visitService', () => ({ fetchVisitDispositionList: vi.fn(), fetchVisitDispositionDetail: vi.fn() }));
 const scope = { tenantId: '11111111-1111-4111-8111-111111111111', actorId: '22222222-2222-4222-8222-222222222222', subjectId: '33333333-3333-4333-8333-333333333333' };
 let root: Root, host: HTMLDivElement;
-beforeEach(async () => { vi.resetAllMocks(); api.can = true; host = document.createElement('div'); document.body.append(host); root = createRoot(host); await act(async () => root.render(<NeoActionsPanel scope={scope} role="owner" />)); });
+beforeEach(async () => { vi.resetAllMocks(); api.can = true; host = document.createElement('div'); document.body.append(host); root = createRoot(host); await act(async () => root.render(<NeoActionsPanel scope={scope} role="business_admin" />)); });
 afterEach(async () => { await act(async () => root.unmount()); host.remove(); });
 async function click(label: string) { const el = [...host.querySelectorAll('button')].find(b => b.textContent === label); expect(el, label).toBeTruthy(); await act(async () => el!.click()); }
 async function input(value: string) { const el = host.querySelector('textarea')!; await act(async () => { Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, 'value')!.set!.call(el, value); el.dispatchEvent(new Event('input', { bubbles: true })); }); }

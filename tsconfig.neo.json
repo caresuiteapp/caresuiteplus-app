@@ -1,6 +1,24 @@
 {
   "extends": "./tsconfig.json",
-  "compilerOptions": { "types": [], "noEmit": true, "incremental": false },
-  "include": ["src/ai/neo/**/*.ts", "src/ai/neo/**/*.tsx", "src/ai/robot/neoSpeechText.ts", "src/ai/robot/neoSpeech.web.ts", "src/ai/robot/robotAssistantDom.ts", "src/types/jspdf.d.ts"],
-  "exclude": ["node_modules"]
+  "compilerOptions": {
+    "types": [
+      "vitest/globals"
+    ],
+    "noEmit": true,
+    "incremental": false
+  },
+  "include": [
+    "src/ai/neo/**/*.ts",
+    "src/ai/neo/**/*.tsx",
+    "src/ai/robot/neoSpeechText.ts",
+    "src/ai/robot/neoSpeech.web.ts",
+    "src/ai/robot/robotAssistantDom.ts",
+    "src/types/jspdf.d.ts",
+    "src/__tests__/ai/neo*.test.ts",
+    "src/__tests__/ai/neo*.test.tsx",
+    "src/__tests__/office/documentationWorkspace.test.tsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ]
 }
