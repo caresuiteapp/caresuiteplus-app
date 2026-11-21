@@ -42,6 +42,8 @@ export function createNeoCapture(source: NeoCaptureSource, callbacks: NeoCapture
     const Constructor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
     if (!Constructor) throw Error('Die Geräte-/Browsererkennung ist hier nicht verfügbar. Bitte den eigenen Sprachdienst verwenden.');
     const instance = new Constructor(); recognition = instance; let empty = true;
+    if (!('processLocally' in instance)) throw Error('Die lokale Browsererkennung ist hier nicht verfügbar. Bitte den eigenen NEO-Sprachdienst wählen.');
+    instance.processLocally = true;
     instance.lang = 'de-DE'; instance.continuous = true; instance.interimResults = false;
     instance.onresult = (event: any) => {
       if ((!active && !finishing) || serial !== generation) return;

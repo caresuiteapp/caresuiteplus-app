@@ -44,6 +44,7 @@ export function neoEvidenceClauses(text: string): string[] {
   // Split only at sentence boundaries. Decimal values and dates remain intact.
   return text.split(/(?<=[.!?])\s+(?=[A-ZÄÖÜ])|\n+/u).map(part => part.trim()).filter(Boolean);
 }
+const assistantCommand = (text: string) => /^\s*(?:(?:hey|hallo|bitte)[\s,]+)?neo(?=$|[\s,:;.!?])/iu.test(text);
 function statementStatus(text: string, role: NeoRole): NeoFact['status'] {
   if (role === 'relative' && /^\s*(?:ich|mir|mein\w*)\b/i.test(text)) return 'family';
   if (/\b(?:meine? (?:mutter|vater|oma|opa|schwester|bruder)|der nachbar|die nachbarin)\b/i.test(text)) return 'family';
@@ -68,7 +69,7 @@ export function extractNeoFacts(segments: NeoSegment[]): NeoDraft {
     const clauses = neoEvidenceClauses(segment.text);
     for (const [index, raw] of clauses.entries()) {
       const quote = raw.trim();
-      if (!quote || quote.endsWith('?')) continue;
+      if (!quote || quote.endsWith('?') || assistantCommand(quote)) continue;
       const matches = topics.filter(([, pattern]) => pattern.test(quote));
       if (!matches.length) continue;
       const status = statementStatus(quote, segment.role);
@@ -89,7 +90,7 @@ export function validateNeoModelDraft(value: unknown, segments: NeoSegment[]): N
   if (!candidate || !Array.isArray(candidate.facts) || candidate.facts.length > 200) throw Error('Das Sprachmodell hat keinen gültigen Entwurf geliefert.');
   const facts = candidate.facts.map((raw, index): NeoFact => {
     const fact = raw as Record<string, unknown>, source = segments.find(s => s.id === fact.segmentId);
-    if (!source || source.role === 'unknown' || typeof fact.quote !== 'string' || !fact.quote.trim() || !neoEvidenceClauses(source.text).includes(fact.quote) || fact.quote.endsWith('?')
+    if (!source || source.role === 'unknown' || typeof fact.quote !== 'string' || !fact.quote.trim() || !neoEvidenceClauses(source.text).includes(fact.quote) || fact.quote.endsWith('?') || assistantCommand(fact.quote)
       || typeof fact.text !== 'string' || fact.text !== fact.quote || !Object.hasOwn(NEO_TOPICS, String(fact.topic))) throw Error('Eine Modellangabe besitzt keinen unveränderten Gesprächsbeleg.');
     // Identity, negation/history and target are derived from verified transcript, never model authority.
     return { id: `${source.id}:m${index}`, topic: fact.topic as NeoTopic, field: statementField(fact.quote, source.role),

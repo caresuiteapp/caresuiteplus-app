@@ -16,7 +16,10 @@
     "src/types/jspdf.d.ts",
     "src/__tests__/ai/neo*.test.ts",
     "src/__tests__/ai/neo*.test.tsx",
-    "src/__tests__/office/documentationWorkspace.test.tsx"
+    "src/__tests__/office/documentationWorkspace.test.tsx",
+    "api/neo/**/*.ts",
+    "api/_lib/neo*.ts",
+    "src/ai/robot/RobotNavigationAssistant.native.tsx"
   ],
   "exclude": [
     "node_modules"

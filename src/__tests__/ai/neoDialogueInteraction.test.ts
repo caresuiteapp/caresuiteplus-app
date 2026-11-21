@@ -6,14 +6,15 @@ import { claimNeoMicrophone } from '../../ai/neo/neoMicrophone';
 
 class FakeRecognition {
   static all: FakeRecognition[] = [];
-  lang = ''; continuous = false; interimResults = false;
+  lang = ''; continuous = false; interimResults = false; processLocally = false;
   onstart: (() => void) | null = null; onend: (() => void) | null = null;
   onresult: ((event: any) => void) | null = null; onerror: ((event: any) => void) | null = null;
   aborted = false;
   constructor() { FakeRecognition.all.push(this); }
   start() { this.onstart?.(); }
   abort() { this.aborted = true; this.onend?.(); }
-  say(text: string) { this.onresult?.({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: text } }] }); }
+  rawSay(text: string) { this.onresult?.({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: text } }] }); }
+  say(text: string) { this.rawSay('NEO, ' + text); }
   error(error: string) { this.onerror?.({ error }); }
 }
 class FakeAudio {
@@ -57,18 +58,13 @@ describe('Neo voice-only conversation', () => {
     try { await tick(2000); expect(previous.aborted).toBe(true); expect(host().dataset.state).toBe('ready'); expect(FakeRecognition.all).toHaveLength(1); expect(spoken()).toBe(''); }
     finally { release(); }
   });
-  it('speaks the bundled greeting on click without opening a chat or starting capture over its own voice', async () => {
-    cleanup = mountRobotAssistant(deps);
-    expect(deps.loadVoice).not.toHaveBeenCalled(); expect(FakeRecognition.all).toHaveLength(0);
-    expect(status().hidden).toBe(true);
-    button().click(); await flush();
-    expect(spoken()).toBe('Ich bin Neo, dein kleiner Assistent in deinem CareSuite Health OS.');
-    expect(FakeAudio.sources.at(-1)?.start).toHaveBeenCalledOnce(); expect(FakeRecognition.all).toHaveLength(0);
-    expect(host().dataset.state).toBe('speaking');
-    expect(document.querySelector('[role=dialog], [role=log], form, input, .cs-neo-panel')).toBeNull();
-    expect(button().hasAttribute('aria-haspopup')).toBe(false);
-    await completeAudio(); expect(lastRecognition().continuous).toBe(true); expect(lastRecognition().interimResults).toBe(true);
-    expect(host().dataset.state).toBe('listening');
+  it('starts silently and waits for NEO without a repeated introduction', async () => {
+    cleanup = mountRobotAssistant(deps); button().click(); await flush();
+    expect(deps.loadVoice).not.toHaveBeenCalled(); expect(lastRecognition().processLocally).toBe(true);
+    lastRecognition().rawSay('Wir besprechen heute den Kalender.'); await tick(700);
+    expect(deps.loadVoice).not.toHaveBeenCalled(); expect(deps.navigate).not.toHaveBeenCalled();
+    lastRecognition().rawSay('NEO, wie spät ist es?'); await tick(450);
+    expect(spoken()).toContain('Uhr'); expect(spoken()).not.toContain('Ich bin Neo');
   });
   it('pauses recognition while speaking and resumes for another spoken answer', async () => {
     await mount(); lastRecognition().say('Hallo Neo'); await tick(1100);
@@ -100,18 +96,18 @@ describe('Neo voice-only conversation', () => {
   });
   it('combines final fragments and revised interim speech before executing once', async () => {
     await mount(); const r = lastRecognition();
-    r.onresult?.({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: 'Öffne' } }, { isFinal: false, 0: { transcript: 'den Kalen' } }] });
+    r.onresult?.({ resultIndex: 0, results: [{ isFinal: true, 0: { transcript: 'NEO öffne' } }, { isFinal: false, 0: { transcript: 'den Kalen' } }] });
     await tick(1200); expect(deps.loadVoice).not.toHaveBeenCalled();
-    r.onresult?.({ resultIndex: 1, results: [{ isFinal: true, 0: { transcript: 'Öffne' } }, { isFinal: true, 0: { transcript: 'den Kalender' } }] });
+    r.onresult?.({ resultIndex: 1, results: [{ isFinal: true, 0: { transcript: 'NEO öffne' } }, { isFinal: true, 0: { transcript: 'den Kalender' } }] });
     await tick(1100); await completeAudio();
     expect(deps.navigate).toHaveBeenCalledExactlyOnceWith('/assist/kalender');
   });
   it('responds within half a second of final speech while waiting for interim revisions', async () => {
     await mount(); const r = lastRecognition();
     r.say('Öffne'); await tick(250);
-    r.onresult?.({ resultIndex: 1, results: [{ isFinal: true, 0: { transcript: 'Öffne' } }, { isFinal: false, 0: { transcript: 'den Kalen' } }] });
+    r.onresult?.({ resultIndex: 1, results: [{ isFinal: true, 0: { transcript: 'NEO öffne' } }, { isFinal: false, 0: { transcript: 'den Kalen' } }] });
     await tick(1000); expect(deps.loadVoice).not.toHaveBeenCalled();
-    r.onresult?.({ resultIndex: 1, results: [{ isFinal: true, 0: { transcript: 'Öffne' } }, { isFinal: true, 0: { transcript: 'den Kalender' } }] });
+    r.onresult?.({ resultIndex: 1, results: [{ isFinal: true, 0: { transcript: 'NEO öffne' } }, { isFinal: true, 0: { transcript: 'den Kalender' } }] });
     await tick(449); expect(deps.loadVoice).not.toHaveBeenCalled();
     await tick(1); expect(spoken()).toContain('Kalender');
     expect(deps.navigate).not.toHaveBeenCalled();
@@ -121,7 +117,7 @@ describe('Neo voice-only conversation', () => {
     await mount(); lastRecognition().say('Was kannst du?'); await tick(450);
     const calls = vi.mocked(deps.loadVoice).mock.calls;
     expect(calls.length).toBeGreaterThan(1);
-    expect(FakeAudio.sources).toHaveLength(2); // greeting and first answer chunk
+    expect(FakeAudio.sources).toHaveLength(1); // first answer chunk; startup remains silent
     expect(FakeAudio.sources.at(-1)?.start).toHaveBeenCalledOnce();
     expect(calls[0][1].aborted).toBe(false);
     button().click(); await flush();
@@ -133,7 +129,9 @@ describe('Neo voice-only conversation', () => {
     await mount(); lastRecognition().onend?.(); await tick(500);
     expect(FakeRecognition.all).toHaveLength(2); expect(deps.loadVoice).not.toHaveBeenCalled();
     await tick(35000); const count = FakeRecognition.all.length; await tick(40000);
-    expect(button().getAttribute('aria-pressed')).toBe('false'); expect(status().hidden).toBe(true); expect(FakeRecognition.all).toHaveLength(count);
+    expect(button().getAttribute('aria-pressed')).toBe('true'); expect(status().hidden).toBe(false); expect(FakeRecognition.all.length).toBeGreaterThan(count);
+    expect(deps.loadVoice).not.toHaveBeenCalled();
+
   });
   it.each(['not-allowed', 'service-not-allowed', 'audio-capture', 'network'])('stops retrying on %s and gives an actionable microphone status', async error => {
     await mount(); lastRecognition().error(error); await tick(40000);
@@ -170,10 +168,10 @@ describe('Neo voice-only conversation', () => {
   });
 });
 describe('Neo spoken-session cancellation', () => {
-  it('cancels the greeting with another click before starting the microphone', async () => {
+  it('stops the silently activated microphone with another click', async () => {
     cleanup = mountRobotAssistant(deps); button().click(); await flush();
-    const source = FakeAudio.sources.at(-1)!; button().click(); await tick(5000);
-    expect(source.stop).toHaveBeenCalled(); expect(FakeRecognition.all).toHaveLength(0);
+    const recognition = lastRecognition(); button().click(); await tick(5000);
+    expect(recognition.aborted).toBe(true); expect(FakeAudio.sources).toHaveLength(0); expect(FakeRecognition.all).toHaveLength(1);
     expect(status().hidden).toBe(true); expect(button().getAttribute('aria-pressed')).toBe('false');
   });
   it('keeps the context when clicking Neo again after pausing', async () => {
@@ -227,5 +225,23 @@ describe('Neo spoken-session cancellation', () => {
     const chunks = splitNeoSpeech(text);
     expect(chunks.length).toBeGreaterThan(1); expect(chunks.every(c => c.length <= 340 && c.length > 0)).toBe(true);
     expect(chunks.join(' ')).toBe(text);
+  });
+});
+
+
+describe('NEO ambient addressing boundaries', () => {
+  it('requires a new NEO address after the dialogue window expires', async () => {
+    await mount(); lastRecognition().rawSay('NEO, wie spät ist es?'); await tick(500); await completeAudio();
+    vi.mocked(deps.loadVoice).mockClear(); await tick(16000);
+    lastRecognition().rawSay('Kalender öffnen'); await tick(700);
+    expect(deps.loadVoice).not.toHaveBeenCalled(); expect(deps.navigate).not.toHaveBeenCalled();
+    lastRecognition().rawSay('NEO, Kalender öffnen'); await tick(500); await completeAudio();
+    expect(deps.navigate).toHaveBeenCalledExactlyOnceWith('/assist/kalender');
+  });
+  it('keeps the microphone off when only cloud browser recognition is available', async () => {
+    class RemoteOnlyRecognition extends FakeRecognition { constructor() { super(); delete (this as any).processLocally; } }
+    vi.stubGlobal('SpeechRecognition', RemoteOnlyRecognition);
+    cleanup = mountRobotAssistant(deps); button().click(); await tick(500);
+    expect(status().textContent).toContain('keine lokale Spracherkennung'); expect(deps.loadVoice).not.toHaveBeenCalled(); expect(lastRecognition().aborted).toBe(true);
   });
 });

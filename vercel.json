@@ -49,6 +49,14 @@
   ],
   "rewrites": [
     {
+      "source": "/api/neo/transcribe",
+      "destination": "/api/neo/transcribe"
+    },
+    {
+      "source": "/api/neo/status",
+      "destination": "/api/neo/status"
+    },
+    {
       "source": "/api/einvoice/validate",
       "destination": "/api/einvoice/validate"
     },
@@ -163,6 +171,14 @@
     "api/einvoice/validate.ts": {
       "maxDuration": 60,
       "includeFiles": "{api/_lib/einvoice-rules/**,api/_lib/einvoice-pdf-worker.mjs,node_modules/libxml2-wasm/lib/**,node_modules/pdfjs-dist/legacy/build/**,node_modules/@napi-rs/canvas/**}"
+    },
+    "api/neo/status.ts": {
+      "maxDuration": 100,
+      "includeFiles": "api/_lib/neo-assets/**"
+    },
+    "api/neo/transcribe.ts": {
+      "maxDuration": 100,
+      "includeFiles": "api/_lib/neo-assets/**"
     }
   },
   "regions": [

@@ -127,3 +127,48 @@ describe('Neo multi-turn context', () => {
     await expect(conversation.respond('Kalender öffnen', abort.signal)).rejects.toMatchObject({ name: 'AbortError' });
   });
 });
+
+
+describe('Neo contextual workflow guidance without repeated introduction', () => {
+  it('keeps the guide and its exact position when addressed again', async () => {
+    const { ask } = setup(); await ask('Eine Klientenakte anlegen');
+    const second = await ask('Weiter'); expect(second.text).toContain('Schritt 2');
+    const addressed = await ask('Neo'); expect(addressed.text).toBe('Ja, ich höre zu.');
+    expect(addressed.text).not.toContain('Ich bin');
+    expect((await ask('Ablauf erklären')).text).toBe(second.text);
+    expect((await ask('Weiter')).text).toContain('Schritt 3');
+  });
+  it('keeps a pending clarification across being addressed', async () => {
+    const { ask } = setup(); await ask('Urlaub'); await ask('Neo');
+    expect((await ask('Im Kalender')).text).toContain('Verfügbarkeiten und Abwesenheiten im Kalender pflegen');
+  });
+  it('does not choose a workflow when the original clarification is still ambiguous', async () => {
+    const { ask } = setup(); const question = await ask('Urlaub');
+    const explain = await ask('Ablauf erklären'); expect(explain.text).toBe(question.text); expect(explain.text).not.toContain('Schritt 1');
+    expect((await ask('Beim Personal erfassen')).text).toContain('Schritt 1');
+  });
+  it('uses the selected subject for a request to explain the workflow', async () => {
+    const { ask } = setup(); await ask('Rechnungen');
+    const response = await ask('Erkläre mir den Ablauf'); expect(response.text).toContain('Rechnungen'); expect(response.text).toContain('Schritt 1');
+    expect(response.text).toContain('Vorher prüfen:'); expect(response.text).toContain('Wo:');
+    expect(response.action).toBeUndefined();
+  });
+  it('grounds a general workflow question in the current permitted route', async () => {
+    const destination = neoNavigation('Rechnungen öffnen')!;
+    const { ask } = setup({ getCurrentPath: () => destination.route + '?filter=offen' });
+    expect((await ask('Ablauf erklären')).text).toContain('Schritt 1');
+    expect((await ask('Anleitung öffnen')).action).toMatchObject({ destination: { route: '/hilfe?artikel=rechnungen' } });
+  });
+  it('asks for the missing process instead of inventing a route or selecting a stale topic', async () => {
+    let path = neoNavigation('Rechnungen öffnen')!.route;
+    const { ask } = setup({ getCurrentPath: () => path }); await ask('Rechnungen öffnen'); path = '/unknown-private-page/123';
+    const response = await ask('Ablauf erklären'); expect(response.text).toContain('Welchen Ablauf'); expect(response.action).toBeUndefined();
+    const denied = await setup({ getCurrentPath: () => neoNavigation('Rechnungen öffnen')!.route, canNavigate: () => false }).ask('Ablauf erklären');
+    expect(denied.text).toContain('Welchen Ablauf'); expect(denied.action).toBeUndefined();
+  });
+  it('uses a successful navigation as context when a host has no route callback and clears it on reset', async () => {
+    const { ask, conversation } = setup(); await ask('Rechnungen öffnen');
+    expect((await ask('Wie funktioniert das?')).text).toContain('Schritt 1');
+    conversation.reset(); expect((await ask('Ablauf erklären')).text).toContain('Welchen Ablauf');
+  });
+});

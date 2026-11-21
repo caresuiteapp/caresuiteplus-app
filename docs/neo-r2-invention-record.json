@@ -1,0 +1,452 @@
+{
+  "schemaVersion": 1,
+  "recordId": "caresuite-neo-r2-2026-11-21",
+  "recordType": "engineering-development-record",
+  "language": "de-DE",
+  "recordedLocalDate": "2026-11-21",
+  "timezone": "Europe/Berlin",
+  "releaseStage": "local-r2-candidate-not-published",
+  "publicationClassification": "public-architecture-record",
+  "containsConfidentialClaimStrategy": false,
+  "containsHealthData": false,
+  "containsServiceSecrets": false,
+  "priorPublicRelease": {
+    "repository": "https://github.com/caresuiteapp/caresuiteplus-app",
+    "commit": "5206930aa7b6d20b17b7495754e668d47b597a1a",
+    "observedDeploymentState": "READY",
+    "scope": "R1 einschließlich korrigierter Rollenangaben in Testdateien; keine R2-Freigabe"
+  },
+  "implementationIntent": {
+    "ownApplicationCode": [
+      "Sitzungssteuerung mit stillem Modus und zeitlich begrenztem Dialog",
+      "Fall- und Generationsbindung asynchroner Ergebnisse",
+      "Quellengebundene Dokumentations- und Arbeitsentwürfe",
+      "Begrenzte parallele Arbeitsverarbeitung mit Wiederholschutz",
+      "Explizite Trennung akustischer Sprecherkennung und bestätigter fachlicher Rolle",
+      "Einbindung vorhandener CareSuite-Dienste mit eindeutiger Speicherbestätigung"
+    ],
+    "notClaimedAsNovelGeneralTechniques": [
+      "Zustandsautomaten",
+      "Aktivierungswörter",
+      "Spracherkennung",
+      "Sprecherdiarisierung",
+      "Warteschlangen und Begrenzung paralleler Arbeit",
+      "Idempotenzkennungen",
+      "Quellenreferenzen"
+    ],
+    "infrastructureConstraint": [
+      "Vercel",
+      "Supabase"
+    ],
+    "noExternalProviderAutomaticallyCommissioned": true
+  },
+  "architecture": {
+    "components": [
+      {
+        "paths": [
+          "src/ai/neo/neoCapture.web.ts",
+          "src/ai/neo/neoCapture.native.ts"
+        ],
+        "responsibility": "Audioerfassung, Mikrofonbesitz, Abbruch und begrenzte Erkennungsabschnitte",
+        "origin": "existing-own-application-integration"
+      },
+      {
+        "paths": [
+          "src/ai/neo/neoSession.ts"
+        ],
+        "responsibility": "R2-Sitzung, direkte Ansprache, Quellen, Rollenbestätigung und Arbeitswarteschlange",
+        "origin": "r2-own-application-code-written-not-release-validated",
+        "exports": [
+          "createNeoSession",
+          "stripNeoWake",
+          "detectNeoWake",
+          "toNeoSegment"
+        ],
+        "defaultBounds": {
+          "dialogueMilliseconds": 15000,
+          "evidenceSegments": 200,
+          "evidenceCharacters": 60000,
+          "pendingWork": 24,
+          "concurrentPreparingOrExecutingWork": 3
+        },
+        "wakeMethod": "lexical-ASR-transcript-matching-not-acoustic-keyword-model"
+      },
+      {
+        "paths": [
+          "src/ai/neo/neoDomain.ts",
+          "src/ai/neo/neoAssessment.ts"
+        ],
+        "responsibility": "Belegtreue Zuordnung und lokale Dokumentationsentwürfe",
+        "origin": "existing-own-application-code"
+      },
+      {
+        "paths": [
+          "src/ai/neo/neoWork.ts",
+          "src/ai/neo/NeoWorkPanel.tsx"
+        ],
+        "responsibility": "Weitere Arbeitsentwürfe, fehlende Angaben und bestehende Auftragsabläufe",
+        "origin": "r2-own-application-code-written-not-release-validated",
+        "draftKinds": [
+          "task",
+          "follow_up",
+          "handover"
+        ],
+        "draftDoesNotPersistTaskOrActivateReminder": true,
+        "reviewBinding": [
+          "scope",
+          "source-id",
+          "wording",
+          "speaker",
+          "role",
+          "source-time"
+        ]
+      },
+      {
+        "paths": [
+          "src/ai/neo/neoActionService.ts",
+          "src/ai/neo/NeoActionsPanel.tsx"
+        ],
+        "responsibility": "Abgegrenzte administrative Aktionen über bestehende Dienste",
+        "origin": "existing-own-application-code"
+      }
+    ],
+    "invariantsToVerify": [
+      "Keine Erfassung ohne ausdrücklich gestartete Sitzung und vorgesehenen Fallbezug",
+      "Kein spätes Ergebnis nach Abbruch, Konto- oder Fallwechsel",
+      "Kein Dokumentationstext wird allein durch seine Erfassung zu einem ausgeführten Auftrag",
+      "Kein akustischer Sprecherindex gilt als bestätigte Identität oder Berufsrolle",
+      "Kein bestätigter Speichererfolg ohne Beleg des zuständigen Dienstes",
+      "Keine unbegrenzte Warteschlange",
+      "Keine erfundene Diagnose oder Vervollständigung unbelegter Angaben"
+    ]
+  },
+  "thirdPartyBoundary": {
+    "existingComponents": [
+      {
+        "name": "whisper.cpp",
+        "source": "https://github.com/ggml-org/whisper.cpp",
+        "classification": "third-party-runtime"
+      },
+      {
+        "name": "Whisper",
+        "source": "https://github.com/openai/whisper",
+        "classification": "third-party-model-and-code"
+      },
+      {
+        "name": "vorhandene Geräte- und Sprachausgabebibliotheken",
+        "classification": "third-party-dependencies-with-own-licenses"
+      }
+    ],
+    "newModelAdoptionStatus": "keine Übernahme allein durch Recherche; Auswahl und Lizenzprüfung gesondert dokumentieren",
+    "ownFoundationModelClaim": false
+  },
+  "validation": {
+    "freezeStatus": "source-hashed-functional-verification-passed-production-device-validation-open",
+    "fileDigests": [
+      {
+        "path": ".gitignore",
+        "sha256CanonicalLF": "f9d80dc16e6843fa219dd2615ea836bcda813b7e0d0091af84dae95572ef4c6c"
+      },
+      {
+        "path": "api/_lib/neo-assets/README.md",
+        "sha256CanonicalLF": "27793e5fc75690be15568a79ba381fc0207cf2a649e062d8f64f2921d31b1f4b"
+      },
+      {
+        "path": "api/_lib/neo-vercel-engine.d.mts",
+        "sha256CanonicalLF": "64a3667ec2527d2da1b45ad81187f3af7e034c7e62c8d24be4a7a660a2f5ed33"
+      },
+      {
+        "path": "api/_lib/neo-vercel-engine.mjs",
+        "sha256CanonicalLF": "7310b3b4245752ebbd17dd92f5ab580e04bc655e9df9f7a4adf761e531996e20"
+      },
+      {
+        "path": "api/_lib/neo-vercel-handler.ts",
+        "sha256CanonicalLF": "2ec257f49918f24ae29d09b2ec95d1bdedac427b516c8fab94a54f100209e509"
+      },
+      {
+        "path": "api/neo/status.ts",
+        "sha256CanonicalLF": "88049c40ec08e61881113a7b610a3eabf7bcda240ba69c72348a5e70b9a94004"
+      },
+      {
+        "path": "api/neo/transcribe.ts",
+        "sha256CanonicalLF": "4552fe15e76d7ccc8bb05719e4d6b91d80e5674e407e174fbba674384e016b0b"
+      },
+      {
+        "path": "docs/native-workspace-source-map.json",
+        "sha256CanonicalLF": "a8d278aa20a50db1e953d24bcf626e13295dff058b759abecb71c748dc267ce9"
+      },
+      {
+        "path": "docs/neo-r2-construction.md",
+        "sha256CanonicalLF": "42a0cc5754bb1b46d9ec54b9004483a07066b231e5d5bbb65849bccb6182052b"
+      },
+      {
+        "path": "docs/neo-r2-market-research.md",
+        "sha256CanonicalLF": "d0f8614aa53f6ff2ecf53ff032c599d82d86b85c0fb82a19431cc42538c8204b"
+      },
+      {
+        "path": "docs/neo-r2.md",
+        "sha256CanonicalLF": "a94339c84f9a0acd6de50ef1a9b7670908b9cd269d6f0b9ae3e7df4f528906f0"
+      },
+      {
+        "path": "scripts/prepare-neo-vercel.mjs",
+        "sha256CanonicalLF": "bafa3037f24bef117141268e0a9386a21ac2b19645d7e63fe9dc2707830baecc"
+      },
+      {
+        "path": "scripts/publish-neo.mjs",
+        "sha256CanonicalLF": "4700b9b772401c42103a3762c70a02824cabbcf400b5f8972d1ea557ae429f7a"
+      },
+      {
+        "path": "scripts/record-neo-construction.mjs",
+        "sha256CanonicalLF": "1d9d026fb3cad50ff84030f8925254a7d382fcb38df04d569e991af9903db3a1"
+      },
+      {
+        "path": "src/__tests__/ai/neoActionsPanel.test.tsx",
+        "sha256CanonicalLF": "7d103fafdd89703dd8a2c2d01fa024119503b5d2a161f08f5f29364124539e26"
+      },
+      {
+        "path": "src/__tests__/ai/neoCapture.test.ts",
+        "sha256CanonicalLF": "43de7b107a903314a9a42f0e5e1e139aab75af85a227d2cede3aac782c9f03cd"
+      },
+      {
+        "path": "src/__tests__/ai/neoConversation.test.ts",
+        "sha256CanonicalLF": "f3e928958aa06ac46aae24bbad5cf84f2e87ec29b885f2676c74c794a89370c4"
+      },
+      {
+        "path": "src/__tests__/ai/neoDialogueInteraction.test.ts",
+        "sha256CanonicalLF": "eacf7dfd55e2854f2504f0e80cf03a68a593a3f04a6b2313b8e6d1070e5dd21c"
+      },
+      {
+        "path": "src/__tests__/ai/neoDocumentationPanel.test.tsx",
+        "sha256CanonicalLF": "dc12887700fda4722f57da65b9cffbbafeb432d9743bbcc095d82a2281bfb2fd"
+      },
+      {
+        "path": "src/__tests__/ai/neoDomain.test.ts",
+        "sha256CanonicalLF": "62aa5113a9aa42a5d538d5e1d20c62578486e021d71b464bfe28b4106c8240c7"
+      },
+      {
+        "path": "src/__tests__/ai/neoGatewayClient.test.ts",
+        "sha256CanonicalLF": "3ce280cac11d9ffa9d86f84926361df2ccfa1366458c4b87b01c5bd434524325"
+      },
+      {
+        "path": "src/__tests__/ai/neoNativeInteraction.test.tsx",
+        "sha256CanonicalLF": "555b7a5982f0019bf2b0535ff0be93ed3e33d48fbba92a1d87286ecb806cd330"
+      },
+      {
+        "path": "src/__tests__/ai/neoSession.test.ts",
+        "sha256CanonicalLF": "38bd79820aec852d2c1a8e1ab50aad21745f71f02e9a402448f34164da8636b2"
+      },
+      {
+        "path": "src/__tests__/ai/neoVercel.test.ts",
+        "sha256CanonicalLF": "4bc7ef3b71253948d7d68bace44e3241e90fc2cc128f78845cfa31017271d5b4"
+      },
+      {
+        "path": "src/__tests__/ai/neoWork.test.ts",
+        "sha256CanonicalLF": "760c39f7bbf0c575b24da3d56b4c97f045dece8af9998b305eecc238dbceed29"
+      },
+      {
+        "path": "src/__tests__/ai/neoWorkPanel.test.tsx",
+        "sha256CanonicalLF": "8df30d0d557b462c94a257c09342acd9c57c367134a14e989ae94de83da00689"
+      },
+      {
+        "path": "src/ai/neo/NeoActionsPanel.tsx",
+        "sha256CanonicalLF": "04aeaaf60f5d5078c581bb7d9c9e0b9c48bb9b18461a5ecd9659cd8a24256aa3"
+      },
+      {
+        "path": "src/ai/neo/NeoDocumentationPanel.tsx",
+        "sha256CanonicalLF": "5401c36e43a5f2f7fb2c4059e8497c36b68a11af607b259e7d26ae24db84f79c"
+      },
+      {
+        "path": "src/ai/neo/NeoWorkPanel.tsx",
+        "sha256CanonicalLF": "427b97c80668f813709d8986c8c10b32f05be0768f6da0963d801bc308fe1c74"
+      },
+      {
+        "path": "src/ai/neo/neoCapture.web.ts",
+        "sha256CanonicalLF": "4feffb2d5a996a1080f552dc71cd8fa1c183e92ee7be7e1ad24d8f787ac34acf"
+      },
+      {
+        "path": "src/ai/neo/neoDomain.ts",
+        "sha256CanonicalLF": "ed235838abfec990059459ee746f406ea18d9bd1d806d891cccb97b2431a74f9"
+      },
+      {
+        "path": "src/ai/neo/neoGateway.ts",
+        "sha256CanonicalLF": "e10ceff8df28c9dd423c9a7dd5b15c03b2aed161fb495b575ca2b71b0bd84e02"
+      },
+      {
+        "path": "src/ai/neo/neoSession.ts",
+        "sha256CanonicalLF": "60c2a177d8c15bc34738273f56563292e1675d76fae4fe516d62d0a1fe395af6"
+      },
+      {
+        "path": "src/ai/neo/neoWork.ts",
+        "sha256CanonicalLF": "9af618e72d1830a2ec12f2105747ff66dc2704e047468412336a053a6327491a"
+      },
+      {
+        "path": "src/ai/robot/RobotNavigationAssistant.native.tsx",
+        "sha256CanonicalLF": "666f3a3a6046a79ad541f1252cc2df4a85b487b69383cc5595b2173efd8cc778"
+      },
+      {
+        "path": "src/ai/robot/neoConversation.native.ts",
+        "sha256CanonicalLF": "28bc1cfd77fb802e4739b2ab07972b24bdef4fc2aa5727ce5023105d107cb49c"
+      },
+      {
+        "path": "src/ai/robot/neoConversation.web.ts",
+        "sha256CanonicalLF": "45d0998fcd6091818ed723c99bef3a53294a567a73ad8e52f614afe36840ba8b"
+      },
+      {
+        "path": "src/ai/robot/robotAssistantDom.ts",
+        "sha256CanonicalLF": "e76a8fe515c7a49c426ae44a83f187a0a029cb98c93214d139ddb6ab9382e03f"
+      },
+      {
+        "path": "src/components/office/documentation/DocumentationWorkspace.native.tsx",
+        "sha256CanonicalLF": "e7eb5e20c5ea7df70b460926a4872e015905c81b38738d7ef7f40d8c003de5e8"
+      },
+      {
+        "path": "src/components/office/documentation/DocumentationWorkspace.web.tsx",
+        "sha256CanonicalLF": "8c1b9e30d716fef20e07a5ed7f0204ff794cbb19e0c4aeff35fcd7f40a7d7f6a"
+      },
+      {
+        "path": "tsconfig.neo.json",
+        "sha256CanonicalLF": "e3215b6725c58f66a9c2cb9d08c9d4a92db23d2aa303a100ab41ec3356111a0c"
+      },
+      {
+        "path": "vercel.json",
+        "sha256CanonicalLF": "e540ee4da48d1fe6fc8480ab4d35333ab3c369b854ab95d0be8bfb756f89fbd1"
+      }
+    ],
+    "testEvidence": [
+      {
+        "command": "node scripts/verify-neo.mjs",
+        "result": "passed",
+        "suites": 32,
+        "tests": 424,
+        "includes": [
+          "NEO TypeScript including test fixtures, native assistant and new APIs",
+          "native source mapping:1183modules/278routes/stale0",
+          "regression tests",
+          "own service build"
+        ],
+        "logSHA256": "7717f7105ef6f7e14800b1836015d7b214bb809d1e76cd0b54caeaa88ee27344"
+      },
+      {
+        "command": "node scripts/audit-vercel-config.mjs",
+        "result": "passed"
+      },
+      {
+        "browserLayout": "blocked: Chromium socket creation denied; no visual acceptance claimed"
+      },
+      {
+        "productionBuild": "not-run-for-R2"
+      }
+    ],
+    "deviceMeasurements": [
+      {
+        "environment": "isolated local Linux x64; no Vercel; synthetic Piper German clip",
+        "audioSeconds": 5.4223125,
+        "threads": 2,
+        "model": "Whisper small q5_1 pinned190085487bytes",
+        "genericSSE2": {
+          "result": "timeout",
+          "timeoutSeconds": 85
+        },
+        "AVX2FMAF16C": {
+          "cliSeconds": 8.25856157400267,
+          "engineAdapterSeconds": 7.5401,
+          "observation": "negation and NEO retained in one clean clip; punctuation changed; adapter tempfiles removed"
+        },
+        "productionReady": false,
+        "binariesDistributed": false,
+        "clinicalAccuracyEstablished": false
+      }
+    ],
+    "clinicalValidationStatus": "not-established",
+    "acousticWakeWordValidationStatus": "not-established",
+    "fullDuplexAudioValidationStatus": "not-established",
+    "automaticSpeakerRoleIdentificationStatus": "not-implemented-as-confirmed-identity",
+    "plannedMetrics": [
+      "Fehlaktivierungen je Stunde",
+      "Übersehene direkte Ansprachen",
+      "Reaktionszeit nach direkter Ansprache",
+      "Wortfehler und medizinisch relevante Erkennungsfehler",
+      "Akustische Sprecherfehler getrennt von Rollenfehlern",
+      "Unbelegte Dokumentationsangaben",
+      "Doppelte oder unberechtigte Schreibversuche",
+      "Verhalten bei Überlastung, Fallwechsel und Abbruch"
+    ]
+  },
+  "contributionRecord": {
+    "productRequirementsOrigin": "Nutzerauftrag von Kevin Reinhardt vom 21.11.2026",
+    "developmentMethod": "KI-unterstützte Entwicklung im vorhandenen CareSuite-Projekt",
+    "humanInventorDetermination": "nicht vorgenommen",
+    "rightsAllocationDetermination": "nicht vorgenommen",
+    "aiNamedAsInventor": false,
+    "privateContributionLedgerRecommended": true
+  },
+  "integrity": {
+    "localDateIsTrustedTimestamp": false,
+    "digestAlgorithmForFreeze": "SHA-256",
+    "sourceDigestPolicy": "Quelltextvergleich mit ausdrücklich dokumentierter UTF-8-/LF-Normalisierung; Archivhash über unveränderte Bytes",
+    "digestEstablishesCreationDate": false,
+    "digestEstablishesInventorship": false,
+    "privateRecordLocation": ".neo-runtime mit getrennter dauerhafter privater Sicherung",
+    "publicPushCanDiscloseTechnicalContent": true,
+    "priorPublicationCanBeUndoneByPrivateCopy": false
+  },
+  "patentAssessment": {
+    "noveltySearchCompleted": false,
+    "freedomToOperateCompleted": false,
+    "patentabilityEstablished": false,
+    "patentApplicationFiledByThisWork": false,
+    "claimsDraftedByThisRecord": false,
+    "classification": "technischer Entwicklungsnachweis, keine Schutzrechtszusage"
+  },
+  "sources": [
+    {
+      "id": "patg-3",
+      "authority": "Bundesministerium der Justiz / Gesetze im Internet",
+      "title": "§ 3 PatG",
+      "url": "https://www.gesetze-im-internet.de/patg/__3.html",
+      "accessedLocalDate": "2026-11-21"
+    },
+    {
+      "id": "epc-54",
+      "authority": "EPO",
+      "title": "Article 54 EPC – Novelty",
+      "url": "https://www.epo.org/en/legal/epc/2020/a54.html",
+      "accessedLocalDate": "2026-11-21"
+    },
+    {
+      "id": "dpma-cii",
+      "authority": "DPMA",
+      "title": "Computerimplementierte Erfindungen",
+      "url": "https://www.dpma.de/schuetzen/patente/patentschutz/schutzvoraussetzungen/computerimplementierte-erfindungen",
+      "accessedLocalDate": "2026-11-21"
+    },
+    {
+      "id": "epo-gii36-2026",
+      "authority": "EPO",
+      "title": "Guidelines 2026 G-II 3.6 – Programs for computers",
+      "url": "https://www.epo.org/en/legal/guidelines-epc/2026/g_ii_3_6.html",
+      "accessedLocalDate": "2026-11-21"
+    },
+    {
+      "id": "epo-inventorship",
+      "authority": "EPO",
+      "title": "Inventorship",
+      "url": "https://www.epo.org/en/news-events/in-focus/digital-innovations/inventorship",
+      "accessedLocalDate": "2026-11-21"
+    },
+    {
+      "id": "urhg-69a",
+      "authority": "Bundesministerium der Justiz / Gesetze im Internet",
+      "title": "§ 69a UrhG",
+      "url": "https://www.gesetze-im-internet.de/urhg/__69a.html",
+      "accessedLocalDate": "2026-11-21"
+    },
+    {
+      "id": "dpma-research",
+      "authority": "DPMA",
+      "title": "Tipps zu Recherche und Lizenz",
+      "url": "https://www.dpma.de/service/informationen-fuer/freie-erfinderinnen-und-erfinder/tipps-zu-recherche-und-lizenz",
+      "accessedLocalDate": "2026-11-21"
+    }
+  ]
+}

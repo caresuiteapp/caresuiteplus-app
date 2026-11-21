@@ -27,3 +27,17 @@ describe('NEO concrete command confirmation', () => {
   });
   it('rechecks current permissions immediately before executing', async () => { await input(command); await click('Auftrag prüfen'); api.can = false; await click('Geprüften Auftrag ausführen'); expect(api.create).not.toHaveBeenCalled(); expect(host.textContent).toContain('Berechtigung'); });
 });
+
+
+describe('NEO ambient action transfer', () => {
+  it('prepares an addressed administrative command without executing or starting another microphone', async () => {
+    await act(async () => root.render(<NeoActionsPanel scope={scope} role="business_admin" initialCommand={{ id: 'source1', text: command }} disableRecorder />));
+    expect(host.querySelector('textarea')?.value).toBe(command); expect(api.create).not.toHaveBeenCalled();
+    await click('Auftrag prüfen'); expect(host.textContent).toContain('Geprüften Auftrag ausführen'); expect(api.create).not.toHaveBeenCalled();
+  });
+  it('leaves task and handover requests to the workbench without creating an unrelated pending action', async () => {
+    const pending = vi.fn();
+    await act(async () => root.render(<NeoActionsPanel scope={scope} role="business_admin" initialCommand={{ id: 'source2', text: 'Erstelle eine Aufgabe: Rollator besorgen.' }} disableRecorder onPendingChange={pending} />));
+    expect(host.querySelector('textarea')?.value).toBe(''); expect(pending).toHaveBeenLastCalledWith(false); expect(api.create).not.toHaveBeenCalled();
+  });
+});

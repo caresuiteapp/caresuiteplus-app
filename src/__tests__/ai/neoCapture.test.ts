@@ -33,7 +33,7 @@ describe('NEO web capture ownership and finalization', () => {
     const first = capture(), second = capture(); await first.c.start(); await second.c.start(); expect(first.cb.onError).toHaveBeenCalledWith(expect.stringContaining('neue NEO-Aufnahme')); expect(track.stop).toHaveBeenCalled();
   });
   it('waits for the final device result when stopping instead of discarding it', async () => {
-    class Recognition { onresult: any; onend: any; start() {} abort() {} stop() { this.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: 'Vollständiger letzter Satz' }], { isFinal: true })] }); this.onend(); } }
+    class Recognition { processLocally = false; onresult: any; onend: any; start() {} abort() {} stop() { this.onresult({ resultIndex: 0, results: [Object.assign([{ transcript: 'Vollständiger letzter Satz' }], { isFinal: true })] }); this.onend(); } }
     (window as any).SpeechRecognition = Recognition;
     try { const { c, cb } = capture(callbacks(), 'device'); await c.start(); await c.stop(); expect(cb.onText).toHaveBeenCalledWith('Vollständiger letzter Satz', expect.any(Number), expect.any(Number)); }
     finally { delete (window as any).SpeechRecognition; }

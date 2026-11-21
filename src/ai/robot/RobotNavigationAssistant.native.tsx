@@ -8,6 +8,7 @@ import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useAuth } from '@/lib/auth/context';
+import { stripNeoWake } from '../neo/neoSession';
 import { claimNeoMicrophone } from '../neo/neoMicrophone';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -35,7 +36,7 @@ export function RobotNavigationAssistant() {
 }
 
 function NativeNeo({ tenantId }: { tenantId: string }) {
-  const auth = useAuth(); const router = useRouter(); const permissions = usePermissions(); const insets = useSafeAreaInsets();
+  const auth = useAuth(); const pathname = usePathname(); const routeRef = useRef(pathname); routeRef.current = pathname; const router = useRouter(); const permissions = usePermissions(); const insets = useSafeAreaInsets();
   const { width, height } = useWindowDimensions();
   const [moved, setMoved] = useState<NativeNeoPosition | null>(null);
   const position = nativeNeoPosition(width, height, insets, moved);
@@ -51,8 +52,10 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
   const recognitionLanguage = useRef<string | null>(null);
   const player = useRef<AudioPlayer | null>(null), speechFinish = useRef<(() => void) | null>(null), turn = useRef<AbortController | null>(null), resume = useRef<() => void>(() => {});
   const allowedClientIds = useRef(new Set<string>());
+  const dialogueUntil = useRef(0), restartCapture = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const canSearchClients = () => current.current.permissions.can('office.clients.view') && current.current.permissions.hasModuleGate('office');
   const [conversation] = useState(() => createNeoConversation({
+    getCurrentPath: () => routeRef.current,
     canNavigate: destination => current.current.permissions.can(destination.permission) && current.current.permissions.hasModuleGate(destination.route.startsWith('/assist') ? 'assist' : 'office'),
     canSearchClients, canGoBack: () => current.current.router.canGoBack(),
     getProfileName: () => neoProfileName(current.current.auth.profile, current.current.auth.user),
@@ -76,6 +79,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
   const stopAudio = () => { speechFinish.current?.(); speechFinish.current = null; player.current?.remove(); player.current = null; return Speech.stop().catch(() => {}); };
   const releaseMicrophone = useRef<(() => void) | undefined>(undefined);
   const stopSession = () => {
+    clearTimeout(restartCapture.current); dialogueUntil.current = 0;
     releaseMicrophone.current?.(); releaseMicrophone.current = undefined;
     openRef.current = false; generation.current++; recognitionIntent.current++; recognitionActive.current = false; lock.current = false;
     turn.current?.abort(); turn.current = null; ExpoSpeechRecognitionModule.abort(); void stopAudio();
@@ -122,7 +126,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
   };
   const command = async (text: string) => {
     if (lock.current || !text.trim() || !openRef.current) return;
-    lock.current = true; const serial = ++generation.current, request = new AbortController(); turn.current?.abort(); turn.current = request; setBusy(true); setSpeechError('');
+    lock.current = true; ExpoSpeechRecognitionModule.abort(); const serial = ++generation.current, request = new AbortController(); turn.current?.abort(); turn.current = request; setBusy(true); setSpeechError('');
     try {
       const response = await conversation.respond(text, request.signal);
       if (!alive.current || !openRef.current || serial !== generation.current) return;
@@ -138,7 +142,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
       } else if (response.action?.kind === 'back') { stopSession(); if (current.current.router.canGoBack()) current.current.router.back(); }
       else if (response.end) stopSession();
     } catch (cause) { if (!request.signal.aborted && alive.current && serial === generation.current) { setSpeechError(cause instanceof Error ? cause.message : 'Neo konnte nicht antworten. Tippe Neo erneut an.'); openRef.current = false; setOpen(false); } }
-    finally { if (alive.current && serial === generation.current) { lock.current = false; setBusy(false); if (openRef.current && !request.signal.aborted) resume.current(); } }
+    finally { if (alive.current && serial === generation.current) { lock.current = false; setBusy(false); if (openRef.current && !request.signal.aborted) { dialogueUntil.current = Date.now() + 15000; resume.current(); } } }
   };
   const listen = async (greet = false) => {
     const intent = ++recognitionIntent.current; setSpeechError('');
@@ -166,23 +170,23 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
         language = installed; setNeedsLanguageModel(false);
       }
       recognitionLanguage.current = language;
-      if (greet) {
-        const request = new AbortController(); turn.current = request;
-        await say('Hallo, ich bin Neo. Wie kann ich dir helfen?', request.signal);
-        if (!alive.current || intent !== recognitionIntent.current || !openRef.current) return;
-      }
+
       recognitionActive.current = true; setListening(true);
       ExpoSpeechRecognitionModule.start({ lang: language, interimResults: false, continuous: false, requiresOnDeviceRecognition: true, addsPunctuation: false });
     } catch (cause) { if (alive.current && intent === recognitionIntent.current) { recognitionLanguage.current = null; recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); setSpeechError(cause instanceof NeoDeviceError ? cause.message : 'Die lokale Spracherkennung konnte nicht gestartet werden. Prüfe den Sprachdienst in den Geräteeinstellungen und tippe Neo erneut an.'); } }
   };
   resume.current = () => { if (alive.current && openRef.current && !lock.current) void listen(); };
   useSpeechRecognitionEvent('start', () => { if (alive.current && recognitionActive.current && openRef.current) setListening(true); });
-  useSpeechRecognitionEvent('end', () => { if (alive.current) setListening(false); });
+  useSpeechRecognitionEvent('end', () => { if (alive.current) setListening(false); clearTimeout(restartCapture.current); if (alive.current && openRef.current && !lock.current) restartCapture.current = setTimeout(() => resume.current(), 200); });
   useSpeechRecognitionEvent('result', event => {
     const text = event.results[0]?.transcript;
-    if (event.isFinal && text && alive.current && recognitionActive.current && openRef.current) { recognitionActive.current = false; setListening(false); void command(text); }
+    if (event.isFinal && text && alive.current && recognitionActive.current && openRef.current) {
+      const wake = stripNeoWake(text);
+      if (wake === null && Date.now() >= dialogueUntil.current) return;
+      dialogueUntil.current = Date.now() + 15000; recognitionActive.current = false; setListening(false); void command(wake === null ? text : wake || 'NEO');
+    }
   });
-  useSpeechRecognitionEvent('error', event => { if (alive.current && recognitionActive.current && openRef.current && event.error !== 'aborted') { recognitionLanguage.current = null; recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); const missingModel = event.error === 'language-not-supported' && Platform.OS === 'android' && Number(Platform.Version) >= 33; setNeedsLanguageModel(missingModel); setSpeechError(missingModel ? 'Das deutsche Sprachpaket fehlt. Lade es einmal und tippe Neo erneut an.' : 'Die lokale Spracherkennung ist gerade nicht verfügbar. Prüfe den Sprachdienst und tippe Neo erneut an.'); } });
+  useSpeechRecognitionEvent('error', event => { if (alive.current && recognitionActive.current && openRef.current && !['aborted', 'no-speech'].includes(event.error)) { recognitionLanguage.current = null; recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); const missingModel = event.error === 'language-not-supported' && Platform.OS === 'android' && Number(Platform.Version) >= 33; setNeedsLanguageModel(missingModel); setSpeechError(missingModel ? 'Das deutsche Sprachpaket fehlt. Lade es einmal und tippe Neo erneut an.' : 'Die lokale Spracherkennung ist gerade nicht verfügbar. Prüfe den Sprachdienst und tippe Neo erneut an.'); } });
   const downloadModel = async () => {
     if (downloading) return;
     stopSession(); const serial = generation.current; setDownloading(true);
@@ -194,14 +198,14 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
     } catch { if (alive.current && serial === generation.current) setSpeechError('Das Sprachpaket konnte nicht geladen werden. Prüfe den Sprachdienst in den Geräteeinstellungen und versuche es erneut.'); }
     finally { if (alive.current) setDownloading(false); }
   };
-  const activate = () => { if (Date.now() < suppressPressUntil.current) return; if (downloading) { setSpeechError('Das Sprachpaket wird noch geladen. Tippe Neo nach dem Download erneut an.'); return; } if (openRef.current) stopSession(); else { releaseMicrophone.current = claimNeoMicrophone(stopSession); openRef.current = true; setOpen(true); setSpeechError(''); void listen(true); } };
+  const activate = () => { if (Date.now() < suppressPressUntil.current) return; if (downloading) { setSpeechError('Das Sprachpaket wird noch geladen. Tippe Neo nach dem Download erneut an.'); return; } if (openRef.current) stopSession(); else { dialogueUntil.current = 0; releaseMicrophone.current = claimNeoMicrophone(stopSession); openRef.current = true; setOpen(true); setSpeechError(''); void listen(true); } };
   const statusWidth = Math.min(280, width - insets.left - insets.right - 24);
   const statusLeft = Math.max(insets.left + 12, Math.min(width - insets.right - statusWidth - 12, position.x + 34 - statusWidth / 2)) - position.x;
   const statusTop = Math.max(insets.top + 8, Math.min(position.y + 82, height - insets.bottom - statusHeight - 8)) - position.y;
   return <View testID="native-neo-assistant" style={[styles.host, { left: position.x, top: position.y }]} pointerEvents="box-none">
     {open || speechError ? <View testID="native-neo-status" onLayout={event => setStatusHeight(Math.ceil(event.nativeEvent.layout.height))} style={[styles.status, { width: statusWidth, left: statusLeft, top: statusTop }, speechError ? styles.errorStatus : null]} accessibilityLiveRegion="polite" accessibilityRole={speechError ? 'alert' : undefined}>
       <View style={[styles.dot, listening && styles.listening, speechError ? styles.errorDot : null]} />
-      <View style={{ flex: 1, minWidth: 0 }}><Text style={styles.statusText}>{speechError || (speaking ? 'Neo spricht …' : busy ? 'Neo denkt nach …' : listening ? 'Ich höre zu …' : 'Mikrofon wird vorbereitet …')}</Text>
+      <View style={{ flex: 1, minWidth: 0 }}><Text style={styles.statusText}>{speechError || (speaking ? 'Neo spricht …' : busy ? 'Neo denkt nach …' : listening ? Date.now() < dialogueUntil.current ? 'Ich höre zu …' : 'NEO hört still zu. Sage „NEO“.' : 'Mikrofon wird vorbereitet …')}</Text>
         {needsLanguageModel ? <Pressable accessibilityRole="button" accessibilityLabel="Deutsches Sprachpaket laden" disabled={downloading} onPress={() => { void downloadModel(); }} style={styles.modelAction}><Text style={styles.modelActionText}>{downloading ? 'Sprachpaket wird angefordert …' : 'Deutsches Sprachpaket laden'}</Text></Pressable> : null}
       </View>
       <Pressable accessibilityRole="button" accessibilityLabel={open ? 'Gespräch beenden' : 'Neo-Hinweis schließen'} onPress={() => { stopSession(); setSpeechError(''); }} style={styles.stop}><Text style={styles.stopText}>×</Text></Pressable>

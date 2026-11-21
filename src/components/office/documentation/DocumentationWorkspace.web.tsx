@@ -10,7 +10,6 @@ import { DocumentationFilePicker } from './DocumentationFiles.web';
 import { discardDocumentationFile, documentationAttachmentLabels, uploadDocumentationFile } from '@/lib/office/documentation/attachments';
 import { documentationCss } from './documentationCss.web';
 import { NeoDocumentationPanel } from '@/ai/neo/NeoDocumentationPanel';
-import { NeoActionsPanel } from '@/ai/neo/NeoActionsPanel';
 import { neoDraftText } from '@/ai/neo/neoDomain';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -245,8 +244,8 @@ export function DocumentationWorkspace({ actor, employeeView = false }: { actor:
                   {draft.area === 'client' && draft.clientId && !employeeView && <NeoDocumentationPanel
                     scope={{ tenantId: actor.tenantId, actorId: actor.userId, subjectId: draft.clientId }}
                     disabled={busy || uncertain || Boolean(savedId) || recording} onBusyChange={setNeoRecording} onPendingChange={setNeoPending}
+                    onWorkPrepared={text => changeDraft({ title: draft.title || 'Gespräch und Arbeitsabsprachen', body: [draft.body.trim(), text].filter(Boolean).join('\n\n') })}
                     onApply={neo => changeDraft({ title: draft.title || 'Sprachgestützte Dokumentation', body: [draft.body.trim(), neoDraftText(neo)].filter(Boolean).join('\n\n') })} />}
-                  {draft.area === 'client' && draft.clientId && !employeeView && (neoPermissions.can('office.appointments.edit') || neoPermissions.can('assist.assignments.manage')) && !neoRecording && <NeoActionsPanel scope={{ tenantId: actor.tenantId, actorId: actor.userId, subjectId: draft.clientId }} role={neoPermissions.roleKey ?? null} />}
                   {actor.canUpload && <DocumentationFilePicker files={files} disabled={busy || uncertain || neoRecording} mediaOnly={actor.mediaOnly} onRecording={setRecording}
                     onChange={next => { if (savedId) for (const f of files.filter(f => !f.done && !next.some(n => n.id === f.id))) void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => {}); setFiles(next); }} />}
                   <p className="cs-doc-hint">Verfasser und Erfassungszeit werden automatisch gespeichert. Korrekturen können als Ergänzung erfasst werden.</p>

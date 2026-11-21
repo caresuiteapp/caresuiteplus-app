@@ -13,7 +13,6 @@ import { DocumentationFilePicker } from "./DocumentationFiles.native.tsx";
 import { discardDocumentationFile, documentationAttachmentLabels, uploadDocumentationFile } from '@/lib/office/documentation/attachments';
 import { documentationCss } from "./documentationCss.native.ts";
 import { NeoDocumentationPanel } from '@/ai/neo/NeoDocumentationPanel';
-import { NeoActionsPanel } from '@/ai/neo/NeoActionsPanel';
 import { neoDraftText } from '@/ai/neo/neoDomain';
 import { usePermissions } from '@/hooks/usePermissions';
 const initialFilters = (): DocumentationFilters => ({ month: berlinMonth(), area: '', clientId: '', employeeId: '', category: '', source: '', priority: '', query: '', offset: 0 });
@@ -306,8 +305,7 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
                     <NativeLabel className="cs-doc-full">Titel *<NativeInput required autoFocus={!employeeView} maxLength={180} value={draft.title} placeholder="Was möchten Sie festhalten?" onChange={e => changeDraft({ title: e.target.value })}/></NativeLabel>
                     <NativeLabel className="cs-doc-full">Dokumentation *<NativeTextarea required maxLength={20000} value={draft.body} placeholder="Beobachtungen, Gespräche, Absprachen oder wichtige Veränderungen …" onChange={e => changeDraft({ body: e.target.value })}/></NativeLabel>
                   </NativeDiv></NativeFieldset>
-                  {draft.area === 'client' && draft.clientId && !employeeView && <NeoDocumentationPanel scope={{ tenantId: actor.tenantId, actorId: actor.userId, subjectId: draft.clientId }} disabled={busy || uncertain || Boolean(savedId) || recording} onBusyChange={setNeoRecording} onPendingChange={setNeoPending} onApply={neo => changeDraft({ title: draft.title || 'Sprachgestützte Dokumentation', body: [draft.body.trim(), neoDraftText(neo)].filter(Boolean).join('\n\n') })}/>}
-                  {draft.area === 'client' && draft.clientId && !employeeView && (neoPermissions.can('office.appointments.edit') || neoPermissions.can('assist.assignments.manage')) && !neoRecording && <NeoActionsPanel scope={{ tenantId: actor.tenantId, actorId: actor.userId, subjectId: draft.clientId }} role={neoPermissions.roleKey ?? null}/>}
+                  {draft.area === 'client' && draft.clientId && !employeeView && <NeoDocumentationPanel scope={{ tenantId: actor.tenantId, actorId: actor.userId, subjectId: draft.clientId }} disabled={busy || uncertain || Boolean(savedId) || recording} onBusyChange={setNeoRecording} onPendingChange={setNeoPending} onWorkPrepared={text => changeDraft({ title: draft.title || 'Gespräch und Arbeitsabsprachen', body: [draft.body.trim(), text].filter(Boolean).join('\n\n') })} onApply={neo => changeDraft({ title: draft.title || 'Sprachgestützte Dokumentation', body: [draft.body.trim(), neoDraftText(neo)].filter(Boolean).join('\n\n') })}/>}
                   {actor.canUpload && <DocumentationFilePicker files={files} disabled={busy || uncertain || neoRecording} mediaOnly={actor.mediaOnly} onRecording={setRecording} onChange={next => { if (savedId)
                 for (const f of files.filter(f => !f.done && !next.some(n => n.id === f.id)))
                     void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => { }); setFiles(next); }}/>}

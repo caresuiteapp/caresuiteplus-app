@@ -1,7 +1,7 @@
 import { createNeoReplies } from './neoCommands';
 import { normalizeVoiceText, parseVoiceCommand, type VoiceClient } from './voiceCommands';
 import { cleanNeoText, findNeoHelp, neoChoice, neoNavigation, neoSmallTalk, NEO_DESTINATIONS, type NeoDestination } from './neoLanguage.web';
-import { neoClarification, neoClarificationAnswer, neoGuideFor, neoMissingTask, neoSubjectReply, neoSubjects, neoTask, neoTaskOnly, type NeoAnswer, type NeoClarification, type NeoSubject, type NeoTask } from './neoUnderstanding.web';
+import { neoClarification, neoClarificationAnswer, neoGuideFor, neoMissingTask, neoSubjectReply, neoSubjects, neoTask, neoTaskOnly, NEO_SUBJECTS, type NeoAnswer, type NeoClarification, type NeoSubject, type NeoTask } from './neoUnderstanding.web';
 import { HELP_ARTICLES } from '../../features/help/helpCatalog';
 import type { HelpArticle } from '../../features/help/helpTypes';
 
@@ -13,6 +13,7 @@ export type NeoConversationDependencies = {
   canGoBack?: () => boolean;
   searchClients: (name: string) => Promise<VoiceClient[]>;
   getProfileName?: () => string;
+  getCurrentPath?: () => string;
   getWeather?: (signal: AbortSignal) => Promise<string>;
 };
 type Pending = { kind: 'name' } | { kind: 'clients'; clients: VoiceClient[] } | { kind: 'topics'; articles: HelpArticle[] }
@@ -27,6 +28,7 @@ const NEXT = /^(?:weiter|und dann|was dann|was kommt danach|was kommt als nachst
 const EXAMPLE = /^(?:ein )?beispiel(?: dazu)?$|^(?:(?:kannst|konntest|wurdest) du )?(?:zeig|gib|nenne)? ?mir (?:dazu )?ein beispiel(?: (?:zeigen|geben|nennen))?$|^zum beispiel$/;
 const PREVIOUS = /^(?:zuruck|einen schritt zuruck|vorheriger schritt|den vorherigen schritt|noch mal zuruck)$/;
 const defaultSuggestions = ['Was kannst du?', 'Wie lege ich Klienten an?', 'Kalender öffnen'];
+const EXPLAIN_CONTEXT = /^(?:(?:kannst|konntest|wurdest) du (?:mir )?)?(?:(?:den|diesen|das) )?(?:ablauf|vorgehen|prozess)(?: (?:erklaren|erlautern|zeigen))?$|^(?:erklar|erklare|erlautere)(?: mir)? (?:den |diesen |das )?(?:ablauf|vorgehen|prozess|das)(?: genauer)?$|^(?:wie geht das|wie funktioniert das|erklar das genauer|erklare das genauer)$/;
 const nameOf = (c: VoiceClient) => [c.firstName, c.lastName].filter(Boolean).join(' ');
 const clientLabel = (c: VoiceClient) => `${nameOf(c)}${c.city ? `, ${c.city}` : ''}`;
 
@@ -36,13 +38,16 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
   let pending: Pending = null;
   let guide: { article: HelpArticle; step: number } | null = null;
   let last: NeoResponse | null = null;
+  let lastDestination: NeoDestination | null = null;
   let touched = Date.now();
   const remember = (value: NeoResponse) => { last = value; touched = Date.now(); return value; };
   const clearTopic = () => { pending = null; guide = null; };
   const denied = () => ({ text: 'Für diesen Bereich fehlen dir die nötigen Rechte oder die Freigabe. Deine Verwaltung kann den Zugang prüfen.', suggestions: ['Andere Frage', 'Was kannst du?'] });
   const navigate = (destination: NeoDestination): NeoResponse => {
     clearTopic();
-    return deps.canNavigate(destination) ? { text: `Ich öffne „${destination.label}“.`, action: { kind: 'navigate', destination } } : denied();
+    if (!deps.canNavigate(destination)) return denied();
+    lastDestination = destination;
+    return { text: `Ich öffne „${destination.label}“.`, action: { kind: 'navigate', destination } };
   };
   const helpDestination = (article: HelpArticle): NeoDestination => ({ key: 'helpArticle', label: article.title, route: `/hilfe?artikel=${encodeURIComponent(article.id)}`, permission: 'office.access', words: [] });
   const guideResponse = (): NeoResponse => {
@@ -53,9 +58,20 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
       suggestions: ['Anleitung öffnen', 'Beispiel', 'Von vorne'],
     };
     const item = article.steps[step];
-    return { text: `${step === 0 ? article.title + '.\n\n' : ''}Schritt ${step + 1} von ${article.steps.length}: ${item.title}.\n${item.text}\n\n${step + 1 < article.steps.length ? 'Sag „weiter“ für den nächsten Schritt.' : 'Möchtest du ein Beispiel oder die vollständige Anleitung?'}`, suggestions: step + 1 < article.steps.length ? ['Weiter', 'Beispiel', 'Anleitung öffnen'] : ['Beispiel', 'Anleitung öffnen', 'Von vorne'] };
+    const context = step === 0 ? [article.title + '.', article.summary, article.location.length ? 'Wo: ' + article.location.join(' › ') + '.' : '', article.prerequisites.length ? 'Vorher prüfen: ' + article.prerequisites.join(' ') : ''].filter(Boolean).join('\n') + '\n\n' : '';
+    return { text: `${context}Schritt ${step + 1} von ${article.steps.length}: ${item.title}.\n${item.text}\n\n${step + 1 < article.steps.length ? 'Sag „weiter“ für den nächsten Schritt.' : 'Möchtest du ein Beispiel oder die vollständige Anleitung?'}`, suggestions: step + 1 < article.steps.length ? ['Weiter', 'Beispiel', 'Anleitung öffnen'] : ['Beispiel', 'Anleitung öffnen', 'Von vorne'] };
   };
   const beginGuide = (article: HelpArticle): NeoResponse => { pending = null; guide = { article, step: 0 }; return guideResponse(); };
+  const currentSubject = (): NeoSubject | undefined => {
+    const raw = deps.getCurrentPath?.();
+    // A provided current route supersedes any older navigation context. Never
+    // guess a task from IDs, query values or a path outside the known catalogue.
+    const pathname = raw?.startsWith('/') ? raw.split(/[?#]/, 1)[0].replace(/\/+$/, '') || '/' : null;
+    const destination = deps.getCurrentPath
+      ? NEO_DESTINATIONS.find(item => item.route.split(/[?#]/, 1)[0].replace(/\/+$/, '') === pathname)
+      : lastDestination;
+    return destination && deps.canNavigate(destination) ? NEO_SUBJECTS.find(subject => subject.destination === destination.key) : undefined;
+  };
   const askName = (): NeoResponse => {
     guide = null;
     if (!deps.canSearchClients()) { pending = null; return denied(); }
@@ -124,7 +140,7 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
 
   const respond = async (input: string, signal: AbortSignal): Promise<NeoResponse> => {
     signal.throwIfAborted();
-    if (Date.now() - touched > 5 * 60_000) { clearTopic(); last = null; }
+    if (Date.now() - touched > 5 * 60_000) { clearTopic(); last = null; lastDestination = null; }
     const text = cleanNeoText(input);
     if (!text || input.length > 1000) return remember({ text: 'Stelle bitte eine kurze Frage zu CareSuite.', suggestions: defaultSuggestions });
     if (STOP.test(text) || neoSmallTalk(text) === 'goodbye') {
@@ -132,9 +148,9 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
     }
     if (REPEAT.test(text)) return last ? { ...last, action: undefined, end: undefined } : remember({ text: 'Frag mich etwas oder nenne die Seite, die du öffnen möchtest.', suggestions: defaultSuggestions });
     if (/^(?:andere frage|neues thema|von vorn anfangen|thema wechseln)$/.test(text)) {
-      clearTopic(); return remember({ text: 'Was möchtest du wissen oder erledigen?', suggestions: defaultSuggestions });
+      clearTopic(); lastDestination = null; return remember({ text: 'Was möchtest du wissen oder erledigen?', suggestions: defaultSuggestions });
     }
-    if (NO.test(text)) { clearTopic(); return remember({ text: 'Okay. Wobei kann ich dir stattdessen helfen?', suggestions: defaultSuggestions }); }
+    if (NO.test(text)) { clearTopic(); lastDestination = null; return remember({ text: 'Okay. Wobei kann ich dir stattdessen helfen?', suggestions: defaultSuggestions }); }
     if (/^(?:(?:ich bin|ich weiss|ich weis|weiss ich|weis ich) )?(?:noch )?(?:nicht sicher|nicht|unsicher|keine ahnung)$/.test(text)) {
       if (pending?.kind === 'clarify') return remember({ text: pending.clarification.question, suggestions: pending.clarification.options.map(option => option.label) });
       if (pending?.kind === 'name') return remember(askName());
@@ -144,6 +160,17 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
 
     const subjects = neoSubjects(input);
     const task = neoTask(input);
+    if (EXPLAIN_CONTEXT.test(text)) {
+      if (guide) return remember(guideResponse());
+      if (pending?.kind === 'clarify') {
+        // Vacation, signature and login choices describe different workflows.
+        // "Explain the process" must not silently choose one of them.
+        if (pending.clarification.options.length > 1 && pending.clarification.options.every(option => option.answer.kind === 'guide')) return remember({ text: pending.clarification.question, suggestions: pending.clarification.options.map(option => option.label) });
+        return remember(resolveTask(pending.subject, 'explain', input));
+      }
+      const subject = currentSubject();
+      return remember(subject ? resolveTask(subject, 'explain', input) : askTask('explain'));
+    }
     if (pending?.kind === 'name' && /^(?:(?:die person|der klient|die klientin|sie|er) (?:heißt|heisst)|es geht um|der name ist)\s+/i.test(input)) {
       const name = safeName(input);
       if (name) return remember(await search(name, signal));
@@ -203,12 +230,12 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
       if (smallTalk === 'thanks' && guide) return remember({ text: 'Gern. Möchtest du mit der Anleitung weitermachen?', suggestions: ['Weiter', 'Beispiel', 'Andere Frage'] });
       if (smallTalk === 'positive' && guide) { guide.step++; return remember(guideResponse()); }
       if (smallTalk === 'frustration' && !guide) return remember(askTask('problem'));
-      if (smallTalk === 'privacy') return remember({ text: 'Das Mikrofon läuft nur nach deinem Start und solange das Gespräch aktiv ist. Während ich spreche, ist die Erkennung pausiert. Ein weiterer Klick auf mich, Escape oder ein Seitenwechsel schaltet es aus. Den Zusammenhang merke ich mir nur für dieses Gespräch; es gibt keinen sichtbaren Verlauf. Die Spracherkennung nutzt den Sprachdienst deines Browsers.', suggestions: ['Was kannst du?', 'Gespräch beenden'] });
+      if (smallTalk === 'privacy') return remember({ text: 'Die NEO-Sitzung beginnt erst nach deinem Start und der Mikrofonfreigabe. Danach höre ich still auf „NEO“ und reagiere erst auf die Ansprache. Während meiner Sprachausgabe pausiert dieser Erkennungsweg und setzt danach fort. Mikrofon aus, Seitenwechsel oder der Wechsel in den Hintergrund beendet die Sitzung. Der gewählte Erkennungsweg wird in der Oberfläche angezeigt; die Browsererkennung kann Sprache an den Browseranbieter übertragen. Den Dialogzusammenhang halte ich nur während dieser Sitzung vor.', suggestions: ['Was kannst du?', 'Gespräch beenden'] });
       if (smallTalk === 'capabilities' || smallTalk === 'help') {
         clearTopic(); return remember({ text: 'Ich helfe dir bei CareSuite: Seiten und Klientenakten öffnen, Abläufe Schritt für Schritt erklären und passende Anleitungen finden. Du kannst Rückfragen stellen, „weiter“ oder „Beispiel“ sagen und Antworten korrigieren. Welche Aufgabe steht an?', suggestions: defaultSuggestions.slice(1).concat('Wie richte ich Portalzugänge ein?') });
       }
       if (smallTalk === 'positive') return remember({ text: 'Was möchtest du als Nächstes machen?', suggestions: defaultSuggestions });
-      if (smallTalk === 'greeting' || smallTalk === 'wellbeing' || smallTalk === 'identity') clearTopic();
+      if (smallTalk === 'greeting') return remember({ text: 'Ja, ich höre zu.', suggestions: guide ? ['Weiter', 'Schritt wiederholen', 'Andere Frage'] : pending?.kind === 'clarify' ? pending.clarification.options.map(option => option.label) : defaultSuggestions });
       if (smallTalk !== 'frustration') return remember({ text: reply(smallTalk, deps.getProfileName?.() ?? ''), suggestions: guide ? ['Weiter', 'Beispiel', 'Andere Frage'] : defaultSuggestions });
     }
 
@@ -283,5 +310,5 @@ export function createNeoConversation(deps: NeoConversationDependencies) {
     if (pending?.kind === 'name') return remember(askName());
     return remember({ text: 'Das kann ich noch keiner CareSuite-Aufgabe zuordnen. Möchtest du eine Seite öffnen, eine Klientenakte suchen oder einen Ablauf erklärt bekommen?', suggestions: defaultSuggestions.slice(1).concat('Was kannst du?') });
   };
-  return { respond, reset: () => { clearTopic(); last = null; touched = Date.now(); } };
+  return { respond, reset: () => { clearTopic(); last = null; lastDestination = null; touched = Date.now(); } };
 }

@@ -82,3 +82,8 @@ public/calendar-reader/
 # Reproducible full route/backend inventories are generated and retained by audit CI.
 /docs/audit/native-portal-route-matrix.json
 /docs/audit/native-portal-backend-dependencies.json
+
+# Verified NEO server artifacts are prepared separately, never committed as model binaries.
+/api/_lib/neo-assets/whisper-cli
+/api/_lib/neo-assets/ggml-small-q5_1.bin
+/api/_lib/neo-assets/manifest.json

@@ -67,3 +67,11 @@ describe('NEO evidence and local assessment draft', () => {
     expect(() => assertNeoSegments([{ ...s, text: 'x'.repeat(6001) }])).toThrow(); expect(() => assertNeoScope({ ...scope, actorId: 'anonymous' })).toThrow();
   });
 });
+
+it('does not mistake a directed work instruction for an observed medical fact', () => {
+  const source = segment('Ich habe keine Schmerzen. Neo, erstelle bitte eine Aufgabe: Blutdruck kontrollieren.');
+  const draft = extractNeoFacts([source]);
+  expect(draft.facts).toHaveLength(1); expect(draft.facts[0]).toMatchObject({ quote: 'Ich habe keine Schmerzen.', status: 'negated' });
+  const quote = 'Neo, erstelle bitte eine Aufgabe: Blutdruck kontrollieren.';
+  expect(() => validateNeoModelDraft({ facts: [{ segmentId: source.id, quote, text: quote, topic: 'disease_demands' }] }, [source])).toThrow();
+});

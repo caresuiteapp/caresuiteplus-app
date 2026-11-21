@@ -60,19 +60,18 @@ afterEach(async () => { await act(async () => root.unmount()); host.remove(); })
 
 describe('Native Neo speech turns', () => {
   it('prepares microphone access once per session and reuses the installed locale for follow-up answers', async () => {
-    await click(); expect(api.start).not.toHaveBeenCalled();
-    await finishSpeech(); expect(api.start).toHaveBeenCalledOnce();
-    await answer('Wie spät ist es?'); await finishSpeech();
+    await click(); expect(api.speak).not.toHaveBeenCalled(); expect(api.start).toHaveBeenCalledOnce();
+    await answer('NEO, wie spät ist es?'); await finishSpeech();
     expect(api.start).toHaveBeenCalledTimes(2);
     expect(api.permission).toHaveBeenCalledOnce(); expect(api.locales).toHaveBeenCalledOnce();
     await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Neo-Gespräch beenden"]')!.click());
     await click(); expect(api.permission).toHaveBeenCalledTimes(2);
   });
   it('waits for the old device speech to stop and drops the pending utterance if the user stops Neo', async () => {
-    await click(); await finishSpeech(); api.speak.mockClear();
+    await click(); api.speak.mockClear();
     let release!: () => void;
     api.stop.mockImplementationOnce(() => new Promise<void>(resolve => { release = resolve; }));
-    await answer('Wie spät ist es?'); expect(api.speak).not.toHaveBeenCalled();
+    await answer('NEO, wie spät ist es?'); expect(api.speak).not.toHaveBeenCalled();
     await act(async () => host.querySelector<HTMLButtonElement>('[aria-label="Neo-Gespräch beenden"]')!.click());
     await act(async () => release());
     expect(api.speak).not.toHaveBeenCalled(); expect(api.start).toHaveBeenCalledOnce();

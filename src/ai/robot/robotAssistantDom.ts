@@ -1,7 +1,7 @@
 import { makeNeoDraggable } from './neoPosition.web';
 import { createNeoConversation, type NeoConversationDependencies, type NeoResponse } from './neoConversation.web';
 import { createNeoVoiceStatus, NEO_CSS } from './neoVoiceStatus.web';
-import { NEO_INTRODUCTION } from './neoCommands';
+import { stripNeoWake } from '../neo/neoSession';
 import { splitNeoSpeech } from './neoSpeechText';
 import { claimNeoMicrophone } from '../neo/neoMicrophone';
 export { splitNeoSpeech } from './neoSpeechText';
@@ -40,8 +40,8 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
   const button = host.querySelector<HTMLButtonElement>('button')!;
   host.querySelector<HTMLImageElement>('img')!.src = deps.robotUrl;
   document.body.append(host);
-  const conversation = createNeoConversation(deps);
-  let destroyed = false, voiceMode = false, hasWelcomed = false, generation = 0;
+  const conversation = createNeoConversation({ ...deps, getCurrentPath: deps.getCurrentPath ?? (() => window.location.pathname) });
+  let destroyed = false, voiceMode = false, generation = 0;
   let turn: AbortController | null = null;
   let recognition: Recognition | null = null;
   let context: AudioContext | null = null;
@@ -50,7 +50,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
   let captureTimer: ReturnType<typeof setTimeout> | undefined;
   let commitTimer: ReturnType<typeof setTimeout> | undefined;
   let restartTimer: ReturnType<typeof setTimeout> | undefined;
-  let deadline = 0, emptyRestarts = 0;
+  let deadline = 0, emptyRestarts = 0, dialogueUntil = 0;
   let releaseMicrophone: (() => void) | undefined;
   const status = createNeoVoiceStatus();
   const positionStatus = () => {
@@ -86,7 +86,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
     const finish = finishPlayback; finishPlayback = null; finish?.();
   };
   const cancelTurn = () => { generation++; turn?.abort(); turn = null; stopCapture(); stopAudio(); };
-  const stopSession = (message: string) => { releaseMicrophone?.(); releaseMicrophone = undefined; voiceMode = false; cancelTurn(); setState('ready', message); };
+  const stopSession = (message: string) => { releaseMicrophone?.(); releaseMicrophone = undefined; voiceMode = false; dialogueUntil = 0; cancelTurn(); setState('ready', message); };
   const unlockAudio = () => {
     try {
       const Constructor = window.AudioContext ?? (window as SpeechWindow).webkitAudioContext;
@@ -179,7 +179,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
       if (await execute(response, request, serial)) return;
       if (destroyed || serial !== generation || request.signal.aborted) return;
       setState('ready', response.end ? 'Gespräch beendet. Mikrofon aus.' : 'Du kannst direkt antworten.');
-      if (voiceMode && !document.hidden) { deadline = Date.now() + 35000; emptyRestarts = 0; scheduleCapture(120); }
+      if (voiceMode && !document.hidden) { dialogueUntil = Date.now() + 15000; deadline = Date.now() + 35000; emptyRestarts = 0; scheduleCapture(120); }
     } catch {
       if (destroyed || serial !== generation) return;
       // A silent question is not answerable in voice mode. Stop instead of pretending to listen.
@@ -189,16 +189,20 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
   };
   const submit = (input: string) => {
     if (destroyed || !input.trim()) return;
-    return speakTurn(signal => conversation.respond(input.trim(), signal));
+    const wake = stripNeoWake(input.trim());
+    if (wake === null && Date.now() >= dialogueUntil) { setState('listening', 'NEO hört still zu. Sage „NEO“, um ihn anzusprechen.'); scheduleCapture(120); return; }
+    dialogueUntil = Date.now() + 15000;
+    return speakTurn(signal => conversation.respond(wake === null ? input.trim() : wake || 'NEO', signal));
   };
-  const pauseForSilence = () => stopSession('Gespräch pausiert. Klicke Neo an, um weiterzusprechen.');
+  const pauseForSilence = () => { stopCapture(); dialogueUntil = 0; setState('listening', 'NEO hört still zu. Sage „NEO“, um ihn anzusprechen.'); scheduleCapture(350); };
   const scheduleCapture = (delay: number) => {
     clearTimeout(restartTimer);
     restartTimer = setTimeout(() => { if (voiceMode && !destroyed && !document.hidden) startCapture(); }, delay);
   };
   const startCapture = () => {
     if (destroyed || !voiceMode || document.hidden) return;
-    if (Date.now() >= deadline || emptyRestarts >= 8) { pauseForSilence(); return; }
+    if (Date.now() >= dialogueUntil) dialogueUntil = 0;
+    deadline = Date.now() + 35000;
     stopCapture();
     const Constructor = (window as SpeechWindow).SpeechRecognition ?? (window as SpeechWindow).webkitSpeechRecognition;
     if (!Constructor || !window.isSecureContext) {
@@ -207,7 +211,8 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
     try {
       const instance = new Constructor(); recognition = instance;
       instance.lang = 'de-DE'; instance.continuous = true; instance.interimResults = true; instance.maxAlternatives = 1;
-      if ('processLocally' in instance) instance.processLocally = false;
+      if (!('processLocally' in instance)) { stopSession('Mikrofon aus.'); setState('error', 'Dieser Browser unterstützt keine lokale Spracherkennung. Nutze die Sprachbegleitung mit dem eigenen NEO-Dienst in der Dokumentation.'); return; }
+      instance.processLocally = true;
       let finalText = '', interimText = '';
       const commit = () => {
         if (recognition !== instance || !voiceMode) return;
@@ -217,9 +222,9 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
       const retry = () => {
         if (recognition !== instance) return;
         stopCapture(); emptyRestarts++;
-        if (Date.now() >= deadline || emptyRestarts >= 8) pauseForSilence(); else scheduleCapture(350);
+        if (Date.now() >= dialogueUntil) pauseForSilence(); else scheduleCapture(350);
       };
-      instance.onstart = () => { if (recognition === instance) setState('listening', 'Ich höre zu …'); };
+      instance.onstart = () => { if (recognition === instance) setState('listening', Date.now() < dialogueUntil ? 'Ich höre zu …' : 'NEO hört still zu. Sage „NEO“, um ihn anzusprechen.'); };
       instance.onresult = event => {
         if (recognition !== instance || !voiceMode) return;
         // Rebuild from the full result list so interim revisions and multiple final
@@ -252,15 +257,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
   const startVoice = () => {
     releaseMicrophone = claimNeoMicrophone(() => stopSession('Sprachbegleitung aktiv. Gespräch pausiert.'));
     cancelTurn(); unlockAudio(); voiceMode = true;
-    if (!hasWelcomed) {
-      // This bundled Neo recording starts without waiting for the speech model to download.
-      const greetingGeneration = generation + 1;
-      void speakTurn(async () => ({ text: NEO_INTRODUCTION })).then(() => {
-        if (!destroyed && voiceMode && generation === greetingGeneration) hasWelcomed = true;
-      });
-    } else {
-      deadline = Date.now() + 35000; emptyRestarts = 0; startCapture();
-    }
+    dialogueUntil = 0; deadline = Date.now() + 35000; emptyRestarts = 0; startCapture();
   };
   button.onclick = () => {
     if (voiceMode || turn || audio) { stopSession('Mikrofon aus.'); return; }

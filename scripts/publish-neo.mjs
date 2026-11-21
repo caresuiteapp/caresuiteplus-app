@@ -73,7 +73,7 @@ export function createNeoPublisher({ root, publish, manifest, git: suppliedGit, 
       log('Lade nur die aktuellen Git-Verweise; das Repository wird nicht erneut geklont.');
       git(['fetch', 'origin', 'main'], { stdio: 'inherit' });
     }
-    stage(); commit('NEO: Aussprache, stille Dokumentation und geprüfte Arbeitsaufträge');
+    stage(); commit(manifest.commitMessage ?? 'NEO: Aussprache, stille Dokumentation und geprüfte Arbeitsaufträge');
     if (publish) {
       try { git([...identity, 'merge', '--no-edit', 'origin/main'], { stdio: 'inherit' }); }
       catch (error) {
@@ -87,6 +87,7 @@ export function createNeoPublisher({ root, publish, manifest, git: suppliedGit, 
     run('scripts/port-native-workspaces.mjs', ['--write']);
     stage(); commit('NEO: aktuellen Web- und App-Quellabgleich sichern');
     run('scripts/verify-neo.mjs');
+    if (manifest.recordConstruction) run('scripts/record-neo-construction.mjs');
     if (changedPaths().length) throw Error('Während der Prüfungen wurden versionierte Dateien verändert. Vor dem Push erneut prüfen.');
     const head = git(['rev-parse', 'HEAD']);
     if (!publish) { log('NEO lokal geprüft. Zur Veröffentlichung dasselbe Skript mit --publish ausführen.'); return { published: false, head }; }
