@@ -11,6 +11,7 @@ import { encodeNeoWav } from './neoAudio';
 import { assertNeoScope, extractNeoFacts, neoDraftText, neoScopeKey, NEO_TOPICS, validateNeoReviewedDraft, type NeoDraft, type NeoScope, type NeoSegment } from './neoDomain';
 import { createNeoSession, toNeoSegment, type NeoSessionMode, type NeoSpeakerRole } from './neoSession';
 import { NeoWorkPanel } from './NeoWorkPanel';
+import { checkNeoLocalRecognition, installNeoLocalRecognition, type NeoLocalRecognitionStatus } from './neoLocalRecognition.web';
 import { NeoActionsPanel } from './NeoActionsPanel';
 
 const speakerChoices = [['unknown', 'Sprecher ungeklärt'], ['client', 'Klient:in'], ['caregiver', 'Pflegekraft'], ['relative', 'Angehörige'], ['doctor', 'Ärzt:in'], ['other', 'Andere Person']] as const;
@@ -27,6 +28,7 @@ function NeoDocumentationSession({ scope, disabled = false, onApply, onBusyChang
   const [state, setState] = useState('paused'), [mode, setMode] = useState<NeoSessionMode>('off');
   const [segments, setSegmentState] = useState<NeoSegment[]>([]), [draft, setDraft] = useState<NeoDraft | null>(null);
   const [manual, setManual] = useState(''), [message, setMessage] = useState(''), [pending, setPending] = useState(false);
+  const [localPack, setLocalPack] = useState<NeoLocalRecognitionStatus>();
   const [workPending, setWorkPending] = useState(false), [actionPending, setActionPending] = useState(false);
   const [directedCommand, setDirectedCommand] = useState<{ id: string; text: string }>();
   const capture = useRef<NeoCapture | null>(null), alive = useRef(true), epoch = useRef(0), busy = useRef(false);
@@ -83,12 +85,31 @@ function NeoDocumentationSession({ scope, disabled = false, onApply, onBusyChang
       else if (receipt.wake) setMessage('Ich höre zu. Was soll ich vorbereiten?');
     }
   }
+  async function prepareLocalLanguage(install: boolean) {
+    if (Platform.OS !== 'web' || busy.current || disabled || active) return;
+    const request = new AbortController(), serial = ++epoch.current; serviceCheck.current = request;
+    busy.current = true; onBusyChange?.(true); setState('processing');
+    setMessage(install ? 'Deutsches Sprachpaket wird im Browser geladen. Das Mikrofon bleibt aus.' : 'Lokales deutsches Sprachpaket wird geprüft. Das Mikrofon bleibt aus.');
+    try {
+      const Constructor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+      const result = await (install ? installNeoLocalRecognition(Constructor, request.signal) : checkNeoLocalRecognition(Constructor, request.signal));
+      if (alive.current && serial === epoch.current && !request.signal.aborted) { setLocalPack(result); setMessage(result.message + (result.code ? ` [${result.code}]` : '')); }
+    } catch { if (alive.current && serial === epoch.current && !request.signal.aborted) setMessage('Die lokale Sprachvorbereitung konnte nicht abgeschlossen werden.'); }
+    finally { if (alive.current && serial === epoch.current) { busy.current = false; onBusyChange?.(false); setState('paused'); } }
+  }
   async function start() {
     if (busy.current || disabled || !consent) return;
     try { assertNeoScope(scope); } catch (error) { setMessage((error as Error).message); return; }
     const serial = ++epoch.current; busy.current = true; onBusyChange?.(true); setState('starting'); setMessage('');
     try {
       if (source === 'own') { const request = new AbortController(); serviceCheck.current = request; if (!await checkNeoService(scope, request.signal)) throw Error('Die eigene NEO-Erkennung ist noch nicht betriebsbereit. Bitte die Sprachdienst-Einrichtung prüfen.'); }
+      else if (Platform.OS === 'web') {
+        const request = new AbortController(); serviceCheck.current = request;
+        const Constructor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+        const result = await checkNeoLocalRecognition(Constructor, request.signal);
+        if (!alive.current || serial !== epoch.current || request.signal.aborted) return;
+        setLocalPack(result); if (!result.canStart) throw Error(result.message + (result.code ? ` [${result.code}]` : ''));
+      }
       if (!alive.current || serial !== epoch.current || latest.current.disabled || !latest.current.consent) return;
       session.current.start({ consent: true }); setMode('ambient');
       const engine = createNeoCapture(source, {
@@ -159,6 +180,10 @@ function NeoDocumentationSession({ scope, disabled = false, onApply, onBusyChang
     {expanded ? <View style={styles.content}>
       <View style={styles.row}>{(['own', 'device'] as const).map(item => <PremiumButton key={item} title={item === 'own' ? 'Eigener Sprachdienst' : Platform.OS === 'web' ? 'Lokale Browsererkennung' : 'Lokale Geräteerkennung'} variant={source === item ? 'primary' : 'secondary'} disabled={active || disabled} onPress={() => setSource(item)} />)}</View>
       <Text style={styles.body}>{source === 'own' ? 'Die eigene NEO-Erkennung verarbeitet Audio innerhalb der eingerichteten Vercel-/Supabase-Architektur.' : Platform.OS === 'web' ? 'Nur lokale Erkennung im Browser. Fehlt diese Fähigkeit oder das deutsche Sprachpaket, bleibt das Mikrofon aus. Es gibt keinen automatischen Wechsel zu einem fremden Sprachdienst.' : 'Die Erkennung verwendet das installierte lokale Sprachpaket des Geräts.'}</Text>
+      {Platform.OS === 'web' && source === 'device' ? <View style={styles.row}>
+        <PremiumButton title="Sprachpaketstatus prüfen" variant="secondary" disabled={active || disabled} onPress={() => void prepareLocalLanguage(false)} />
+        {localPack?.canInstall ? <PremiumButton title="Deutsches Sprachpaket laden" disabled={active || disabled} onPress={() => void prepareLocalLanguage(true)} /> : null}
+      </View> : null}
       <Text style={styles.body}>Quelle für folgende Abschnitte manuell bestätigen. Ohne automatische Sprechertrennung bleibt ein Stimmenwechsel ungeklärt; die Rollenwahl ist keine Stimmerkennung.</Text>
       <View style={styles.row}>{speakerChoices.map(([value, label]) => <PremiumButton key={value} title={label} variant={role === value ? 'primary' : 'secondary'} disabled={disabled} onPress={() => chooseSource(value, label)} />)}</View>
       <PremiumInput label="Sprecher / Quelle" value={speaker} onChangeText={value => chooseSource(role, value)} maxLength={100} editable={!disabled} />

@@ -39,3 +39,12 @@ describe('NEO web capture ownership and finalization', () => {
     finally { delete (window as any).SpeechRecognition; }
   });
 });
+
+it('checks local German readiness before requesting recognition and preserves the browser error category', async () => {
+  const start = vi.fn();
+  class Recognition { processLocally = false; static available = vi.fn().mockResolvedValue('unavailable'); start = start; abort() {} }
+  (window as any).SpeechRecognition = Recognition;
+  try {
+    const { c } = capture(callbacks(), 'device'); await expect(c.start()).rejects.toThrow('local-language-unavailable'); expect(start).not.toHaveBeenCalled(); expect(getUserMedia).not.toHaveBeenCalled();
+  } finally { delete (window as any).SpeechRecognition; }
+});

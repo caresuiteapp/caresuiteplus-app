@@ -41,7 +41,7 @@ const completeAudio = async () => {
   await tick(350);
 };
 beforeEach(() => {
-  vi.useFakeTimers(); FakeRecognition.all = []; FakeAudio.sources = [];
+  vi.useFakeTimers(); delete (FakeRecognition as any).available; delete (FakeRecognition as any).install; FakeRecognition.all = []; FakeAudio.sources = [];
   vi.stubGlobal('SpeechRecognition', FakeRecognition); vi.stubGlobal('AudioContext', FakeAudio);
   Object.defineProperty(window, 'isSecureContext', { configurable: true, value: true });
   deps = { robotUrl: '/robot.png', canNavigate: () => true, canSearchClients: () => true, searchClients: vi.fn().mockResolvedValue([]), navigate: vi.fn(), back: vi.fn().mockReturnValue(false), loadVoice: vi.fn().mockResolvedValue(new ArrayBuffer(8)), prepareVoice: vi.fn() };
@@ -136,7 +136,7 @@ describe('Neo voice-only conversation', () => {
   it.each(['not-allowed', 'service-not-allowed', 'audio-capture', 'network'])('stops retrying on %s and gives an actionable microphone status', async error => {
     await mount(); lastRecognition().error(error); await tick(40000);
     expect(FakeRecognition.all).toHaveLength(1); expect(button().getAttribute('aria-pressed')).toBe('false');
-    expect(host().dataset.state).toBe('error'); expect(status().textContent).toContain('Neo erneut an');
+    expect(host().dataset.state).toBe('error'); expect(status().textContent).toContain('[' + error + ']');
     expect(document.querySelector('input, [role=dialog]')).toBeNull();
   });
   it('reports unsupported recognition without opening an input dialog', async () => {
@@ -176,7 +176,7 @@ describe('Neo spoken-session cancellation', () => {
   });
   it('keeps the context when clicking Neo again after pausing', async () => {
     await mount(); lastRecognition().say('Urlaub'); await tick(1100); await completeAudio();
-    button().click(); expect(lastRecognition().aborted).toBe(true); button().click();
+    button().click(); expect(lastRecognition().aborted).toBe(true); button().click(); await flush();
     lastRecognition().say('Im Kalender'); await tick(1100); await completeAudio();
     expect(spoken()).toContain('Verfügbarkeiten und Abwesenheiten im Kalender pflegen');
   });
@@ -243,5 +243,38 @@ describe('NEO ambient addressing boundaries', () => {
     vi.stubGlobal('SpeechRecognition', RemoteOnlyRecognition);
     cleanup = mountRobotAssistant(deps); button().click(); await tick(500);
     expect(status().textContent).toContain('keine lokale Spracherkennung'); expect(deps.loadVoice).not.toHaveBeenCalled(); expect(lastRecognition().aborted).toBe(true);
+  });
+});
+
+
+describe('NEO local language readiness and recovery', () => {
+  it('offers an explicit language download and never starts the microphone during installation', async () => {
+    const available = vi.fn().mockResolvedValue('available').mockResolvedValueOnce('downloadable').mockResolvedValueOnce('downloadable');
+    const install = vi.fn().mockResolvedValue(true); Object.assign(FakeRecognition, { available, install });
+    const start = vi.spyOn(FakeRecognition.prototype, 'start');
+    cleanup = mountRobotAssistant(deps); button().click(); await flush();
+    expect(start).not.toHaveBeenCalled(); expect(install).not.toHaveBeenCalled();
+    const action = status().querySelector<HTMLButtonElement>('button')!; expect(action.textContent).toBe('Deutsches Sprachpaket laden'); action.click(); await flush();
+    expect(install).toHaveBeenCalledWith({ langs: ['de-DE'], processLocally: true }); expect(start).not.toHaveBeenCalled();
+    expect(status().textContent).toContain('Sprachpaket bereit'); button().click(); await flush();
+    expect(start).toHaveBeenCalledOnce(); expect(lastRecognition().processLocally).toBe(true);
+  });
+  it('does not retry an unsupported local German model or enable remote recognition', async () => {
+    Object.assign(FakeRecognition, { available: vi.fn().mockResolvedValue('unavailable') });
+    const start = vi.spyOn(FakeRecognition.prototype, 'start'); cleanup = mountRobotAssistant(deps); button().click(); await tick(40000);
+    expect(start).not.toHaveBeenCalled(); expect(status().textContent).toContain('local-language-unavailable');
+    expect(status().textContent).not.toContain('Klicke Neo erneut'); expect(status().querySelector('button')?.hidden).toBe(true);
+  });
+  it('drops readiness replies after the page is hidden', async () => {
+    let finish!: (state: string) => void; Object.assign(FakeRecognition, { available: vi.fn(() => new Promise<string>(resolve => { finish = resolve; })) });
+    const start = vi.spyOn(FakeRecognition.prototype, 'start'); cleanup = mountRobotAssistant(deps); button().click(); await flush();
+    Object.defineProperty(document, 'hidden', { configurable: true, value: true }); document.dispatchEvent(new Event('visibilitychange'));
+    finish('available'); await flush(); expect(start).not.toHaveBeenCalled(); expect(button().getAttribute('aria-pressed')).toBe('false');
+    Object.defineProperty(document, 'hidden', { configurable: true, value: false });
+  });
+  it('keeps the exact language error visible with a status recovery action', async () => {
+    await mount(); lastRecognition().error('language-not-supported'); await flush();
+    expect(status().textContent).toContain('[language-not-supported]'); expect(status().querySelector('button')?.textContent).toBe('Sprachpaketstatus prüfen');
+    expect(status().textContent).not.toContain('Klicke Neo erneut');
   });
 });

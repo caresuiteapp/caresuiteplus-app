@@ -80,3 +80,18 @@ describe('NEO continuous ambient workbench', () => {
     expect(api.workProps.directedCommand).toBeUndefined(); expect(api.actionProps.initialCommand).toBeUndefined(); expect(api.start).not.toHaveBeenCalled();
   });
 });
+
+it('offers explicit local language installation without recording until the user starts again', async () => {
+  class LocalRecognition {
+    processLocally = false;
+    static available = vi.fn().mockResolvedValue('available').mockResolvedValueOnce('downloadable').mockResolvedValueOnce('downloadable');
+    static install = vi.fn().mockResolvedValue(true);
+  }
+  (window as any).SpeechRecognition = LocalRecognition;
+  try {
+    await render(); await click('NEO-Sprachbegleitung'); await click('Lokale Browsererkennung'); await consent(); await click('Still zuhören');
+    expect(api.start).not.toHaveBeenCalled(); expect(LocalRecognition.install).not.toHaveBeenCalled();
+    await click('Deutsches Sprachpaket laden'); expect(LocalRecognition.install).toHaveBeenCalledWith({ langs: ['de-DE'], processLocally: true }); expect(api.start).not.toHaveBeenCalled();
+    await click('Still zuhören'); expect(api.start).toHaveBeenCalledOnce();
+  } finally { delete (window as any).SpeechRecognition; }
+});

@@ -1,3 +1,4 @@
+import { checkNeoLocalRecognition, neoLocalRecognitionError } from './neoLocalRecognition.web';
 import { encodeNeoWav } from './neoAudio';
 import { claimNeoMicrophone } from './neoMicrophone';
 import type { NeoCapture, NeoCaptureCallbacks, NeoCaptureSource } from './neoCaptureTypes';
@@ -53,7 +54,7 @@ export function createNeoCapture(source: NeoCaptureSource, callbacks: NeoCapture
         if (text) { empty = false; const now = Date.now(); callbacks.onText(text, startedAt, now); startedAt = now; }
       }
     };
-    instance.onerror = (event: any) => { if (serial !== generation) return; if (event.error !== 'no-speech' && event.error !== 'aborted') { cancel(); callbacks.onError('Die Browsererkennung wurde unterbrochen. Bitte Mikrofon und Sprachdienst prüfen.'); } };
+    instance.onerror = (event: any) => { if (serial !== generation) return; if (event.error !== 'no-speech' && event.error !== 'aborted') { cancel(); const issue = neoLocalRecognitionError(event.error); callbacks.onError(issue.message + ' [' + issue.code + ']'); } };
     instance.onend = () => { finishedEnd?.(); finishedEnd = undefined; if (active && serial === generation) restart = setTimeout(() => { if (active && serial === generation) { try { beginRecognition(serial); } catch { cancel(); callbacks.onError('Die Browsererkennung konnte nicht fortgesetzt werden.'); } } }, empty ? 500 : 120); };
     instance.start(); callbacks.onStatus('listening');
   };
@@ -62,7 +63,16 @@ export function createNeoCapture(source: NeoCaptureSource, callbacks: NeoCapture
       cancel(); release = claimNeoMicrophone(() => { cancel(); callbacks.onError('Die Aufnahme wurde durch eine neue NEO-Aufnahme beendet.'); }); active = true; const serial = generation; startedAt = Date.now(); callbacks.onStatus('starting');
       try {
         if (!window.isSecureContext) throw Error('NEO benötigt eine sichere Verbindung für das Mikrofon.');
-        if (source === 'device') { beginRecognition(serial); return; }
+        if (source === 'device') {
+          const Constructor = (window as any).SpeechRecognition ?? (window as any).webkitSpeechRecognition;
+          const request = new AbortController(); requests.add(request);
+          let status;
+          try { status = await checkNeoLocalRecognition(Constructor, request.signal); }
+          finally { requests.delete(request); }
+          if (!active || serial !== generation || request.signal.aborted) return;
+          if (!status.canStart) throw Error(status.message + (status.code ? ` [${status.code}]` : ''));
+          beginRecognition(serial); return;
+        }
         const granted = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true }, video: false });
         if (!active || serial !== generation) { granted.getTracks().forEach(track => track.stop()); return; }
         stream = granted; const audio = new AudioContext(); context = audio; rate = audio.sampleRate;
