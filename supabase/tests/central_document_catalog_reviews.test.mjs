@@ -190,3 +190,48 @@ test('a documented review leaves the existing document registration in draft', a
   assert.equal(result[0].record.state, 'draft');
   assert.equal(result[0].record.template_version, 2);
 });
+
+test('content review appends exactly the current catalog revisions and safely retries', async () => {
+  const contentReview = migration('20261117094500_central_catalog_content_review');
+  const countVersions = async () => (await query(`SELECT count(*)::int AS count
+    FROM public.central_document_catalog WHERE template_key <> $1`, [exampleKey]))[0].count;
+  const beforeEdition = await countVersions();
+  await assert.rejects(db.exec(contentReview), /weicht von der geprüften Ausgangsversion ab/);
+  await db.exec('ROLLBACK');
+  assert.equal(await countVersions(), beforeEdition);
+
+  // The 2027 migration also sets up a separate intake registry. Reuse its catalog seed.
+  const edition = migration('20261021060408_client_contracts_consents_prepared_2027');
+  const editionStart = edition.indexOf('\nINSERT INTO public.central_document_catalog(');
+  const editionEnd = edition.lastIndexOf('\nCOMMIT;');
+  assert.ok(editionStart >= 0 && editionEnd > editionStart);
+  await db.exec(edition.slice(editionStart, editionEnd));
+  const original = (await query(`SELECT definition_json FROM public.central_document_catalog
+    WHERE template_key = 'csdc_aufnahme_002' AND version = 1`))[0].definition_json;
+  const beforeReview = await countVersions();
+  await db.exec(contentReview);
+  assert.equal(await countVersions(), beforeReview + 115);
+  assert.deepEqual((await query(`SELECT definition_json FROM public.central_document_catalog
+    WHERE template_key = 'csdc_aufnahme_002' AND version = 1`))[0].definition_json, original);
+
+  const expectedSeed = readFileSync(new URL('../schema/central_document_catalog_seed.sql', import.meta.url), 'utf8');
+  const catalogInsert = 'INSERT INTO public.central_document_catalog(';
+  assert.ok(expectedSeed.includes(catalogInsert));
+  await db.exec('CREATE TEMP TABLE expected_catalog_seed (LIKE public.central_document_catalog INCLUDING ALL)');
+  await db.exec(expectedSeed.replace(catalogInsert, 'INSERT INTO expected_catalog_seed('));
+  const latest = await query(`SELECT DISTINCT ON (template_key) template_key, version, title,
+    category_key, target, source_mode, review_status, definition_json
+    FROM public.central_document_catalog WHERE template_key <> $1 ORDER BY template_key, version DESC`, [exampleKey]);
+  const expected = await query(`SELECT template_key, version, title, category_key, target, source_mode,
+    review_status, definition_json FROM expected_catalog_seed ORDER BY template_key`);
+  assert.equal(latest.length, 450);
+  assert.deepEqual(latest, expected);
+  assert.ok(latest.every(row => row.review_status === 'draft'));
+  const event = (await query(`SELECT prior_version FROM public.central_document_catalog_version_history
+    WHERE template_key = 'csdc_aufnahme_002' AND template_version = 2`))[0];
+  assert.equal(event.prior_version, 1);
+
+  await db.exec(contentReview);
+  assert.equal(await countVersions(), beforeReview + 115);
+  await db.exec('DROP TABLE expected_catalog_seed');
+});

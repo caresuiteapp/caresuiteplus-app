@@ -1,5 +1,6 @@
 import { CENTRAL_CATEGORY_ACTIONS, CENTRAL_FIELD_TEXT_CHOICES, CENTRAL_SOFTWARE_FIELD_CHOICES, type CentralChoiceText } from '@/data/seeds/documentCatalog/centralQuickChoiceProfiles';
-import { centralStoredFieldValue } from './centralCatalogModel';
+import { CENTRAL_CATALOG_CONTENT_REVISIONS } from '@/data/seeds/documentCatalog/centralCatalogContentRevisions';
+import { CENTRAL_COMMON_FIELDS, centralStoredFieldValue } from './centralCatalogModel';
 import type { CentralDocumentField, CentralDocumentSection, CentralDocumentSnapshot } from '@/types/documents/centralCatalog';
 
 export type CentralQuickContext = Pick<CentralDocumentSnapshot, 'definition' | 'context' | 'documentId' | 'tableOrigin'>;
@@ -37,11 +38,23 @@ const peopleChoices = (snapshot: CentralQuickContext, author: string, initials =
   ...(!initials ? [choice('person-employee', 'Zugeordnete Mitarbeiter:in', snapshot.context.employee.name || (snapshot.context.target === 'employee' ? snapshot.context.subject.name : ''), 'replace'), choice('person-representative', 'Betriebliche Vertretung', snapshot.context.company.representativeName, 'replace')] : []),
 ]).map((item) => initials && item.value ? { ...item, value: item.value.split(/\s+/).map((part) => part[0]).join('').toLocaleUpperCase('de-DE') } : item);
 
+function usesRevisedClinicalInput(snapshot: CentralQuickContext, part: 'fieldLabels' | 'columns'): boolean {
+  const { definition } = snapshot;
+  if (!definition.clinicalReviewRequired) return false;
+  const revised = CENTRAL_CATALOG_CONTENT_REVISIONS[definition.key]?.[part];
+  if (!revised?.length) return false;
+  const current = part === 'columns'
+    ? definition.columns
+    : definition.fields.filter((field) => !CENTRAL_COMMON_FIELDS.has(field.key)).map((field) => field.label);
+  return current.length === revised.length && current.every((label, index) => label === revised[index]);
+}
+
 export function centralFieldQuickChoices(snapshot: CentralQuickContext, field: CentralDocumentField, author: string, now?: Date): CentralQuickChoice[] {
   const at = now ?? new Date();
   const source = centralStoredFieldValue(field, snapshot.context, snapshot.definition.key);
   const items: CentralQuickChoice[] = [];
   if (field.sourcePath || source) items.push(choice('stored-field', 'Gespeicherte Angabe', source, 'replace'));
+  if (!CENTRAL_COMMON_FIELDS.has(field.key) && usesRevisedClinicalInput(snapshot, 'fieldLabels')) return items;
   if (field.defaultValue) items.push(choice('template-field', 'Vorlagenangabe', field.defaultValue, 'replace'));
   if (field.key === 'date') items.push(...todayChoices(at, true, !now));
   if (field.key === 'author') items.push(...peopleChoices(snapshot, author));
@@ -142,6 +155,8 @@ export function centralTableQuickChoices(snapshot: CentralQuickContext, column: 
   const stored = choice('stored-cell', 'Gespeicherter Tabellenwert', snapshot.tableOrigin === 'stored' ? snapshot.context.sourceRows?.[row]?.[index] : undefined, 'replace');
   if (snapshot.tableOrigin === 'manual' && snapshot.context.sourceRows?.length) stored.unavailable = 'Für diese Zeile keine eindeutige gespeicherte Zuordnung';
   const items = [stored];
+  // Historical observations and actual interventions need observed values, not generic defaults.
+  if (usesRevisedClinicalInput(snapshot, 'columns')) return items;
   if (column === 'Datum') items.push(...todayChoices(at, false, !now));
   if (column === 'Datum / Zeitraum') items.push(...periodChoices(at, !now));
   if (column === 'Datum / Uhrzeit') items.push({ ...choice('timestamp-now', 'Aktueller Zeitpunkt', `${germanDay(isoDay(at))} ${time(at)}`, 'replace'), ...(!now ? { resolveValue: () => { const actual = new Date(); return `${germanDay(isoDay(actual))} ${time(actual)}`; } } : {}) });

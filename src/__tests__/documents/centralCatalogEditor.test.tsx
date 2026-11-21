@@ -20,7 +20,7 @@ describe('document editor persistence interactions (no browser layout assertion)
     const props: CentralCatalogWorkspaceProps = {
       tenantId: T, author: 'Anna', demo: true, definitions: CENTRAL_DOCUMENT_CATALOG, clients: [{ id: C, label: 'Mara Muster' }], employees: [], loadingEntities: false,
       permissions: { create: true, preview: true, export: true, save: true }, records: [], loadingRecords: false,
-      clientId: C, templateKey: 'csdc_aufnahme_002',
+      clientId: C, templateKey: 'csdc_aufnahme_001',
       loadContext: async () => ({ ok: true, data: mapCentralContext({ tenantId: T, target: 'client', entityId: C,
         company: { name: 'Unternehmen GmbH', street: 'Parkstraße 12', postal_code: '10115', city: 'Berlin' }, subject: { first_name: 'Mara', last_name: 'Muster' },
       }) }),

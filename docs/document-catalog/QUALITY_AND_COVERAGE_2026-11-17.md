@@ -49,6 +49,14 @@ Die frühere PDF-Prüfung rendert alle 450 Typen und dokumentiert ausgewählte v
 
 Die einzelnen Rechts- und Fachfreigaben, unterschiedliche Kostenträgerfassungen und der Abgleich des Katalogs mit den eigenen Formularen in Akademie, Abrechnung und Portalen bleiben Teil der dokumentweisen Bearbeitung. Vor einem produktiven Einsatz sind Migration, authentifizierter Ablauf und Ausdruck gemeinsam zu prüfen.
 
+## Inhaltliche Einzelprüfung der produktiven Entwürfe
+
+Die Prüfung vom 17.11.2026 bezieht sich auf die jeweils jüngste produktive Fassung aller 450 Kennungen. Der Vergleich von Schlüssel, Version und vollständiger Definition ergab 450 Übereinstimmungen. Bei 232 Entwürfen gibt es konkrete Inhaltsfehler, bei 144 Ergänzungsbedarf. 36 sind geeignete Zuordnungen für externe Originale, 28 gehören in einen gesondert zu prüfenden Fachablauf und 10 waren im geprüften Umfang plausibel.
+
+115 Vorlagen erhalten eine neue Entwurfsfassung. Unter anderem wurden Anamnese, Pflegeplanung, Medikamentenvorbereitung, tatsächliche Medikamentengabe, Leistungsnachweise, Rechnungsprüfung, Zimmerbelegung und Rückgabeprotokolle überarbeitet. Beim Beratungsnachweis nach § 37 Absatz 3 SGB XI wird das ausgefüllte GKV-/PKV-Formular als Original zugeordnet. Rechnungspositionen werden nur in erkannte Rechnungsprüftabellen eingelesen. Empfänger und Kostenträger bleiben eigene Angaben. [GKV-/PKV-Nachweisformular](https://www.gkv-spitzenverband.de/media/dokumente/pflegeversicherung/richtlinien__vereinbarungen__formulare/formulare/nachweis/20241122_Nachweis_Beratungseinsatz_Formular_37_Abs3_SGBX.pdf)
+
+Die [Inhaltsmigration](../../supabase/migrations/20261117094500_central_catalog_content_review.sql) setzt die [Versionshistorie](../../supabase/migrations/20261117080000_central_document_catalog_reviews.sql) voraus. Sie ergänzt geprüfte Folgeversionen, prüft die jeweilige Ausgangsfassung und bricht bei abweichendem Stand transaktional ab. Beim erneuten Lauf vergleicht sie bereits eingetragene Entwürfe mit der vorgesehenen Definition. Fachliche und rechtliche Freigaben der Entwürfe stehen aus.
+
 ## Rechtsquellen für die erste Ausarbeitung
 
 - **Alltagsbegleitung.** Erstattungsunterlagen nach § 45b SGB XI und Belege für den Umwandlungsanspruch nach § 45a Abs. 4 SGB XI brauchen ihren jeweiligen Leistungsbezug. Die Belege für den Entlastungsbetrag müssen die Leistungsart erkennen lassen. Regionale Anerkennung und der Jahresbericht sind für Nordrhein-Westfalen anhand der geltenden AnFöVO zu prüfen. [§ 45a SGB XI](https://www.gesetze-im-internet.de/sgb_11/__45a.html) · [§ 45b SGB XI](https://www.gesetze-im-internet.de/sgb_11/__45b.html) · [AnFöVO NRW](https://recht.nrw.de/lrgv/rechtsverordnung/19022026-anerkennungs-und-foerderungsverordnung-anfoevo/)

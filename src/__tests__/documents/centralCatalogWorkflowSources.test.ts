@@ -22,13 +22,15 @@ import { createCentralSnapshot } from '@/lib/documents/centralCatalogModel';
 
 const T = '11111111-1111-4111-8111-111111111111'; const C = '22222222-2222-4222-8222-222222222222'; const I = '33333333-3333-4333-8333-333333333333';
 const definition = (key: string) => CENTRAL_DOCUMENT_CATALOG.find((entry) => entry.key === key)!;
+const legacyInvoiceColumns = ['Datum / Zeitraum', 'Gegenstand / Maßnahme', 'Ergebnis / Menge', 'Abweichung / Hinweis', 'Zuständigkeit'];
+const reviewInvoiceColumns = ['Leistungsdatum', 'Leistungsposition', 'Menge / Einheit und Bruttobetrag', 'Rechnungsbezug', 'Prüfhinweis'];
 beforeEach(() => {
   fixture.denied.clear(); fixture.errors.clear(); fixture.queries = [];
   fixture.rows = {
     tenants: [{ id: T, name: 'Unternehmen', legal_name: 'Pflege GmbH', street: 'Parkstraße', house_number: '12', postal_code: '10115', city: 'Berlin' }],
     tenant_document_settings: [{ tenant_id: T, logo_url: '' }], tenant_addresses: [],
-    clients: [{ id: C, tenant_id: T, first_name: 'Mara', last_name: 'Muster', street: 'Weg', house_number: '4', postal_code: '10115', city: 'Berlin' }],
-    invoices: [{ id: I, tenant_id: T, client_id: C, invoice_number: 'RE-2026-1', service_period_from: '2026-10-01', service_period_to: '2026-10-31' }],
+    clients: [{ id: C, tenant_id: T, first_name: 'Mara', last_name: 'Muster', street: 'Weg', house_number: '4', postal_code: '10115', city: 'Berlin', cost_bearer: 'Pflegekasse Muster' }],
+    invoices: [{ id: I, tenant_id: T, client_id: C, invoice_number: 'RE-2026-1', service_period_from: '2026-10-01', service_period_to: '2026-10-31', recipient_name: 'Ben Muster' }],
     invoice_items: [{ tenant_id: T, invoice_id: I, service_date: '2026-10-13', description: 'Betreuung', quantity: 2, unit: 'Stunden', gross_amount: 80 }],
   };
 });
@@ -40,13 +42,44 @@ describe('trusted procedure sources and paginated archive scope', () => {
     const snapshot = createCentralSnapshot(d, result.data, 'Anna', I);
     expect(snapshot.values.f0_leistungszeitraum_und_abrechnungsgrundlage).toBe('2026-10-01 bis 2026-10-31');
     expect(snapshot.tableRows[0]).toEqual(['2026-10-13', 'Betreuung', '2 Stunden · 80,00 €', 'Rechnung RE-2026-1', '']);
+    expect(result.data.procedure?.recipientName).toBe('Ben Muster');
+    expect(result.data.payor.name).toBe('Pflegekasse Muster');
+    expect(snapshot.values.payorName).toBe('Pflegekasse Muster');
     expect(fixture.queries.filter((query) => ['invoices', 'invoice_items'].includes(query.table)).every((query) => query.filters.some(([key, value]) => key === 'tenant_id' && value === T))).toBe(true);
+  });
+  it.each([
+    { phase: 'legacy', columns: legacyInvoiceColumns },
+    { phase: 'review', columns: reviewInvoiceColumns },
+  ])('retains the $phase invoice table for a private invoice', async ({ columns }) => {
+    const d = { ...definition('csdc_abrechnung_005'), columns };
+    delete fixture.rows.clients[0].cost_bearer;
+    const result = await loadCentralContext(T, 'client', C, { roleKey: 'business_admin' }, { definition: d, invoiceId: I });
+    expect(result.ok).toBe(true); if (!result.ok) return;
+    expect(result.data.sourceRows?.[0]).toEqual(['2026-10-13', 'Betreuung', '2 Stunden · 80,00 €', 'Rechnung RE-2026-1', '']);
+    expect(result.data.procedure?.recipientName).toBe('Ben Muster');
+    expect(result.data.payor.name).toBe('');
+  });
+  it('does not read invoice data for other billing purposes or altered invoice columns', async () => {
+    const templates = [
+      { ...definition('csdc_abrechnung_001'), columns: reviewInvoiceColumns },
+      { ...definition('csdc_abrechnung_004'), columns: [...reviewInvoiceColumns].reverse() },
+      { ...definition('csdc_abrechnung_005'), columns: [...legacyInvoiceColumns, 'Zahlungsstatus'] },
+    ];
+    for (const d of templates) {
+      const result = await loadCentralContext(T, 'client', C, { roleKey: 'business_admin' }, { definition: d, invoiceId: I });
+      expect(result.ok).toBe(true); if (!result.ok) continue;
+      expect(result.data.sourceRows).toBeUndefined();
+      expect(result.data.procedure?.invoiceId).toBeUndefined();
+      expect(result.data.payor.name).toBe('Pflegekasse Muster');
+    }
+    expect(fixture.queries.some((query) => ['invoices', 'invoice_items'].includes(query.table))).toBe(false);
   });
   it('rejects foreign client invoices and permission failures before exposing their contents', async () => {
     fixture.rows.invoices[0].client_id = 'foreign-client';
     const request = { definition: definition('csdc_abrechnung_004'), invoiceId: I };
     const foreign = await loadCentralContext(T, 'client', C, { roleKey: 'business_admin' }, request);
     expect(foreign.ok).toBe(false);
+    expect(fixture.queries.some((query) => query.table === 'invoice_items')).toBe(false);
     fixture.queries = []; fixture.denied.add('office.invoices.view');
     expect((await loadCentralContext(T, 'client', C, { roleKey: 'business_admin' }, request)).ok).toBe(false);
     expect(fixture.queries.some((query) => query.table === 'invoices')).toBe(false);

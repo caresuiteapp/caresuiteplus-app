@@ -2,7 +2,8 @@ import { CENTRAL_CATALOG_GROUPS } from './centralCatalogTitles';
 import { centralDocumentSections } from './centralDocumentSections';
 import { careSuiteRelatedSections, careSuiteSoftwareContent } from './careSuiteSoftwareContent';
 import { clientLegalEdition2027 } from './clientLegalEdition2027';
-import { filterCentralDocumentDefinitions } from '@/lib/documents/centralCatalogModel';
+import { CENTRAL_CATALOG_CONTENT_REVISIONS } from './centralCatalogContentRevisions';
+import { CENTRAL_COMMON_FIELDS, filterCentralDocumentDefinitions } from '@/lib/documents/centralCatalogModel';
 import type { CentralDocumentDefinition, CentralDocumentField, CentralDocumentLayout, CentralDocumentTarget } from '@/types/documents/centralCatalog';
 
 const CATEGORY_FIELDS: Record<string, string[]> = {
@@ -126,7 +127,7 @@ export const CENTRAL_DOCUMENT_CATALOG: readonly CentralDocumentDefinition[] = CE
       || Boolean(legal2027 && /selbstständigen Medikamentenverwaltung|Nutzung von Haushaltsgeräten|Besuchs- und Kontaktvereinbarungen|Empfangsbestätigung|Kündigung und Vertragsbeendigungsbestätigung|Widerruf einer/.test(title));
     const legalFieldsOnly = legal2027 && /Datenschutzinformation|selbstständigen Medikamentenverwaltung|Nutzung von Haushaltsgeräten|Besuchs- und Kontaktvereinbarungen|Empfangsbestätigung|Kündigung und Vertragsbeendigungsbestätigung|Widerruf einer/.test(title);
     const sections = content?.sections ?? [...(replacesGeneric ? [] : centralDocumentSections(title, group.key, layout, sourceMode)), ...related];
-    return {
+    const definition = {
       key,
       categoryKey: group.key, categoryName: group.name, title, version: legal2027 ? 3 : group.key !== 'software' && (content || related.length) ? 2 : 1, ...(legal2027 ? { edition: '2027' as const } : {}), modules: group.modules,
       target, sourceMode, layout, orientation: layout === 'table' ? 'landscape' : 'portrait',
@@ -160,6 +161,16 @@ export const CENTRAL_DOCUMENT_CATALOG: readonly CentralDocumentDefinition[] = CE
           ? 'Fachlicher Vorlagenentwurf. Inhalte und Maßnahmen durch die zuständige qualifizierte Person prüfen; keine automatische medizinische Entscheidung.'
           : 'Vorlagenentwurf. Angaben und individuelle Vereinbarungen vor Verwendung prüfen.',
     } satisfies CentralDocumentDefinition;
+    const revision = CENTRAL_CATALOG_CONTENT_REVISIONS[key];
+    if (!revision) return definition;
+    const { fieldLabels, preserveEdition, ...updates } = revision;
+    const revised = { ...definition, ...updates, version: definition.version + 1 };
+    if (fieldLabels) {
+      const common = definition.fields.filter(item => CENTRAL_COMMON_FIELDS.has(item.key));
+      revised.fields = [...common, ...fieldLabels.map((label, index) => field(label, index, index === 0))];
+    }
+    if (preserveEdition === false) delete revised.edition;
+    return { ...revised, orientation: revised.layout === 'table' ? 'landscape' : 'portrait' } satisfies CentralDocumentDefinition;
   }),
 );
 
