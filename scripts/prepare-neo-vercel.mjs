@@ -89,6 +89,9 @@ export async function prepareNeoVercel(args = process.argv.slice(2)) {
   await writeFile(manifestPath, JSON.stringify(manifest, null, 2) + '\n', { mode: 0o600 });
   const selfTest = await testNeoVercelAssets(options.output, manifest);
   await writeFile(manifestPath, JSON.stringify({ ...manifest, selfTest }, null, 2) + '\n', { mode: 0o600 });
+  const { verifyNeoVercelEntrypoints } = await import('./verify-neo-vercel-entrypoints.mjs');
+  await verifyNeoVercelEntrypoints({ assetDirectory: options.output, requireReady: true, transcribe: true });
+  console.log('NEO-Endpunktstart geprüft: CommonJS-API, Zugangsprüfung und synthetische deutsche Transkription bestanden.');
   // Public build artifacts contain no user data. Lambda's runtime user may
   // differ from the build user, so private download modes are not appropriate.
   await normalizeNeoVercelPermissions(options.output, Boolean(native));

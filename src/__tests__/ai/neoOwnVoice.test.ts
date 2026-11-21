@@ -3,9 +3,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mountRobotAssistant, type RobotDependencies } from '@/ai/robot/robotAssistantDom';
 import { claimNeoMicrophone } from '@/ai/neo/neoMicrophone';
-const recording = vi.hoisted(() => ({ instances: [] as any[], factory: vi.fn() }));
+const recording = vi.hoisted(() => ({ instances: [] as any[], factory: vi.fn(), startError: undefined as Error | undefined }));
 vi.mock('@/ai/neo/neoCapture.web', () => ({ createNeoCapture: (source: unknown, callbacks: any, options: unknown) => {
-  const engine = { start: vi.fn(async () => callbacks.onStatus('listening')), cancel: vi.fn(), stop: vi.fn(), callbacks };
+  const engine = { start: vi.fn(async () => { if (recording.startError) throw recording.startError; callbacks.onStatus('listening'); }), cancel: vi.fn(), stop: vi.fn(), callbacks };
   recording.instances.push(engine); recording.factory(source, options); return engine;
 } }));
 class LocalUnavailable {
@@ -28,7 +28,7 @@ const button = () => document.querySelector<HTMLButtonElement>('.cs-robot-button
 const status = () => document.querySelector<HTMLElement>('.cs-neo-voice-status')!;
 let dispose: (() => void) | undefined, deps: RobotDependencies;
 beforeEach(() => {
-  vi.useFakeTimers(); recording.instances = []; recording.factory.mockReset(); Audio.sources = [];
+  vi.useFakeTimers(); recording.instances = []; recording.factory.mockReset(); recording.startError = undefined; Audio.sources = [];
   LocalUnavailable.instances = []; LocalUnavailable.startError = undefined; LocalUnavailable.available.mockReset().mockResolvedValue('unavailable');
   vi.stubGlobal('SpeechRecognition', LocalUnavailable); vi.stubGlobal('AudioContext', Audio);
   Object.defineProperty(window, 'isSecureContext', { configurable: true, value: true });
@@ -108,8 +108,46 @@ describe('NEO own desktop recognition', () => {
     await flush(); expect(current.abort).not.toHaveBeenCalled(); expect(button().getAttribute('aria-pressed')).toBe('true');
     expect(document.querySelector<HTMLElement>('.cs-robot')!.dataset.state).toBe('listening');
   });
-  it('does not claim an active recorder when the own service is not ready', async () => {
-    deps.ownVoice!.check = vi.fn().mockResolvedValue(false); dispose = mountRobotAssistant(deps); button().click(); await flush();
-    expect(recording.instances).toHaveLength(0); expect(button().getAttribute('aria-pressed')).toBe('false'); expect(status().textContent).toContain('local-language-unavailable');
+  it.each([
+    ['unavailable package', 'false'], ['unavailable package', 'reject'],
+    ['missing API', 'false'], ['missing API', 'reject'],
+    ['runtime failure', 'false'], ['runtime failure', 'reject'],
+    ['synchronous start failure', 'false'], ['synchronous start failure', 'reject'],
+  ] as const)('reports an own-service %s / %s failure without disguising it as a local language error', async (path, outcome) => {
+    if (path === 'missing API') { vi.stubGlobal('SpeechRecognition', undefined); vi.stubGlobal('webkitSpeechRecognition', undefined); }
+    if (path === 'runtime failure' || path === 'synchronous start failure') LocalUnavailable.available.mockResolvedValue('available');
+    if (path === 'synchronous start failure') LocalUnavailable.startError = new DOMException('Internal local engine detail', 'NotSupportedError');
+    deps.ownVoice!.check = outcome === 'false' ? vi.fn().mockResolvedValue(false) : vi.fn().mockRejectedValue(new Error('Private HTTP body: ERR_REQUIRE_ESM'));
+    dispose = mountRobotAssistant(deps); button().click(); await flush();
+    if (path === 'runtime failure') { LocalUnavailable.instances.at(-1)!.onerror({ error: 'language-not-supported' }); await flush(); }
+    expect(recording.factory).not.toHaveBeenCalled(); expect(button().getAttribute('aria-pressed')).toBe('false');
+    expect(status().textContent).toContain(outcome === 'false' ? 'eigene CareSuite-Spracherkennung ist derzeit nicht bereit' : 'Verbindung zur eigenen CareSuite-Spracherkennung ist fehlgeschlagen');
+    expect(status().textContent).not.toMatch(/local-language|language-not-supported|ERR_REQUIRE_ESM|Private HTTP|Internal local/);
+    expect(status().querySelector('button:not([hidden])')).toBeNull();
+    if (path === 'unavailable package') for (const instance of LocalUnavailable.instances) expect(instance.start).not.toHaveBeenCalled();
+  });
+  it('reports a recorder startup failure with a fixed own-service message and releases the recorder', async () => {
+    recording.startError = new Error('Private microphone detail'); dispose = mountRobotAssistant(deps); button().click(); await flush();
+    expect(recording.instances[0].cancel).toHaveBeenCalled(); expect(button().getAttribute('aria-pressed')).toBe('false');
+    expect(status().textContent).toContain('eigene CareSuite-Spracherkennung konnte das Mikrofon nicht starten');
+    expect(status().textContent).not.toMatch(/Private microphone|local-language/);
+  });
+  it.each(['false', 'reject'] as const)('keeps the current failure status when an old check later settles with %s', async oldOutcome => {
+    let finish!: (value: boolean) => void, fail!: (reason: Error) => void;
+    const previous = new Promise<boolean>((resolve, reject) => { finish = resolve; fail = reject; });
+    const check = vi.fn().mockImplementationOnce(() => previous);
+    if (oldOutcome === 'false') check.mockRejectedValue(new Error('Current connection detail')); else check.mockResolvedValue(false);
+    deps.ownVoice!.check = check;
+    dispose = mountRobotAssistant(deps); button().click(); await flush(); button().click(); button().click(); await flush();
+    const currentStatus = status().textContent;
+    expect(currentStatus).toContain(oldOutcome === 'false' ? 'Verbindung zur eigenen CareSuite-Spracherkennung ist fehlgeschlagen' : 'eigene CareSuite-Spracherkennung ist derzeit nicht bereit');
+    if (oldOutcome === 'false') finish(false); else fail(new Error('Stale connection detail'));
+    await flush(); expect(status().textContent).toBe(currentStatus); expect(recording.factory).not.toHaveBeenCalled();
+  });
+  it('retains local browser diagnostics without an own-service bridge and never requests an active recorder', async () => {
+    deps.ownVoice = undefined; dispose = mountRobotAssistant(deps); button().click(); await flush();
+    expect(status().textContent).toContain('local-language-unavailable'); expect(recording.factory).not.toHaveBeenCalled();
+    for (const instance of LocalUnavailable.instances) expect(instance.start).not.toHaveBeenCalled();
+    expect(button().getAttribute('aria-pressed')).toBe('false');
   });
 });
