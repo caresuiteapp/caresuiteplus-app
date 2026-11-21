@@ -3,6 +3,17 @@
 ## Grundsatz
 Design, Layout, Texte und Funktionen sind gleichwertige Bestandteile der Umsetzung. Eine Oberfläche wird als zusammenhängendes, vollständiges Ergebnis entwickelt; sichtbare Gestaltungsmängel werden vor der Übergabe eigenständig behoben.
 
+## Verbindlicher Seiten- und Unterseitenstandard ab 21.11.2026
+
+Der vom Nutzer freigegebene Weiß-Blau-Entwurf ist der verbindliche Grundstandard für alle künftig neu erstellten oder überarbeiteten Seiten und Unterseiten in allen Modulen. Maßgeblich sind die Regeln in [docs/page-subpage-design-standard.md](docs/page-subpage-design-standard.md).
+
+- Die vorhandene globale Kopfzeile, Navigation, Desktop-Oberfläche, Widgets und persönlichen Widget-Auswahlen bleiben erhalten. Die neue Gestaltung betrifft die geöffneten Inhaltsflächen.
+- Zwei gemeinsame Grundvorlagen verwenden: eine für Seiten/Übersichten und eine für Unterseiten/Detailansichten. Weiße Hintergründe, blaue Highlights, Typografie, Abstände, Rundungen und Interaktionsmuster sind gemeinsam.
+- Jede Seite und Unterseite fachlich individuell ausarbeiten: passende Inhalte, Aktionen, große Original-Widget-Motive und ergänzende Icons. Keine fachfremden Motive, keine pauschale Kopie derselben Klienten- oder Aktenillustration auf andere Funktionen. Die zentrale Motivzuordnung und die Regeln in `docs/widget-artwork-system.md` bleiben maßgeblich.
+- Runde Außenrahmen begrenzen den Inhalt vollständig. Scrollleisten in einem separaten inneren Scrollbereich innerhalb der Rundung führen; keine eckigen Überstände an den Fensterecken.
+- Große Motive, Akten, Dokumente, Übergänge und Hover-Rückmeldungen wie im freigegebenen Entwurf animieren. Bewegung respektiert reduzierte Bewegung und darf Bedienung, Lesen oder Speichern nicht behindern.
+- Die Vorschau ist eine Gestaltungsreferenz. In der Anwendung echte responsive Komponenten, die vorhandene Desktop-Shell, zentrale Assets und bestehende Daten-/Rechtedienste verwenden.
+
 ## Umsetzung
 - Das bestehende CareSuite-Design mit konsistenten Farben, Typografie, Abständen, Rundungen und klarer visueller Hierarchie verwenden. Neue Elemente müssen zur gesamten Oberfläche passen.
 - Breite und schmale Inhaltsbereiche von Beginn an berücksichtigen, einschließlich geöffneter Navigation, Fensterwechsel und vergrößerter Schrift.
