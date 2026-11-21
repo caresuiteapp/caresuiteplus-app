@@ -12,6 +12,7 @@ import { CARESUITE_ROBOT_LOGO } from '@/components/brand/brandassets';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { useWebStartChoiceVisible } from '@/components/brand/WebStartDestination.web';
 import { mountRobotAssistant } from './robotAssistantDom';
+import { checkNeoDesktopService, transcribeNeoDesktopAudio } from '../neo/neoGateway';
 import { createNeoSpeech } from './neoSpeech.web';
 import { neoProfileName } from './neoCommands';
 import { getNeoWeather } from './neoWeather.web';
@@ -58,6 +59,7 @@ function DesktopRobotNavigationAssistant() {
     const speech = createNeoSpeech();
     const unmount = mountRobotAssistant({
       robotUrl: robotAssetUrl(),
+      ownVoice: { check: signal => checkNeoDesktopService({ tenantId, actorId: userId }, signal), transcribe: (audio, signal) => transcribeNeoDesktopAudio({ tenantId, actorId: userId }, audio, signal) },
       canNavigate: (destination) => current.current.can(destination.permission) && current.current.hasModuleGate(destination.route.startsWith('/assist') ? 'assist' : 'office'),
       canSearchClients: () => current.current.can('office.clients.view') && current.current.hasModuleGate('office'),
       navigate: (route) => { current.current.router.push((route === '/' ? WEB_DESKTOP_ROUTE : route) as never); },

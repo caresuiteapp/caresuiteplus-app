@@ -2,6 +2,8 @@ import { makeNeoDraggable } from './neoPosition.web';
 import { createNeoConversation, type NeoConversationDependencies, type NeoResponse } from './neoConversation.web';
 import { createNeoVoiceStatus, NEO_CSS } from './neoVoiceStatus.web';
 import { checkNeoLocalRecognition, installNeoLocalRecognition, neoLocalRecognitionError, type NeoLocalRecognitionConstructor, type NeoLocalRecognitionStatus } from '../neo/neoLocalRecognition.web';
+import { createNeoCapture } from '../neo/neoCapture.web';
+import type { NeoCapture } from '../neo/neoCaptureTypes';
 import { stripNeoWake } from '../neo/neoSession';
 import { splitNeoSpeech } from './neoSpeechText';
 import { claimNeoMicrophone } from '../neo/neoMicrophone';
@@ -14,6 +16,7 @@ export type RobotDependencies = NeoConversationDependencies & {
   loadVoice: (replyId: string, signal: AbortSignal, text?: string) => Promise<ArrayBuffer>;
   prepareVoice?: () => void;
   positionKey?: string;
+  ownVoice?: { check: (signal: AbortSignal) => Promise<boolean>; transcribe: (wav: Uint8Array, signal: AbortSignal) => Promise<string> };
 };
 type RecognitionResult = { isFinal: boolean; 0: { transcript: string } };
 type Recognition = {
@@ -53,6 +56,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
   let restartTimer: ReturnType<typeof setTimeout> | undefined;
   let deadline = 0, emptyRestarts = 0, dialogueUntil = 0;
   let releaseMicrophone: (() => void) | undefined;
+  let ownCapture: NeoCapture | null = null, ownSetup: AbortController | null = null, ownMode = false, ownVerified = false;
   let localReady = false, localCheck: AbortController | null = null, localInstall: AbortController | null = null;
   const status = createNeoVoiceStatus();
   const positionStatus = () => {
@@ -80,7 +84,8 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
   };
   const stopCapture = () => {
     clearTimeout(captureTimer); clearTimeout(commitTimer); clearTimeout(restartTimer);
-    localCheck?.abort(); localCheck = null;
+    localCheck?.abort(); localCheck = null; ownSetup?.abort(); ownSetup = null;
+    const previousOwn = ownCapture; ownCapture = null; previousOwn?.cancel();
     const previous = recognition; recognition = null;
     if (previous) { previous.onstart = previous.onend = previous.onerror = previous.onresult = null; try { previous.abort(); } catch { /* already stopped */ } }
   };
@@ -89,7 +94,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
     const finish = finishPlayback; finishPlayback = null; finish?.();
   };
   const cancelTurn = () => { generation++; turn?.abort(); turn = null; stopCapture(); stopAudio(); };
-  const stopSession = (message: string) => { releaseMicrophone?.(); releaseMicrophone = undefined; voiceMode = false; dialogueUntil = 0; localReady = false; localInstall?.abort(); localInstall = null; cancelTurn(); setState('ready', message); };
+  const stopSession = (message: string) => { releaseMicrophone?.(); releaseMicrophone = undefined; voiceMode = false; dialogueUntil = 0; localReady = false; ownMode = false; ownVerified = false; localInstall?.abort(); localInstall = null; cancelTurn(); setState('ready', message); };
   const unlockAudio = () => {
     try {
       const Constructor = window.AudioContext ?? (window as SpeechWindow).webkitAudioContext;
@@ -220,16 +225,53 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
     } catch { if (!destroyed && !request.signal.aborted && serial === generation) setState('error', 'Die Sprachpaketvorbereitung konnte nicht abgeschlossen werden.'); }
     finally { if (localInstall === request) localInstall = null; }
   };
+  const startOwnCapture = async (): Promise<'started' | 'unavailable' | 'cancelled'> => {
+    if (!deps.ownVoice) return 'unavailable';
+    if (!voiceMode || destroyed || document.hidden) return 'cancelled';
+    stopCapture(); const request = new AbortController(), serial = generation; ownSetup = request;
+    let engine: NeoCapture | null = null;
+    setState('checking', 'Die eigene CareSuite-Spracherkennung wird vorbereitet …');
+    try {
+      const ready = ownVerified || await deps.ownVoice.check(request.signal);
+      if (request.signal.aborted || serial !== generation || !voiceMode || destroyed || document.hidden) return 'cancelled';
+      if (!ready) return 'unavailable';
+      ownVerified = true; ownMode = true; ownSetup = null;
+      engine = createNeoCapture('own', {
+        transcribe: (audio, signal) => deps.ownVoice!.transcribe(audio, signal),
+        onText: text => {
+          if (ownCapture !== engine || !voiceMode || destroyed) return;
+          if (stripNeoWake(text) === null && Date.now() >= dialogueUntil) return;
+          void submit(text);
+        },
+        onStatus: state => {
+          if (ownCapture !== engine || !voiceMode || destroyed) return;
+          if (state === 'processing') setState('thinking', 'NEO verarbeitet den Sprachabschnitt …');
+          else if (state === 'listening') setState('listening', Date.now() < dialogueUntil ? 'Ich höre zu. Eigene CareSuite-Spracherkennung.' : 'NEO hört still zu. Sage „NEO“. Eigene CareSuite-Spracherkennung.');
+        },
+        onError: message => { if (ownCapture === engine && voiceMode && !destroyed) { stopSession('Mikrofon aus.'); setState('error', message); } },
+      }, { manageMicrophone: false });
+      ownCapture = engine; await engine.start();
+      if (request.signal.aborted || serial !== generation || ownCapture !== engine || !voiceMode || destroyed || document.hidden) { engine.cancel(); return 'cancelled'; }
+      return 'started';
+    } catch {
+      if (request.signal.aborted || serial !== generation || (engine && ownCapture !== engine) || !voiceMode || destroyed || document.hidden) return 'cancelled';
+      ownVerified = false; return 'unavailable';
+    }
+    finally { if (ownSetup === request) ownSetup = null; }
+  };
   const startCapture = async () => {
     if (destroyed || !voiceMode || document.hidden) return;
+    const serial = generation;
     if (Date.now() >= dialogueUntil) dialogueUntil = 0;
     deadline = Date.now() + 35000;
+    if (ownMode) { if (await startOwnCapture() === 'unavailable' && serial === generation && voiceMode && !destroyed) { stopSession('Mikrofon aus.'); setState('error', 'Die eigene Spracherkennung konnte nicht gestartet werden. Bitte Mikrofonfreigabe und Verbindung prüfen.'); } return; }
     stopCapture();
     const Constructor = (window as SpeechWindow).SpeechRecognition ?? (window as SpeechWindow).webkitSpeechRecognition;
-    if (!Constructor || !window.isSecureContext) {
-      voiceMode = false; setState('error', 'Spracherkennung ist hier nicht verfügbar. Öffne CareSuite in einem Browser mit Sprachunterstützung.'); return;
+    if (!window.isSecureContext) {
+      stopSession('Mikrofon aus.'); setState('error', 'Spracherkennung ist hier nicht verfügbar. Öffne CareSuite in einem Browser mit Sprachunterstützung.'); return;
     }
     try {
+      if (!Constructor) { if (await startOwnCapture() !== 'unavailable' || serial !== generation || !voiceMode || destroyed) return; stopSession('Mikrofon aus.'); setState('error', deps.ownVoice ? 'Die eigene Spracherkennung ist noch nicht erreichbar.' : 'Die lokale Sprachunterstützung ist hier nicht verfügbar.'); return; }
       const instance = new Constructor(); recognition = instance;
       instance.lang = 'de-DE'; instance.continuous = true; instance.interimResults = true; instance.maxAlternatives = 1;
       if (!localReady) {
@@ -237,7 +279,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
         const result = await checkNeoLocalRecognition(Constructor, request.signal, instance);
         if (destroyed || request.signal.aborted || recognition !== instance || !voiceMode || document.hidden) return;
         localCheck = null;
-        if (!result.canStart) { stopSession('Mikrofon aus.'); showLocalStatus(result, Constructor); return; }
+        if (!result.canStart) { if (await startOwnCapture() !== 'unavailable' || serial !== generation || !voiceMode || destroyed) return; stopSession('Mikrofon aus.'); showLocalStatus(result, Constructor); return; }
         localReady = true;
       }
       instance.processLocally = true;
@@ -269,15 +311,20 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
         if (recognition !== instance) return;
         if (event.error === 'no-speech') { if (finalText) commit(); else retry(); return; }
         const issue = neoLocalRecognitionError(event.error);
-        stopSession('Mikrofon aus.'); setState('error', `${issue.message} [${issue.code}]`);
-        if (issue.recovery === 'install' || issue.recovery === 'retry') status.action('Sprachpaketstatus prüfen', () => void prepareLocal(Constructor, false));
-        positionStatus();
+        const report = () => { stopSession('Mikrofon aus.'); setState('error', `${issue.message} [${issue.code}]`); if (issue.recovery === 'install' || issue.recovery === 'retry') status.action('Sprachpaketstatus prüfen', () => void prepareLocal(Constructor, false)); positionStatus(); };
+        if (deps.ownVoice && !['not-allowed', 'audio-capture'].includes(event.error)) { stopCapture(); void startOwnCapture().then(started => { if (started === 'unavailable' && serial === generation && voiceMode && !destroyed) report(); }); }
+        else report();
       };
       instance.onend = () => { if (recognition === instance) { if (finalText && !interimText) commit(); else retry(); } };
       setState('listening', 'Das Mikrofon startet.');
       captureTimer = setTimeout(() => { if (recognition === instance) { if (finalText && !interimText) commit(); else pauseForSilence(); } }, Math.max(0, deadline - Date.now()));
       instance.start();
-    } catch (error) { if (!voiceMode || destroyed) return; stopSession('Mikrofon aus.'); const issue = neoLocalRecognitionError(error instanceof DOMException && error.name === 'NotAllowedError' ? 'not-allowed' : 'unknown'); setState('error', issue.message + ' [' + issue.code + ']'); }
+    } catch (error) {
+      if (serial !== generation || !voiceMode || destroyed) return;
+      const microphoneBlocked = error instanceof DOMException && ['NotAllowedError', 'SecurityError', 'NotFoundError', 'NotReadableError'].includes(error.name);
+      if (deps.ownVoice && !microphoneBlocked && (await startOwnCapture() !== 'unavailable' || serial !== generation || !voiceMode || destroyed)) return;
+      stopSession('Mikrofon aus.'); const issue = neoLocalRecognitionError(error instanceof DOMException && error.name === 'NotAllowedError' ? 'not-allowed' : 'unknown'); setState('error', issue.message + ' [' + issue.code + ']');
+    }
   };
   const startVoice = () => {
     releaseMicrophone = claimNeoMicrophone(() => stopSession('Sprachbegleitung aktiv. Gespräch pausiert.'));

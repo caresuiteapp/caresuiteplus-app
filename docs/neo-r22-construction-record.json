@@ -1,0 +1,823 @@
+{
+  "product": "CareSuite HealthOS NEO R2.2",
+  "recordedAt": "2026-11-21T08:17:19.571557+01:00",
+  "baselineCommit": "5c29010fb53d83b4d0899064acee707f70c23658",
+  "technicalProblem": "Missing German on-device browser speech model blocked NEO desktop microphone use.",
+  "execution": "Verified native inference with owned WASM fallback, hosted only on Vercel; live user/tenant authorization on Supabase.",
+  "infrastructure": [
+    "Vercel",
+    "Supabase"
+  ],
+  "appliedBackendMigration": "20261121065922_neo_desktop_voice_authorization.sql",
+  "sourcePolicy": "UTF-8, CRLF and CR normalized to LF before SHA-256. Archive hashes cover unchanged bytes.",
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256CanonicalLF": "5da5a29b095280044a60206fa8a1c8efb2613c638248e0578b24f15f7a282bd9"
+    },
+    {
+      "path": "api/_lib/neo-assets/README.md",
+      "sha256CanonicalLF": "0d2d7cede86062990633a59ad48d45f2a1e97425f491502da8ca90e79bf5d76b"
+    },
+    {
+      "path": "api/_lib/neo-readiness-fixture.json",
+      "sha256CanonicalLF": "98aed8e931608934ed4082966f68f44e31054f91ceff886211e2c4c764fc2177"
+    },
+    {
+      "path": "api/_lib/neo-vercel-engine.d.mts",
+      "sha256CanonicalLF": "1856a3b26f4abe442b0e5ac524d1cb1d955a9167e58c5ff5238d2448e0a7258f"
+    },
+    {
+      "path": "api/_lib/neo-vercel-engine.mjs",
+      "sha256CanonicalLF": "0743169997da1d83d21a7954b41c7f038aa23218d55060405b85b3c0ae1878e4"
+    },
+    {
+      "path": "api/_lib/neo-vercel-handler.ts",
+      "sha256CanonicalLF": "36053e0953897a790d02354e92b3fef22315c653d75e93c540917e1c5f44e46d"
+    },
+    {
+      "path": "api/_lib/neo-wasm-runtime.cjs",
+      "sha256CanonicalLF": "2c1b6edbfbb0dea387e554c0a87438b2134e04374e9aa5ed04088e9dbc2d7043"
+    },
+    {
+      "path": "api/_lib/neo-wasm-worker.cjs",
+      "sha256CanonicalLF": "c2207986bc9af86f0a5d42ce404e0bd24242a035f1979c2c01b1dcc0aca67a79"
+    },
+    {
+      "path": "api/neo/status.ts",
+      "sha256CanonicalLF": "88049c40ec08e61881113a7b610a3eabf7bcda240ba69c72348a5e70b9a94004"
+    },
+    {
+      "path": "api/neo/transcribe.ts",
+      "sha256CanonicalLF": "4552fe15e76d7ccc8bb05719e4d6b91d80e5674e407e174fbba674384e016b0b"
+    },
+    {
+      "path": "docs/native-workspace-source-map.json",
+      "sha256CanonicalLF": "a8d278aa20a50db1e953d24bcf626e13295dff058b759abecb71c748dc267ce9"
+    },
+    {
+      "path": "docs/neo-r1.md",
+      "sha256CanonicalLF": "8d39da47f2161ed9ec5dfb58595b464f87f3bb7cd704269548af0ef872e01c01"
+    },
+    {
+      "path": "docs/neo-r2-construction.md",
+      "sha256CanonicalLF": "42a0cc5754bb1b46d9ec54b9004483a07066b231e5d5bbb65849bccb6182052b"
+    },
+    {
+      "path": "docs/neo-r2-invention-record.json",
+      "sha256CanonicalLF": "794cdcfeb25731a8af5d05e39325487acccc35f65f255c7a95eab499d7552805"
+    },
+    {
+      "path": "docs/neo-r2-market-research.md",
+      "sha256CanonicalLF": "d0f8614aa53f6ff2ecf53ff032c599d82d86b85c0fb82a19431cc42538c8204b"
+    },
+    {
+      "path": "docs/neo-r2.md",
+      "sha256CanonicalLF": "a94339c84f9a0acd6de50ef1a9b7670908b9cd269d6f0b9ae3e7df4f528906f0"
+    },
+    {
+      "path": "docs/neo-r21-browser.md",
+      "sha256CanonicalLF": "c84c3151ebfbadc201e9ff7d8e4c8a51600af5ec50208db3d00142000cd1898a"
+    },
+    {
+      "path": "docs/neo-r22-construction.md",
+      "sha256CanonicalLF": "6778d15ea208f797f686d849ff3ea607b7318acf80e6f7628176a9aea25eeb1a"
+    },
+    {
+      "path": "docs/neo-release.md",
+      "sha256CanonicalLF": "0e50d07287eca4040a1aea5ed64816bb87fb775c7affe025e3d3158fcbba387e"
+    },
+    {
+      "path": "neo-service/runtime.mjs",
+      "sha256CanonicalLF": "bc17a846653c109a03ff217b73c6060ffb9dfc6b38fd26415f02521c717880a0"
+    },
+    {
+      "path": "neo-service/server.mjs",
+      "sha256CanonicalLF": "d836f53dafd272fa59eb191dbfd7e79fca83e729ebe700af2e8a2d552c135915"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256CanonicalLF": "cc0261904e62c99e65ebd32a7cb6645477a1ebbb9ad275aef7e24399112b5449"
+    },
+    {
+      "path": "package.json",
+      "sha256CanonicalLF": "54ac278f6f3c48f495242f6f98b75d1e8052745d313e3e2035d079e36ba364d9"
+    },
+    {
+      "path": "public/neo-voice/v1/neo-worker.js",
+      "sha256CanonicalLF": "375ed50c1d5e99a6c3d8349cc94e57a9f62ecdb35bb1c23074e38d7bae72e1e3"
+    },
+    {
+      "path": "public/neo/neo-capture-processor.js",
+      "sha256CanonicalLF": "f08db2587141c111982109295a5c3e3bbb4ea9b993a963ae5e582c1d366e648d"
+    },
+    {
+      "path": "scripts/build-neo-native.mjs",
+      "sha256CanonicalLF": "a075fc98df2b2b5526e553c389738e05b47352584341c1ceecce1fa65c22476d"
+    },
+    {
+      "path": "scripts/build-neo-service.mjs",
+      "sha256CanonicalLF": "bbbd8055d8f343bfeaeb703d4842126eca563478ffadadde949f506b56821731"
+    },
+    {
+      "path": "scripts/native-source-adaptations.mjs",
+      "sha256CanonicalLF": "b07fcc3df99e806e4173d1873a240b09e78f7f0405ffa7774d174f5fd6a6f9b9"
+    },
+    {
+      "path": "scripts/neo-gitbash-installer.template.sh",
+      "sha256CanonicalLF": "e223ab3fccca252fa124969fa2626232cc852713f0221fd67f19038ec1ba334a"
+    },
+    {
+      "path": "scripts/port-native-workspaces.mjs",
+      "sha256CanonicalLF": "0a5a15164d04e93584c70eaf667d16b7869530537f66cf76fd22e6513b6dc2a5"
+    },
+    {
+      "path": "scripts/prepare-neo-local.mjs",
+      "sha256CanonicalLF": "d3afa856932a3ae1af43636968b5f0b58d379f7e82c6647d64426e5673c9995b"
+    },
+    {
+      "path": "scripts/prepare-neo-vercel.mjs",
+      "sha256CanonicalLF": "0ac4ea94f74d57adca32330d8da4112dd80f63077b56230ca9753081f8ebfa5d"
+    },
+    {
+      "path": "scripts/publish-neo.mjs",
+      "sha256CanonicalLF": "4700b9b772401c42103a3762c70a02824cabbcf400b5f8972d1ea557ae429f7a"
+    },
+    {
+      "path": "scripts/record-neo-construction.mjs",
+      "sha256CanonicalLF": "1d9d026fb3cad50ff84030f8925254a7d382fcb38df04d569e991af9903db3a1"
+    },
+    {
+      "path": "scripts/start-neo-local.mjs",
+      "sha256CanonicalLF": "150759714d3b7b7570df4c7b175f9325ac5909862ff3b8822af7966c4b919c9a"
+    },
+    {
+      "path": "scripts/verify-neo.mjs",
+      "sha256CanonicalLF": "1afbe221455a831df9479c5543a24d33e361141b967f48da3af534e59bdd549e"
+    },
+    {
+      "path": "src/__tests__/ai/neoActionService.test.ts",
+      "sha256CanonicalLF": "a796008f34db5d6eac4053907b1411ff6b2f4d8a603600d6148e49fda200af93"
+    },
+    {
+      "path": "src/__tests__/ai/neoActionSql.test.ts",
+      "sha256CanonicalLF": "12ccdfc052fa473b5dd991dbf67d666cf674c1d9a710364538b844de29afae50"
+    },
+    {
+      "path": "src/__tests__/ai/neoActions.test.ts",
+      "sha256CanonicalLF": "de64ef66e396fac5279f04cf52b6c321be7a70efb71f14809ae586dd58972447"
+    },
+    {
+      "path": "src/__tests__/ai/neoActionsPanel.test.tsx",
+      "sha256CanonicalLF": "7d103fafdd89703dd8a2c2d01fa024119503b5d2a161f08f5f29364124539e26"
+    },
+    {
+      "path": "src/__tests__/ai/neoAudio.test.ts",
+      "sha256CanonicalLF": "267d280fd95ca7d42d43dc626a2018b1c8053e7f4de458deeb6b2058e0a95671"
+    },
+    {
+      "path": "src/__tests__/ai/neoCapture.test.ts",
+      "sha256CanonicalLF": "26fa725ea57123df7c50bfebc0d1933aea7f32977d99c11d525cd95ea594be25"
+    },
+    {
+      "path": "src/__tests__/ai/neoCaptureNative.test.ts",
+      "sha256CanonicalLF": "8945028aa7d2f678394715996d6bbe3fb9c6356a43b5f8f940aad2eaab299fb2"
+    },
+    {
+      "path": "src/__tests__/ai/neoConversation.test.ts",
+      "sha256CanonicalLF": "f3e928958aa06ac46aae24bbad5cf84f2e87ec29b885f2676c74c794a89370c4"
+    },
+    {
+      "path": "src/__tests__/ai/neoDesktopVoiceSql.test.ts",
+      "sha256CanonicalLF": "ca4901a684d36d32045010c557135113aef41c051485898cc7ece49f9a27bf77"
+    },
+    {
+      "path": "src/__tests__/ai/neoDialogueInteraction.test.ts",
+      "sha256CanonicalLF": "f065006b3cd698f467ea3be8332c31b1157be31767823a1bf5e29f9f7c8ceded"
+    },
+    {
+      "path": "src/__tests__/ai/neoDocumentationPanel.test.tsx",
+      "sha256CanonicalLF": "cf9271fd5dbc58467e3d2cf1a2696bcfe0885a6cca31f8c2f12c42816573682c"
+    },
+    {
+      "path": "src/__tests__/ai/neoDomain.test.ts",
+      "sha256CanonicalLF": "62aa5113a9aa42a5d538d5e1d20c62578486e021d71b464bfe28b4106c8240c7"
+    },
+    {
+      "path": "src/__tests__/ai/neoGateway.test.ts",
+      "sha256CanonicalLF": "8064e32099e84ee1bf53db1638a3805b1ed3ca37438d0fab9ab56e394c7f730d"
+    },
+    {
+      "path": "src/__tests__/ai/neoGatewayClient.test.ts",
+      "sha256CanonicalLF": "b16ea62bfb68dc3230680874e9b0f37c93984c92d3178fb705e8a4c06a53dc71"
+    },
+    {
+      "path": "src/__tests__/ai/neoLocalRecognition.test.ts",
+      "sha256CanonicalLF": "479acc9cf17d71649a2cc9c11630011a576e73d61f1477f39d8c2c9333e800ef"
+    },
+    {
+      "path": "src/__tests__/ai/neoNativeBuild.test.ts",
+      "sha256CanonicalLF": "ce0e4c748f4ca5dd33a6c1a11d296a016cdbea66f38fce59ab332bd67dad08f9"
+    },
+    {
+      "path": "src/__tests__/ai/neoNativeInteraction.test.tsx",
+      "sha256CanonicalLF": "555b7a5982f0019bf2b0535ff0be93ed3e33d48fbba92a1d87286ecb806cd330"
+    },
+    {
+      "path": "src/__tests__/ai/neoNativeLineEndings.test.ts",
+      "sha256CanonicalLF": "af8cbfcc36bdd3ae2e3a139b3131f9d388437a459801fe13471412ef15903986"
+    },
+    {
+      "path": "src/__tests__/ai/neoOwnVoice.test.ts",
+      "sha256CanonicalLF": "000112bce074a4fb6a4c844d7b9218391e4e2abf9995fdebe79057323f3526d0"
+    },
+    {
+      "path": "src/__tests__/ai/neoPublish.test.ts",
+      "sha256CanonicalLF": "949454c5ed0011576537542a176fc5780844ca202c77e25d0d2a40b6b8986327"
+    },
+    {
+      "path": "src/__tests__/ai/neoService.test.ts",
+      "sha256CanonicalLF": "f2a97931506e445ac1df534bda995eed6e58a20e7e14151de1886423f7316fc1"
+    },
+    {
+      "path": "src/__tests__/ai/neoSession.test.ts",
+      "sha256CanonicalLF": "38bd79820aec852d2c1a8e1ab50aad21745f71f02e9a402448f34164da8636b2"
+    },
+    {
+      "path": "src/__tests__/ai/neoSpeechText.test.ts",
+      "sha256CanonicalLF": "bfe560e8cd14c8132a69cb64aa045a75b07069131d293c09d74c37ef042a3d6a"
+    },
+    {
+      "path": "src/__tests__/ai/neoSpeechWorker.test.ts",
+      "sha256CanonicalLF": "e993d10acd6d2fa7670979f1052093a530299820bdbfe357e4233a021596a0c8"
+    },
+    {
+      "path": "src/__tests__/ai/neoVercel.test.ts",
+      "sha256CanonicalLF": "c909b5c48a2ac381120b58d95a57027090e52d900f335bba56ce647a2cd23661"
+    },
+    {
+      "path": "src/__tests__/ai/neoVercelEngine.test.ts",
+      "sha256CanonicalLF": "13c87e1d6fc6d57e893b07b654e0258ac2b313f842c7fd5cfaf424a029924d93"
+    },
+    {
+      "path": "src/__tests__/ai/neoWork.test.ts",
+      "sha256CanonicalLF": "760c39f7bbf0c575b24da3d56b4c97f045dece8af9998b305eecc238dbceed29"
+    },
+    {
+      "path": "src/__tests__/ai/neoWorkPanel.test.tsx",
+      "sha256CanonicalLF": "8df30d0d557b462c94a257c09342acd9c57c367134a14e989ae94de83da00689"
+    },
+    {
+      "path": "src/__tests__/office/documentationWorkspace.test.tsx",
+      "sha256CanonicalLF": "09929ab1a866b76c7421f3f485d4b89509750b411ff96e1dc58bc8bcc32fc2da"
+    },
+    {
+      "path": "src/ai/neo/NeoActionsPanel.tsx",
+      "sha256CanonicalLF": "04aeaaf60f5d5078c581bb7d9c9e0b9c48bb9b18461a5ecd9659cd8a24256aa3"
+    },
+    {
+      "path": "src/ai/neo/NeoCommandRecorder.tsx",
+      "sha256CanonicalLF": "cf1800f02295008cebfa03c85492bf4242c43ff6d52d6429e417ae8d1117df93"
+    },
+    {
+      "path": "src/ai/neo/NeoDocumentationPanel.tsx",
+      "sha256CanonicalLF": "b09fae294c3f990b2e9a4b5a55721a6ad839408fb9387523a89d761f580c5082"
+    },
+    {
+      "path": "src/ai/neo/NeoWorkPanel.tsx",
+      "sha256CanonicalLF": "427b97c80668f813709d8986c8c10b32f05be0768f6da0963d801bc308fe1c74"
+    },
+    {
+      "path": "src/ai/neo/neoActionService.ts",
+      "sha256CanonicalLF": "225dd62847df4cfb153219340aaf5748f8d940fd05a99a73df10b74518e04860"
+    },
+    {
+      "path": "src/ai/neo/neoActions.ts",
+      "sha256CanonicalLF": "d6bc39aa3eac15f6da65a28ba30d0d78e2d22f72de87350e94f87c22cde02918"
+    },
+    {
+      "path": "src/ai/neo/neoAssessment.ts",
+      "sha256CanonicalLF": "a33757b041c6b36a0900263d3960a3f3033106eacf602b9bcc7a176fdc807864"
+    },
+    {
+      "path": "src/ai/neo/neoAudio.ts",
+      "sha256CanonicalLF": "c63e1655cf6a1202e1c625f16cfec579b0457a1467cbbe2ea066a60c22d91427"
+    },
+    {
+      "path": "src/ai/neo/neoCapture.native.ts",
+      "sha256CanonicalLF": "3477cfb4539a4c8fd01283e8dfb1e5ee25ad56bff8956bcad2c335c6f7498f89"
+    },
+    {
+      "path": "src/ai/neo/neoCapture.ts",
+      "sha256CanonicalLF": "32faf1b47ea2dc34bb85fa5ae315f2b63a4add143625826ab034626a472b9ce3"
+    },
+    {
+      "path": "src/ai/neo/neoCapture.web.ts",
+      "sha256CanonicalLF": "1d76f346966a8dc245473d950b3ed8e41eefc6c866b8bed2a21ac75b0898eb64"
+    },
+    {
+      "path": "src/ai/neo/neoCaptureTypes.ts",
+      "sha256CanonicalLF": "a747c64cc9c1bc58a165b3ac7a9ce1943ae282c2082e44d2f56a2742183327d2"
+    },
+    {
+      "path": "src/ai/neo/neoDomain.ts",
+      "sha256CanonicalLF": "ed235838abfec990059459ee746f406ea18d9bd1d806d891cccb97b2431a74f9"
+    },
+    {
+      "path": "src/ai/neo/neoGateway.ts",
+      "sha256CanonicalLF": "2949b20c6df641835ce1bb676cb4e7e293563606d6d06098fa0ea996e13db34e"
+    },
+    {
+      "path": "src/ai/neo/neoLocalRecognition.web.ts",
+      "sha256CanonicalLF": "cc6efd26e43bdd8dd98de5ef45cb16cd0c2d96fd56a562c4db5c6975dfdab1f3"
+    },
+    {
+      "path": "src/ai/neo/neoMicrophone.ts",
+      "sha256CanonicalLF": "7a78ee59d5edb0abceb0fd46a609549160297bc3d093c8359b3ca190e10088c4"
+    },
+    {
+      "path": "src/ai/neo/neoRecording.native.ts",
+      "sha256CanonicalLF": "91911ffdfd8c6b13fe224ba5e84133b91c4ff82760a6d59e3aded26792c75788"
+    },
+    {
+      "path": "src/ai/neo/neoRecording.ts",
+      "sha256CanonicalLF": "b6cee320188633ffd4203b28c2e51ba4260d06a82a568d5f4903138edde74946"
+    },
+    {
+      "path": "src/ai/neo/neoRecording.web.ts",
+      "sha256CanonicalLF": "6b5f8c77be64f1726727c14dc108fe79d0e8eae0ddb7c9d823e4d76a4700359d"
+    },
+    {
+      "path": "src/ai/neo/neoRecordingAudio.ts",
+      "sha256CanonicalLF": "4f41628db96ad11bf2224ff2a13d165f9583c9056eaf79bd16129bfcdda6a743"
+    },
+    {
+      "path": "src/ai/neo/neoSession.ts",
+      "sha256CanonicalLF": "60c2a177d8c15bc34738273f56563292e1675d76fae4fe516d62d0a1fe395af6"
+    },
+    {
+      "path": "src/ai/neo/neoUi.ts",
+      "sha256CanonicalLF": "9c261a6741830a6ffaec2c3d6e975229e9db7f6159541843d2fc493ef5176dd6"
+    },
+    {
+      "path": "src/ai/neo/neoWork.ts",
+      "sha256CanonicalLF": "9af618e72d1830a2ec12f2105747ff66dc2704e047468412336a053a6327491a"
+    },
+    {
+      "path": "src/ai/robot/RobotNavigationAssistant.native.tsx",
+      "sha256CanonicalLF": "666f3a3a6046a79ad541f1252cc2df4a85b487b69383cc5595b2173efd8cc778"
+    },
+    {
+      "path": "src/ai/robot/RobotNavigationAssistant.web.tsx",
+      "sha256CanonicalLF": "6c561a7c140adea7e60cd6ed705f12814f71a8cb231842141493e5792e8745c2"
+    },
+    {
+      "path": "src/ai/robot/neoConversation.native.ts",
+      "sha256CanonicalLF": "28bc1cfd77fb802e4739b2ab07972b24bdef4fc2aa5727ce5023105d107cb49c"
+    },
+    {
+      "path": "src/ai/robot/neoConversation.web.ts",
+      "sha256CanonicalLF": "45d0998fcd6091818ed723c99bef3a53294a567a73ad8e52f614afe36840ba8b"
+    },
+    {
+      "path": "src/ai/robot/neoLanguage.native.ts",
+      "sha256CanonicalLF": "b75f3ae2315a5ad50c767fc85f80a613bb1309fde8a89d7f8465edc6273ed8db"
+    },
+    {
+      "path": "src/ai/robot/neoLanguage.web.ts",
+      "sha256CanonicalLF": "d775b604f841c93cd307ca005a972fb3e5aa224b4fd7155d47c21891c3c06d2f"
+    },
+    {
+      "path": "src/ai/robot/neoSpeech.web.ts",
+      "sha256CanonicalLF": "7cb6cb41771f45ed52247a6c209eb757fde2c7d6bd2de67b4fae969568b99237"
+    },
+    {
+      "path": "src/ai/robot/neoSpeechText.ts",
+      "sha256CanonicalLF": "ab8fd1aa88defe17e7d4eacb92e340adcba517036208e58ff59e2019403114c8"
+    },
+    {
+      "path": "src/ai/robot/neoVoiceStatus.web.ts",
+      "sha256CanonicalLF": "79399034c06398f8eb378355ebe4edfe9eb6bf8bf3bec61edef5404234524167"
+    },
+    {
+      "path": "src/ai/robot/robotAssistantDom.ts",
+      "sha256CanonicalLF": "a40f96233496d46f781adcc8af62ea0a52a8738e129327fbeda2d772df37d0dd"
+    },
+    {
+      "path": "src/components/office/documentation/DocumentationWorkspace.native.tsx",
+      "sha256CanonicalLF": "e7eb5e20c5ea7df70b460926a4872e015905c81b38738d7ef7f40d8c003de5e8"
+    },
+    {
+      "path": "src/components/office/documentation/DocumentationWorkspace.web.tsx",
+      "sha256CanonicalLF": "8c1b9e30d716fef20e07a5ed7f0204ff794cbb19e0c4aeff35fcd7f40a7d7f6a"
+    },
+    {
+      "path": "src/screens/careAssessment/CareAssessmentWorkspaceScreen.native.tsx",
+      "sha256CanonicalLF": "53c4f069c677827d0e534271c2bb6934b56c8ea86285113c58a802fcd0a77669"
+    },
+    {
+      "path": "src/screens/careAssessment/CareAssessmentWorkspaceScreen.web.tsx",
+      "sha256CanonicalLF": "694aad9e1ee7de3fcd5484f7c158db1e4436e023b260c54e63e671615b793d11"
+    },
+    {
+      "path": "supabase/config.toml",
+      "sha256CanonicalLF": "4417ba3def43a6437b50d131a54b6603b9314cbe129d46c9737ee8eb3fa5a101"
+    },
+    {
+      "path": "supabase/functions/neo-assistant/handler.ts",
+      "sha256CanonicalLF": "2c5466b8cf49c612ccd9e071b371dbb6a6f2e8ae7709f08472cc7976c4271a1f"
+    },
+    {
+      "path": "supabase/functions/neo-assistant/index.ts",
+      "sha256CanonicalLF": "3037b87135ecda02583f0ce32b1a3941482d69a588a869c0e0f992c3b2637142"
+    },
+    {
+      "path": "supabase/migrations/20261121011544_neo_voice_and_appointments.sql",
+      "sha256CanonicalLF": "43c60849302dacd1ed9e7330dda404e06d8a86646210575a2b7affdf7e4b58a2"
+    },
+    {
+      "path": "supabase/migrations/20261121065922_neo_desktop_voice_authorization.sql",
+      "sha256CanonicalLF": "22123f0d2e55fb7abaf4c98a7ed7ad1089f18d37ece480f011bd1a58c79dcdcb"
+    },
+    {
+      "path": "tsconfig.neo.json",
+      "sha256CanonicalLF": "e3215b6725c58f66a9c2cb9d08c9d4a92db23d2aa303a100ab41ec3356111a0c"
+    },
+    {
+      "path": "vendor/neo-whisper/AUTHORS",
+      "sha256CanonicalLF": "09800c8c5bdf54bcfd65d869c85ea1b1756016f15798bef9e706ca390ab04f12"
+    },
+    {
+      "path": "vendor/neo-whisper/LICENSE",
+      "sha256CanonicalLF": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+    },
+    {
+      "path": "vendor/neo-whisper/NOTICE.md",
+      "sha256CanonicalLF": "1c9350aeeea5342ca5ec987d8fa1bc785352993e47425198a95143cdfa0892e2"
+    },
+    {
+      "path": "vendor/neo-whisper/examples/cli/cli.cpp",
+      "sha256CanonicalLF": "053da25f98f0684104f24afa6184592ad6fc85681f13b32f0ff68bdff3901467"
+    },
+    {
+      "path": "vendor/neo-whisper/examples/common-ggml.cpp",
+      "sha256CanonicalLF": "3dfdaaf354216e79f654e30bd788122323bde1f0c877df4401f487318fa9c0ac"
+    },
+    {
+      "path": "vendor/neo-whisper/examples/common-ggml.h",
+      "sha256CanonicalLF": "9df389379d956dfc906764da4c1b258be50a42a64412a8dc6566bcca07cbaadc"
+    },
+    {
+      "path": "vendor/neo-whisper/examples/common-whisper.cpp",
+      "sha256CanonicalLF": "fd139e5699333b7c3711492c85c9d7d5e2127a82d45a0b621e6dcbf1693b4027"
+    },
+    {
+      "path": "vendor/neo-whisper/examples/common-whisper.h",
+      "sha256CanonicalLF": "7e18046747d7043b5ccec572fbcdad141b55a1c57f21823c75c7d1d245809dff"
+    },
+    {
+      "path": "vendor/neo-whisper/examples/common.cpp",
+      "sha256CanonicalLF": "568d38cf668a74c9342533b082b387a16211bec8d0f57ceb2b4900b17b17ae58"
+    },
+    {
+      "path": "vendor/neo-whisper/examples/common.h",
+      "sha256CanonicalLF": "4fc9e7e15b9e60fcbb1401a89e045af2f7760b5a9b871cfebce7a602a468442d"
+    },
+    {
+      "path": "vendor/neo-whisper/examples/grammar-parser.cpp",
+      "sha256CanonicalLF": "1e1c341bf52b26193c685a39475dab07ef939e8d6b94950d8cc555256a6b6bb0"
+    },
+    {
+      "path": "vendor/neo-whisper/examples/grammar-parser.h",
+      "sha256CanonicalLF": "03c32fbc4ba7e2f56a9227a8f5b6a33dc90ced6975c71624d6bf23a538c7e294"
+    },
+    {
+      "path": "vendor/neo-whisper/examples/miniaudio.h",
+      "sha256CanonicalLF": "c029554572ae71a94b7825ef1ab9bd7e646344a79e2e852a03f8b18e428c1443"
+    },
+    {
+      "path": "vendor/neo-whisper/examples/stb_vorbis.c",
+      "sha256CanonicalLF": "4c7cb2ff1f7011e9d67950446b7eb9ca044f2e464d76bfbb0b84dd2e23e65636"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/include/ggml-alloc.h",
+      "sha256CanonicalLF": "3793a2175be355619cc426982706b7fa94ad801b66d2aeef4b95e68c434ba0ef"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/include/ggml-backend.h",
+      "sha256CanonicalLF": "f7f511270a8260859146e87544f64ef97f80e98bff179ae3ab02ca27cf7299c7"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/include/ggml-cpp.h",
+      "sha256CanonicalLF": "bc15ba002c68685df23faae42df0d2b3d58032011f88b649021ab92485862c72"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/include/ggml-cpu.h",
+      "sha256CanonicalLF": "1aafe97e576ea38c0da57517fb2492955d0b69c1a799842481fc069d6d9d28ef"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/include/ggml-opt.h",
+      "sha256CanonicalLF": "3586de1bc8a934b5c72339e2b6937b0641e8f149b512231e666f67de0736eea2"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/include/ggml.h",
+      "sha256CanonicalLF": "6fcc3c4efd5c3747b66281a800f1dd9b7d0d61182faa9bc731925bfdf0586b22"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/include/gguf.h",
+      "sha256CanonicalLF": "d2eec8b938aa04ccec9bc4ce8a6a6dcf70d942c37d2bb3113e426d9307d51385"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-alloc.c",
+      "sha256CanonicalLF": "cf64bfbdb6b6ec94d533dadad0767f11076dff01f6d56ea1605a2280f8e90607"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-backend-dl.cpp",
+      "sha256CanonicalLF": "acd76df8b83bcdef6807bc7b0520f57b379d61b4ff1027c04aa4d140d16ad07f"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-backend-dl.h",
+      "sha256CanonicalLF": "225bd83a197c4e8b5f985717176824d1144e2b74a79f04838f51b84115c14dc5"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-backend-impl.h",
+      "sha256CanonicalLF": "470f4ede95a1a66edb7259981c1e8c98e2827de765323fe1672badf8f99f4546"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-backend-reg.cpp",
+      "sha256CanonicalLF": "eca86dde2743573487e91722bbb2e1b7501dff40a0c8e26114cf3ad6bb5d7f12"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-backend.cpp",
+      "sha256CanonicalLF": "20e449bd92cec4c0c16ab91dc103ee6871ac6c45f22fd70f1d43bca33f171500"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-common.h",
+      "sha256CanonicalLF": "8f159b3b0157cbcd53532c34bd100aee33a8df0851d98ee3bc682dca0469b892"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/amx/amx.cpp",
+      "sha256CanonicalLF": "4e47812340707999d98685d4e83dd5576b417be550bcbcd4a62ebec843e27d9b"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/amx/amx.h",
+      "sha256CanonicalLF": "9d098ceee6a8114d4a660ff269064a27aa25b8a4f205d1e6984d17bec5104f0d"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/amx/common.h",
+      "sha256CanonicalLF": "c694f6bb066a820b717f986914b0d112dca0d8d3a1e239e958fce30c864751c3"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/amx/mmq.cpp",
+      "sha256CanonicalLF": "b6f71742c4124dfc7c6162773983611dae4efbfd7edcdb0082deae6317cc5b9c"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/amx/mmq.h",
+      "sha256CanonicalLF": "bd33d0713b12daf9eedea1619dd715619baaa36b98c44ec754d532909d80933a"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/arch-fallback.h",
+      "sha256CanonicalLF": "e8a83875d1ac2c45df75f69495f6371124740af5ae779c237874f5105657f985"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/arch/x86/quants.c",
+      "sha256CanonicalLF": "47ea6aea35e6b188411457061037017efb21c3b25fc469c94a1a84682c25b46c"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/arch/x86/repack.cpp",
+      "sha256CanonicalLF": "753a8a02f4dd4252d39ccc62df594cd4380ebdc844b1bce7176393030d9568d9"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/binary-ops.cpp",
+      "sha256CanonicalLF": "2df261aadce36a20f5e3bf6961d4ca27b8c2d461afc41488361ee6ad09c1730d"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/binary-ops.h",
+      "sha256CanonicalLF": "5915519c4e2227db28239b2a5d3b8a5f9022730cc0ddb7880b24748ee78cd1f9"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/common.h",
+      "sha256CanonicalLF": "db7c19747a28c819d18922aa43b91b224df3730e424e6d8a4cf4fd16bfb1db14"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/ggml-cpu-impl.h",
+      "sha256CanonicalLF": "269531483bca65f65d4dee3d6cb9281950e82303be160e108a0d905be463844d"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/ggml-cpu.c",
+      "sha256CanonicalLF": "eab1061c077773f62f46c9a6008071d12d374cbb124b594feaa2fe4e8363ec4b"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/ggml-cpu.cpp",
+      "sha256CanonicalLF": "d4f9df9252f75a96e3dbecae499f0bc1737881e8c0cfb897788345a284573834"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/hbm.cpp",
+      "sha256CanonicalLF": "3c75b5aaf9b51d17060ecfb93cb5f8b22ce3974d7eff3d76dec2156d2f194b80"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/ops.cpp",
+      "sha256CanonicalLF": "93d75199e955f732c7fb06000719c8ff7298783b00ae584629caf68f9a6754ad"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/ops.h",
+      "sha256CanonicalLF": "bdf88f0b30756adc0f428f08e1ec48a294425e8fd58c5496cb759ecb5c6e267d"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/quants.c",
+      "sha256CanonicalLF": "bbc272e46131e815cd7031d90e191bce94bcd1baeb527722c860722104572dc7"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/quants.h",
+      "sha256CanonicalLF": "7745a557afa867be25b24756d808b4226a1fc77afb84fd9609cce63e05d64f8b"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/repack.cpp",
+      "sha256CanonicalLF": "00437f51e2b6dafd91c7a42f31bb36d02e0a23afa02bbab202127349167c2b32"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/repack.h",
+      "sha256CanonicalLF": "fe472315b4106400d7890fca308659c74bcdedad1b011a9ba60c02dcd5bef57b"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/simd-gemm.h",
+      "sha256CanonicalLF": "b9b3dd2a3d59051521d0e45973f90fb14788662761041e4298a7e4e561f4755f"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/simd-mappings.h",
+      "sha256CanonicalLF": "584a4b2cd7d47adecc13a9bc5e416a37dc30ca6af07552f3ef358d8bc90f0960"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/traits.cpp",
+      "sha256CanonicalLF": "a85bd3ff50c91cb67d14221988544664dfe5975db0811b330dc4a2f385239de4"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/traits.h",
+      "sha256CanonicalLF": "26e1b41879091a663325848aa82a4023b459fd1e688b3b0e2a9bde3e72a3a764"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/unary-ops.cpp",
+      "sha256CanonicalLF": "e63b382766f1b8c5ded1577be9704e85cb4e9cd24584f3e1474911a40146df33"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/unary-ops.h",
+      "sha256CanonicalLF": "280b7979055079d43bdde7790a7290bf04f75640481c59abc2364c46d6ac6d8e"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/vec.cpp",
+      "sha256CanonicalLF": "c47ec8383b459978f8e639c140a3f916c549ec0b93fd9bca1dedd53f43716db3"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-cpu/vec.h",
+      "sha256CanonicalLF": "b44a2e6955f3580c93395b492aea8a3f876fc5bd3dba7ac2bbd336704e3e73e6"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-impl.h",
+      "sha256CanonicalLF": "b29afad108fc3c71c9401d6066ae4807c6d44d34e7ff900597c17aa477d62ccb"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-opt.cpp",
+      "sha256CanonicalLF": "224300292d24e77ac4b1a56d7e376d33248163a5b7757f7e21ad13c0b4ec5786"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-quants.c",
+      "sha256CanonicalLF": "0c75790b68fa83c4cb972648031f0f6e0847f219a60ce3ee88ca5853c5e441f8"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-quants.h",
+      "sha256CanonicalLF": "0a96ceca6268153996b85929d8177bb98ed5fb798fdc23d744059572748e1525"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-threading.cpp",
+      "sha256CanonicalLF": "13a18d885393722b7c9f42d4cf8575a4d41699926d656f78a867fa4fac9dad20"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml-threading.h",
+      "sha256CanonicalLF": "9652729043ed91482392c1aa08af5d813190d0ace2e7982d2539d28240ab8d8b"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml.c",
+      "sha256CanonicalLF": "e424b03509d97532ec77e51cfd5c58ee7e8c08cab483c3d71fdd7405b0a812f3"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/ggml.cpp",
+      "sha256CanonicalLF": "64e6b5c8d716ae8697e45481a7153540be01f721be2dc7e753aa47b36a69c753"
+    },
+    {
+      "path": "vendor/neo-whisper/ggml/src/gguf.cpp",
+      "sha256CanonicalLF": "44f787ce515e81536d03beec8876e5e868ca3c028ee9be6847d93e41dab46936"
+    },
+    {
+      "path": "vendor/neo-whisper/include/whisper.h",
+      "sha256CanonicalLF": "0525b758571ab71c00ddd8ea2845f74af7c62dfa5100c5586655f75bdc5ef4be"
+    },
+    {
+      "path": "vendor/neo-whisper/source-manifest.json",
+      "sha256CanonicalLF": "d0a61b928a41d045b07fcf3d97c653927171220ad7441624186c090ccba96984"
+    },
+    {
+      "path": "vendor/neo-whisper/src/whisper-arch.h",
+      "sha256CanonicalLF": "f35cf51d54c4df7e1c504ba8ef3f06012ba483459ddf2a5cba533deb7b85c239"
+    },
+    {
+      "path": "vendor/neo-whisper/src/whisper.cpp",
+      "sha256CanonicalLF": "2f88ee9338aa259aacb4525b53f70ec698e0b7a8bf221f8a97a886d25919c61d"
+    },
+    {
+      "path": "vercel.json",
+      "sha256CanonicalLF": "7fe58dfefd64ec51d02db6ed24110ed010fc0c11d047e879a4592cb992ecf5fb"
+    }
+  ],
+  "thirdPartyComponents": {
+    "native": {
+      "name": "whisper.cpp",
+      "version": "v1.8.4",
+      "commit": "9386f239401074690479731c1e41683fbbeac557",
+      "sourceManifestSHA256CanonicalLF": "d0a61b928a41d045b07fcf3d97c653927171220ad7441624186c090ccba96984"
+    },
+    "model": {
+      "file": "ggml-base-q5_1.bin",
+      "size": 59707625,
+      "sha256": "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898"
+    },
+    "portableRuntime": {
+      "file": "whisper-main.js",
+      "size": 1770371,
+      "sha256": "9ef5bf71b5010dc28fe52dee39bcf10029af58f3e0f1fea2b0987efdacea276a",
+      "origin": "https://ggml.ai/whisper.cpp/main.js",
+      "sameCommitAsNativeEstablished": false
+    }
+  },
+  "checks": {
+    "neoVerification": {
+      "passed": true,
+      "suites": 37,
+      "tests": 510,
+      "logSHA256": "a191970809dbbf5a043fb95878f82c8822d6bdf7be00b40099c9bd1355c3334a"
+    },
+    "sourceBuildAndSyntheticInference": {
+      "passed": true,
+      "synthetic": true,
+      "audioSeconds": 5.4223125,
+      "selfTest": {
+        "passed": true,
+        "synthetic": true,
+        "fixtureSha256": "07834b6a84e35a9e8f6c803a24fbc2b4c5b0834fe8a6438024d40b4ba769fb66",
+        "modelSha256": "422f1ae452ade6f30a004d7e5c6a43195e4433bc370bf23fac9cc591f01a8898",
+        "wasmSha256": "9ef5bf71b5010dc28fe52dee39bcf10029af58f3e0f1fea2b0987efdacea276a",
+        "nativeSha256": "8f4716bea896a8312d3313a6a3d02eb609997e458a9244a9aed8a4eb73ff499f",
+        "node": "v24.22.3",
+        "checkedAt": "2026-11-21T07:15:45.091Z",
+        "checks": [
+          {
+            "backend": "native",
+            "passed": true,
+            "elapsedMs": 2173
+          },
+          {
+            "backend": "wasm",
+            "passed": true,
+            "elapsedMs": 21238
+          }
+        ]
+      },
+      "logSHA256": "b1ebc669d8dc0f116e86cbf6376ae681c36698e443fd5f7453cf03d76e9312dc"
+    },
+    "workerLifecycle": {
+      "warmModelReused": true,
+      "abortTerminatesOwnedThreads": true,
+      "idleModelAllowsNodeExit": true,
+      "nativeAbortRemovesAudio": true
+    },
+    "dependencyChanges": false,
+    "existingProductionGatesPreserved": true,
+    "vercelConfigAuditPassed": true,
+    "nativeMapping": {
+      "modules": 1183,
+      "routes": 278,
+      "stale": 0
+    },
+    "deployedRuntimeValidated": false,
+    "microphoneEndToEndValidated": false,
+    "clinicalAccuracyEstablished": false,
+    "layoutAcceptance": "Not established by happy-dom tests; no new visual acceptance claimed."
+  },
+  "contributions": {
+    "requirements": "Kevin Reinhardt",
+    "implementationMethod": "AI-assisted work in the existing CareSuite project",
+    "humanInventorDetermination": "not performed"
+  },
+  "scopeLimits": [
+    "No acoustic wake-word model claimed",
+    "No verified speaker identity or professional role inferred from voice",
+    "No full-duplex device acceptance",
+    "No signed native app release"
+  ],
+  "evidenceLimits": {
+    "trustedTimestamp": false,
+    "inventorshipEstablishedByHash": false,
+    "noveltySearchCompleted": false,
+    "patentabilityEstablished": false,
+    "patentApplicationFiled": false
+  }
+}

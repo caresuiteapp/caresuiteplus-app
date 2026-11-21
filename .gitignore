@@ -87,3 +87,7 @@ public/calendar-reader/
 /api/_lib/neo-assets/whisper-cli
 /api/_lib/neo-assets/ggml-small-q5_1.bin
 /api/_lib/neo-assets/manifest.json
+
+# Build-generated ASR runtime/model files are traced into Vercel Functions, not committed.
+/api/_lib/neo-assets/*
+!/api/_lib/neo-assets/README.md

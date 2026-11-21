@@ -1,13 +1,16 @@
-export type NeoVercelScope = { tenantId: string; actorId: string; subjectId: string; assessmentId?: string };
+export type NeoDesktopVoiceScope = { tenantId: string; actorId: string; subjectId?: never; assessmentId?: never };
+export type NeoCaseVoiceScope = { tenantId: string; actorId: string; subjectId: string; assessmentId?: string };
+export type NeoVercelScope = NeoDesktopVoiceScope | NeoCaseVoiceScope;
 export type NeoVercelRequest = { method?: string; headers: Record<string, string | string[] | undefined>; body?: unknown; aborted?: boolean; once?: (event: string, callback: () => void) => unknown; off?: (event: string, callback: () => void) => unknown };
 export type NeoVercelResponse = { status(code: number): NeoVercelResponse; setHeader(name: string, value: string): void; json(body: unknown): unknown };
-export type NeoVercelEngine = { status(): Promise<{ transcriptionReady: boolean }>; transcribe(audio: string, signal: AbortSignal): Promise<{ text: string; engine: string }> };
+export type NeoVercelEngine = { status(): Promise<{ transcriptionReady: boolean; backend?: 'native' | 'wasm' | 'unavailable' }>; transcribe(audio: string, signal: AbortSignal): Promise<{ text: string; engine: string }> };
 type Dependencies = { fetch: typeof fetch; engine: NeoVercelEngine; env: { EXPO_PUBLIC_SUPABASE_URL?: string; EXPO_PUBLIC_SUPABASE_ANON_KEY?: string; EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?: string } };
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const MAX_BODY = 700_000;
 class Failure extends Error { constructor(readonly status: number, message: string) { super(message); } }
 const row = (value: unknown): Record<string, unknown> => value && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : {};
-const scopeKey = (scope: NeoVercelScope) => JSON.stringify([scope.tenantId, scope.actorId, scope.subjectId, scope.assessmentId ?? '']);
+const isCaseScope = (scope: NeoVercelScope): scope is NeoCaseVoiceScope => typeof scope.subjectId === 'string';
+const scopeKey = (scope: NeoVercelScope) => JSON.stringify([scope.tenantId, scope.actorId, isCaseScope(scope) ? scope.subjectId : 'desktop', scope.assessmentId ?? '']);
 function parse(body: unknown, operation: 'status' | 'transcribe'): { scope: NeoVercelScope; audio?: string } {
   let input: Record<string, unknown>;
   if (typeof body === 'string' || Buffer.isBuffer(body)) {
@@ -16,7 +19,12 @@ function parse(body: unknown, operation: 'status' | 'transcribe'): { scope: NeoV
   } else input = row(body);
   if (Object.keys(input).some(key => !['scope', ...(operation === 'transcribe' ? ['audio'] : [])].includes(key))) throw new Failure(400, 'Unbekannte NEO-Anfragefelder.');
   const scope = row(input.scope);
-  if (Object.keys(scope).some(key => !['tenantId', 'actorId', 'subjectId', 'assessmentId'].includes(key)) || !['tenantId', 'actorId', 'subjectId'].every(key => typeof scope[key] === 'string' && UUID.test(scope[key] as string)) || scope.assessmentId !== undefined && (typeof scope.assessmentId !== 'string' || !UUID.test(scope.assessmentId))) throw new Failure(400, 'Der Personen- oder Unternehmensbezug fehlt.');
+  if (Object.keys(scope).some(key => !['tenantId', 'actorId', 'subjectId', 'assessmentId'].includes(key)) || !['tenantId', 'actorId'].every(key => typeof scope[key] === 'string' && UUID.test(scope[key] as string))) throw new Failure(400, 'Der Team- oder Unternehmensbezug fehlt.');
+  // Desktop input must omit both person fields entirely. A malformed case must
+  // never silently become a less specific desktop request.
+  if (Object.hasOwn(scope, 'subjectId')) {
+    if (typeof scope.subjectId !== 'string' || !UUID.test(scope.subjectId) || Object.hasOwn(scope, 'assessmentId') && (typeof scope.assessmentId !== 'string' || !UUID.test(scope.assessmentId))) throw new Failure(400, 'Der Personen- oder Assessmentbezug ist ungültig.');
+  } else if (Object.hasOwn(scope, 'assessmentId')) throw new Failure(400, 'Ein Assessment benötigt einen bestätigten Personenbezug.');
   if (operation === 'transcribe' && (typeof input.audio !== 'string' || input.audio.length > 666_668 || input.audio.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(input.audio))) throw new Failure(400, 'Der Audioabschnitt ist ungültig.');
   return { scope: scope as NeoVercelScope, ...(operation === 'transcribe' ? { audio: input.audio as string } : {}) };
 }
@@ -51,20 +59,23 @@ export function createNeoVercelHandler(operation: 'status' | 'transcribe', depen
         const auth = await dependencies.fetch(`${base.origin}/auth/v1/user`, { headers, redirect: 'error', signal: AbortSignal.any([abort.signal, AbortSignal.timeout(10_000)]) });
         if (!auth.ok) throw new Failure(401, 'Bitte erneut mit dem Teamzugang anmelden.');
         const user = row(await boundedJson(auth)); if (user.id !== input.scope.actorId) throw new Failure(403, 'Der Teamzugang hat sich geändert.');
-        const access = await dependencies.fetch(`${base.origin}/rest/v1/rpc/neo_voice_authorize`, { method: 'POST', headers, redirect: 'error', signal: AbortSignal.any([abort.signal, AbortSignal.timeout(10_000)]), body: JSON.stringify({ p_tenant_id: input.scope.tenantId, p_subject_id: input.scope.subjectId, p_assessment_id: input.scope.assessmentId ?? null }) });
-        if (!access.ok || await boundedJson(access, 1024) !== true) throw new Failure(403, 'Die aktuelle Freigabe für diese Person fehlt.');
+        const caseScope = isCaseScope(input.scope);
+        const rpc = caseScope ? 'neo_voice_authorize' : 'neo_desktop_voice_authorize';
+        const args = caseScope ? { p_tenant_id: input.scope.tenantId, p_subject_id: input.scope.subjectId, p_assessment_id: input.scope.assessmentId ?? null } : { p_tenant_id: input.scope.tenantId };
+        const access = await dependencies.fetch(`${base.origin}/rest/v1/rpc/${rpc}`, { method: 'POST', headers, redirect: 'error', signal: AbortSignal.any([abort.signal, AbortSignal.timeout(10_000)]), body: JSON.stringify(args) });
+        if (!access.ok || await boundedJson(access, 1024) !== true) throw new Failure(403, caseScope ? 'Die aktuelle Freigabe für diese Person fehlt.' : 'Die aktuelle Freigabe für den Unternehmensdesktop fehlt.');
       };
       await authorize();
       const status = await dependencies.engine.status();
       if (operation === 'status') {
         await authorize();
-        return response.status(200).json({ ok: true, scopeKey: scopeKey(input.scope), transcriptionReady: status.transcriptionReady, modelReady: false, engine: 'whisper.cpp-vercel', capabilities: { acousticWakeWord: false, diarization: false, semanticRoles: false } });
+        return response.status(200).json({ ok: true, scopeKey: scopeKey(input.scope), scopeType: isCaseScope(input.scope) ? 'case' : 'desktop', transcriptionReady: status.transcriptionReady, ...(status.backend ? { backend: status.backend } : {}), modelReady: false, engine: 'whisper.cpp-vercel', capabilities: { acousticWakeWord: false, diarization: false, semanticRoles: false } });
       }
       if (!status.transcriptionReady) throw new Failure(503, 'Die geprüfte Linux-Sprachengine ist auf Vercel noch nicht bereitgestellt.');
       const result = await dependencies.engine.transcribe(input.audio!, abort.signal);
       if (typeof result.text !== 'string' || result.text.length > 6000 || result.engine !== 'whisper.cpp-vercel') throw new Failure(502, 'Die Sprachverarbeitung hat keine gültige Antwort geliefert.');
       await authorize(); abort.signal.throwIfAborted();
-      return response.status(200).json({ ok: true, scopeKey: scopeKey(input.scope), text: result.text, engine: result.engine });
+      return response.status(200).json({ ok: true, scopeKey: scopeKey(input.scope), scopeType: isCaseScope(input.scope) ? 'case' : 'desktop', text: result.text, engine: result.engine });
     } catch (error) {
       const status = error instanceof Failure ? error.status : error instanceof Error && error.message === 'busy' ? 429 : error instanceof Error && error.message === 'invalid-audio' ? 400 : abort.signal.aborted ? 499 : 503;
       const message = error instanceof Failure ? error.message : status === 429 ? 'Die Sprachverarbeitung ist ausgelastet. Bitte den Abschnitt erneut erfassen.' : status === 400 ? 'Der Audioabschnitt ist ungültig.' : status === 499 ? 'Die Anfrage wurde abgebrochen.' : 'Die eigene NEO-Sprachverarbeitung ist derzeit nicht verfügbar.';

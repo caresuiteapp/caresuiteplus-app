@@ -1,0 +1,327 @@
+{
+  "schemaVersion": 1,
+  "upstream": "https://github.com/ggml-org/whisper.cpp",
+  "version": "v1.8.4",
+  "commit": "9386f239401074690479731c1e41683fbbeac557",
+  "sourceStatus": "clean exact upstream tag verified locally before vendoring",
+  "ggmlVersion": "0.9.8",
+  "licence": "MIT plus embedded third-party notices in examples/miniaudio.h and examples/stb_vorbis.c",
+  "sources": [
+    "examples/cli/cli.cpp",
+    "examples/common-ggml.cpp",
+    "examples/common-whisper.cpp",
+    "examples/common.cpp",
+    "examples/grammar-parser.cpp",
+    "ggml/src/ggml-alloc.c",
+    "ggml/src/ggml-backend-dl.cpp",
+    "ggml/src/ggml-backend-reg.cpp",
+    "ggml/src/ggml-backend.cpp",
+    "ggml/src/ggml-cpu/amx/amx.cpp",
+    "ggml/src/ggml-cpu/amx/mmq.cpp",
+    "ggml/src/ggml-cpu/arch/x86/quants.c",
+    "ggml/src/ggml-cpu/arch/x86/repack.cpp",
+    "ggml/src/ggml-cpu/binary-ops.cpp",
+    "ggml/src/ggml-cpu/ggml-cpu.c",
+    "ggml/src/ggml-cpu/ggml-cpu.cpp",
+    "ggml/src/ggml-cpu/hbm.cpp",
+    "ggml/src/ggml-cpu/ops.cpp",
+    "ggml/src/ggml-cpu/quants.c",
+    "ggml/src/ggml-cpu/repack.cpp",
+    "ggml/src/ggml-cpu/traits.cpp",
+    "ggml/src/ggml-cpu/unary-ops.cpp",
+    "ggml/src/ggml-cpu/vec.cpp",
+    "ggml/src/ggml-opt.cpp",
+    "ggml/src/ggml-quants.c",
+    "ggml/src/ggml-threading.cpp",
+    "ggml/src/ggml.c",
+    "ggml/src/ggml.cpp",
+    "ggml/src/gguf.cpp",
+    "src/whisper.cpp"
+  ],
+  "includeDirectories": [
+    "include",
+    "ggml/include",
+    "ggml/src",
+    "examples",
+    "ggml/src/ggml-cpu"
+  ],
+  "requiredCpuFeatures": [
+    "avx2",
+    "fma",
+    "f16c"
+  ],
+  "files": [
+    {
+      "path": "AUTHORS",
+      "sha256CanonicalLF": "09800c8c5bdf54bcfd65d869c85ea1b1756016f15798bef9e706ca390ab04f12"
+    },
+    {
+      "path": "LICENSE",
+      "sha256CanonicalLF": "94f29bbed6a22c35b992c5c6ebf0e7c92f13b836b90f36f461c9cf2f0f1d010d"
+    },
+    {
+      "path": "examples/cli/cli.cpp",
+      "sha256CanonicalLF": "053da25f98f0684104f24afa6184592ad6fc85681f13b32f0ff68bdff3901467"
+    },
+    {
+      "path": "examples/common-ggml.cpp",
+      "sha256CanonicalLF": "3dfdaaf354216e79f654e30bd788122323bde1f0c877df4401f487318fa9c0ac"
+    },
+    {
+      "path": "examples/common-ggml.h",
+      "sha256CanonicalLF": "9df389379d956dfc906764da4c1b258be50a42a64412a8dc6566bcca07cbaadc"
+    },
+    {
+      "path": "examples/common-whisper.cpp",
+      "sha256CanonicalLF": "fd139e5699333b7c3711492c85c9d7d5e2127a82d45a0b621e6dcbf1693b4027"
+    },
+    {
+      "path": "examples/common-whisper.h",
+      "sha256CanonicalLF": "7e18046747d7043b5ccec572fbcdad141b55a1c57f21823c75c7d1d245809dff"
+    },
+    {
+      "path": "examples/common.cpp",
+      "sha256CanonicalLF": "568d38cf668a74c9342533b082b387a16211bec8d0f57ceb2b4900b17b17ae58"
+    },
+    {
+      "path": "examples/common.h",
+      "sha256CanonicalLF": "4fc9e7e15b9e60fcbb1401a89e045af2f7760b5a9b871cfebce7a602a468442d"
+    },
+    {
+      "path": "examples/grammar-parser.cpp",
+      "sha256CanonicalLF": "1e1c341bf52b26193c685a39475dab07ef939e8d6b94950d8cc555256a6b6bb0"
+    },
+    {
+      "path": "examples/grammar-parser.h",
+      "sha256CanonicalLF": "03c32fbc4ba7e2f56a9227a8f5b6a33dc90ced6975c71624d6bf23a538c7e294"
+    },
+    {
+      "path": "examples/miniaudio.h",
+      "sha256CanonicalLF": "c029554572ae71a94b7825ef1ab9bd7e646344a79e2e852a03f8b18e428c1443"
+    },
+    {
+      "path": "examples/stb_vorbis.c",
+      "sha256CanonicalLF": "4c7cb2ff1f7011e9d67950446b7eb9ca044f2e464d76bfbb0b84dd2e23e65636"
+    },
+    {
+      "path": "ggml/include/ggml-alloc.h",
+      "sha256CanonicalLF": "3793a2175be355619cc426982706b7fa94ad801b66d2aeef4b95e68c434ba0ef"
+    },
+    {
+      "path": "ggml/include/ggml-backend.h",
+      "sha256CanonicalLF": "f7f511270a8260859146e87544f64ef97f80e98bff179ae3ab02ca27cf7299c7"
+    },
+    {
+      "path": "ggml/include/ggml-cpp.h",
+      "sha256CanonicalLF": "bc15ba002c68685df23faae42df0d2b3d58032011f88b649021ab92485862c72"
+    },
+    {
+      "path": "ggml/include/ggml-cpu.h",
+      "sha256CanonicalLF": "1aafe97e576ea38c0da57517fb2492955d0b69c1a799842481fc069d6d9d28ef"
+    },
+    {
+      "path": "ggml/include/ggml-opt.h",
+      "sha256CanonicalLF": "3586de1bc8a934b5c72339e2b6937b0641e8f149b512231e666f67de0736eea2"
+    },
+    {
+      "path": "ggml/include/ggml.h",
+      "sha256CanonicalLF": "6fcc3c4efd5c3747b66281a800f1dd9b7d0d61182faa9bc731925bfdf0586b22"
+    },
+    {
+      "path": "ggml/include/gguf.h",
+      "sha256CanonicalLF": "d2eec8b938aa04ccec9bc4ce8a6a6dcf70d942c37d2bb3113e426d9307d51385"
+    },
+    {
+      "path": "ggml/src/ggml-alloc.c",
+      "sha256CanonicalLF": "cf64bfbdb6b6ec94d533dadad0767f11076dff01f6d56ea1605a2280f8e90607"
+    },
+    {
+      "path": "ggml/src/ggml-backend-dl.cpp",
+      "sha256CanonicalLF": "acd76df8b83bcdef6807bc7b0520f57b379d61b4ff1027c04aa4d140d16ad07f"
+    },
+    {
+      "path": "ggml/src/ggml-backend-dl.h",
+      "sha256CanonicalLF": "225bd83a197c4e8b5f985717176824d1144e2b74a79f04838f51b84115c14dc5"
+    },
+    {
+      "path": "ggml/src/ggml-backend-impl.h",
+      "sha256CanonicalLF": "470f4ede95a1a66edb7259981c1e8c98e2827de765323fe1672badf8f99f4546"
+    },
+    {
+      "path": "ggml/src/ggml-backend-reg.cpp",
+      "sha256CanonicalLF": "eca86dde2743573487e91722bbb2e1b7501dff40a0c8e26114cf3ad6bb5d7f12"
+    },
+    {
+      "path": "ggml/src/ggml-backend.cpp",
+      "sha256CanonicalLF": "20e449bd92cec4c0c16ab91dc103ee6871ac6c45f22fd70f1d43bca33f171500"
+    },
+    {
+      "path": "ggml/src/ggml-common.h",
+      "sha256CanonicalLF": "8f159b3b0157cbcd53532c34bd100aee33a8df0851d98ee3bc682dca0469b892"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/amx/amx.cpp",
+      "sha256CanonicalLF": "4e47812340707999d98685d4e83dd5576b417be550bcbcd4a62ebec843e27d9b"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/amx/amx.h",
+      "sha256CanonicalLF": "9d098ceee6a8114d4a660ff269064a27aa25b8a4f205d1e6984d17bec5104f0d"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/amx/common.h",
+      "sha256CanonicalLF": "c694f6bb066a820b717f986914b0d112dca0d8d3a1e239e958fce30c864751c3"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/amx/mmq.cpp",
+      "sha256CanonicalLF": "b6f71742c4124dfc7c6162773983611dae4efbfd7edcdb0082deae6317cc5b9c"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/amx/mmq.h",
+      "sha256CanonicalLF": "bd33d0713b12daf9eedea1619dd715619baaa36b98c44ec754d532909d80933a"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/arch-fallback.h",
+      "sha256CanonicalLF": "e8a83875d1ac2c45df75f69495f6371124740af5ae779c237874f5105657f985"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/arch/x86/quants.c",
+      "sha256CanonicalLF": "47ea6aea35e6b188411457061037017efb21c3b25fc469c94a1a84682c25b46c"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/arch/x86/repack.cpp",
+      "sha256CanonicalLF": "753a8a02f4dd4252d39ccc62df594cd4380ebdc844b1bce7176393030d9568d9"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/binary-ops.cpp",
+      "sha256CanonicalLF": "2df261aadce36a20f5e3bf6961d4ca27b8c2d461afc41488361ee6ad09c1730d"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/binary-ops.h",
+      "sha256CanonicalLF": "5915519c4e2227db28239b2a5d3b8a5f9022730cc0ddb7880b24748ee78cd1f9"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/common.h",
+      "sha256CanonicalLF": "db7c19747a28c819d18922aa43b91b224df3730e424e6d8a4cf4fd16bfb1db14"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/ggml-cpu-impl.h",
+      "sha256CanonicalLF": "269531483bca65f65d4dee3d6cb9281950e82303be160e108a0d905be463844d"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/ggml-cpu.c",
+      "sha256CanonicalLF": "eab1061c077773f62f46c9a6008071d12d374cbb124b594feaa2fe4e8363ec4b"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/ggml-cpu.cpp",
+      "sha256CanonicalLF": "d4f9df9252f75a96e3dbecae499f0bc1737881e8c0cfb897788345a284573834"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/hbm.cpp",
+      "sha256CanonicalLF": "3c75b5aaf9b51d17060ecfb93cb5f8b22ce3974d7eff3d76dec2156d2f194b80"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/ops.cpp",
+      "sha256CanonicalLF": "93d75199e955f732c7fb06000719c8ff7298783b00ae584629caf68f9a6754ad"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/ops.h",
+      "sha256CanonicalLF": "bdf88f0b30756adc0f428f08e1ec48a294425e8fd58c5496cb759ecb5c6e267d"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/quants.c",
+      "sha256CanonicalLF": "bbc272e46131e815cd7031d90e191bce94bcd1baeb527722c860722104572dc7"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/quants.h",
+      "sha256CanonicalLF": "7745a557afa867be25b24756d808b4226a1fc77afb84fd9609cce63e05d64f8b"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/repack.cpp",
+      "sha256CanonicalLF": "00437f51e2b6dafd91c7a42f31bb36d02e0a23afa02bbab202127349167c2b32"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/repack.h",
+      "sha256CanonicalLF": "fe472315b4106400d7890fca308659c74bcdedad1b011a9ba60c02dcd5bef57b"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/simd-gemm.h",
+      "sha256CanonicalLF": "b9b3dd2a3d59051521d0e45973f90fb14788662761041e4298a7e4e561f4755f"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/simd-mappings.h",
+      "sha256CanonicalLF": "584a4b2cd7d47adecc13a9bc5e416a37dc30ca6af07552f3ef358d8bc90f0960"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/traits.cpp",
+      "sha256CanonicalLF": "a85bd3ff50c91cb67d14221988544664dfe5975db0811b330dc4a2f385239de4"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/traits.h",
+      "sha256CanonicalLF": "26e1b41879091a663325848aa82a4023b459fd1e688b3b0e2a9bde3e72a3a764"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/unary-ops.cpp",
+      "sha256CanonicalLF": "e63b382766f1b8c5ded1577be9704e85cb4e9cd24584f3e1474911a40146df33"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/unary-ops.h",
+      "sha256CanonicalLF": "280b7979055079d43bdde7790a7290bf04f75640481c59abc2364c46d6ac6d8e"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/vec.cpp",
+      "sha256CanonicalLF": "c47ec8383b459978f8e639c140a3f916c549ec0b93fd9bca1dedd53f43716db3"
+    },
+    {
+      "path": "ggml/src/ggml-cpu/vec.h",
+      "sha256CanonicalLF": "b44a2e6955f3580c93395b492aea8a3f876fc5bd3dba7ac2bbd336704e3e73e6"
+    },
+    {
+      "path": "ggml/src/ggml-impl.h",
+      "sha256CanonicalLF": "b29afad108fc3c71c9401d6066ae4807c6d44d34e7ff900597c17aa477d62ccb"
+    },
+    {
+      "path": "ggml/src/ggml-opt.cpp",
+      "sha256CanonicalLF": "224300292d24e77ac4b1a56d7e376d33248163a5b7757f7e21ad13c0b4ec5786"
+    },
+    {
+      "path": "ggml/src/ggml-quants.c",
+      "sha256CanonicalLF": "0c75790b68fa83c4cb972648031f0f6e0847f219a60ce3ee88ca5853c5e441f8"
+    },
+    {
+      "path": "ggml/src/ggml-quants.h",
+      "sha256CanonicalLF": "0a96ceca6268153996b85929d8177bb98ed5fb798fdc23d744059572748e1525"
+    },
+    {
+      "path": "ggml/src/ggml-threading.cpp",
+      "sha256CanonicalLF": "13a18d885393722b7c9f42d4cf8575a4d41699926d656f78a867fa4fac9dad20"
+    },
+    {
+      "path": "ggml/src/ggml-threading.h",
+      "sha256CanonicalLF": "9652729043ed91482392c1aa08af5d813190d0ace2e7982d2539d28240ab8d8b"
+    },
+    {
+      "path": "ggml/src/ggml.c",
+      "sha256CanonicalLF": "e424b03509d97532ec77e51cfd5c58ee7e8c08cab483c3d71fdd7405b0a812f3"
+    },
+    {
+      "path": "ggml/src/ggml.cpp",
+      "sha256CanonicalLF": "64e6b5c8d716ae8697e45481a7153540be01f721be2dc7e753aa47b36a69c753"
+    },
+    {
+      "path": "ggml/src/gguf.cpp",
+      "sha256CanonicalLF": "44f787ce515e81536d03beec8876e5e868ca3c028ee9be6847d93e41dab46936"
+    },
+    {
+      "path": "include/whisper.h",
+      "sha256CanonicalLF": "0525b758571ab71c00ddd8ea2845f74af7c62dfa5100c5586655f75bdc5ef4be"
+    },
+    {
+      "path": "src/whisper-arch.h",
+      "sha256CanonicalLF": "f35cf51d54c4df7e1c504ba8ef3f06012ba483459ddf2a5cba533deb7b85c239"
+    },
+    {
+      "path": "src/whisper.cpp",
+      "sha256CanonicalLF": "2f88ee9338aa259aacb4525b53f70ec698e0b7a8bf221f8a97a886d25919c61d"
+    }
+  ]
+}

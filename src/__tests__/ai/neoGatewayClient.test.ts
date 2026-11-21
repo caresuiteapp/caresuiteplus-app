@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { checkNeoService, transcribeNeoAudio } from '@/ai/neo/neoGateway';
+import { checkNeoService, transcribeNeoAudio, checkNeoDesktopService, transcribeNeoDesktopAudio } from '@/ai/neo/neoGateway';
 import { neoScopeKey } from '@/ai/neo/neoDomain';
 const api = vi.hoisted(() => ({ user: vi.fn(), session: vi.fn() }));
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseClient: () => ({ auth: { getUser: api.user, getSession: api.session } }) }));
@@ -21,5 +21,18 @@ describe('NEO direct Vercel transport', () => {
   it('rejects cross-case replies and never retries against another provider', async () => {
     const fetcher = vi.fn().mockResolvedValue(new Response(JSON.stringify({ ok: true, scopeKey: 'another-case', transcriptionReady: true }))); vi.stubGlobal('fetch', fetcher);
     await expect(checkNeoService(scope, new AbortController().signal)).rejects.toThrow('nicht bereit'); expect(fetcher).toHaveBeenCalledOnce();
+  });
+});
+
+
+describe('NEO desktop transport scope', () => {
+  it('sends only authenticated desktop identity and rejects case replies', async () => {
+    const desktop = { tenantId: scope.tenantId, actorId: scope.actorId };
+    const fetcher = vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, scopeKey: JSON.stringify([desktop.tenantId, desktop.actorId, 'desktop', '']), transcriptionReady: true })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ ok: true, scopeKey: neoScopeKey(scope), text: 'Wrong case' })));
+    vi.stubGlobal('fetch', fetcher);
+    expect(await checkNeoDesktopService(desktop, new AbortController().signal)).toBe(true);
+    expect(JSON.parse(fetcher.mock.calls[0][1].body)).toEqual({ scope: desktop });
+    await expect(transcribeNeoDesktopAudio(desktop, new Uint8Array(120), new AbortController().signal)).rejects.toThrow('nicht bereit');
   });
 });

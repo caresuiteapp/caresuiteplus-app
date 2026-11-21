@@ -1,9 +1,14 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { assertNeoScope, validateNeoModelDraft, type NeoScope, type NeoSegment } from './neoDomain';
+import { assertNeoScope, validateNeoModelDraft, neoUuid, type NeoScope, type NeoSegment } from './neoDomain';
 import { neoBase64 } from './neoAudio';
 
-async function invoke(scope: NeoScope, operation: string, payload: Record<string, unknown>, signal: AbortSignal) {
-  assertNeoScope(scope); signal.throwIfAborted();
+export type NeoDesktopVoiceScope = { tenantId: string; actorId: string };
+type NeoVoiceScope = NeoScope | NeoDesktopVoiceScope;
+const voiceKey = (scope: NeoVoiceScope) => 'subjectId' in scope ? JSON.stringify([scope.tenantId, scope.actorId, scope.subjectId, (scope as NeoScope).assessmentId ?? '']) : JSON.stringify([scope.tenantId, scope.actorId, 'desktop', '']);
+async function invoke(scope: NeoVoiceScope, operation: string, payload: Record<string, unknown>, signal: AbortSignal) {
+  if ('subjectId' in scope) assertNeoScope(scope);
+  else if (!neoUuid(scope.tenantId) || !neoUuid(scope.actorId) || 'assessmentId' in scope) throw Error('Der angemeldete Unternehmensbezug fehlt.');
+  signal.throwIfAborted();
   const client = getSupabaseClient(); if (!client) throw Error('Die NEO-Verbindung ist nicht verfügbar.');
   const auth = await client.auth.getUser(); signal.throwIfAborted();
   if (auth.error || auth.data.user?.id !== scope.actorId) throw Error('Bitte erneut mit dem aktuellen Teamzugang anmelden.');
@@ -19,7 +24,7 @@ async function invoke(scope: NeoScope, operation: string, payload: Record<string
   let data: Record<string, unknown>; try { data = JSON.parse(raw); } catch { throw Error('Die eigene NEO-Verbindung hat keine gültige Antwort geliefert.'); }
   const current = await client.auth.getUser(); signal.throwIfAborted();
   if (current.error || current.data.user?.id !== scope.actorId) throw Error('Der Teamzugang wurde während der Verarbeitung gewechselt.');
-  if (!response.ok || !data || data.ok !== true || data.scopeKey !== JSON.stringify([scope.tenantId, scope.actorId, scope.subjectId, scope.assessmentId ?? ''])) throw Error(typeof data?.error === 'string' ? data.error : 'Der eigene NEO-Sprachdienst ist noch nicht bereit.');
+  if (!response.ok || !data || data.ok !== true || data.scopeKey !== voiceKey(scope)) throw Error(typeof data?.error === 'string' ? data.error : 'Der eigene NEO-Sprachdienst ist noch nicht bereit.');
   return data;
 }
 export async function transcribeNeoAudio(scope: NeoScope, audio: Uint8Array, signal: AbortSignal): Promise<string> {
@@ -34,4 +39,14 @@ export async function requestNeoModelDraft(scope: NeoScope, segments: NeoSegment
 }
 export async function checkNeoService(scope: NeoScope, signal: AbortSignal): Promise<boolean> {
   const data = await invoke(scope, 'status', {}, signal); return data.transcriptionReady === true;
+}
+
+export async function checkNeoDesktopService(scope: NeoDesktopVoiceScope, signal: AbortSignal): Promise<boolean> {
+  const data = await invoke(scope, 'status', {}, signal); return data.transcriptionReady === true;
+}
+export async function transcribeNeoDesktopAudio(scope: NeoDesktopVoiceScope, audio: Uint8Array, signal: AbortSignal): Promise<string> {
+  if (audio.length > 500000 || audio.length < 100) throw Error('Der Audioabschnitt ist leer oder zu lang.');
+  const data = await invoke(scope, 'transcribe', { audio: neoBase64(audio) }, signal);
+  if (typeof data.text !== 'string' || data.text.length > 6000) throw Error('Das Transkript ist unvollständig. Bitte den Abschnitt erneut einsprechen.');
+  return data.text.trim();
 }

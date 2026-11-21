@@ -4,7 +4,7 @@ import { claimNeoMicrophone } from './neoMicrophone';
 import type { NeoCapture, NeoCaptureCallbacks, NeoCaptureSource } from './neoCaptureTypes';
 
 /** Each capture owns its microphone, generation and bounded audio queue. No global recording state. */
-export function createNeoCapture(source: NeoCaptureSource, callbacks: NeoCaptureCallbacks): NeoCapture {
+export function createNeoCapture(source: NeoCaptureSource, callbacks: NeoCaptureCallbacks, options: { manageMicrophone?: boolean } = {}): NeoCapture {
   let generation = 0, active = false, finishing = false;
   let stream: MediaStream | null = null, context: AudioContext | null = null, node: AudioWorkletNode | null = null;
   let recognition: any = null, restart: ReturnType<typeof setTimeout> | undefined;
@@ -60,7 +60,7 @@ export function createNeoCapture(source: NeoCaptureSource, callbacks: NeoCapture
   };
   return {
     async start() {
-      cancel(); release = claimNeoMicrophone(() => { cancel(); callbacks.onError('Die Aufnahme wurde durch eine neue NEO-Aufnahme beendet.'); }); active = true; const serial = generation; startedAt = Date.now(); callbacks.onStatus('starting');
+      cancel(); if (options.manageMicrophone !== false) release = claimNeoMicrophone(() => { cancel(); callbacks.onError('Die Aufnahme wurde durch eine neue NEO-Aufnahme beendet.'); }); active = true; const serial = generation; startedAt = Date.now(); callbacks.onStatus('starting');
       try {
         if (!window.isSecureContext) throw Error('NEO benötigt eine sichere Verbindung für das Mikrofon.');
         if (source === 'device') {

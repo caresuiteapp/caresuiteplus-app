@@ -174,11 +174,13 @@
     },
     "api/neo/status.ts": {
       "maxDuration": 100,
-      "includeFiles": "api/_lib/neo-assets/**"
+      "includeFiles": "{api/_lib/neo-assets/**,api/_lib/neo-wasm-*.cjs}",
+      "memory": 4096
     },
     "api/neo/transcribe.ts": {
       "maxDuration": 100,
-      "includeFiles": "api/_lib/neo-assets/**"
+      "includeFiles": "{api/_lib/neo-assets/**,api/_lib/neo-wasm-*.cjs}",
+      "memory": 4096
     }
   },
   "regions": [
