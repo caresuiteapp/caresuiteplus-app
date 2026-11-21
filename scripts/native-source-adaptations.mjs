@@ -1,5 +1,8 @@
 import ts from 'typescript';
-export function nativeSource(file,original){let source=original;
+export function nativeSource(file,original){
+  // Git for Windows may check text out as CRLF. Adapt the same canonical
+  // source on every platform while retaining the stale-content guards.
+  original=original.replace(/\r\n?/g,'\n');let source=original;
   // The native client portal must not mount the browser-only Academy workplace.
   if(file==='app/portal/client/akademie/index.web.tsx'){
     if(!original.includes('AcademyWorkspaceScreen'))throw Error('Stale native Academy entry adaptation');

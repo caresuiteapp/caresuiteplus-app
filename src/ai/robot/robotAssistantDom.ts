@@ -2,6 +2,9 @@ import { makeNeoDraggable } from './neoPosition.web';
 import { createNeoConversation, type NeoConversationDependencies, type NeoResponse } from './neoConversation.web';
 import { createNeoVoiceStatus, NEO_CSS } from './neoVoiceStatus.web';
 import { NEO_INTRODUCTION } from './neoCommands';
+import { splitNeoSpeech } from './neoSpeechText';
+import { claimNeoMicrophone } from '../neo/neoMicrophone';
+export { splitNeoSpeech } from './neoSpeechText';
 
 export type RobotDependencies = NeoConversationDependencies & {
   robotUrl: string;
@@ -30,20 +33,6 @@ function abortable<T>(operation: Promise<T>, signal: AbortSignal): Promise<T> {
   });
 }
 
-/** Each worker request stays within its 360-character phonemizer limit. */
-export function splitNeoSpeech(text: string): string[] {
-  let remaining = text.replace(/\n+/g, '. ').replace(/\.\s*\./g, '.').replace(/„|“/g, '').replace(/\s+/g, ' ').trim();
-  const parts: string[] = [];
-  while (remaining.length > 340) {
-    const prefix = remaining.slice(0, 340);
-    const sentenceEnd = Math.max(prefix.lastIndexOf('. '), prefix.lastIndexOf('? '), prefix.lastIndexOf('! '));
-    const cut = sentenceEnd >= 80 ? sentenceEnd + 1 : Math.max(1, prefix.lastIndexOf(' ') > 0 ? prefix.lastIndexOf(' ') : 340);
-    parts.push(remaining.slice(0, cut).trim()); remaining = remaining.slice(cut).trim();
-  }
-  if (remaining) parts.push(remaining);
-  return parts;
-}
-
 export function mountRobotAssistant(deps: RobotDependencies): () => void {
   const host = document.createElement('aside'); host.className = 'cs-robot';
   host.setAttribute('aria-label', 'Neo, dein CareSuite-Assistent');
@@ -62,6 +51,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
   let commitTimer: ReturnType<typeof setTimeout> | undefined;
   let restartTimer: ReturnType<typeof setTimeout> | undefined;
   let deadline = 0, emptyRestarts = 0;
+  let releaseMicrophone: (() => void) | undefined;
   const status = createNeoVoiceStatus();
   const positionStatus = () => {
     if (status.element.hidden) return;
@@ -96,7 +86,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
     const finish = finishPlayback; finishPlayback = null; finish?.();
   };
   const cancelTurn = () => { generation++; turn?.abort(); turn = null; stopCapture(); stopAudio(); };
-  const stopSession = (message: string) => { voiceMode = false; cancelTurn(); setState('ready', message); };
+  const stopSession = (message: string) => { releaseMicrophone?.(); releaseMicrophone = undefined; voiceMode = false; cancelTurn(); setState('ready', message); };
   const unlockAudio = () => {
     try {
       const Constructor = window.AudioContext ?? (window as SpeechWindow).webkitAudioContext;
@@ -124,17 +114,32 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
   };
   const play = async (text: string, request: AbortController, serial: number) => {
     if (!context || context.state === 'closed') throw new Error('audio-unavailable');
-    for (const part of splitNeoSpeech(text)) {
-      if (request.signal.aborted || serial !== generation) return;
-      setState('thinking', 'Neo bereitet seine Antwort vor …');
-      const encoded = await abortable(deps.loadVoice('neo:conversation', request.signal, part), request.signal);
+    const activeContext = context;
+    const parts = splitNeoSpeech(text);
+    const prepare = async (part: string): Promise<{ buffer: AudioBuffer } | { error: unknown }> => {
+      try {
+        const encoded = await abortable(deps.loadVoice('neo:conversation', request.signal, part), request.signal);
+        request.signal.throwIfAborted();
+        return { buffer: await abortable(activeContext.decodeAudioData(encoded.slice(0)), request.signal) };
+      } catch (error) { return { error }; }
+    };
+    setState('thinking', 'Neo bereitet seine Antwort vor …');
+    let next = parts.length ? prepare(parts[0]) : null;
+    for (let index = 0; index < parts.length; index++) {
+      request.signal.throwIfAborted();
+      if (serial !== generation) return;
+      const prepared = await next!;
+      request.signal.throwIfAborted();
+      if (serial !== generation || destroyed) return;
+      if ('error' in prepared) throw prepared.error;
+      const { buffer } = prepared;
+      await abortable(activeContext.resume(), request.signal);
       if (request.signal.aborted || serial !== generation || destroyed) return;
-      const buffer = await abortable(context.decodeAudioData(encoded.slice(0)), request.signal);
-      if (request.signal.aborted || serial !== generation || destroyed) return;
-      await abortable(context.resume(), request.signal);
-      if (request.signal.aborted || serial !== generation || destroyed) return;
-      const source = context.createBufferSource(); source.buffer = buffer; source.connect(context.destination); audio = source;
+      const source = activeContext.createBufferSource(); source.buffer = buffer; source.connect(activeContext.destination); audio = source;
       setState('speaking', 'Neo spricht …');
+      // Only one chunk ahead: render and decode it while the current one plays.
+      // The result wrapper handles failures even if this turn is stopped first.
+      next = index + 1 < parts.length ? prepare(parts[index + 1]) : null;
       await new Promise<void>((resolve, reject) => {
         const timeout = setTimeout(() => { cleanup(); try { source.stop(); } catch { /* already stopped */ } reject(new Error('playback-timeout')); }, Math.max(6000, (buffer.duration + 4) * 1000));
         const abortPlayback = () => { cleanup(); try { source.stop(); } catch { /* already stopped */ } reject(new DOMException('Aborted', 'AbortError')); };
@@ -145,6 +150,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
         if (request.signal.aborted) { abortPlayback(); return; }
         try { source.start(); } catch (error) { cleanup(); reject(error); }
       });
+      if (index + 1 < parts.length) setState('thinking', 'Neo bereitet seine Antwort vor …');
     }
   };
   const speakTurn = async (produce: (signal: AbortSignal) => Promise<NeoResponse>): Promise<void> => {
@@ -173,7 +179,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
       if (await execute(response, request, serial)) return;
       if (destroyed || serial !== generation || request.signal.aborted) return;
       setState('ready', response.end ? 'Gespräch beendet. Mikrofon aus.' : 'Du kannst direkt antworten.');
-      if (voiceMode && !document.hidden) { deadline = Date.now() + 35000; emptyRestarts = 0; scheduleCapture(300); }
+      if (voiceMode && !document.hidden) { deadline = Date.now() + 35000; emptyRestarts = 0; scheduleCapture(120); }
     } catch {
       if (destroyed || serial !== generation) return;
       // A silent question is not answerable in voice mode. Stop instead of pretending to listen.
@@ -224,7 +230,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
         }
         finalText = finals.join(' ').trim(); interimText = interim.join(' ').trim();
         clearTimeout(commitTimer);
-        if (finalText && !interimText) commitTimer = setTimeout(commit, 1000);
+        if (finalText && !interimText) commitTimer = setTimeout(commit, 450);
       };
       instance.onerror = event => {
         if (recognition !== instance) return;
@@ -244,6 +250,7 @@ export function mountRobotAssistant(deps: RobotDependencies): () => void {
     } catch { stopCapture(); voiceMode = false; setState('error', 'Das Mikrofon konnte nicht starten. Prüfe die Mikrofonfreigabe und klicke Neo erneut an.'); }
   };
   const startVoice = () => {
+    releaseMicrophone = claimNeoMicrophone(() => stopSession('Sprachbegleitung aktiv. Gespräch pausiert.'));
     cancelTurn(); unlockAudio(); voiceMode = true;
     if (!hasWelcomed) {
       // This bundled Neo recording starts without waiting for the speech model to download.

@@ -1,0 +1,6 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": { "types": [], "noEmit": true, "incremental": false },
+  "include": ["src/ai/neo/**/*.ts", "src/ai/neo/**/*.tsx", "src/ai/robot/neoSpeechText.ts", "src/ai/robot/neoSpeech.web.ts", "src/ai/robot/robotAssistantDom.ts", "src/types/jspdf.d.ts"],
+  "exclude": ["node_modules"]
+}

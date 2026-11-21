@@ -2,6 +2,8 @@
 import {nativeStructuredClone as structuredClone} from '@/lib/platform/nativeWorkflowEnvironment.native';
 import {CareSuiteNativeText as Text} from '@/components/ui/CareSuiteNativeText';
 import { writeAmbulatoryAssessmentRequest, applyAmbulatoryAssessmentLifecycle } from "../../lib/careAssessment/careAssessmentService.native.ts";
+import { NeoDocumentationPanel } from '@/ai/neo/NeoDocumentationPanel';
+import { applyNeoAssessment } from '@/ai/neo/neoAssessment';
 import { createCareAssessmentQueryAttempt, assertCareAssessmentQueryAttempt, assertCareAssessmentQueryLifetime, type CareAssessmentQueryAttempt } from "../../lib/careAssessment/careAssessmentQueryAttempt.native.ts";
 import { PlanEvaluationPanel } from "./PlanEvaluationPanel.native.tsx";
 import { useCareRuntimePermissions as usePermissions } from "../../hooks/pflege/useCareRuntimePermissions.native.ts";
@@ -196,11 +198,13 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
     }>();
     const router = useRouter();
     const tenantId = useServiceTenantId();
-    const { profile } = useAuth();
+    const { profile, user } = useAuth();
     const retainedJournals = useAssessmentPathJournals({ tenantId: tenantId ?? '', assessmentId: id ?? '', actorId: profile?.id ?? '' }, subjectType === 'client');
     const retainedPathJournal = retainedJournals.assessment || retainedJournals.plan;
     const { width } = useWindowDimensions();
     const [value, setValue] = useState<CareAssessment | null>(null);
+    const [neoRecording, setNeoRecording] = useState(false);
+    const [neoPending, setNeoPending] = useState(false);
     const evaluationLeave = useRef<() => Promise<boolean>>(async () => true);
     const navigationAlive = useRef(true), readBoundary = useRef<CareAssessmentReadBoundary | null>(null), queryAttempt = useRef<CareAssessmentQueryAttempt | null>(null), lastSavedPlan = useRef<CareAssessment | null>(null);
     useEffect(() => { navigationAlive.current = true; return () => { navigationAlive.current = false; readBoundary.current = null; queryAttempt.current = null; }; }, []);
@@ -319,7 +323,7 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
         throw Error('Ursprüngliche bestätigte Schreibanfrage fehlt. Der Formularstand bleibt erhalten.'); assertCurrentReadContext(pending.context); const ticket = currentReadTicket(); const loaded = await fetchCareAssessment(pending.context.tenantId, pending.context.assessmentId, pending.context.subjectType, pending.context.roleKey as NonNullable<typeof profile>['roleKey']); assertCurrentReadContext(pending.context); if (!loaded.ok)
         throw Error(loaded.error); assertAssessmentDraftStoredRead(pending.request, { assessmentId: loaded.data.id, draftRevision: loaded.data.draftRevision, status: loaded.data.status }); const current = workspaceState.current; if (!sameDraftContext(pending.context, current.context) || !sameWoundJson(current.value, pending.editable) || !sameWoundJson(current.baseline, pending.baseline))
         throw Error('Ursprünglicher Schreib- oder Formularbezug inzwischen geändert. Bestätigten Stand gesondert laden.'); acceptConfirmed(loaded.data, pending.context, ticket, pending.provenance); }
-    const submission = useMedicationSubmission<AssessmentDraftRequest>(dirty || instrumentState.dirty || planState.dirty || pathPhase.dirty || pathPhase.uncertain || retainedPathJournal, async (requestId, payload, replay) => {
+    const submission = useMedicationSubmission<AssessmentDraftRequest>(dirty || neoPending || neoRecording || instrumentState.dirty || planState.dirty || pathPhase.dirty || pathPhase.uncertain || retainedPathJournal, async (requestId, payload, replay) => {
         const current = workspaceState.current;
         if (!current.canReadPlan || !navigationAlive.current || !tenantId || payload.assessmentId !== current.context.assessmentId)
             return { ok: false, error: 'Der Aktenbezug hat sich geändert.', uncertain: replay };
@@ -477,6 +481,14 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
                 }] });
     }
     async function save(nextStatus?: 'professional_review' | 'approved') {
+        if (neoRecording) {
+            setMessage('Bitte die NEO-Aufnahme vor dem Speichern abschließen.');
+            return;
+        }
+        if (neoPending) {
+            setMessage('Bitte die offenen NEO-Angaben zuerst übernehmen oder verwerfen.');
+            return;
+        }
         if (!value || !tenantId || locked || qualityNavigation.current.leaving || qualityNavigation.current.path.busy || qualityNavigation.current.path.dirty || qualityNavigation.current.path.uncertain || retainedJournals.reference.current.assessment || retainedJournals.reference.current.plan)
             return;
         const check = calculateCareAssessmentCompleteness(value);
@@ -635,6 +647,7 @@ function Workspace({ subjectType, runtimeAccess, mentalAccess, palliativeAccess,
         </ScrollView>
 
         <View style={styles.documentCanvas}>
+          {!resident && user?.id && tenantId ? <NeoDocumentationPanel scope={{ tenantId, actorId: user.id, subjectId: value.subjectId, assessmentId: value.id }} disabled={locked} onBusyChange={setNeoRecording} onPendingChange={setNeoPending} onApply={(neo, segments) => patch(applyNeoAssessment(value, { tenantId, actorId: user.id, subjectId: value.subjectId, assessmentId: value.id }, neo, segments))}/> : null}
 
       {section === 'person' ? (<SectionPanel title="Was bewegt Sie im Augenblick?" subtitle="Originalton getrennt von der Fachperspektive">
           <FilterChipGroup wrap options={[

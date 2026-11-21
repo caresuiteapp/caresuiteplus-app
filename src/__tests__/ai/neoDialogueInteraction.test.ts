@@ -2,6 +2,7 @@
 // @vitest-environment-options {"url":"https://www.caresuiteplus.app/Desktop"}
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mountRobotAssistant, splitNeoSpeech, type RobotDependencies } from '../../ai/robot/robotAssistantDom';
+import { claimNeoMicrophone } from '../../ai/neo/neoMicrophone';
 
 class FakeRecognition {
   static all: FakeRecognition[] = [];
@@ -51,6 +52,11 @@ async function mount() {
 }
 
 describe('Neo voice-only conversation', () => {
+  it('stops speaking and listening when quiet documentation claims the microphone', async () => {
+    await mount(); const previous = lastRecognition(); const release = claimNeoMicrophone(() => {});
+    try { await tick(2000); expect(previous.aborted).toBe(true); expect(host().dataset.state).toBe('ready'); expect(FakeRecognition.all).toHaveLength(1); expect(spoken()).toBe(''); }
+    finally { release(); }
+  });
   it('speaks the bundled greeting on click without opening a chat or starting capture over its own voice', async () => {
     cleanup = mountRobotAssistant(deps);
     expect(deps.loadVoice).not.toHaveBeenCalled(); expect(FakeRecognition.all).toHaveLength(0);
@@ -99,6 +105,29 @@ describe('Neo voice-only conversation', () => {
     r.onresult?.({ resultIndex: 1, results: [{ isFinal: true, 0: { transcript: 'Öffne' } }, { isFinal: true, 0: { transcript: 'den Kalender' } }] });
     await tick(1100); await completeAudio();
     expect(deps.navigate).toHaveBeenCalledExactlyOnceWith('/assist/kalender');
+  });
+  it('responds within half a second of final speech while waiting for interim revisions', async () => {
+    await mount(); const r = lastRecognition();
+    r.say('Öffne'); await tick(250);
+    r.onresult?.({ resultIndex: 1, results: [{ isFinal: true, 0: { transcript: 'Öffne' } }, { isFinal: false, 0: { transcript: 'den Kalen' } }] });
+    await tick(1000); expect(deps.loadVoice).not.toHaveBeenCalled();
+    r.onresult?.({ resultIndex: 1, results: [{ isFinal: true, 0: { transcript: 'Öffne' } }, { isFinal: true, 0: { transcript: 'den Kalender' } }] });
+    await tick(449); expect(deps.loadVoice).not.toHaveBeenCalled();
+    await tick(1); expect(spoken()).toContain('Kalender');
+    expect(deps.navigate).not.toHaveBeenCalled();
+    await completeAudio(); expect(deps.navigate).toHaveBeenCalledExactlyOnceWith('/assist/kalender');
+  });
+  it('prepares the next chunk during playback and cancels it together with the active speech', async () => {
+    await mount(); lastRecognition().say('Was kannst du?'); await tick(450);
+    const calls = vi.mocked(deps.loadVoice).mock.calls;
+    expect(calls.length).toBeGreaterThan(1);
+    expect(FakeAudio.sources).toHaveLength(2); // greeting and first answer chunk
+    expect(FakeAudio.sources.at(-1)?.start).toHaveBeenCalledOnce();
+    expect(calls[0][1].aborted).toBe(false);
+    button().click(); await flush();
+    expect(calls.every(call => call[1].aborted)).toBe(true);
+    expect(FakeAudio.sources.at(-1)?.stop).toHaveBeenCalled();
+    expect(FakeRecognition.all).toHaveLength(1);
   });
   it('recovers a browser end event and pauses after silence', async () => {
     await mount(); lastRecognition().onend?.(); await tick(500);

@@ -1,6 +1,9 @@
 import { loadLocalRobotVoice } from './robotVoice.web';
-import { ROBOT_AUDIO_IDS } from './robotAudioBank.web';
+import { ROBOT_AUDIO_IDS, ROBOT_AUDIO_TEXT } from './robotAudioBank.web';
 import { NEO_FIXED_AUDIO } from './neoFixedAudio.web';
+import { normalizeNeoSpeechText } from './neoSpeechText';
+
+const recordedReplies = new Map(Object.entries(ROBOT_AUDIO_TEXT).map(([id, text]) => [normalizeNeoSpeechText(text), id]));
 
 type Pending = { resolve: (audio: ArrayBuffer) => void; reject: (error: Error) => void; cleanup: () => void };
 
@@ -9,6 +12,7 @@ export function createNeoSpeech() {
   let worker: Worker | null = null;
   let nextId = 0;
   let disposed = false;
+  let preparation: Promise<ArrayBuffer> | null = null;
   const pending = new Map<number, Pending>();
   const audioCache = new Map<string, ArrayBuffer>();
   let cacheBytes = 0;
@@ -43,7 +47,11 @@ export function createNeoSpeech() {
     active.postMessage({ type, id, text });
   });
   return {
-    prepare: () => { if (!worker && !disposed) void request('prepare', '', new AbortController().signal).catch(() => {}); },
+    prepare: () => {
+      if (disposed || preparation) return;
+      preparation = request('prepare', '', new AbortController().signal);
+      void preparation.catch(() => { preparation = null; });
+    },
     loadVoice: async (id: string, signal: AbortSignal, text?: string): Promise<ArrayBuffer> => {
       signal.throwIfAborted();
       if (Object.prototype.hasOwnProperty.call(ROBOT_AUDIO_IDS, id)) return loadLocalRobotVoice(id, signal);
@@ -53,10 +61,14 @@ export function createNeoSpeech() {
         for (let i = 0; i < raw.length; i++) bytes[i] = raw.charCodeAt(i);
         return bytes.buffer;
       }
-      const cached = audioCache.get(text); if (cached) return cached.slice(0);
-      const audio = await request('speak', text, signal); signal.throwIfAborted();
+      const spoken = normalizeNeoSpeechText(text);
+      if (!spoken || spoken.length > 360) throw new Error('voice-invalid-reply');
+      const recorded = recordedReplies.get(spoken);
+      if (recorded) return loadLocalRobotVoice(recorded, signal);
+      const cached = audioCache.get(spoken); if (cached) return cached.slice(0);
+      const audio = await request('speak', spoken, signal); signal.throwIfAborted();
       if (cacheBytes + audio.byteLength > 8_000_000) { audioCache.clear(); cacheBytes = 0; }
-      if (audio.byteLength <= 8_000_000) { audioCache.set(text, audio); cacheBytes += audio.byteLength; }
+      if (audio.byteLength <= 8_000_000) { audioCache.set(spoken, audio); cacheBytes += audio.byteLength; }
       return audio.slice(0);
     },
     dispose: () => {

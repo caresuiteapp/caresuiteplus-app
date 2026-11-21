@@ -48,6 +48,8 @@ supabase/.branches/
 public/calendar-reader/
 
 # Neo local voice assets are generated and verified during the web build.
+/.neo-runtime/
+/node_modules
 .caresuite-robot-backup/
 .healthos-gitbash/
 /public/neo-voice/v1/licenses/espeak-ng-source.tar.gz

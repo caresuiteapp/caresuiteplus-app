@@ -70,3 +70,7 @@ verify_jwt = true
 # Auth.getUser validates the JWT; the user-scoped RPC checks the live owner role.
 [functions.tenant-data-download]
 verify_jwt = false
+
+# Auth.getUser and the user-scoped RPC both validate current access.
+[functions.neo-assistant]
+verify_jwt = false

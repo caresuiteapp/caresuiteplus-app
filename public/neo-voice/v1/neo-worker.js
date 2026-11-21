@@ -18,7 +18,7 @@ let session, phonemizer, config, readyPromise, phonemeResult;
 const canceled = new Set();
 let queue = Promise.resolve();
 // Generate a calmer cadence in the model; playback remains at normal pitch/rate.
-const VOICE_TUNING = { noise: 0.55, length: 1.45, durationNoise: 0.45, sentencePause: 0.24 };
+const VOICE_TUNING = { noise: 0.5, length: 1.15, durationNoise: 0.4, sentencePause: 0.24 };
 
 async function fileBytes(file) {
   const url = new URL(file, self.location.href).href;
@@ -33,30 +33,48 @@ async function fileBytes(file) {
   try { await cache?.put(url, copy); } catch { /* quota: keep session-only copy */ }
   return data;
 }
-function ready() {
-  if (readyPromise) return readyPromise;
-  readyPromise = (async () => {
-    const manifest = await (await fetch('./voice-manifest.json')).json();
-    config = await (await fetch('./voice-config.json')).json();
-    const model = new Uint8Array(manifest.parts.reduce((n, p) => n + p.bytes, 0));
-    let offset = 0;
-    for (const part of manifest.parts) {
+async function loadModel(parts) {
+  const model = new Uint8Array(parts.reduce((n, part) => n + part.bytes, 0));
+  const offsets = []; let offset = 0, next = 0;
+  for (const part of parts) { offsets.push(offset); offset += part.bytes; }
+  // Three bounded download lanes, while preserving the verified model order.
+  await Promise.all(Array.from({ length: Math.min(3, parts.length) }, async () => {
+    while (next < parts.length) {
+      const index = next++, part = parts[index];
       const data = await fileBytes(part.file);
       const digest = [...new Uint8Array(await crypto.subtle.digest('SHA-256', data))].map(x => x.toString(16).padStart(2, '0')).join('');
       if (data.byteLength !== part.bytes || digest !== part.sha256) {
         try { await (await caches.open('caresuite-neo-voice-v1')).delete(new URL(part.file, self.location.href).href); } catch { /* cache unavailable */ }
         throw new Error('voice-model-integrity');
       }
-      model.set(new Uint8Array(data), offset); offset += data.byteLength;
+      model.set(new Uint8Array(data), offsets[index]);
     }
-    session = await ort.InferenceSession.create(model, { executionProviders: ['wasm'], graphOptimizationLevel: 'all' });
-    phonemizer = await createPiperPhonemize({
+  }));
+  return model;
+}
+function ready() {
+  if (readyPromise) return readyPromise;
+  readyPromise = (async () => {
+    const [manifest, settings] = await Promise.all(['voice-manifest.json', 'voice-config.json'].map(async file => {
+      const response = await fetch('./' + file);
+      if (!response.ok) throw new Error('voice-asset-unavailable');
+      return response.json();
+    }));
+    config = settings;
+    const results = await Promise.allSettled([
+      loadModel(manifest.parts).then(model => ort.InferenceSession.create(model, { executionProviders: ['wasm'], graphOptimizationLevel: 'all' })),
+      createPiperPhonemize({
       noInitialRun: true,
       print: line => { try { const result = JSON.parse(line); if (Array.isArray(result.phoneme_ids)) phonemeResult = result; } catch { /* non-result runtime message */ } },
       printErr: () => {},
       locateFile: path => new URL(path.split('/').pop(), self.location.href).href,
       getPreloadedPackage: () => undefined,
-    });
+      }),
+    ]);
+    if (results[0].status === 'fulfilled') session = results[0].value;
+    if (results[1].status === 'fulfilled') phonemizer = results[1].value;
+    const failure = results.find(result => result.status === 'rejected');
+    if (failure) throw failure.reason;
   })().catch(async error => { readyPromise = undefined; try { await session?.release(); } catch { /* initialization failed */ } session = undefined; throw error; });
   return readyPromise;
 }
@@ -69,14 +87,14 @@ function phonemize(text, language) {
 // The written brand stays unchanged. Its pronunciation uses English phonemes
 // inside the same German speaker and a single continuous synthesis pass.
 function speechIds(text) {
-  const brand = /\b(?:Care\s*Suite\s+Health\s*OS|Care\s*Suite|Health\s*OS)\b/gi;
+  const brand = /\b(?:Care\s*Suite\b(?:\s*(?:\+|Plus\b))?(?:\s+Health\s*OS\b)?|Health\s*OS\b)/gi;
   const matches = [...text.matchAll(brand)];
   if (!matches.length) return phonemize(text, config.espeak.voice).phoneme_ids;
   const segments = [];
   let offset = 0;
   for (const match of matches) {
     if (match.index > offset) segments.push({ raw: text.slice(offset, match.index), language: config.espeak.voice });
-    segments.push({ raw: match[0], language: 'en-us', spoken: match[0].replace(/Care\s*Suite/i, 'Care Suite').replace(/Health\s*OS/i, 'Health O S') });
+    segments.push({ raw: match[0], language: 'en-us', spoken: match[0].replace(/Care\s*Suite/i, 'Care Suite').replace(/\+/g, ' Plus ').replace(/Health\s*OS/i, 'Health O S') });
     offset = match.index + match[0].length;
   }
   if (offset < text.length) segments.push({ raw: text.slice(offset), language: config.espeak.voice });

@@ -8,6 +8,7 @@ import { createAudioPlayer, type AudioPlayer } from 'expo-audio';
 import * as Speech from 'expo-speech';
 import { ExpoSpeechRecognitionModule, useSpeechRecognitionEvent } from 'expo-speech-recognition';
 import { useAuth } from '@/lib/auth/context';
+import { claimNeoMicrophone } from '../neo/neoMicrophone';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useDesktopWeather } from '@/hooks/useDesktopWeather.native';
@@ -21,6 +22,7 @@ import { neoProfileName } from './neoCommands';
 import { matchVoiceClients, type VoiceClient } from './voiceCommands';
 import { NATIVE_NEO_AUDIO } from './neoAudio.native';
 import { nativeNeoPosition, type NativeNeoPosition } from './neoPosition.native';
+import { nativeNeoSpeechText } from './neoSpeechText';
 
 class NeoDeviceError extends Error {}
 
@@ -46,6 +48,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
   const [open, setOpen] = useState(false); const [busy, setBusy] = useState(false); const [listening, setListening] = useState(false); const [speaking, setSpeaking] = useState(false); const [speechError, setSpeechError] = useState('');
   const current = useRef({ permissions, auth, weather, router }); current.current = { permissions, auth, weather, router };
   const openRef = useRef(false), alive = useRef(true), recognitionActive = useRef(false), recognitionIntent = useRef(0), generation = useRef(0), lock = useRef(false);
+  const recognitionLanguage = useRef<string | null>(null);
   const player = useRef<AudioPlayer | null>(null), speechFinish = useRef<(() => void) | null>(null), turn = useRef<AbortController | null>(null), resume = useRef<() => void>(() => {});
   const allowedClientIds = useRef(new Set<string>());
   const canSearchClients = () => current.current.permissions.can('office.clients.view') && current.current.permissions.hasModuleGate('office');
@@ -70,10 +73,12 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
       return matches;
     },
   }));
-  const stopAudio = () => { speechFinish.current?.(); speechFinish.current = null; player.current?.remove(); player.current = null; void Speech.stop(); };
+  const stopAudio = () => { speechFinish.current?.(); speechFinish.current = null; player.current?.remove(); player.current = null; return Speech.stop().catch(() => {}); };
+  const releaseMicrophone = useRef<(() => void) | undefined>(undefined);
   const stopSession = () => {
+    releaseMicrophone.current?.(); releaseMicrophone.current = undefined;
     openRef.current = false; generation.current++; recognitionIntent.current++; recognitionActive.current = false; lock.current = false;
-    turn.current?.abort(); turn.current = null; ExpoSpeechRecognitionModule.abort(); stopAudio();
+    turn.current?.abort(); turn.current = null; ExpoSpeechRecognitionModule.abort(); void stopAudio();
     permissionResume.current?.(); permissionResume.current = null;
     if (alive.current) { setOpen(false); setBusy(false); setListening(false); setSpeaking(false); }
   };
@@ -99,7 +104,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
   }), [width, height, insets.top, insets.bottom, insets.left, insets.right]);
 
   const say = async (text: string, signal: AbortSignal) => {
-    signal.throwIfAborted(); stopAudio(); setSpeaking(true);
+    signal.throwIfAborted(); await stopAudio(); signal.throwIfAborted(); setSpeaking(true);
     await new Promise<void>((resolve, reject) => {
       let settled = false;
       const complete = (error?: Error) => { if (settled) return; settled = true; clearTimeout(timer); signal.removeEventListener('abort', finish); if (speechFinish.current === finish) speechFinish.current = null; if (alive.current) setSpeaking(false); if (error) reject(error); else resolve(); };
@@ -110,7 +115,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
         if (NATIVE_NEO_AUDIO[text]) {
           const audio = createAudioPlayer(NATIVE_NEO_AUDIO[text]); player.current = audio;
           audio.addListener('playbackStatusUpdate', status => { if (status.didJustFinish) finish(); }); audio.play();
-        } else Speech.speak(text, { language: 'de-DE', rate: 0.95, onDone: finish, onStopped: finish, onError: fail });
+        } else Speech.speak(nativeNeoSpeechText(text), { language: 'de-DE', rate: 1, onDone: finish, onStopped: finish, onError: fail });
       } catch { fail(); }
     });
     signal.throwIfAborted();
@@ -139,16 +144,20 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
     const intent = ++recognitionIntent.current; setSpeechError('');
     try {
       if (!ExpoSpeechRecognitionModule.isRecognitionAvailable() || !ExpoSpeechRecognitionModule.supportsOnDeviceRecognition()) throw new NeoDeviceError('Auf diesem Gerät ist keine lokale Spracherkennung verfügbar. Prüfe den Sprachdienst in den Geräteeinstellungen.');
-      permissionPending.current = true;
-      let permission;
-      try { permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync(); }
-      finally { permissionPending.current = false; }
-      if (!alive.current || intent !== recognitionIntent.current || !openRef.current) return;
-      if (foreground.current === 'inactive') await new Promise<void>(resolve => { permissionResume.current = resolve; });
-      if (!alive.current || intent !== recognitionIntent.current || !openRef.current) return;
-      if (!permission.granted) { openRef.current = false; setOpen(false); setSpeechError('Das Mikrofon ist nicht freigegeben. Erlaube CareSuite den Mikrofonzugriff und tippe Neo erneut an.'); return; }
-      let language = 'de-DE';
-      if (Platform.OS === 'android' && Number(Platform.Version) >= 33) {
+      // Recheck access when a session opens. Replies reuse that session's device
+      // setup instead of making permission and installed-language calls each turn.
+      if (greet || !recognitionLanguage.current) {
+        permissionPending.current = true;
+        let permission;
+        try { permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync(); }
+        finally { permissionPending.current = false; }
+        if (!alive.current || intent !== recognitionIntent.current || !openRef.current) return;
+        if (foreground.current === 'inactive') await new Promise<void>(resolve => { permissionResume.current = resolve; });
+        if (!alive.current || intent !== recognitionIntent.current || !openRef.current) return;
+        if (!permission.granted) { recognitionLanguage.current = null; openRef.current = false; setOpen(false); setSpeechError('Das Mikrofon ist nicht freigegeben. Erlaube CareSuite den Mikrofonzugriff und tippe Neo erneut an.'); return; }
+      }
+      let language = recognitionLanguage.current ?? 'de-DE';
+      if (!recognitionLanguage.current && Platform.OS === 'android' && Number(Platform.Version) >= 33) {
         const languages = await ExpoSpeechRecognitionModule.getSupportedLocales({});
         if (!alive.current || intent !== recognitionIntent.current || !openRef.current) return;
         const installed = languages.installedLocales.find(locale => locale.replace('_', '-').toLowerCase() === 'de-de')
@@ -156,6 +165,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
         if (!installed) { setNeedsLanguageModel(true); throw new NeoDeviceError('Das deutsche Sprachpaket fehlt auf diesem Gerät. Lade es einmal, damit Neo zuhören kann.'); }
         language = installed; setNeedsLanguageModel(false);
       }
+      recognitionLanguage.current = language;
       if (greet) {
         const request = new AbortController(); turn.current = request;
         await say('Hallo, ich bin Neo. Wie kann ich dir helfen?', request.signal);
@@ -163,7 +173,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
       }
       recognitionActive.current = true; setListening(true);
       ExpoSpeechRecognitionModule.start({ lang: language, interimResults: false, continuous: false, requiresOnDeviceRecognition: true, addsPunctuation: false });
-    } catch (cause) { if (alive.current && intent === recognitionIntent.current) { recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); setSpeechError(cause instanceof NeoDeviceError ? cause.message : 'Die lokale Spracherkennung konnte nicht gestartet werden. Prüfe den Sprachdienst in den Geräteeinstellungen und tippe Neo erneut an.'); } }
+    } catch (cause) { if (alive.current && intent === recognitionIntent.current) { recognitionLanguage.current = null; recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); setSpeechError(cause instanceof NeoDeviceError ? cause.message : 'Die lokale Spracherkennung konnte nicht gestartet werden. Prüfe den Sprachdienst in den Geräteeinstellungen und tippe Neo erneut an.'); } }
   };
   resume.current = () => { if (alive.current && openRef.current && !lock.current) void listen(); };
   useSpeechRecognitionEvent('start', () => { if (alive.current && recognitionActive.current && openRef.current) setListening(true); });
@@ -172,7 +182,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
     const text = event.results[0]?.transcript;
     if (event.isFinal && text && alive.current && recognitionActive.current && openRef.current) { recognitionActive.current = false; setListening(false); void command(text); }
   });
-  useSpeechRecognitionEvent('error', event => { if (alive.current && recognitionActive.current && openRef.current && event.error !== 'aborted') { recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); const missingModel = event.error === 'language-not-supported' && Platform.OS === 'android' && Number(Platform.Version) >= 33; setNeedsLanguageModel(missingModel); setSpeechError(missingModel ? 'Das deutsche Sprachpaket fehlt. Lade es einmal und tippe Neo erneut an.' : 'Die lokale Spracherkennung ist gerade nicht verfügbar. Prüfe den Sprachdienst und tippe Neo erneut an.'); } });
+  useSpeechRecognitionEvent('error', event => { if (alive.current && recognitionActive.current && openRef.current && event.error !== 'aborted') { recognitionLanguage.current = null; recognitionActive.current = false; openRef.current = false; setOpen(false); setListening(false); const missingModel = event.error === 'language-not-supported' && Platform.OS === 'android' && Number(Platform.Version) >= 33; setNeedsLanguageModel(missingModel); setSpeechError(missingModel ? 'Das deutsche Sprachpaket fehlt. Lade es einmal und tippe Neo erneut an.' : 'Die lokale Spracherkennung ist gerade nicht verfügbar. Prüfe den Sprachdienst und tippe Neo erneut an.'); } });
   const downloadModel = async () => {
     if (downloading) return;
     stopSession(); const serial = generation.current; setDownloading(true);
@@ -184,7 +194,7 @@ function NativeNeo({ tenantId }: { tenantId: string }) {
     } catch { if (alive.current && serial === generation.current) setSpeechError('Das Sprachpaket konnte nicht geladen werden. Prüfe den Sprachdienst in den Geräteeinstellungen und versuche es erneut.'); }
     finally { if (alive.current) setDownloading(false); }
   };
-  const activate = () => { if (Date.now() < suppressPressUntil.current) return; if (downloading) { setSpeechError('Das Sprachpaket wird noch geladen. Tippe Neo nach dem Download erneut an.'); return; } if (openRef.current) stopSession(); else { openRef.current = true; setOpen(true); setSpeechError(''); void listen(true); } };
+  const activate = () => { if (Date.now() < suppressPressUntil.current) return; if (downloading) { setSpeechError('Das Sprachpaket wird noch geladen. Tippe Neo nach dem Download erneut an.'); return; } if (openRef.current) stopSession(); else { releaseMicrophone.current = claimNeoMicrophone(stopSession); openRef.current = true; setOpen(true); setSpeechError(''); void listen(true); } };
   const statusWidth = Math.min(280, width - insets.left - insets.right - 24);
   const statusLeft = Math.max(insets.left + 12, Math.min(width - insets.right - statusWidth - 12, position.x + 34 - statusWidth / 2)) - position.x;
   const statusTop = Math.max(insets.top + 8, Math.min(position.y + 82, height - insets.bottom - statusHeight - 8)) - position.y;

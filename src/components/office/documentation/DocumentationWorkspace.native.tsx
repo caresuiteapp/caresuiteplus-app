@@ -12,6 +12,10 @@ import { DocumentationReader } from "./DocumentationReader.native.tsx";
 import { DocumentationFilePicker } from "./DocumentationFiles.native.tsx";
 import { discardDocumentationFile, documentationAttachmentLabels, uploadDocumentationFile } from '@/lib/office/documentation/attachments';
 import { documentationCss } from "./documentationCss.native.ts";
+import { NeoDocumentationPanel } from '@/ai/neo/NeoDocumentationPanel';
+import { NeoActionsPanel } from '@/ai/neo/NeoActionsPanel';
+import { neoDraftText } from '@/ai/neo/neoDomain';
+import { usePermissions } from '@/hooks/usePermissions';
 const initialFilters = (): DocumentationFilters => ({ month: berlinMonth(), area: '', clientId: '', employeeId: '', category: '', source: '', priority: '', query: '', offset: 0 });
 const emptyPage: DocumentationPage = { items: [], total: 0, months: [], clients: [], employees: [] };
 const areaOptions = [{ value: '', label: 'Alle' }, ...DOCUMENTATION_AREAS];
@@ -66,6 +70,7 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
     actor: DocumentationActor;
     employeeView?: boolean;
 }) {
+    const neoPermissions = usePermissions();
     const [filters, setFilters] = useState(initialFilters);
     const [search, setSearch] = useState('');
     const [page, setPage] = useState(emptyPage);
@@ -81,13 +86,15 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
     const [files, setFiles] = useState<DocumentationUpload[]>([]);
     const [savedId, setSavedId] = useState('');
     const [recording, setRecording] = useState(false);
+    const [neoRecording, setNeoRecording] = useState(false);
+    const [neoPending, setNeoPending] = useState(false);
     const fileState = useRef({ files, savedId });
     fileState.current = { files, savedId };
     const [saveError, setSaveError] = useState('');
     const [uncertain, setUncertain] = useState(false);
     const [busy, setBusy] = useState(false);
     const alive = useRef(true), requestNumber = useRef(0), locked = useRef(false);
-    const confirmLeave = useUnsavedWebChanges(Boolean(draft && (draft.title || draft.body || files.length)), busy || recording);
+    const confirmLeave = useUnsavedWebChanges(Boolean(draft && (draft.title || draft.body || files.length || neoPending)), busy || recording || neoRecording);
     const refresh = useCallback(async () => {
         const request = ++requestNumber.current;
         setLoading(true);
@@ -139,8 +146,12 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
         for (const f of files.filter(f => !f.done))
             void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => { }); setFiles([]); setSavedId(''); setDraft(null); setSelected(entry); setSaveError(''); setUncertain(false); };
     const save = async () => {
-        if (!draft || locked.current || recording)
+        if (!draft || locked.current || recording || neoRecording)
             return;
+        if (neoPending) {
+            setSaveError('Bitte die offenen NEO-Angaben zuerst übernehmen oder verwerfen.');
+            return;
+        }
         const invalid = validateDocumentation(draft);
         if (invalid) {
             setSaveError(invalid);
@@ -280,12 +291,12 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
 
           {error && <NativeDiv role="alert" className="cs-doc-error">{error} <NativeButton type="button" className="cs-doc-btn" onClick={() => void refresh()}>Erneut laden</NativeButton></NativeDiv>}
           <NativeDiv className={`cs-doc-layout${draft && !employeeView ? ' has-panel' : ''}`}>
-            {draft && <DocumentationComposer modal={employeeView} busy={busy || recording} onClose={() => void close()}>
+            {draft && <DocumentationComposer modal={employeeView} busy={busy || recording || neoRecording} onClose={() => void close()}>
               <NativeForm className="cs-doc-panel-body" onSubmit={e => { e.preventDefault(); void save(); }}>
                 {saveError && <NativeDiv role="alert" className="cs-doc-error">{saveError}</NativeDiv>}
                 <NativeDiv className="cs-doc-form-content">
                   <NativeP className="cs-doc-hint">Dieser Eintrag ist für das gesamte Team Ihres Unternehmens sichtbar. Vertrauliche Personalakten bleiben in der Personalverwaltung.</NativeP>
-                  <NativeFieldset disabled={busy || uncertain || Boolean(savedId)} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}><NativeDiv className="cs-doc-form-grid">
+                  <NativeFieldset disabled={busy || uncertain || Boolean(savedId) || neoRecording || neoPending} style={{ border: 0, margin: 0, padding: 0, minWidth: 0 }}><NativeDiv className="cs-doc-form-grid">
                     <NativeLabel>Bereich<NativeSelect value={draft.area} onChange={e => changeDraft({ area: e.target.value as DocumentationDraft['area'] })}>{DOCUMENTATION_AREAS.map(a => <NativeOption key={a.value} value={a.value}>{a.label}</NativeOption>)}</NativeSelect></NativeLabel>
                     <NativeLabel>Kategorie<NativeSelect value={draft.category} onChange={e => changeDraft({ category: e.target.value as DocumentationDraft['category'] })}>{DOCUMENTATION_CATEGORIES.map(c => <NativeOption key={c.value} value={c.value}>{c.label}</NativeOption>)}</NativeSelect></NativeLabel>
                     <NativeLabel>Dringlichkeit<NativeSelect value={draft.priority} onChange={e => changeDraft({ priority: e.target.value as DocumentationDraft['priority'] })}><NativeOption value="normal">Normal</NativeOption><NativeOption value="important">Wichtig</NativeOption><NativeOption value="urgent">Dringend</NativeOption></NativeSelect></NativeLabel>
@@ -295,12 +306,14 @@ export function DocumentationWorkspace({ actor, employeeView = false }: {
                     <NativeLabel className="cs-doc-full">Titel *<NativeInput required autoFocus={!employeeView} maxLength={180} value={draft.title} placeholder="Was möchten Sie festhalten?" onChange={e => changeDraft({ title: e.target.value })}/></NativeLabel>
                     <NativeLabel className="cs-doc-full">Dokumentation *<NativeTextarea required maxLength={20000} value={draft.body} placeholder="Beobachtungen, Gespräche, Absprachen oder wichtige Veränderungen …" onChange={e => changeDraft({ body: e.target.value })}/></NativeLabel>
                   </NativeDiv></NativeFieldset>
-                  {actor.canUpload && <DocumentationFilePicker files={files} disabled={busy || uncertain} mediaOnly={actor.mediaOnly} onRecording={setRecording} onChange={next => { if (savedId)
+                  {draft.area === 'client' && draft.clientId && !employeeView && <NeoDocumentationPanel scope={{ tenantId: actor.tenantId, actorId: actor.userId, subjectId: draft.clientId }} disabled={busy || uncertain || Boolean(savedId) || recording} onBusyChange={setNeoRecording} onPendingChange={setNeoPending} onApply={neo => changeDraft({ title: draft.title || 'Sprachgestützte Dokumentation', body: [draft.body.trim(), neoDraftText(neo)].filter(Boolean).join('\n\n') })}/>}
+                  {draft.area === 'client' && draft.clientId && !employeeView && (neoPermissions.can('office.appointments.edit') || neoPermissions.can('assist.assignments.manage')) && !neoRecording && <NeoActionsPanel scope={{ tenantId: actor.tenantId, actorId: actor.userId, subjectId: draft.clientId }} role={neoPermissions.roleKey ?? null}/>}
+                  {actor.canUpload && <DocumentationFilePicker files={files} disabled={busy || uncertain || neoRecording} mediaOnly={actor.mediaOnly} onRecording={setRecording} onChange={next => { if (savedId)
                 for (const f of files.filter(f => !f.done && !next.some(n => n.id === f.id)))
                     void discardDocumentationFile(actor, { id: savedId, source: 'manual' }, f).catch(() => { }); setFiles(next); }}/>}
                   <NativeP className="cs-doc-hint">Verfasser und Erfassungszeit werden automatisch gespeichert. Korrekturen können als Ergänzung erfasst werden.</NativeP>
                 </NativeDiv>
-                <NativeFooter className="cs-doc-actions cs-doc-editor-actions"><NativeButton type="button" className="cs-doc-btn" disabled={busy || recording} onClick={() => void close()}>Abbrechen</NativeButton><NativeButton type="submit" className="cs-doc-btn primary" disabled={busy || recording}>{busy ? 'Wird gespeichert …' : uncertain ? 'Speicherbestätigung prüfen' : savedId ? 'Fehlende Anhänge speichern' : 'Eintrag speichern'}</NativeButton></NativeFooter>
+                <NativeFooter className="cs-doc-actions cs-doc-editor-actions"><NativeButton type="button" className="cs-doc-btn" disabled={busy || recording || neoRecording} onClick={() => void close()}>Abbrechen</NativeButton><NativeButton type="submit" className="cs-doc-btn primary" disabled={busy || recording || neoRecording}>{busy ? 'Wird gespeichert …' : uncertain ? 'Speicherbestätigung prüfen' : savedId ? 'Fehlende Anhänge speichern' : 'Eintrag speichern'}</NativeButton></NativeFooter>
               </NativeForm>
             </DocumentationComposer>}
 

@@ -12,6 +12,7 @@ export type NeoDestination = {
     words: readonly string[];
 };
 export const NEO_DESTINATIONS: readonly NeoDestination[] = [
+    { key: 'documentation', label: 'Dokumentation', route: '/office/dokumentation', permission: 'office.access', words: ['dokumentation', 'sprachdokumentation', 'sprachbegleitung'] },
     ...VOICE_DESTINATIONS.map(d => ({ ...d, words: [...d.words, ...(({ employees: ['personalubersicht', 'personalliste', 'mitarbeiterliste'], clients: ['kundenliste', 'klientenubersicht'], calendar: ['kalender und einsatzplanung'] } as Record<string, string[]>)[d.key] ?? [])], route: d.key === 'home' ? '/Desktop' : d.key === 'calendar' ? '/assist/kalender' : d.route })),
     { key: 'catalog', label: 'Dokumentenkatalog', route: '/business/office/document-catalog', permission: 'office.documents.view', words: ['dokumentenkatalog', 'vorlagen', 'dokumentvorlagen', 'vorlagenkatalog'] },
     { key: 'company', label: 'Unternehmen', route: '/unternehmen', permission: 'office.access', words: ['unternehmen', 'firma', 'unternehmensakte', 'firmendaten'] },

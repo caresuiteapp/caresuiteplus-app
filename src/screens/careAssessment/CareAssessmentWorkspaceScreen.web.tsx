@@ -1,4 +1,6 @@
 import {writeAmbulatoryAssessmentRequest,applyAmbulatoryAssessmentLifecycle} from '@/lib/careAssessment/careAssessmentService.web';
+import { NeoDocumentationPanel } from '@/ai/neo/NeoDocumentationPanel';
+import { applyNeoAssessment } from '@/ai/neo/neoAssessment';
 import {createCareAssessmentQueryAttempt,assertCareAssessmentQueryAttempt,assertCareAssessmentQueryLifetime,type CareAssessmentQueryAttempt} from '@/lib/careAssessment/careAssessmentQueryAttempt.web';
 import {PlanEvaluationPanel} from './PlanEvaluationPanel.web';
 import { useCareRuntimePermissions as usePermissions } from '@/hooks/pflege/useCareRuntimePermissions.web';
@@ -211,11 +213,13 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
   const { id } = useLocalSearchParams<{ id?: string }>();
   const router = useRouter();
   const tenantId = useServiceTenantId();
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const retainedJournals=useAssessmentPathJournals({tenantId:tenantId??'',assessmentId:id??'',actorId:profile?.id??''},subjectType==='client');
   const retainedPathJournal=retainedJournals.assessment||retainedJournals.plan;
   const { width } = useWindowDimensions();
   const [value, setValue] = useState<CareAssessment | null>(null);
+  const [neoRecording, setNeoRecording] = useState(false);
+  const [neoPending, setNeoPending] = useState(false);
   const evaluationLeave=useRef<()=>Promise<boolean>>(async()=>true);
   const navigationAlive=useRef(true),readBoundary=useRef<CareAssessmentReadBoundary|null>(null),queryAttempt=useRef<CareAssessmentQueryAttempt|null>(null),lastSavedPlan=useRef<CareAssessment|null>(null);
   useEffect(()=>{navigationAlive.current=true;return()=>{navigationAlive.current=false;readBoundary.current=null;queryAttempt.current=null;};},[]);
@@ -286,7 +290,7 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
   const pendingDraft=useRef<{request:AssessmentDraftRequest;context:CareAssessmentDraftContext;baseline:CareAssessmentDraftBaseline|null;editable:CareAssessment;requestId:string;provenance:CareAssessmentPendingRead}|null>(null);
   function acceptConfirmed(loaded:CareAssessment,captured:CareAssessmentDraftContext,ticket:CareAssessmentReadTicket,provenance:CareAssessmentPendingRead){const current=workspaceState.current;assertCurrentReadContext(captured);const boundary=readBoundary.current;if(!boundary)throw Error('Aktuellen Pflegeplan-Lesestand erneut bestätigen.');const published=acceptCareAssessmentConfirmedRead(boundary,ticket,provenance,loaded,current.context);const accepted=confirmCareAssessmentDraftWrite(loaded,captured,current.context);readBoundary.current=published.boundary;query.setData(published.envelope);setBaseline(accepted.baseline);setValue(accepted.value);setNeedsReload(false);}
   async function reloadConfirmedDraft(){const pending=pendingDraft.current;if(!pending)throw Error('Ursprüngliche bestätigte Schreibanfrage fehlt. Der Formularstand bleibt erhalten.');assertCurrentReadContext(pending.context);const ticket=currentReadTicket();const loaded=await fetchCareAssessment(pending.context.tenantId,pending.context.assessmentId,pending.context.subjectType,pending.context.roleKey as NonNullable<typeof profile>['roleKey']);assertCurrentReadContext(pending.context);if(!loaded.ok)throw Error(loaded.error);assertAssessmentDraftStoredRead(pending.request,{assessmentId:loaded.data.id,draftRevision:loaded.data.draftRevision,status:loaded.data.status});const current=workspaceState.current;if(!sameDraftContext(pending.context,current.context)||!sameWoundJson(current.value,pending.editable)||!sameWoundJson(current.baseline,pending.baseline))throw Error('Ursprünglicher Schreib- oder Formularbezug inzwischen geändert. Bestätigten Stand gesondert laden.');acceptConfirmed(loaded.data,pending.context,ticket,pending.provenance);}
-  const submission=useMedicationSubmission<AssessmentDraftRequest>(dirty||instrumentState.dirty||planState.dirty||pathPhase.dirty||pathPhase.uncertain||retainedPathJournal,async(requestId,payload,replay)=>{
+  const submission=useMedicationSubmission<AssessmentDraftRequest>(dirty||neoPending||neoRecording||instrumentState.dirty||planState.dirty||pathPhase.dirty||pathPhase.uncertain||retainedPathJournal,async(requestId,payload,replay)=>{
     const current=workspaceState.current;
     if(!current.canReadPlan||!navigationAlive.current||!tenantId||payload.assessmentId!==current.context.assessmentId)return {ok:false,error:'Der Aktenbezug hat sich geändert.',uncertain:replay};
     if(pendingDraft.current?.requestId!==requestId){if(replay)return {ok:false,error:'Der ursprüngliche Lesestand der ungewissen Schreibanfrage fehlt.',uncertain:true};if(current.writeLocked||qualityNavigation.current.path.busy||qualityNavigation.current.path.dirty||qualityNavigation.current.path.uncertain||retainedJournals.reference.current.assessment||retainedJournals.reference.current.plan||!current.value)return {ok:false,error:'Aktuellen gespeicherten Bearbeitungsstand zuerst bestätigen.'};try{const provenance=captureOriginalRead();pendingDraft.current={request:structuredClone(payload),context:structuredClone(current.context),baseline:current.baseline?structuredClone(current.baseline):null,editable:structuredClone(current.value),requestId,provenance};}catch(error){return {ok:false,error:error instanceof Error?error.message:'Ursprünglichen Lesestand prüfen.'};}}
@@ -371,6 +375,8 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
     }] });
   }
   async function save(nextStatus?: 'professional_review' | 'approved') {
+    if (neoRecording) { setMessage('Bitte die NEO-Aufnahme vor dem Speichern abschließen.'); return; }
+    if (neoPending) { setMessage('Bitte die offenen NEO-Angaben zuerst übernehmen oder verwerfen.'); return; }
     if (!value || !tenantId || locked||qualityNavigation.current.leaving||qualityNavigation.current.path.busy||qualityNavigation.current.path.dirty||qualityNavigation.current.path.uncertain||retainedJournals.reference.current.assessment||retainedJournals.reference.current.plan) return;
     const check = calculateCareAssessmentCompleteness(value);
     if (nextStatus && !(nextStatus === 'approved' ? check.canApprove : check.canSubmitForReview)) { setMessage('Fachliche Prüfung erst nach Behebung der angezeigten offenen Angaben möglich.'); return; }
@@ -489,6 +495,8 @@ function Workspace({ subjectType,runtimeAccess,mentalAccess,palliativeAccess,coo
         </ScrollView>
 
         <View style={styles.documentCanvas}>
+          {!resident && user?.id && tenantId ? <NeoDocumentationPanel scope={{ tenantId, actorId: user.id, subjectId: value.subjectId, assessmentId: value.id }} disabled={locked} onBusyChange={setNeoRecording} onPendingChange={setNeoPending}
+            onApply={(neo, segments) => patch(applyNeoAssessment(value, { tenantId, actorId: user.id, subjectId: value.subjectId, assessmentId: value.id }, neo, segments))} /> : null}
 
       {section === 'person' ? (
         <SectionPanel title="Was bewegt Sie im Augenblick?" subtitle="Originalton getrennt von der Fachperspektive">

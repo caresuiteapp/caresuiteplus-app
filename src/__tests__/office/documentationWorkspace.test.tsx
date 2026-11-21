@@ -19,6 +19,10 @@ vi.mock('@/screens/portal/PortalTabScreen',()=>({PortalTabScreen:({children}:{ch
 vi.mock('@/lib/auth/context',()=>({useAuth:()=>({user:{id:actor.userId},portalSession:null})}));
 vi.mock('@/hooks/useTenantId',()=>({useServiceTenantId:()=>actor.tenantId}));
 vi.mock('@/hooks/usePermissions',()=>({usePermissions:()=>({roleKey:'employee_portal',can:()=>false})}));
+// The dedicated NEO suites cover microphone/review/action interaction. This
+// workspace suite isolates those native-capable children from the DOM fixture.
+vi.mock('@/ai/neo/NeoDocumentationPanel',()=>({NeoDocumentationPanel:()=>null}));
+vi.mock('@/ai/neo/NeoActionsPanel',()=>({NeoActionsPanel:()=>null}));
 const actor={tenantId:'11111111-1111-4111-8111-111111111111',userId:'22222222-2222-4222-8222-222222222222'};
 const entry:DocumentationEntry={id:'33333333-3333-4333-8333-333333333333',tenant_id:actor.tenantId,source:'visit',area:'client',client_id:'44444444-4444-4444-8444-444444444444',employee_id:null,category:'care',priority:'normal',title:'Abgeschlossener Einsatz',body:'Gespeicherte Beobachtung',occurred_at:'2026-11-04T17:00:00Z',created_at:'2026-11-04T17:05:00Z',author_name:'Team Test',client_name:'Client Test',employee_name:'',visit_id:'55555555-5555-4555-8555-555555555555'};
 let host:HTMLDivElement,root:Root;

@@ -1,13 +1,14 @@
 import { readFileSync } from 'node:fs';
 import vm from 'node:vm';
-import { describe, expect, it } from 'vitest';
+import { createHash, webcrypto } from 'node:crypto';
+import { describe, expect, it, vi } from 'vitest';
 import { createNeoSpeech } from '../../ai/robot/neoSpeech.web';
 import { NEO_INTRODUCTION } from '../../ai/robot/neoCommands';
 
 const worker = readFileSync(new URL('../../../public/neo-voice/v1/neo-worker.js', import.meta.url), 'utf8');
-function helpers() {
-  const sandbox: Record<string, any> = { URL, Float32Array, self: { fetch: () => {}, location: { href: 'https://example.test/neo-voice/v1/neo-worker.js', origin: 'https://example.test' } }, importScripts: () => {}, ort: { env: { wasm: {} } } };
-  vm.runInNewContext(worker + '\nconfig = { phoneme_id_map: { "$": [2] } }; globalThis.test = { sentenceInputs, joinSentences, wav };', sandbox);
+function helpers(extra = '', environment: Record<string, unknown> = {}) {
+  const sandbox: Record<string, any> = { URL, Float32Array, crypto: webcrypto, self: { fetch: () => {}, location: { href: 'https://example.test/neo-voice/v1/neo-worker.js', origin: 'https://example.test' } }, importScripts: () => {}, ort: { env: { wasm: {} } }, ...environment };
+  vm.runInNewContext(worker + '\nconfig = { phoneme_id_map: { "$": [2] } }; globalThis.test = { sentenceInputs, joinSentences, wav, loadModel, speechIds };\n' + extra, sandbox);
   return sandbox.test;
 }
 describe('Neo speech continuity', () => {
@@ -18,6 +19,39 @@ describe('Neo speech continuity', () => {
       expect(bytes.length).toBeGreaterThan(1000);
       expect(String.fromCharCode(...bytes.slice(0, 3))).toBe('ID3');
     } finally { speech.dispose(); }
+  });
+  it('also reuses bundled navigation recordings when a conversation supplies their text', async () => {
+    const speech = createNeoSpeech();
+    try {
+      const bytes = new Uint8Array(await speech.loadVoice('neo:conversation', new AbortController().signal, 'Klar, zum Kalender.'));
+      expect(bytes.length).toBeGreaterThan(1000);
+      expect(String.fromCharCode(...bytes.slice(0, 3))).toBe('ID3');
+    } finally { speech.dispose(); }
+  });
+  it('assembles parallel model parts in manifest order with at most three active downloads', async () => {
+    let active = 0, maximum = 0;
+    const pieces = [1, 2, 3, 4, 5].map(value => new Uint8Array([value]).buffer);
+    const parts = pieces.map((data, index) => ({ file: String(index), bytes: data.byteLength, sha256: createHash('sha256').update(new Uint8Array(data)).digest('hex') }));
+    const testFileBytes = async (name: string) => {
+      active++; maximum = Math.max(maximum, active);
+      await new Promise(resolve => setTimeout(resolve, (5 - Number(name)) * 2));
+      active--; return pieces[Number(name)];
+    };
+    const { loadModel } = helpers('fileBytes = testFileBytes;', { testFileBytes });
+    expect(Array.from(await loadModel(parts))).toEqual([1, 2, 3, 4, 5]);
+    expect(maximum).toBe(3);
+  });
+  it('rejects corrupted model parts and evicts their cache entry', async () => {
+    const remove = vi.fn();
+    const { loadModel } = helpers('fileBytes = async () => new Uint8Array([1]).buffer;', { caches: { open: async () => ({ delete: remove }) } });
+    await expect(loadModel([{ file: 'voice-00.bin', bytes: 1, sha256: '0'.repeat(64) }])).rejects.toThrow('voice-model-integrity');
+    expect(remove).toHaveBeenCalledWith('https://example.test/neo-voice/v1/voice-00.bin');
+  });
+  it('uses English phonemes for both compact brand names and the OS letters', () => {
+    const pronounce = vi.fn().mockReturnValue({ phoneme_ids: [1, 0, 7, 0, 2], phonemes: ['x'] });
+    const { speechIds } = helpers('config = { espeak: { voice: "de" }, phoneme_id_map: { "^": [1], "_": [0], "$": [2], x: [7], " ": [3], ".": [4] } }; phonemize = pronounce;', { pronounce });
+    expect(speechIds('Dein CareSuite+ HealthOS.').length).toBeGreaterThan(0);
+    expect(pronounce.mock.calls.some(([text, language]) => text.includes('Care Suite') && text.includes('Health O S') && language === 'en-us')).toBe(true);
   });
   it('keeps each sentence frame intact instead of inferring across multiple end/start markers', () => {
     const { sentenceInputs } = helpers();
