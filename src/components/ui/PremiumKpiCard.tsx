@@ -5,7 +5,7 @@ import { spatialCareColors } from '@/design/tokens/spatialCareSuite';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { SpaceKpiIcon } from '@/components/icons/space';
 import { radius } from '@/theme';
-import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { usePortalPremiumPalette, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { employeePortalWorkspace } from '@/components/portal/employee/employeePortalDesign';
 
 type Props = {
@@ -42,6 +42,7 @@ export function PremiumKpiCard({
 }: Props) {
   const { colors, typography } = useLegacyTheme();
   const portal = usePortalPremiumTheme();
+  const portalPremium = usePortalPremiumPalette();
   const { width } = useWindowDimensions();
   const dense = Platform.OS === 'web' && portal.kind === 'workspace' && width < 900;
   const employee = portal.kind === 'employee';
@@ -149,6 +150,7 @@ export function PremiumKpiCard({
       employee,
       labelCase,
       portal.active,
+      portalPremium,
       resolvedAccent,
       typography.caption,
     ],

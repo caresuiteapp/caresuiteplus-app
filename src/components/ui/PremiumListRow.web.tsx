@@ -11,7 +11,7 @@ export function PremiumListRow({ title, subtitle, leading, trailing, showChevron
   showDivider = false, onPress, style, multiline = false }: Props) {
   const tone = useSurfaceContrastTone();
   const portal = usePortalPremiumTheme();
-  const dark = tone === 'dark' || (tone === 'adaptive' && !portal.active);
+  const dark = portal.kind === 'client' || tone === 'dark' || (tone === 'adaptive' && !portal.active);
   const content = <>
     {leading ? <View style={styles.leading}>{leading}</View> : null}
     <View style={styles.copy}>

@@ -16,6 +16,7 @@ import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { portalPremium, usePortalPremiumRuntimeTheme } from '@/design/tokens/portalPremium';
+import { clientPortalNight as night } from '@/design/tokens/clientPortalNight';
 import { typography } from '@/theme';
 import { acquireWorkflowFeedbackInteractionLock } from '@/lib/dom/workflowFeedbackInteractionLock';
 
@@ -71,6 +72,7 @@ export function WorkflowFeedbackOverlay({
   const { isPhone, width = 390, fontScale = 1 } = useDeviceClass();
   const stackedHeading = isPhone && width / Math.max(1, fontScale) < 360;
   const portal = usePortalPremiumRuntimeTheme();
+  const client = portal.kind === 'client';
   const [messageVisible, setMessageVisible] = useState(Boolean(message));
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
   // Android dialogs are separate native windows: a View zIndex cannot keep
@@ -154,12 +156,12 @@ export function WorkflowFeedbackOverlay({
 
   const meta = feedbackMeta[kind];
   const closeControl = (
-    <Pressable accessibilityLabel="Meldung schließen" accessibilityRole="button" onPress={dismiss} style={[styles.close, portal.active && styles.portalClose]}>
-      <SemanticArtwork style={[styles.closeText, portal.active && styles.portalCloseText]} webSize={20}>×</SemanticArtwork>
+    <Pressable accessibilityLabel="Meldung schließen" accessibilityRole="button" onPress={dismiss} style={[styles.close, portal.active && styles.portalClose, client && { backgroundColor: night.control, borderColor: night.border }]}>
+      <SemanticArtwork style={[styles.closeText, portal.active && styles.portalCloseText, client && { color: night.text.primary }]} webSize={20}>×</SemanticArtwork>
     </Pressable>
   );
   const indicator = <View style={[styles.icon, { backgroundColor: meta.color }]}><SemanticArtwork style={styles.iconText} webSize={24}>{meta.icon}</SemanticArtwork></View>;
-  const heading = <View style={[styles.headingText, stackedHeading && styles.headingTextPhone]}><Text testID={`${testID}-title`} accessibilityRole="header" style={[styles.title, portal.active && styles.portalTitle]}>{title ?? meta.title}</Text></View>;
+  const heading = <View style={[styles.headingText, stackedHeading && styles.headingTextPhone]}><Text testID={`${testID}-title`} accessibilityRole="header" style={[styles.title, portal.active && styles.portalTitle, client && { color: night.text.primary }]}>{title ?? meta.title}</Text></View>;
   const content = (
     <View
       accessibilityRole="alert"
@@ -167,11 +169,12 @@ export function WorkflowFeedbackOverlay({
       style={styles.viewport}
       testID={testID}
     >
-      <View style={[styles.backdrop, loading && styles.loadingBackdrop]} />
+      <View style={[styles.backdrop, loading && styles.loadingBackdrop, client && { backgroundColor: 'rgba(5,17,29,.7)' }]} />
       <View
         style={[
           styles.dialog,
           loading ? styles.loadingDialog : portal.active && styles.portalDialog,
+          client && { backgroundColor: night.dialog },
           { borderColor: loading ? '#C6DDF5' : meta.color },
         ]}
         {...(Platform.OS === 'web'
@@ -181,8 +184,8 @@ export function WorkflowFeedbackOverlay({
         {loading ? (
           <View style={styles.loadingContent}>
             <CareSuiteLoadingIndicator width={240} />
-            <Text style={styles.loadingMessage}>{loadingMessage}</Text>
-            <Text style={styles.loadingWait}>
+            <Text style={[styles.loadingMessage, client && { color: night.text.primary }]}>{loadingMessage}</Text>
+            <Text style={[styles.loadingWait, client && { color: night.text.secondary }]}>
               Bitte warten und diese Seite nicht schließen.
             </Text>
           </View>
@@ -191,15 +194,15 @@ export function WorkflowFeedbackOverlay({
             <View style={[styles.heading, stackedHeading && styles.headingPhone]}>
               {stackedHeading ? <><View style={styles.headingControls}>{indicator}{closeControl}</View>{heading}</> : <>{indicator}{heading}{closeControl}</>}
             </View>
-            <Text style={[styles.message, portal.active && styles.portalMessage]}>{message}</Text>
+            <Text style={[styles.message, portal.active && styles.portalMessage, client && { color: night.text.secondary }]}>{message}</Text>
             <View style={styles.actions}>
               {actionLabel && onAction ? (
                 <Pressable
                   accessibilityRole="button"
                   onPress={onAction}
-                  style={[styles.actionPrimary, portal.active && styles.portalActionPrimary]}
+                  style={[styles.actionPrimary, portal.active && styles.portalActionPrimary, client && { backgroundColor: night.accent.blue, borderColor: night.border }]}
                 >
-                  <Text style={[styles.actionPrimaryText, portal.active && styles.portalActionPrimaryText]}>
+                  <Text style={[styles.actionPrimaryText, portal.active && styles.portalActionPrimaryText, client && { color: night.text.onStrong }]}>
                     {actionLabel}
                   </Text>
                 </Pressable>
@@ -207,9 +210,9 @@ export function WorkflowFeedbackOverlay({
               <Pressable
                 accessibilityRole="button"
                 onPress={dismiss}
-                style={[styles.action, portal.active && styles.portalAction]}
+                style={[styles.action, portal.active && styles.portalAction, client && { backgroundColor: night.control, borderColor: night.border }]}
               >
-                <Text style={[styles.actionText, portal.active && styles.portalActionText]}>Schließen</Text>
+                <Text style={[styles.actionText, portal.active && styles.portalActionText, client && { color: night.text.primary }]}>Schließen</Text>
               </Pressable>
             </View>
           </ScrollView>

@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useClientSignatureAttention } from './ClientSignatureAttentionProvider';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 export function ClientSignatureAttentionBanner() {
   const { items, error, refresh } = useClientSignatureAttention();
   const router = useRouter();
@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
     borderRadius: 18,
     borderWidth: 1,
     borderColor: '#E7AD40',
-    backgroundColor: '#FFF6DD',
+    backgroundColor: '#3E3C35',
   },
   title: { fontSize: 20, lineHeight: 27, fontWeight: '800', color: portalPremium.text.primary },
   text: { fontSize: 16, lineHeight: 24, color: portalPremium.text.secondary },

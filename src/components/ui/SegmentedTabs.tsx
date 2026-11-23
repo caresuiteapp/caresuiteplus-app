@@ -11,7 +11,7 @@ import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
-import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { portalPremium, usePortalPremiumTheme, usePortalPremiumPalette } from '@/design/tokens/portalPremium';
 import { useSurfaceContrastTone } from '@/design/tokens/surfaceContrast';
 import { spacing } from '@/theme';
 
@@ -50,6 +50,8 @@ export function SegmentedTabs({
   rows,
 }: SegmentedTabsProps) {
   const portal = usePortalPremiumTheme();
+  const palette = usePortalPremiumPalette();
+  const portalStyles = makePortalStyles(palette);
   const surfaceTone = useSurfaceContrastTone();
   const lightSurface = portal.active || surfaceTone === 'light';
   const renderTab = (tab: TabOption) => {
@@ -142,15 +144,15 @@ const localStyles = StyleSheet.create({
   wrapRow: { flexWrap: 'wrap' },
 });
 
-const portalStyles = StyleSheet.create({
+const makePortalStyles = (palette: ReturnType<typeof usePortalPremiumPalette>) => StyleSheet.create({
   tab: {
-    borderColor: portalPremium.borderSoft,
-    backgroundColor: portalPremium.surfaceRaised,
+    borderColor: palette.borderSoft,
+    backgroundColor: palette.surfaceRaised,
   },
   tabActive: {
-    borderColor: portalPremium.borderStrong,
-    backgroundColor: portalPremium.surfaceMuted,
+    borderColor: palette.borderStrong,
+    backgroundColor: palette.surfaceMuted,
   },
-  label: { color: portalPremium.text.secondary },
-  activeLabel: { color: portalPremium.accent.blueDark },
+  label: { color: palette.text.secondary },
+  activeLabel: { color: palette.accent.blueDark },
 });

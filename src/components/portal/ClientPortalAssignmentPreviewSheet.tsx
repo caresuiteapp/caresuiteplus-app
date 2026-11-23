@@ -12,7 +12,7 @@ import { usePortalClientAppointmentDetail } from '@/hooks/usePortalClientAppoint
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 
 type ClientPortalAssignmentPreviewSheetProps = {
   assignmentId: string | null;

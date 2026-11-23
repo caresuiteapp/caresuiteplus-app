@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { usePathname } from 'expo-router';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { clientPortalNight as clientNight } from './clientPortalNight';
 import {
   liquidClassicColors,
   liquidClassicShadows,
@@ -14,14 +15,14 @@ import { isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 
 export type { ColorMode };
 
-export type LegacyColors = ReturnType<typeof legacyColorsFromPalette>;
+export type LegacyColors = { [Key in keyof ReturnType<typeof resolveLegacyColors>]: string };
 export type LegacyGradients = ReturnType<typeof resolveLegacyGradients>;
 
 /**
  * Maps CareSuite+ adaptive tokens to legacy @/theme color keys.
  * Dark palette is the default for existing Premium screens.
  */
-export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
+function resolveLegacyColors(mode: ColorMode = 'dark') {
   if (mode === 'light') {
     return {
       bgDeep: portalPremium.backdropStrong,
@@ -109,6 +110,8 @@ export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
     error: liquidClassicColors.danger,
   } as const;
 }
+
+export function legacyColorsFromPalette(mode: ColorMode = 'dark'): LegacyColors { return resolveLegacyColors(mode); }
 
 /** Light/dark gradient sets for Premium cards, heroes, and glass surfaces. */
 export function resolveLegacyGradients(mode: ColorMode = 'dark') {
@@ -210,14 +213,23 @@ export function useLegacyTheme() {
     isLiquidCommandRoutePath(pathname) && !isPortalRoutePath(pathname);
   // Every internal ORBIT module uses the same light working contract on web,
   // tablet and native. Portal routes intentionally keep their existing theme.
-  const mode: ColorMode = portal.active || isInternalOrbitRoute ? 'light' : themeMode;
+  const client = portal.active && portal.kind === 'client';
+  const mode: ColorMode = client ? 'dark' : portal.active || isInternalOrbitRoute ? 'light' : themeMode;
 
   return useMemo(
     () => {
       const isLight = mode === 'light';
       return {
         mode,
-        colors: legacyColorsFromPalette(mode),
+        colors: client ? { ...legacyColorsFromPalette(mode),
+          bgDeep: clientNight.backdropStrong, bgBase: clientNight.backdrop, bgPremium: clientNight.surfaceSoft,
+          bgSurface: clientNight.surface, bgElevated: clientNight.dialog, bgPanel: clientNight.surface, bgInput: clientNight.control,
+          textPrimary: clientNight.text.primary, textSecondary: clientNight.text.secondary, textMuted: clientNight.text.muted,
+          orange: clientNight.accent.blue, cyan: clientNight.accent.blue, blue: clientNight.accent.blue,
+          primary: clientNight.accent.blue, deepOrange: clientNight.accent.blueDark, cyanSoft: clientNight.accent.blue,
+          success: clientNight.accent.success, warning: clientNight.accent.amber, danger: clientNight.accent.danger, error: clientNight.accent.danger, info: clientNight.accent.blue,
+          borderSoft: clientNight.borderSoft, borderStrong: clientNight.borderStrong, borderOrange: clientNight.borderStrong, borderCyan: clientNight.borderStrong,
+        } : legacyColorsFromPalette(mode),
         typography: resolveCareTypography(mode),
         gradients: resolveLegacyGradients(mode),
         palette: {
@@ -263,7 +275,7 @@ export function useLegacyTheme() {
         shadow: isLight ? portalPremium.shadow.card : liquidClassicShadows.panel,
       };
     },
-    [mode],
+    [mode, client],
   );
 }
 

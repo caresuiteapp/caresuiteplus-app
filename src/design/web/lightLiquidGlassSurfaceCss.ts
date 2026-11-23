@@ -74,41 +74,41 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     color: #F8F6FF !important;
   }
 
-  html[data-cs-portal-premium] {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) {
     color-scheme: light;
   }
 
-  html[data-cs-portal-premium] .cs-llgan-glass,
-  html[data-cs-portal-premium] [data-cs-llgan-glass] {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) .cs-llgan-glass,
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass] {
     color: #061B35;
   }
 
-  html[data-cs-portal-premium] [data-cs-llgan-glass] [style*="color: rgb(0, 0, 0)"],
-  html[data-cs-portal-premium] [data-cs-llgan-glass] [style*="color: rgba(0, 0, 0"] {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass] [style*="color: rgb(0, 0, 0)"],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass] [style*="color: rgba(0, 0, 0"] {
     color: #061B35 !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-llgan-glass="panel"] [style*="color: rgba(255, 255, 255"],
-  html[data-cs-portal-premium] [data-cs-llgan-glass="card"] [style*="color: rgba(255, 255, 255"],
-  html[data-cs-portal-premium] [data-cs-llgan-glass="modal"] [style*="color: rgba(255, 255, 255"] {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="panel"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="card"] [style*="color: rgba(255, 255, 255"],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="modal"] [style*="color: rgba(255, 255, 255"] {
     color: #566D83 !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-llgan-glass="panel"] [style*="color: rgb(255, 255, 255)"],
-  html[data-cs-portal-premium] [data-cs-llgan-glass="card"] [style*="color: rgb(255, 255, 255)"],
-  html[data-cs-portal-premium] [data-cs-llgan-glass="modal"] [style*="color: rgb(255, 255, 255)"],
-  html[data-cs-portal-premium] [data-cs-llgan-glass="panel"] [style*="color: rgb(248, 246, 255)"],
-  html[data-cs-portal-premium] [data-cs-llgan-glass="card"] [style*="color: rgb(248, 246, 255)"],
-  html[data-cs-portal-premium] [data-cs-llgan-glass="modal"] [style*="color: rgb(248, 246, 255)"] {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="panel"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="card"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="modal"] [style*="color: rgb(255, 255, 255)"],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="panel"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="card"] [style*="color: rgb(248, 246, 255)"],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="modal"] [style*="color: rgb(248, 246, 255)"] {
     color: #061B35 !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"] * {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-healthos-component="button"][data-cs-healthos-variant="primary"] * {
     color: #FFFFFF !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-healthos-component="button"][data-cs-healthos-variant="secondary"] *,
-  html[data-cs-portal-premium] [data-cs-healthos-component="button"][data-cs-healthos-variant="ghost"] * {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-healthos-component="button"][data-cs-healthos-variant="secondary"] *,
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-healthos-component="button"][data-cs-healthos-variant="ghost"] * {
     color: #075DC7 !important;
   }
 
@@ -158,12 +158,12 @@ export const LLGAN_GLASS_SURFACE_CSS = `
    * after the generic kind and mobile-performance rules above because those
    * legacy contracts use !important.
    */
-  html[data-cs-portal-premium] .cs-llgan-glass,
-  html[data-cs-portal-premium] [data-cs-llgan-glass],
-  html[data-cs-portal-premium].performance-mobile.performance-ios-safari [data-cs-llgan-glass],
-  html[data-cs-portal-premium].disable-heavy-effects [data-cs-llgan-glass],
-  html[data-cs-portal-premium] .performance-mobile.performance-ios-safari [data-cs-llgan-glass],
-  html[data-cs-portal-premium] .disable-heavy-effects [data-cs-llgan-glass] {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) .cs-llgan-glass,
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]).performance-mobile.performance-ios-safari [data-cs-llgan-glass],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]).disable-heavy-effects [data-cs-llgan-glass],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) .performance-mobile.performance-ios-safari [data-cs-llgan-glass],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) .disable-heavy-effects [data-cs-llgan-glass] {
     --cs-glass-panel: #FFFFFF;
     --cs-glass-card: #F7FBFF;
     --cs-glass-control: #EAF4FF;
@@ -182,27 +182,27 @@ export const LLGAN_GLASS_SURFACE_CSS = `
     backdrop-filter: none !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-llgan-glass="panel"],
-  html[data-cs-portal-premium] [data-cs-llgan-glass="modal"] {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="panel"],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="modal"] {
     background-color: #FFFFFF !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-llgan-glass="chip"],
-  html[data-cs-portal-premium] [data-cs-llgan-glass="input"],
-  html[data-cs-portal-premium] [data-cs-llgan-glass="button"] {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="chip"],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="input"],
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="button"] {
     background-color: #EAF4FF !important;
     background-image: linear-gradient(145deg, #FFFFFF, #EAF4FF) !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-llgan-glass="input"] input,
-  html[data-cs-portal-premium] [data-cs-llgan-glass="input"] textarea,
-  html[data-cs-portal-premium] [data-cs-llgan-glass="input"] select {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="input"] input,
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="input"] textarea,
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="input"] select {
     color: #061B35 !important;
     caret-color: #056CE8 !important;
   }
 
-  html[data-cs-portal-premium] [data-cs-llgan-glass="input"] input::placeholder,
-  html[data-cs-portal-premium] [data-cs-llgan-glass="input"] textarea::placeholder {
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="input"] input::placeholder,
+  html[data-cs-portal-premium]:not([data-cs-portal-premium="client"]) [data-cs-llgan-glass="input"] textarea::placeholder {
     color: #647D94 !important;
     opacity: 1 !important;
   }

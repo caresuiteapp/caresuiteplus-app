@@ -4,7 +4,7 @@ import { EmptyState } from '@/components/ui';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { usePortalPremiumPalette } from '@/design/tokens/portalPremium';
 
 type PortalEmptyStateProps = {
   title: string;
@@ -15,6 +15,8 @@ type PortalEmptyStateProps = {
 /** Shared Aurora/Glass empty state for both portals. */
 export function PortalEmptyState({ title, message, icon = '✨' }: PortalEmptyStateProps) {
   const text = useAuroraAdaptiveText();
+  const portalPremium = usePortalPremiumPalette();
+  const styles = makeStyles(portalPremium);
   const iconName = icon === '❓'
     ? 'help-circle-outline'
     : icon === '✓'
@@ -36,7 +38,7 @@ export function PortalEmptyState({ title, message, icon = '✨' }: PortalEmptySt
   );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (portalPremium: ReturnType<typeof usePortalPremiumPalette>) => StyleSheet.create({
   card: { padding: careSpacing.lg },
   header: { alignItems: 'center', marginBottom: careSpacing.sm, gap: careSpacing.xs },
   iconStage: {

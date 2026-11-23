@@ -32,11 +32,11 @@ describe('client portal premium and senior experience R23', () => {
   it('provides persistent text sizing up to 150 percent in client navigation', () => {
     const provider = read('src/design/web/WebFontScaleProvider.tsx');
     const config = read('src/design/web/webFontScaleConfig.ts');
-    const shell = read('src/liquid-command/shell/LiquidPortalRouteLayout.tsx');
+    const shell = read('src/components/portal/client/ClientPortalFrame.tsx');
     expect(config).toContain('1.5');
     expect(provider).toContain('reset');
     expect(shell).toContain('PortalTextSizeControls');
-    expect(shell).toContain("kind === 'client'");
+    expect(shell).toContain('client-portal-bottom-navigation');
   });
 
   it('contains nationwide official help numbers and all seven poison centres', () => {

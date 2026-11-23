@@ -5,7 +5,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '@/lib/auth/context';
 import { ErrorState, PremiumButton } from '@/components/ui';
 import { HealthOSPageSurface } from '@/components/layout/HealthOSPageSurface';
-import { PortalPremiumProvider, portalPremium } from '@/design/tokens/portalPremium';
+import { PortalPremiumProvider } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 import { careSpacing } from '@/design/tokens/spacing';
 
 /** Academy-only family access stays browser-only and never mounts care hooks. */
@@ -52,7 +53,7 @@ export function NativeAcademyPortalEntry({ academyOnly = false }: { academyOnly?
 }
 
 const styles = StyleSheet.create({
-  browserViewport: { flex: 1, minHeight: 0, backgroundColor: '#F4F8FD' },
+  browserViewport: { flex: 1, minHeight: 0, backgroundColor: portalPremium.backdrop },
   browserContent: { flexGrow: 1, width: '100%', maxWidth: 760, alignSelf: 'center', paddingHorizontal: careSpacing.md },
   browserCopy: { gap: careSpacing.md },
   eyebrow: { color: portalPremium.accent.blue, fontSize: 13, lineHeight: 18, fontWeight: '800' },

@@ -4,7 +4,7 @@ import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { liquidRadius } from '@/liquid-command/foundation/tokens';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 
 type Props = {
   title: string;

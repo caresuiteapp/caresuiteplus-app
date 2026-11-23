@@ -12,7 +12,7 @@ const timeFormat = new Intl.DateTimeFormat('de-DE', { hour: '2-digit', minute: '
 const dateFormat = new Intl.DateTimeFormat('de-DE', { weekday: 'short', day: '2-digit', month: '2-digit', year: 'numeric' });
 const compactDateFormat = new Intl.DateTimeFormat('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
-function EmployeePortalWeather({ owner, compact, belowClock }: { owner: string; compact: boolean; belowClock: boolean }) {
+function EmployeePortalWeather({ owner, compact, belowClock, portalLabel }: { owner: string; compact: boolean; belowClock: boolean; portalLabel: string }) {
   const weather = useEmployeePortalWeather(owner);
   const [locationOpen, setLocationOpen] = useState(false);
   const loading = weather.status === 'loading';
@@ -44,13 +44,13 @@ function EmployeePortalWeather({ owner, compact, belowClock }: { owner: string; 
         </View>
       ) : null}
       {locationOpen ? <EmployeePortalWeatherLocationDialog visible place={weather.place} preferenceError={weather.preferenceError}
-        eyebrow="MITARBEITENDENPORTAL" onChoose={weather.choosePlace} onClose={() => setLocationOpen(false)} /> : null}
+        eyebrow={portalLabel} onChoose={weather.choosePlace} onClose={() => setLocationOpen(false)} /> : null}
     </View>
   );
 }
 
-export function EmployeePortalHeaderStatus({ owner, compact, stacked, centered, weatherBelowClock }: {
-  owner: string | null; compact: boolean; stacked: boolean; centered: boolean; weatherBelowClock: boolean;
+export function EmployeePortalHeaderStatus({ owner, compact, stacked, centered, weatherBelowClock, portalLabel = 'MITARBEITENDENPORTAL' }: {
+  owner: string | null; compact: boolean; stacked: boolean; centered: boolean; weatherBelowClock: boolean; portalLabel?: string;
 }) {
   const now = useLocalMinute();
   const time = now ? timeFormat.format(now) : '–:–';
@@ -69,7 +69,7 @@ export function EmployeePortalHeaderStatus({ owner, compact, stacked, centered, 
           <Text style={styles.detail}>{date}</Text>
         </View>
       </View>
-      {owner ? <EmployeePortalWeather key={owner} owner={owner} compact={compact} belowClock={weatherBelowClock} /> : null}
+      {owner ? <EmployeePortalWeather key={owner} owner={owner} compact={compact} belowClock={weatherBelowClock} portalLabel={portalLabel} /> : null}
     </View>
   );
 }

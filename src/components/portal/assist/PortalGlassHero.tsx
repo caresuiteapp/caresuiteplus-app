@@ -3,7 +3,7 @@ import { Platform, StyleSheet, Text, View, type TextStyle, type ViewStyle } from
 import Ionicons from '@expo/vector-icons/Ionicons';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { usePortalPremiumPalette } from '@/design/tokens/portalPremium';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -38,6 +38,8 @@ export function PortalGlassHero({
   children,
   style,
 }: PortalGlassHeroProps) {
+  const portalPremium = usePortalPremiumPalette();
+  const styles = createStyles(portalPremium);
   const text = useAuroraAdaptiveText();
   const { width, isPhone } = useDeviceClass();
   const compact = isPhone || width < 760;
@@ -82,7 +84,7 @@ export function PortalGlassHero({
   );
 }
 
-const styles = StyleSheet.create({
+const createStyles = (portalPremium: ReturnType<typeof usePortalPremiumPalette>) => StyleSheet.create({
   card: {
     minHeight: 132,
     padding: careSpacing.lg,
@@ -150,7 +152,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: portalPremium.borderSoft,
     borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.78)',
+    backgroundColor: portalPremium.surfaceSoft,
   },
   badgeText: {
     color: portalPremium.accent.blueDark,

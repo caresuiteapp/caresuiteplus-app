@@ -1,3 +1,4 @@
+import { ClientPortalPageHero } from '@/components/portal/client/ClientPortalPageHero';
 import { SemanticArtwork } from '@/components/icons/SemanticArtwork';
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -148,8 +149,12 @@ export function PortalTabHero(props: PortalTabHeroProps) {
   if (props.scope === 'portal_employee') {
     return <EmployeeTabOverview {...props} />;
   }
-  const useGlassHero =
-    useLightGlass || props.scope === 'portal_client' || props.scope === 'portal_family';
+  if (props.scope === 'portal_client' || props.scope === 'portal_family') {
+    const title = props.titleOverride ?? (props.tab === 'appointments' ? 'Meine Einsätze' : props.tab === 'documents' ? 'Meine Dokumente' : props.tab === 'signatures' ? 'Meine Unterschriften' : 'Meine Nachrichten');
+    const subtitle = props.tab === 'appointments' ? 'Ihre Termine und die Einzelheiten zu Ihrer Begleitung.' : props.tab === 'documents' ? 'Ihre persönlichen Unterlagen an einem Ort.' : props.tab === 'signatures' ? 'Prüfen und bestätigen Sie Ihre offenen Unterlagen.' : 'Ihr direkter Kontakt mit Ihrem Team.';
+    return <ClientPortalPageHero title={title} subtitle={subtitle} artworkId={props.tab} eyebrow={props.tab === 'appointments' ? 'Einsatzplan' : props.tab === 'messages' ? 'Im Austausch' : 'Meine Unterlagen'} />;
+  }
+  const useGlassHero = useLightGlass;
   if (useGlassHero) {
     return <PortalTabGlassHero {...props} />;
   }

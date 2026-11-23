@@ -48,6 +48,7 @@ export function bindLlganGlassSurface(
   kind: LlganGlassSurfaceKind,
   portalActive = false,
   forceLight = false,
+  clientNight = false,
 ): void {
   if (Platform.OS !== 'web' || !node) return;
 
@@ -56,6 +57,11 @@ export function bindLlganGlassSurface(
   const el = resolveGlassElement(node);
   if (!el?.style) return;
 
+  if (clientNight) {
+    el.setAttribute('data-cs-llgan-glass', kind);
+    el.classList.add('cs-llgan-glass', `cs-llgan-glass-${kind}`);
+    return;
+  }
   const lightSurface = portalActive || forceLight;
   const preset = lightSurface ? PORTAL_GLASS_DOM_PRESETS[kind] : GLASS_DOM_PRESETS[kind];
 
@@ -100,9 +106,9 @@ export function LlganGlassShell({ kind, style, dataSet, children }: LlganGlassSh
   const setShellRef = useCallback(
     (node: View | null) => {
       shellRef.current = node;
-      bindLlganGlassSurface(node, kind, portal.active, surfaceTone === 'light');
+      bindLlganGlassSurface(node, kind, portal.active, surfaceTone === 'light', portal.active && portal.kind === 'client');
     },
-    [kind, portal.active, surfaceTone],
+    [kind, portal.active, portal.kind, surfaceTone],
   );
 
   if (Platform.OS !== 'web') {

@@ -15,7 +15,7 @@ import { getServiceMode } from '@/lib/services/mode';
 
 import type { PortalClientProfile } from '@/types/portal/client';
 import { designTokens, spacing } from '@/theme';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 
 type PortalClientProfileHeroProps = {
   profile: PortalClientProfile;

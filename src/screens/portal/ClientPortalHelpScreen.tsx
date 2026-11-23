@@ -14,7 +14,7 @@ import {
   type ClientHelpContact,
 } from '@/lib/portal/clientHelpContacts';
 import { liquidRadius } from '@/liquid-command/foundation/tokens';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 
 const CATEGORY_ORDER: ClientHelpCategory[] = ['emergency', 'medical', 'crisis', 'violence', 'family', 'daily'];
 
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
   },
   emergencyText: { color: portalPremium.text.onStrong },
   emergencyCall: { minHeight: 46, maxWidth: '100%', paddingHorizontal: 18, borderRadius: liquidRadius.control, backgroundColor: portalPremium.surfaceRaised, alignItems: 'center', justifyContent: 'center' },
-  emergencyCallText: { color: '#8B1A2E' },
+  emergencyCallText: { color: portalPremium.accent.danger },
   search: {
     minHeight: 54,
     paddingHorizontal: 18,
@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
   },
   cardWide: { flexBasis: '48%', flexGrow: 1 },
-  cardEmergency: { borderColor: 'rgba(197,58,82,0.42)', backgroundColor: '#FFF5F7' },
+  cardEmergency: { borderColor: 'rgba(197,58,82,0.42)', backgroundColor: '#493849' },
   cardTitle: { color: portalPremium.text.primary },
   callButton: { minHeight: 58, paddingHorizontal: 14, paddingVertical: 8, borderRadius: liquidRadius.control, backgroundColor: portalPremium.surfaceMuted, justifyContent: 'center' },
   callButtonEmergency: { backgroundColor: 'rgba(197,58,82,0.10)' },

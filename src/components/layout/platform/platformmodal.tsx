@@ -24,6 +24,7 @@ import {
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
+import { clientPortalNight } from '@/design/tokens/clientPortalNight';
 import { portalPremium, usePortalPremiumRuntimeTheme } from '@/design/tokens/portalPremium';
 import { resolvePlatformModalMaxHeight } from '@/lib/platform/platformModalLayout';
 import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
@@ -103,7 +104,9 @@ export function PlatformModal({
   const { isDark, c } = useCareLightPalette();
   const { isLight } = useLegacyTheme();
   useAuroraGlassActive();
-  const lightModal = companySurface || surfaceScope === 'personal' || portalTheme.active || isLight;
+  const clientNight = portalTheme.active && portalTheme.kind === 'client';
+  const modalSurface = clientNight ? clientPortalNight.dialog : portalPremium.surfaceRaised;
+  const lightModal = companySurface || (!clientNight && (surfaceScope === 'personal' || portalTheme.active || isLight));
   const formGlass = resolveLlganViewGlass('form', 'default');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const insets = useSafeAreaInsets();
@@ -171,7 +174,7 @@ export function PlatformModal({
           backgroundColor: companySurface
             ? '#FFFFFF'
             : portalTheme.active
-            ? portalPremium.surfaceRaised
+            ? modalSurface
             : undefined,
         },
         bodyScroll: {
@@ -192,7 +195,7 @@ export function PlatformModal({
           backgroundColor: companySurface
             ? '#F4F8FD'
             : portalTheme.active
-            ? portalPremium.surfaceRaised
+            ? modalSurface
             : lightModal
               ? shellColors.body.background
               : undefined,
@@ -225,13 +228,13 @@ export function PlatformModal({
           backgroundColor: companySurface
             ? '#FFFFFF'
             : portalTheme.active
-            ? portalPremium.surfaceRaised
+            ? modalSurface
             : lightModal
               ? shellColors.body.background
               : 'rgba(1,8,23,0.98)',
         },
       }),
-    [compact, companySurface, formGlass.shadow, insets.bottom, insets.top, isDark, lightModal, portalTheme.active, shellColors, sheetMaxHeight, sheetWidth, variant],
+    [compact, companySurface, formGlass.shadow, insets.bottom, insets.top, isDark, lightModal, portalTheme.active, modalSurface, shellColors, sheetMaxHeight, sheetWidth, variant],
   );
 
   useEffect(() => {

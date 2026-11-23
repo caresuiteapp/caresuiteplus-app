@@ -23,6 +23,7 @@ import { motion, radius } from '@/theme';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { SurfaceContrastProvider } from '@/design/tokens/surfaceContrast';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { clientPortalNight } from '@/design/tokens/clientPortalNight';
 import { employeePortalWorkspace } from '@/components/portal/employee/employeePortalDesign';
 
 type Props = {
@@ -38,6 +39,7 @@ type Props = {
 
 const webCursor =
   Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
+const clientCard: ViewStyle = { borderRadius: 22, borderColor: clientPortalNight.border, backgroundColor: clientPortalNight.surface, shadowOpacity: 0, elevation: 0, ...(Platform.OS === 'web' ? ({ boxShadow: 'none' } as ViewStyle) : null) };
 const employeeCard: ViewStyle = {
   borderRadius: employeePortalWorkspace.radius,
   borderColor: employeePortalWorkspace.line,
@@ -64,6 +66,7 @@ export function PremiumCard({
   const portal = usePortalPremiumTheme();
   const { isPhone } = useDeviceClass();
   const employee = portal.kind === 'employee' && !onDarkSurface;
+  const client = portal.active && portal.kind === 'client';
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -144,13 +147,13 @@ export function PremiumCard({
   const body = (
     <LlganGlassShell
       kind="card"
-      style={[styles.host, employee && employeeCard]}
+      style={[styles.host, employee && employeeCard, client && clientCard]}
       dataSet={{
         csHealthosComponent: onPress ? 'interactive-card' : 'card',
         csHealthosSurface: onDarkSurface ? 'dark' : 'light',
       }}
     >
-      {!employee ? <LinearGradient
+      {!employee && !client ? <LinearGradient
         colors={onDarkSurface
           ? variant === 'elevated'
             ? ['#173F66', '#0D2B49', '#071A31']
@@ -167,12 +170,12 @@ export function PremiumCard({
         style={styles.gradient}
         pointerEvents="none"
       /> : null}
-      {!employee ? <>
+      {!employee && !client ? <>
         {sheen ? <View style={styles.glow} pointerEvents="none" /> : null}
         <View style={styles.innerBorder} pointerEvents="none" />
         <View style={styles.edge} pointerEvents="none" />
       </> : null}
-      <SurfaceContrastProvider tone={onDarkSurface ? 'dark' : 'light'}>
+      <SurfaceContrastProvider tone={client || onDarkSurface ? 'dark' : 'light'}>
         <View style={[styles.content, contentStyle]}>{children}</View>
       </SurfaceContrastProvider>
     </LlganGlassShell>

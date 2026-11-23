@@ -15,6 +15,7 @@ import { systemLiquidGlass } from "@/design/tokens/systemLiquidGlass";
 import {
   portalPremium,
   usePortalPremiumTheme,
+  usePortalPremiumPalette,
 } from "@/design/tokens/portalPremium";
 import { useSurfaceContrastTone } from "@/design/tokens/surfaceContrast";
 import { radius, spacing, typography } from "@/theme";
@@ -47,13 +48,15 @@ export function PremiumInput({
 }: PremiumInputProps) {
   const { colors } = useLegacyTheme();
   const portal = usePortalPremiumTheme();
+  const premium = usePortalPremiumPalette();
+  const client = portal.active && portal.kind === "client";
   const surfaceTone = useSurfaceContrastTone();
   const lightSurface =
     !onDarkSurface &&
-    (portal.active || onLightSurface || surfaceTone === "light");
+    ((portal.active && !client) || onLightSurface || surfaceTone === "light");
   const text = useMemo(
     () =>
-      onDarkSurface
+      client ? premium.text : onDarkSurface
         ? { primary: "#FFFFFF", secondary: "#D6E8F6", muted: "#91ACC3" }
         : lightSurface
           ? lightSurfaceText
@@ -62,7 +65,7 @@ export function PremiumInput({
               secondary: systemLiquidGlass.text.secondary,
               muted: systemLiquidGlass.text.muted,
             },
-    [lightSurface, onDarkSurface],
+    [lightSurface, onDarkSurface, client, premium],
   );
 
   const styles = useMemo(
@@ -84,14 +87,14 @@ export function PremiumInput({
             ? "rgba(119, 207, 250, 0.48)"
             : lightSurface
               ? portal.active
-                ? portalPremium.borderStrong
+                ? premium.borderStrong
                 : colors.borderStrong
               : systemLiquidGlass.borderStrong,
-          backgroundColor: onDarkSurface
+          backgroundColor: client ? premium.surfaceSoft : onDarkSurface
             ? "#071A31"
             : lightSurface
               ? portal.active
-                ? portalPremium.surfaceRaised
+                ? premium.surfaceRaised
                 : colors.bgInput
               : systemLiquidGlass.input,
           paddingHorizontal: spacing.md,
@@ -104,7 +107,7 @@ export function PremiumInput({
         hint: { ...typography.caption, color: text.muted },
         error: { ...typography.caption, color: colors.danger },
       }),
-    [colors, lightSurface, onDarkSurface, portal.active, text],
+    [colors, lightSurface, onDarkSurface, portal.active, text, client, premium],
   );
 
   return (
@@ -159,6 +162,7 @@ export function PremiumInput({
             }
           : {})}
         {...props}
+        accessibilityLabel={props.accessibilityLabel ?? label}
         {...(sensitiveBusinessValue
           ? ({
               autoComplete: "off",

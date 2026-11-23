@@ -35,7 +35,7 @@ export function GradientModalActionButton({
   const { isLight } = useLegacyTheme();
   const auroraActive = useAuroraGlassActive();
   const shellHostsAurora = useShellHostsAurora();
-  const lightModal = portalTheme.active || (isLight && auroraActive && shellHostsAurora);
+  const lightModal = (portalTheme.active && portalTheme.kind !== 'client') || (isLight && auroraActive && shellHostsAurora);
   const text = useAuroraAdaptiveText();
   const glassButtons = useAuroraGlassButtonStyles({ viewContext: 'form' });
 

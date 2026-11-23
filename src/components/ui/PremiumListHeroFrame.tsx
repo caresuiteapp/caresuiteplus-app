@@ -4,6 +4,7 @@ import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
 import { spatialCare } from '@/design/tokens/spatialCareSuite';
 import { LinearGradient } from 'expo-linear-gradient';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { clientPortalNight } from '@/design/tokens/clientPortalNight';
 import { employeePortalWorkspace } from '@/components/portal/employee/employeePortalDesign';
 
 type PremiumListHeroFrameProps = {
@@ -27,12 +28,14 @@ export function PremiumListHeroFrame({
 }: PremiumListHeroFrameProps) {
   const portal = usePortalPremiumTheme();
   const employee = portal.kind === 'employee';
+  const client = portal.kind === 'client';
   return (
     <View
       style={[
         styles.frame,
         portal.active && styles.portalFrame,
         employee && styles.employeeFrame,
+        client && { backgroundColor: clientPortalNight.surface, borderColor: clientPortalNight.border, boxShadow: 'none', shadowOpacity: 0, elevation: 0 },
         accentColor ? { borderColor: accentColor } : null,
         style,
       ]}
@@ -40,7 +43,7 @@ export function PremiumListHeroFrame({
         ? ({ dataSet: { csHealthosComponent: 'list-overview' } } as object)
         : {})}
     >
-      {portal.active && !employee ? (
+      {portal.active && !employee && !client ? (
         <LinearGradient
           colors={['#FFFFFF', '#F3F9FF', '#E4F1FF']}
           start={{ x: 0, y: 0 }}
@@ -49,7 +52,7 @@ export function PremiumListHeroFrame({
           pointerEvents="none"
         />
       ) : null}
-      {!employee ? <>
+      {!employee && !client ? <>
         <View pointerEvents="none" style={[styles.ambientGlow, portal.active && styles.portalAmbientGlow]} />
         <View pointerEvents="none" style={[styles.lightRail, portal.active && styles.portalLightRail]} />
         <View pointerEvents="none" style={[styles.innerBorder, portal.active && styles.portalInnerBorder]} />

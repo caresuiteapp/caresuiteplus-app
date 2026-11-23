@@ -13,6 +13,7 @@ import { careTypography } from "@/design/tokens/typography";
 import { systemLiquidGlass } from "@/design/tokens/systemLiquidGlass";
 import {
   portalPremium,
+  usePortalPremiumPalette,
   usePortalPremiumTheme,
 } from "@/design/tokens/portalPremium";
 import { useSurfaceContrastTone } from "@/design/tokens/surfaceContrast";
@@ -35,6 +36,8 @@ export function FilterChip({
   onDarkSurface = false,
 }: FilterChipProps) {
   const portal = usePortalPremiumTheme();
+  const palette = usePortalPremiumPalette();
+  const portalStyles = makePortalStyles(palette);
   const surfaceTone = useSurfaceContrastTone();
   const lightSurface =
     !onDarkSurface &&
@@ -245,15 +248,15 @@ const darkStyles = StyleSheet.create({
   labelSelected: { color: "#FFFFFF", fontWeight: "900" },
 });
 
-const portalStyles = StyleSheet.create({
+const makePortalStyles = (palette: ReturnType<typeof usePortalPremiumPalette>) => StyleSheet.create({
   chip: {
-    borderColor: portalPremium.borderSoft,
-    backgroundColor: portalPremium.surfaceRaised,
+    borderColor: palette.borderSoft,
+    backgroundColor: palette.surfaceRaised,
   },
   chipSelected: {
-    borderColor: portalPremium.borderStrong,
-    backgroundColor: portalPremium.surfaceMuted,
+    borderColor: palette.borderStrong,
+    backgroundColor: palette.surfaceMuted,
   },
-  label: { color: portalPremium.text.secondary },
-  labelSelected: { color: portalPremium.accent.blueDark },
+  label: { color: palette.text.secondary },
+  labelSelected: { color: palette.accent.blueDark },
 });

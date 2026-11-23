@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { clientPortalNight as night } from '@/design/tokens/clientPortalNight';
+import { usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { useMemo, useState } from 'react';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Pressable, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
@@ -32,16 +34,19 @@ function bookingBadge(model: ClientBudgetVisualModel) {
 }
 
 function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
+  const styles = useBudgetStyles();
+  const client = usePortalPremiumTheme().kind === 'client';
   const text = useAuroraAdaptiveText();
-  const palette = visualColors(model);
-  const booking = bookingBadge(model);
+  const palette = client ? { ...visualColors(model), accent: model.id === 'entlastung' ? night.accent.blue : night.accent.success, reserved: night.accent.amber } : visualColors(model);
+  const originalBooking = bookingBadge(model);
+  const booking = client && model.bookingState === 'preview' ? { ...originalBooking, color: night.accent.amber } : originalBooking;
   const isPreview = model.bookingState === 'preview';
   const [showInfo, setShowInfo] = useState(false);
 
   return (
     <>
       <LinearGradient
-        colors={['rgba(255,255,255,0.98)', 'rgba(236,246,255,0.96)', 'rgba(255,255,255,0.98)']}
+        colors={client ? ['#244A61', '#203E54', '#1D384F'] : ['rgba(255,255,255,0.98)', 'rgba(236,246,255,0.96)', 'rgba(255,255,255,0.98)']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={[styles.card, { shadowColor: palette.accent }]}
@@ -173,6 +178,7 @@ function BudgetVisualCard({ model }: { model: ClientBudgetVisualModel }) {
 }
 
 export function ClientBudgetVisualCards({ models }: { models: ClientBudgetVisualModel[] }) {
+  const styles = useBudgetStyles();
   const { width } = useWindowDimensions();
   const compact = width < 980;
   if (models.length === 0) {
@@ -226,7 +232,7 @@ export function ClientBudgetVisualCards({ models }: { models: ClientBudgetVisual
   );
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   sections: { gap: spacing.xl },
   unavailable: {
     gap: spacing.xs,
@@ -337,3 +343,22 @@ const styles = StyleSheet.create({
   modalNumberLabel: { fontSize: 11, fontWeight: '700', marginTop: spacing.xs },
   modalNumber: { fontSize: 18, fontWeight: '900' },
 });
+
+function useBudgetStyles(): typeof baseStyles {
+  const client = usePortalPremiumTheme().kind === 'client';
+  return useMemo(() => {
+    if (!client) return baseStyles;
+    const entries = Object.entries(baseStyles).map(([key, value]) => {
+      const style = { ...StyleSheet.flatten(value) } as Record<string, unknown>;
+      if (typeof style.color === 'string') {
+        style.color = style.color === '#A86600' ? night.accent.amber : style.color === '#65F2A7' ? night.accent.success : style.color === '#0B72C9' ? night.accent.blue : style.color === '#0B1220' ? night.text.primary : night.text.secondary;
+      }
+      if (typeof style.backgroundColor === 'string' && (style.backgroundColor.includes('255,255,255') || style.backgroundColor.includes('15,23,42'))) style.backgroundColor = night.control;
+      if (typeof style.borderColor === 'string') style.borderColor = night.border;
+      if (typeof style.fontSize === 'number' && style.fontSize < 14) style.fontSize = 14;
+      if (typeof style.lineHeight === 'number' && style.lineHeight < 20) style.lineHeight = 20;
+      return [key, style];
+    });
+    return StyleSheet.create(Object.fromEntries(entries)) as typeof baseStyles;
+  }, [client]);
+}

@@ -10,13 +10,14 @@ import {
   getRememberedPortalMetadata,
 } from '@/lib/auth/rememberedPortalLogin';
 import { ensurePortalPushRegistration, toPortalPushUserMessage } from '@/lib/portal/portalPushNotifications';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { usePortalPremiumPalette } from '@/design/tokens/portalPremium';
 export function PortalDeviceSettingsCard() {
   const { portalSession } = useAuth();
   return <PortalDeviceSettingsContent key={JSON.stringify([portalSession?.tenantId, portalSession?.accountId, portalSession?.roleKey])} />;
 }
 
 function PortalDeviceSettingsContent() {
+  const portalPremium = usePortalPremiumPalette();
   const registrationLock = useRef(false);
   const { portalSession } = useAuth();
   const { pushUpdate } = useLocalSearchParams<{ pushUpdate?: string }>();
@@ -54,7 +55,7 @@ function PortalDeviceSettingsContent() {
       style={{
         gap: 12,
         padding: 18,
-        backgroundColor: '#FFF',
+        backgroundColor: portalPremium.surfaceRaised,
         borderColor: portalPremium.borderStrong,
         borderWidth: 1,
         borderRadius: 18,

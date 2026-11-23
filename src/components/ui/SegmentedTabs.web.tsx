@@ -12,7 +12,7 @@ export function SegmentedTabs({ tabs, activeKey, onSelect, style, layout = 'scro
   const buttons = useRef(new Map<string, HTMLButtonElement>());
   const tone = useSurfaceContrastTone();
   const portal = usePortalPremiumTheme();
-  const dark = tone === 'dark' || (tone === 'adaptive' && !portal.active);
+  const dark = portal.kind === 'client' || tone === 'dark' || (tone === 'adaptive' && !portal.active);
   useEffect(() => {
     if (layout !== 'scroll') return;
     const parent = host.current, button = buttons.current.get(activeKey);

@@ -22,6 +22,7 @@ export function PremiumDataTable<T>({ columns, data, keyExtractor, selectedId, o
   fixedLayout = false, solidSurface = false, darkSurface = false, minTableWidth }: Props<T>) {
   const [width, setWidth] = useState(0);
   const theme = usePortalPremiumTheme();
+  darkSurface = darkSurface || theme.kind === 'client';
   const dense = theme.kind === 'workspace' && width < 560;
   const minimumFor = (column: DataTableColumn<T>) => Math.max(64, column.width ?? column.minWidth ?? 144);
   const minimum = Math.max(minTableWidth ?? 0, columns.reduce((sum, col) => sum + minimumFor(col), 0));

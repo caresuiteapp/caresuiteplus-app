@@ -4,7 +4,7 @@ import { SvgXml } from 'react-native-svg';
 import { PremiumButton } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import { enrollMfaFactor, readMfaFactors, verifyMfaFactor } from '@/lib/auth/accountSecurityService';
-import { accountSecurityStyles as styles } from './accountSecurityStyles';
+import { useAccountSecurityStyles } from './accountSecurityStyles';
 const message = (error: unknown) => error instanceof Error ? error.message : 'Die Aktion konnte nicht bestätigt werden. Bitte erneut versuchen.';
 
 export function MfaSettingsCard({ required = false, onVerified }: { required?: boolean; onVerified?: () => void }) {
@@ -12,6 +12,7 @@ export function MfaSettingsCard({ required = false, onVerified }: { required?: b
   return user ? <MfaContent key={user.id} userId={user.id} required={required} onVerified={onVerified} /> : null;
 }
 function MfaContent({ userId, required, onVerified }: { userId: string; required: boolean; onVerified?: () => void }) {
+  const styles = useAccountSecurityStyles();
   const { width } = useWindowDimensions();
   const qrSize = Math.max(120, Math.min(200, width - 140));
   const active = useRef(true), lock = useRef(false);

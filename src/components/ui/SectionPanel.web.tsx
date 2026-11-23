@@ -16,7 +16,7 @@ export function SectionPanel({ title, subtitle, children, headerAlign = 'left', 
   const portal = usePortalPremiumTheme();
   const { width } = useWindowDimensions();
   const dense = portal.kind === 'workspace' && width < 900;
-  const dark = onDarkSurface || (tone === 'dark' && !portal.active);
+  const dark = onDarkSurface || (portal.active && portal.kind === 'client') || (tone === 'dark' && !portal.active);
   const open = surface === 'open';
   const userSubtitle = resolveUserFacingSubtitle(subtitle);
   return <SurfaceContrastProvider tone={dark ? 'dark' : 'light'}>

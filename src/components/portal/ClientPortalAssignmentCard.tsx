@@ -10,7 +10,7 @@ import { ASSIGNMENT_STATUS_LABELS, type AssignmentStatus } from '@/types/modules
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { liquidRadius } from '@/liquid-command/foundation/tokens';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 
 type ClientPortalAssignmentCardProps = {
   appointment: PortalAppointmentItem;
@@ -79,7 +79,7 @@ export function ClientPortalAssignmentCard({
       testID={`client-assignment-card-${appointment.id}`}
     >
       <LinearGradient
-        colors={['#FFFFFF', '#F2F8FF', '#E3F1FF']}
+        colors={['#244A61', '#203E54', '#1D384F']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFill}

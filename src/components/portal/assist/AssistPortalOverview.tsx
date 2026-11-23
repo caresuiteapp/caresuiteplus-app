@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
@@ -75,6 +75,13 @@ function AssistPortalOverviewContent({
   const [requestError, setRequestError] = useState<string | null>(null);
   const [localSuccess, setLocalSuccess] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
+  const requestFlight = useRef(false);
+  const dashboardRef = useRef<AssistDashboardData | null>(null);
+  const lifecycle = useRef({ mounted: true, readSequence: 0 });
+  useEffect(() => {
+    lifecycle.current.mounted = true;
+    return () => { lifecycle.current.mounted = false; lifecycle.current.readSequence++; };
+  }, []);
 
   const tripsReleased = canAccessPortalFeature(context, 'assist', 'trips');
   const budgetReleased = canAccessPortalFeature(context, 'assist', 'budget');
@@ -130,25 +137,21 @@ function AssistPortalOverviewContent({
   }, [params.action, router, uploadReleased, proofsReleased, requestsReleased]);
 
   const loadDashboard = useCallback(async (silent = false) => {
-    if (!silent) {
-      setLoading(true);
-      setError(null);
+    const sequence = ++lifecycle.current.readSequence;
+    const current = () => lifecycle.current.mounted && lifecycle.current.readSequence === sequence;
+    if (!silent) { setLoading(true); setError(null); }
+    try {
+      const result = await fetchAssistDashboardData(context);
+      if (!current()) return false;
+      if (result.ok) { dashboardRef.current = result.data; setDashboard(result.data); setError(null); }
+      else if (!silent || !dashboardRef.current) setError(toPortalUserFacingError(result.error, 'Ihre Übersicht konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.'));
+      return result.ok;
+    } catch (cause) {
+      if (current()) setError(toPortalUserFacingError(cause, 'Ihre Übersicht konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.'));
+      return false;
+    } finally {
+      if (current()) setLoading(false);
     }
-    const result = await fetchAssistDashboardData(context);
-    if (result.ok) {
-      setDashboard(result.data);
-    } else if (!silent) {
-      setError(
-        toPortalUserFacingError(
-          result.error,
-          'Ihre Übersicht konnte gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
-        ),
-      );
-    }
-    if (!silent) {
-      setLoading(false);
-    }
-    return result.ok;
   }, [context]);
 
   useEffect(() => {
@@ -167,42 +170,29 @@ function AssistPortalOverviewContent({
     requestType: PortalRequestType,
     structuredPayload?: PortalStructuredRequestPayload,
   ) => {
-    if (submitting || !requestsReleased) return;
-    setSubmitting(true);
-    setRequestError(null);
-    const description =
-      structuredPayload && isPortalFormRequestType(requestType)
-        ? buildPortalRequestDescription(requestType, structuredPayload)
-        : null;
-    const payload =
-      structuredPayload && isPortalFormRequestType(requestType)
-        ? serializePortalRequestPayload(requestType, structuredPayload)
-        : undefined;
-
-    const result = await createPortalRequest({
-      tenantId: context.tenantId,
-      clientId: context.clientId,
-      portalUserId: actorId,
-      moduleKey: 'assist',
-      requestType,
-      title: resolvePortalRequestTypeLabel(requestType),
-      description,
-      payload,
-    });
-    setSubmitting(false);
-
-    if (result.ok) {
-      setRequestModal(null);
-      setLocalSuccess(true);
-      setTimeout(() => setLocalSuccess(false), 2500);
-      await loadDashboard();
-    } else {
-      setRequestError(
-        toPortalUserFacingError(
-          result.error,
-          'Ihre Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.',
-        ),
-      );
+    if (requestFlight.current || !requestsReleased || !lifecycle.current.mounted) return;
+    requestFlight.current = true;
+    setSubmitting(true); setRequestError(null);
+    try {
+      const description = structuredPayload && isPortalFormRequestType(requestType)
+        ? buildPortalRequestDescription(requestType, structuredPayload) : null;
+      const payload = structuredPayload && isPortalFormRequestType(requestType)
+        ? serializePortalRequestPayload(requestType, structuredPayload) : undefined;
+      const result = await createPortalRequest({
+        tenantId: context.tenantId, clientId: context.clientId, portalUserId: actorId,
+        moduleKey: 'assist', requestType, title: resolvePortalRequestTypeLabel(requestType), description, payload,
+      });
+      if (!lifecycle.current.mounted) return;
+      if (result.ok) {
+        setRequestModal(null); setLocalSuccess(true);
+        setTimeout(() => { if (lifecycle.current.mounted) setLocalSuccess(false); }, 2500);
+        await loadDashboard();
+      } else setRequestError(toPortalUserFacingError(result.error, 'Ihre Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.'));
+    } catch (cause) {
+      if (lifecycle.current.mounted) setRequestError(toPortalUserFacingError(cause, 'Ihre Anfrage konnte gerade nicht gesendet werden. Bitte versuchen Sie es erneut.'));
+    } finally {
+      requestFlight.current = false;
+      if (lifecycle.current.mounted) setSubmitting(false);
     }
   };
 

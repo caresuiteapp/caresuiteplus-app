@@ -1,6 +1,6 @@
 import { MfaSettingsCard } from './MfaSettingsCard';
 export { MfaSettingsCard } from './MfaSettingsCard';
-import { accountSecurityStyles as styles } from './accountSecurityStyles';
+import { useAccountSecurityStyles } from './accountSecurityStyles';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Switch, Text, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
@@ -17,6 +17,7 @@ import { DevicePermissionsCard } from './DevicePermissionsCard';
 const message = (error: unknown) => error instanceof Error ? error.message : 'Die Aktion konnte nicht bestätigt werden. Bitte erneut versuchen.';
 
 function AccountDevicesCard() {
+  const styles = useAccountSecurityStyles();
   const { signOut } = useAuth();
   const active = useRef(true), lock = useRef(false);
   const [items, setItems] = useState<AccountDevice[]>([]);
@@ -53,6 +54,7 @@ function AccountDevicesCard() {
   </View>;
 }
 function PersonalNotificationsCard() {
+  const styles = useAccountSecurityStyles();
   const active = useRef(true), lock = useRef(false);
   const [settings, setSettings] = useState<PersonalNotificationPreferences | null>(null);
   const [busy, setBusy] = useState(false);
@@ -78,6 +80,7 @@ function PersonalNotificationsCard() {
   </View>;
 }
 export function AccountSecurityCenter() {
+  const styles = useAccountSecurityStyles();
   const { user, profile, portalSession } = useAuth();
   if (!user) return null;
   return <View key={`${user.id}:${profile?.tenantId}:${portalSession?.accountId}`} style={styles.stack}>
