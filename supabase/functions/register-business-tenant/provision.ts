@@ -21,6 +21,21 @@ export type RegistrationClient = {
 };
 
 
+
+async function checkRegistrationCompany(client: RegistrationClient, authUserId: string, body: Record<string, unknown>) {
+  const owner = await client.from('tenant_users').select('tenant_id').eq('auth_user_id', authUserId).eq('role_key', 'owner').eq('status', 'active').maybeSingle();
+  if (owner.error) return { status: 503, body: { ok: false, error: 'Die bestehende Registrierung konnte nicht geprüft werden. Bitte versuchen Sie es erneut.' } };
+  if (!owner.data) return null;
+  const company = await client.from('tenants').select('name,street,postal_code,city,email,legal_form,industry').eq('id', String(owner.data.tenant_id)).maybeSingle();
+  if (company.error || !company.data) return { status: 503, body: { ok: false, error: 'Das bestehende Unternehmen konnte nicht geprüft werden. Bitte versuchen Sie es erneut.' } };
+  const fields = { companyName: 'name', street: 'street', zip: 'postal_code', city: 'city', email: 'email', legalForm: 'legal_form', industry: 'industry' };
+  const normalize = (value: unknown) => String(value ?? '').trim().toLocaleLowerCase('de-DE').replace(/\s+/g, ' ');
+  if (Object.entries(fields).some(([input, column]) => normalize(body[input]) !== normalize(company.data![column]))) {
+    return { status: 409, body: { ok: false, code: 'registration_existing_company', error: 'Diese Administrations-E-Mail-Adresse gehört bereits zu einem anderen Unternehmen. Es wurde kein neues Unternehmen angelegt und keine neue Begrüßungs-E-Mail versandt. Bitte melden Sie sich am bestehenden Unternehmen an oder verwenden Sie für das neue Unternehmen eine andere Administrations-E-Mail-Adresse.' } };
+  }
+  return null;
+}
+
 export async function provisionBusinessRegistration(client: RegistrationClient, body: Record<string, unknown>,
   options: { verifyExistingIdentity?: (email: string, password: string) => Promise<string | null> } = {}) {
   const validation = validateRegistrationBody(body);
@@ -41,6 +56,8 @@ export async function provisionBusinessRegistration(client: RegistrationClient, 
   if (!authUserId) {
     return { status: 409, body: { ok: false, error: 'Das Administrationskonto konnte nicht erstellt werden. Falls die E-Mail bereits registriert ist, nutzen Sie bitte die Anmeldung oder „Passwort vergessen“.' } };
   }
+  const companyConflict = await checkRegistrationCompany(client, authUserId, body);
+  if (companyConflict) return companyConflict;
   // Do not persist the password or accept client-selected entitlements.
   const { adminPassword: _password, selectedModules: _modules, ...workspace } = body;
   const args = { p_auth_user_id: authUserId, p_data: { ...workspace, adminEmail: email } };
@@ -57,7 +74,11 @@ export async function provisionBusinessRegistration(client: RegistrationClient, 
   };
   let result = await attempt();
   if (result.error) result = await attempt();
-  if (!result.error && result.data?.ok === true) return { status: 201, body: result.data };
+  if (!result.error && result.data?.ok === true) {
+    const conflict = await checkRegistrationCompany(client, authUserId, body);
+    if (conflict) return conflict;
+    return { status: 201, body: result.data };
+  }
 
   // A lost transport response is not proof that the transaction rolled back.
   // Confirm that there is no workspace before removing only this new auth user.
@@ -67,6 +88,8 @@ export async function provisionBusinessRegistration(client: RegistrationClient, 
     if (typeof row.id !== 'string' || typeof row.tenant_id !== 'string' || row.email !== email || row.role_key !== 'owner') {
       return { status: 503, body: { ok: false, error: 'Die Einrichtung konnte nicht bestätigt werden. Bitte prüfen Sie die Anmeldung oder wenden Sie sich an den Support.' } };
     }
+    const recoveryConflict = await checkRegistrationCompany(client, authUserId, body);
+    if (recoveryConflict) return recoveryConflict;
     // An owner row alone cannot prove a working registration after a lost response.
     const profile = await client.from('profiles').select('tenant_id,role_id,status,is_active').eq('auth_user_id',authUserId).eq('tenant_id',row.tenant_id).maybeSingle();
     if (profile.error || profile.data?.tenant_id !== row.tenant_id || profile.data.status !== 'active' || profile.data.is_active !== true || typeof profile.data.role_id !== 'string') {
