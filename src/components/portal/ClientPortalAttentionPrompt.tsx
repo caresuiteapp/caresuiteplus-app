@@ -7,7 +7,7 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import { useClientSignatureAttention } from './ClientSignatureAttentionProvider';
 import { signatureAttentionKey } from '@/lib/portal/clientSignatureAttention';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 import { useAppStartIntroReady } from '@/components/brand/appStartIntroSession';
 
 // Native-safe, account-scoped dismissal for this app run. Never hides an open task.

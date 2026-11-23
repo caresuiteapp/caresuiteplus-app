@@ -14,7 +14,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { systemLiquidGlass } from '@/design/tokens/systemLiquidGlass';
-import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { usePortalPremiumPalette, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { motion, spacing, typography } from '@/theme';
 import { PremiumDivider } from './PremiumDivider';
 
@@ -43,6 +43,7 @@ export function PremiumListRow({
   multiline = false,
 }: Props) {
   const portal = usePortalPremiumTheme();
+  const portalPremium = usePortalPremiumPalette();
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -98,7 +99,7 @@ export function PremiumListRow({
           marginLeft: spacing.sm,
         },
       }),
-    [portal.active],
+    [portal.active, portalPremium],
   );
 
   const content = (

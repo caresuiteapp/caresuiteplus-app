@@ -12,7 +12,7 @@ import {
 import Animated, { useAnimatedStyle, useSharedValue, withSpring } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { LlganGlassShell } from '@/design/web/applyLlganGlassDom';
-import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
+import { portalPremium, usePortalPremiumTheme, usePortalPremiumPalette } from '@/design/tokens/portalPremium';
 import { buttonHeights, motion, radius } from '@/theme';
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger';
@@ -219,6 +219,8 @@ function PortalPremiumButton({
   accessibilityLabel,
   testID,
 }: Props) {
+  const premium = usePortalPremiumPalette();
+  const night = usePortalPremiumTheme().kind === 'client';
   const scale = useSharedValue(1);
   const animatedStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
   const isDisabled = disabled || loading;
@@ -241,13 +243,13 @@ function PortalPremiumButton({
           paddingVertical: resolvedSize === 'sm' ? 8 : 10,
           borderWidth: 1,
           borderColor:
-            portalVariant === 'primary' ? portalPremium.accent.blue : portalPremium.borderStrong,
+            portalVariant === 'primary' ? premium.accent.blue : premium.borderStrong,
           backgroundColor:
             portalVariant === 'ghost'
               ? 'transparent'
               : portalVariant === 'secondary'
-                ? 'rgba(255,255,255,0.82)'
-                : portalPremium.accent.blue,
+                ? (night ? premium.surfaceSoft : 'rgba(255,255,255,0.82)')
+                : premium.accent.blue,
           ...(Platform.OS === 'web'
             ? ({
                 boxShadow:
@@ -260,22 +262,22 @@ function PortalPremiumButton({
         label: {
           color:
             portalVariant === 'primary'
-              ? portalPremium.text.onStrong
-              : portalPremium.accent.blueDark,
+              ? premium.text.onStrong
+              : premium.accent.blueDark,
           fontSize: 16,
           lineHeight: 21,
           fontWeight: '800',
-          textAlign: 'center',
+          textAlign: 'center', maxWidth: '100%', flexShrink: 1,
         },
       }),
-    [fullWidth, height, portalVariant, resolvedSize],
+    [fullWidth, height, portalVariant, resolvedSize, premium, night],
   );
 
   const content = (
-    <LlganGlassShell kind="button" style={[localStyles.button, isDisabled && styles.disabled, style]}>
+    <LlganGlassShell kind="button" dataSet={{ csHealthosComponent: 'button', csHealthosVariant: portalVariant }} style={[localStyles.button, isDisabled && styles.disabled, style]}>
       {portalVariant === 'primary' ? (
         <LinearGradient
-          colors={[portalPremium.accent.blue, '#0879F5', portalPremium.accent.blueDark]}
+          colors={night ? [premium.accent.blue, premium.accent.blue] : [premium.accent.blue, '#0879F5', premium.accent.blueDark]}
           start={{ x: 0, y: 0.2 }}
           end={{ x: 1, y: 0.8 }}
           style={StyleSheet.absoluteFill}
@@ -283,7 +285,7 @@ function PortalPremiumButton({
         />
       ) : portalVariant === 'secondary' ? (
         <LinearGradient
-          colors={['rgba(255,255,255,0.96)', 'rgba(232,244,255,0.94)']}
+          colors={night ? [premium.surfaceSoft, premium.surfaceSoft] : ['rgba(255,255,255,0.96)', 'rgba(232,244,255,0.94)']}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
         />
@@ -292,8 +294,8 @@ function PortalPremiumButton({
         <ActivityIndicator
           color={
             portalVariant === 'primary'
-              ? portalPremium.text.onStrong
-              : portalPremium.accent.blueDark
+              ? premium.text.onStrong
+              : premium.accent.blueDark
           }
         />
       ) : (
@@ -305,7 +307,7 @@ function PortalPremiumButton({
   );
 
   return (
-    <Animated.View style={[animatedStyle, fullWidth && styles.fullWidth, Platform.OS !== 'web' && { maxWidth: '100%', flexShrink: 1 }]} pointerEvents="box-none">
+    <Animated.View style={[animatedStyle, fullWidth && styles.fullWidth, (night || Platform.OS !== 'web') && { maxWidth: '100%', flexShrink: 1 }]} pointerEvents="box-none">
       <Pressable
         disabled={isDisabled}
         onPress={onPress}

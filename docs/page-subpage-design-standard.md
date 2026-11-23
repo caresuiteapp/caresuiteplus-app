@@ -86,3 +86,8 @@ Bei jeder betroffenen Seite und Unterseite prüfen:
 Vorhandene visuelle und funktionale Prüfungen nach dem Änderungsrisiko verwenden; bei einer Webveröffentlichung bleiben die vorhandenen Releaseprüfungen einschließlich `npm run verify:widget-artwork:release` verbindlich. Gemeinsame Web-/App-Quellen und die bestehenden Regeln für generierte native Dateien beachten.
 
 Die Festschreibung dieses Standards ist keine Behauptung, dass bereits alle bestehenden Seiten umgestellt wurden. Änderungen und tatsächliche Umstellung werden pro betroffenem Bereich nachvollziehbar geführt.
+
+
+## Freigegebenes Klientenportal ab 23.11.2026
+
+Kevin Reinhardt hat die Web- und Mobilvorschau des Klientenportals im Stil des Mitarbeitendenportals freigegeben. Innerhalb von `/portal/client` gelten dunkle Blauflächen, helle Schrift, transparente Karten und die vorhandenen funktionsbezogenen Originalmotive. Die gemeinsamen ClientPortalFrame-, ClientPortalPageFrame- und ClientPortalPageHero-Komponenten sowie die zentralen Client-Night-Tokens führen diese Gestaltung auf Web und App. Auf dem Smartphone stehen Übersicht, Einsätze, Postfach und Mehr unten; alle weiteren freigegebenen Bereiche bleiben über Mehr erreichbar. Die bestehenden Freigaben, Angehörigenrechte und Datenverträge gelten weiterhin. Diese Freigabe ersetzt den Weiß-Blau-Standard nur für das Klientenportal.

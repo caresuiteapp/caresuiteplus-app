@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { clientPortalLayout } from '@/components/portal/client/clientPortalDesign';
 
 const root = path.join(__dirname, '..', '..', '..');
 const read = (relativePath: string) => readFileSync(path.join(root, relativePath), 'utf8');
@@ -46,14 +47,15 @@ describe('client portal premium home R25', () => {
     expect(home).toContain("'/portal/client/documents/signatures'");
   });
 
-  it('uses one-column phone cards and responsive two/four-column desktop cards', () => {
-    const home = read('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
-    expect(home).toContain("compact ? '100%'");
-    expect(home).toContain('isPhone || width < 760');
-    expect(home).toContain("width < 1540 ? '48.8%' : '23.8%'");
-    expect(home).toContain('width < 1120');
-    expect(home).toContain('maxWidth: 1480');
-    expect(home).toContain('quickPanelStacked');
+  it('keeps phone content usable and reduces columns as text grows', () => {
+    for (const width of [320, 390, 768, 1440, 1920]) {
+      const normal = clientPortalLayout(width);
+      const large = clientPortalLayout(width, 1.5);
+      expect(normal.contentWidth).toBeGreaterThan(0);
+      expect(normal.contentWidth + (normal.phone ? 0 : normal.railWidth)).toBe(width);
+      expect(large.contentColumns).toBeLessThanOrEqual(normal.contentColumns);
+      if (width < 640) expect(normal.contentColumns).toBe(1);
+    }
   });
 
   it('renders a compact readable next appointment with real actions', () => {
@@ -62,6 +64,7 @@ describe('client portal premium home R25', () => {
     expect(appointment).toContain('Einsatz ansehen');
     expect(appointment).toContain('Änderung mitteilen');
     expect(appointment).toContain('appointmentBodyPhone');
-    expect(appointment).toContain('LinearGradient');
+    expect(appointment).toContain('ClientPortalArtwork');
+    expect(appointment).toContain('PremiumButton');
   });
 });

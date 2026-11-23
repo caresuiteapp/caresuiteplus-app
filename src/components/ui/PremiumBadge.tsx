@@ -1,4 +1,5 @@
 import React from 'react';
+import { clientPortalNight as night } from '@/design/tokens/clientPortalNight';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { resolveAccentTextChipStyle } from '@/design/tokens/accentContrast';
 import { useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
@@ -50,12 +51,16 @@ const PORTAL_CONFIG: Record<Variant, { text: string; bg: string; border: string 
   pink: { text: portalPremium.accent.pink, bg: 'rgba(192,68,143,0.10)', border: 'rgba(192,68,143,0.28)' },
 };
 
+const CLIENT_CONFIG: Record<Variant, { text: string; bg: string; border: string }> = Object.fromEntries(
+  Object.keys(PORTAL_CONFIG).map(key => [key, { text: key === 'red' ? night.accent.danger : key === 'green' ? night.accent.success : ['yellow', 'warning', 'orange'].includes(key) ? night.accent.amber : key === 'purple' ? night.accent.violet : key === 'pink' ? night.accent.pink : key === 'muted' ? night.text.secondary : night.accent.blue, bg: night.control, border: night.border }])
+) as Record<Variant, { text: string; bg: string; border: string }>;
+
 export function PremiumBadge({ label, variant = 'orange', style, dot = false, size = 'default' }: Props) {
   const { isLight } = useLegacyTheme();
   const portal = usePortalPremiumTheme();
   const useLightShell = useLightLiquidGlassShell() || isLight;
   const base = portal.active
-    ? PORTAL_CONFIG[variant] ?? PORTAL_CONFIG.muted
+    ? portal.kind === 'client' ? CLIENT_CONFIG[variant] ?? CLIENT_CONFIG.muted : PORTAL_CONFIG[variant] ?? PORTAL_CONFIG.muted
     : CONFIG[variant] ?? CONFIG.muted;
   const chip = !portal.active && (useLightShell || isLight) ? resolveAccentTextChipStyle(base.text) : null;
   const compact = size === 'compact';

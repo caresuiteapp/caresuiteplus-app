@@ -1,4 +1,6 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { clientPortalNight } from './clientPortalNight';
+import { clientPortalNightCss } from '@/design/web/clientPortalNightCss';
 
 export type PortalPremiumKind = 'client' | 'employee' | 'workspace';
 
@@ -82,6 +84,7 @@ export function PortalPremiumProvider({
 
   return (
     <PortalPremiumContext.Provider value={{ active, kind: active ? kind : null }}>
+      {active && kind === 'client' && typeof document !== 'undefined' ? <style>{clientPortalNightCss}</style> : null}
       {children}
     </PortalPremiumContext.Provider>
   );
@@ -89,6 +92,12 @@ export function PortalPremiumProvider({
 
 export function usePortalPremiumTheme(): PortalPremiumContextValue {
   return useContext(PortalPremiumContext);
+}
+
+/** Resolve per provider; never mutate a global palette across portal accounts. */
+export function usePortalPremiumPalette() {
+  const portal = usePortalPremiumTheme();
+  return portal.active && portal.kind === 'client' ? clientPortalNight : portalPremium;
 }
 
 function readPortalPremiumRuntimeKind(): PortalPremiumKind | null {

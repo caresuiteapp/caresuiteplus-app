@@ -16,7 +16,7 @@ import { usePortalMessageDetail } from '@/hooks/usePortalMessageDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 
 export function PortalClientMessageDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();

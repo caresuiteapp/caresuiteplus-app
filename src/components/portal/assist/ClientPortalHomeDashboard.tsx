@@ -1,29 +1,23 @@
+import { useRouter } from 'expo-router';
+import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import Ionicons from '@expo/vector-icons/Ionicons';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useWebFontScaleValue } from '@/design/web/WebFontScaleProvider';
+import { webScaledFontMetric as font } from '@/design/web/webFontSize';
+import { withCareSuiteTypography } from '@/design/withCareSuiteTypography';
 import { ClientSignatureAttentionBanner } from '@/components/portal/ClientSignatureAttentionBanner';
 import { PortalInfoButton } from '@/components/portal/PortalInfoButton';
-import type { ComponentProps } from 'react';
-import {  Platform, Pressable, StyleSheet, Text, View, type DimensionValue, type TextStyle, type ViewStyle } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
-import { LinearGradient } from 'expo-linear-gradient';
-import { useRouter } from 'expo-router';
+import { PremiumButton } from '@/components/ui';
 import { ClientBudgetVisualCards } from '@/components/office/ClientBudgetVisualCards';
-import { PortalNextAppointmentHero } from '@/components/portal/assist/PortalNextAppointmentHero';
-import { careSpacing } from '@/design/tokens/spacing';
-import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { ClientPortalArtwork } from '@/components/portal/client/ClientPortalArtwork';
+import { clientPortalDesign as c, clientPortalLayout } from '@/components/portal/client/clientPortalDesign';
+import { useClientPortalMenu } from '@/components/portal/client/ClientPortalMenuContext';
+import { PortalNextAppointmentHero } from './PortalNextAppointmentHero';
 import { resolveClientPortalHeroLines } from '@/lib/portal/clientPortalGreeting';
 import type { PortalContext } from '@/lib/portal/types';
 import type { AssistDashboardData } from '@/types/portal/assist';
 import { familyPortalAllows, familyPortalFeatureAllowed } from '@/lib/portal/familyPortalAccessScope';
-
-type IoniconName = ComponentProps<typeof Ionicons>['name'];
-
-export type ClientPortalHomeGuide = {
-  title: string;
-  message: string;
-  actionLabel?: string;
-  target?: 'messages' | 'proofs' | 'signatures' | 'requests' | 'appointments';
-};
-
+export type ClientPortalHomeGuide = { title: string; message: string; actionLabel?: string; target?: 'messages' | 'proofs' | 'signatures' | 'requests' | 'appointments' };
 type ClientPortalHomeDashboardProps = {
   context: PortalContext;
   data: AssistDashboardData;
@@ -41,47 +35,6 @@ type ClientPortalHomeDashboardProps = {
   onOpenActivities: () => void;
   onRequestCallback: () => void;
 };
-
-type HomeActionCardProps = {
-  icon: IoniconName;
-  title: string;
-  description: string;
-  count?: number | null;
-  accentColor: string;
-  width: DimensionValue;
-  onPress: () => void;
-};
-
-type QuickTaskProps = {
-  icon: IoniconName;
-  label: string;
-  onPress: () => void;
-};
-
-type AttentionItem = {
-  key: string;
-  icon: IoniconName;
-  label: string;
-  count: number;
-  onPress: () => void;
-};
-
-const ink = {
-  primary: '#061B35',
-  secondary: '#284967',
-  muted: '#58718A',
-  blue: '#056CE8',
-  blueDark: '#084A99',
-  white: '#FFFFFF',
-} as const;
-
-const premiumShadow = Platform.OS === 'web'
-  ? ({ boxShadow: '0 22px 58px rgba(0,24,58,0.25)' } as unknown as ViewStyle)
-  : ({ shadowColor: '#001B42', shadowOpacity: 0.2, shadowRadius: 22, shadowOffset: { width: 0, height: 13 }, elevation: 8 } as ViewStyle);
-
-const breakLongWords = Platform.OS === 'web'
-  ? ({ overflowWrap: 'normal', wordBreak: 'normal' } as unknown as TextStyle)
-  : null;
 
 function plural(count: number, singular: string, pluralForm: string): string {
   return `${count} ${count === 1 ? singular : pluralForm}`;
@@ -134,855 +87,125 @@ export function resolveClientPortalHomeGuide(data: AssistDashboardData): ClientP
   };
 }
 
-function HomeActionCard({
-  icon,
-  title,
-  description,
-  count,
-  accentColor,
-  width,
-  onPress,
-}: HomeActionCardProps) {
-  const { width: viewportWidth } = useDeviceClass();
-  const type = resolveGalaxyTypography(viewportWidth);
-  const showCount = typeof count === 'number' && count > 0;
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel={`${title}: ${description}`}
-      onPress={onPress}
-      style={({ pressed }) => [
-        styles.actionCardHost,
-        { width, flexBasis: width, borderColor: `${accentColor}55` },
-        pressed && styles.pressed,
-      ]}
-    >
-      <LinearGradient
-        colors={['#FFFFFF', '#F4F9FF', '#EAF3FF']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
-      <View style={[styles.actionIcon, { backgroundColor: `${accentColor}14`, borderColor: `${accentColor}42` }]}>
-        <Ionicons name={icon} color={accentColor} size={23} />
-      </View>
-      <View style={styles.actionCopy}>
-      <Text style={[type.bodyStrong, styles.actionTitle, breakLongWords]}>{title}</Text>
-        <Text style={[type.caption, styles.actionDescription]}>{description}</Text>
-      </View>
-      {showCount ? (
-        <View style={[styles.countBadge, { backgroundColor: accentColor }]}>
-          <Text style={styles.countText}>{count}</Text>
-        </View>
-      ) : null}
-      <Ionicons name="chevron-forward" color={ink.blueDark} size={20} />
-    </Pressable>
-  );
-}
-
-function QuickTask({ icon, label, onPress }: QuickTaskProps) {
-  const { width } = useDeviceClass();
-  const type = resolveGalaxyTypography(width);
-
-  return (
-    <Pressable
-      accessibilityRole="button"
-      onPress={onPress}
-      style={({ pressed }) => [styles.quickTask, pressed && styles.quickTaskPressed]}
-    >
-      <View style={styles.quickTaskIcon}>
-        <Ionicons name={icon} color={ink.white} size={20} />
-      </View>
-      <Text style={[type.bodyStrong, styles.quickTaskLabel, breakLongWords]}>{label}</Text>
-      <Ionicons name="chevron-forward" color="rgba(255,255,255,0.72)" size={18} />
-    </Pressable>
-  );
-}
-
-function WelcomeHero({
-  context,
-  guide,
-  onGuideAction,
-}: {
-  context: PortalContext;
-  guide: ClientPortalHomeGuide;
-  onGuideAction?: () => void;
-}) {
-  const { width, isPhone } = useDeviceClass();
-  const type = resolveGalaxyTypography(width);
-  const compactHero = isPhone || width < 760;
-  const heroLines = resolveClientPortalHeroLines({
-    displayName: context.displayName,
-    tenantName: context.tenantName,
-    moduleLabel: 'Klientenportal',
-  });
-
-  return (
-    <View style={[styles.welcomeHero, compactHero && styles.welcomeHeroPhone]} testID="client-portal-premium-home-hero">
-      <LinearGradient
-        colors={['#FFFFFF', '#EDF6FF', '#D9ECFF']}
-        locations={[0, 0.56, 1]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFill}
-        pointerEvents="none"
-      />
-      <View style={styles.welcomeGlow} pointerEvents="none" />
-      <View style={[styles.welcomeCopy, compactHero && styles.welcomeCopyPhone]}>
-        <View style={styles.portalPill}>
-          <Ionicons name="shield-checkmark" color={ink.blue} size={15} />
-          <Text style={styles.portalPillText}>{context.roleKey === 'family_portal' ? 'MEIN ANGEHÖRIGENPORTAL' : 'MEIN KLIENTENPORTAL'}</Text>
-        </View>
-        <Text style={[type.h1, styles.welcomeTitle, breakLongWords]}>
-          {heroLines.greetingLine}, {heroLines.nameLine}
-        </Text>
-        <Text style={[type.body, styles.welcomeProvider]}>{context.tenantName}</Text>
-      </View>
-
-      <PortalInfoButton title={guide.title} message={guide.message} actionLabel={guide.actionLabel} onAction={onGuideAction} />
-    </View>
-  );
-}
-
-function AttentionBar({ items }: { items: AttentionItem[] }) {
-  const { width, isPhone } = useDeviceClass();
-  const type = resolveGalaxyTypography(width);
-  const compact = isPhone || width < 760;
-  if (items.length === 0) return null;
-
-  return (
-    <View style={[styles.attentionBar, compact && styles.attentionBarPhone]} testID="client-portal-attention-bar">
-      <View style={styles.attentionHeading}>
-        <View style={styles.attentionIcon}>
-          <Ionicons name="sparkles" color="#075DC7" size={21} />
-        </View>
-        <View style={styles.attentionHeadingCopy}>
-          <Text style={[type.bodyStrong, styles.attentionTitle]}>Jetzt wichtig</Text>
-          <Text style={[type.caption, styles.attentionSubtitle]}>Diese Punkte benötigen noch Ihre Aufmerksamkeit.</Text>
-        </View>
-      </View>
-      <View style={[styles.attentionItems, compact && styles.attentionItemsPhone]}>
-        {items.map((item) => (
-          <Pressable
-            key={item.key}
-            accessibilityRole="button"
-            onPress={item.onPress}
-            style={({ pressed }) => [styles.attentionItem, pressed && styles.pressed]}
-          >
-            <Ionicons name={item.icon} color="#075DC7" size={18} />
-            <Text style={[type.caption, styles.attentionItemLabel]}>{item.label}</Text>
-            <View style={styles.attentionCount}>
-              <Text style={styles.attentionCountText}>{item.count}</Text>
-            </View>
-          </Pressable>
-        ))}
-      </View>
-    </View>
-  );
-}
-
-export function ClientPortalHomeDashboard({
-  context,
-  data,
-  tripsReleased: tripFeatureReleased,
-  budgetReleased: budgetFeatureReleased,
-  proofsReleased: proofFeatureReleased,
-  requestsReleased: requestFeatureReleased,
-  uploadReleased: uploadFeatureReleased = false,
-  activitiesReleased: activityFeatureReleased,
-  onRequestChange,
-  onRequestExtra,
-  onUpload,
-  onProofs,
-  onOpenRequests,
-  onOpenActivities,
-  onRequestCallback,
-}: ClientPortalHomeDashboardProps) {
+type AreaItem = { id: string; label: string; route: string; count?: number };
+function AreaGroup({ title, items, columns }: { title: string; items: AreaItem[]; columns: number }) {
   const router = useRouter();
+  if (!items.length) return null;
+  return <View style={[styles.areaPanel, { flexBasis: columns === 3 ? '31.8%' : columns === 2 ? '48.5%' : '100%' }]}>
+    <Text accessibilityRole="header" style={styles.areaTitle}>{title}</Text>
+    {items.map(item => <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={item.label}
+      onPress={() => router.push(item.route as never)} style={({ pressed }) => [styles.areaRow, pressed && styles.pressed]}>
+      <ClientPortalArtwork id={item.id} label={item.label} size={58} /><Text style={styles.areaLabel}>{item.label}</Text>
+      {item.count && item.count > 0 ? <Text style={styles.count}>{item.count}</Text> : null}
+      <Ionicons name="chevron-forward" size={19} color={c.accent.blue} />
+    </Pressable>)}
+  </View>;
+}
+export function ClientPortalHomeDashboard({ context, data, tripsReleased, budgetReleased: budgetFeatureReleased,
+  proofsReleased: proofFeatureReleased, requestsReleased: requestFeatureReleased, uploadReleased: uploadFeatureReleased = false,
+  activitiesReleased: activityFeatureReleased, onRequestChange, onRequestExtra, onUpload, onProofs,
+  onOpenRequests, onOpenActivities, onRequestCallback }: ClientPortalHomeDashboardProps) {
+  const router = useRouter();
+  const openMenu = useClientPortalMenu();
   const { width, isPhone } = useDeviceClass();
-  const type = resolveGalaxyTypography(width);
-  const compact = isPhone || width < 760;
-  const stackedMain = isPhone || width < 1120;
-  const actionWidth: DimensionValue = compact ? '100%' : width < 1540 ? '48.8%' : '23.8%';
+  const { fontScale } = useWindowDimensions();
+  const textScale = Math.max(fontScale ?? 1, useWebFontScaleValue());
+  const layout = clientPortalLayout(width, textScale);
+  const phone = isPhone || layout.phone;
+  const stacked = layout.contentWidth / textScale < 1000;
   const family = context.roleKey === 'family_portal';
   const appointmentsAllowed = familyPortalFeatureAllowed(context, 'appointments');
   const messagesAllowed = familyPortalFeatureAllowed(context, 'messages');
   const documentsAllowed = familyPortalFeatureAllowed(context, 'documents');
   const signaturesAllowed = documentsAllowed && (!family || familyPortalAllows(context.familyAccess, 'sign_records'));
   const canComposeMessage = messagesAllowed && (!family || familyPortalAllows(context.familyAccess, 'send_messages'));
-  const tripsReleased = tripFeatureReleased && appointmentsAllowed;
   const proofsReleased = proofFeatureReleased && familyPortalFeatureAllowed(context, 'nachweise');
   const budgetReleased = budgetFeatureReleased && !family;
   const requestsReleased = requestFeatureReleased && !family;
   const uploadReleased = uploadFeatureReleased && !family;
   const activitiesReleased = activityFeatureReleased && !family;
   const guide = resolveClientPortalHomeGuide(data);
-
-  const openGuideTarget = () => {
-    if (guide.target === 'messages') {
-      router.push('/portal/client/messages' as never);
-    } else if (guide.target === 'proofs') {
-      onProofs();
-    } else if (guide.target === 'signatures') {
-      router.push('/portal/client/documents/signatures' as never);
-    } else if (guide.target === 'requests') {
-      onOpenRequests();
-    } else if (guide.target === 'appointments') {
-      router.push('/portal/client/appointments' as never);
-    }
-  };
-
-  const attentionItems: AttentionItem[] = [
-    ...(signaturesAllowed && data.kpis.signatures > 0
-      ? [{
-          key: 'signatures',
-          icon: 'create-outline' as IoniconName,
-          label: 'Unterschriften',
-          count: data.kpis.signatures,
-          onPress: () => router.push('/portal/client/documents/signatures' as never),
-        }]
-      : []),
-    ...(messagesAllowed && data.kpis.messages > 0
-      ? [{
-          key: 'messages',
-          icon: 'chatbubble-ellipses-outline' as IoniconName,
-          label: 'Neue Nachrichten',
-          count: data.kpis.messages,
-          onPress: () => router.push('/portal/client/messages' as never),
-        }]
-      : []),
-    ...(proofsReleased && data.kpis.proofs > 0
-      ? [{
-          key: 'proofs',
-          icon: 'reader-outline' as IoniconName,
-          label: 'Offene Nachweise',
-          count: data.kpis.proofs,
-          onPress: onProofs,
-        }]
-      : []),
-    ...(requestsReleased && data.kpis.openRequests > 0
-      ? [{
-          key: 'requests',
-          icon: 'paper-plane-outline' as IoniconName,
-          label: 'Offene Anfragen',
-          count: data.kpis.openRequests,
-          onPress: onOpenRequests,
-        }]
-      : []),
+  const heroLines = resolveClientPortalHeroLines({ displayName: context.displayName, tenantName: context.tenantName, moduleLabel: 'Klientenportal' });
+  const quickActions = [
+    ...(requestsReleased ? [{ icon: 'add-circle-outline' as const, label: 'Einsatz anfragen', action: onRequestExtra }] : []),
+    ...(canComposeMessage ? [{ icon: 'chatbubble-ellipses-outline' as const, label: 'Nachricht schreiben', action: () => router.push('/portal/client/messages?compose=1' as never) }] : []),
+    ...(uploadReleased ? [{ icon: 'cloud-upload-outline' as const, label: 'Dokument hochladen', action: onUpload }] : []),
+    ...(requestsReleased ? [{ icon: 'call-outline' as const, label: 'Rückruf anfordern', action: onRequestCallback }] : []),
   ];
-
-  const moreItems = [
-    ...(tripsReleased && data.kpis.begleitungen
-      ? [{
-          key: 'trips',
-          icon: 'car-outline' as IoniconName,
-          label: `${data.kpis.begleitungen} Begleitungen geplant`,
-          onPress: () => router.push('/portal/client?module=assist&section=begleitungen' as never),
-        }]
-      : []),
-    ...(activitiesReleased && data.kpis.activities > 0
-      ? [{
-          key: 'activities',
-          icon: 'notifications-outline' as IoniconName,
-          label: `${data.kpis.activities} neue Aktivitäten`,
-          onPress: onOpenActivities,
-        }]
-      : []),
-    ...(budgetReleased && data.budget
-      ? [{
-          key: 'budget',
-          icon: 'wallet-outline' as IoniconName,
-          label: `${data.budget.remainingAmount.toLocaleString('de-DE', { style: 'currency', currency: data.budget.currency })} Budget verfügbar`,
-          onPress: () => router.push('/portal/client/budget' as never),
-        }]
-      : []),
+  const care: AreaItem[] = [
+    ...(appointmentsAllowed ? [{ id: 'appointments', label: 'Einsätze', route: '/portal/client/appointments' }, { id: 'live', label: 'Live-Anfahrt', route: '/portal/client/live' }] : []),
+    ...(budgetReleased ? [{ id: 'budget', label: 'Budget', route: '/portal/client/budget' }] : []),
   ];
-
-  return (
-    <View style={styles.dashboard} testID="client-portal-premium-home">
-      <ClientSignatureAttentionBanner />
-      <WelcomeHero
-        context={context}
-        guide={guide}
-        onGuideAction={guide.target ? openGuideTarget : undefined}
-      />
-
-      <AttentionBar items={attentionItems} />
-
-      {appointmentsAllowed || requestsReleased || canComposeMessage || uploadReleased ? <View style={[styles.mainGrid, stackedMain && styles.mainGridStacked]}>
-        {appointmentsAllowed ? <View style={styles.appointmentColumn}>
-          <PortalNextAppointmentHero
-            appointment={data.nextAppointment}
-            onRequestChange={requestsReleased ? onRequestChange : undefined}
-            onRequestExtra={requestsReleased ? onRequestExtra : undefined}
-            emptyActionLabel="Einsatz anfragen"
-          />
-        </View> : null}
-
-        {requestsReleased || canComposeMessage || uploadReleased ? <View style={[styles.quickPanel, stackedMain && styles.quickPanelStacked]}>
-          <LinearGradient
-            colors={['#0B5CC9', '#073E8D', '#052B68']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={StyleSheet.absoluteFill}
-            pointerEvents="none"
-          />
-          <View style={styles.quickPanelGlow} pointerEvents="none" />
-          <Text style={[type.caption, styles.quickEyebrow]}>SCHNELL ERLEDIGT</Text>
-          <Text style={[type.cardTitle, styles.quickTitle]}>Was möchten Sie tun?</Text>
-          <View style={styles.quickTasks}>
-            {requestsReleased ? <QuickTask icon="add-circle-outline" label="Einsatz anfragen" onPress={onRequestExtra} /> : null}
-            {canComposeMessage ? <QuickTask
-              icon="chatbubble-ellipses-outline"
-              label="Nachricht schreiben"
-              onPress={() => router.push('/portal/client/messages?compose=1' as never)}
-            /> : null}
-            {uploadReleased ? <QuickTask icon="cloud-upload-outline" label="Dokument hochladen" onPress={onUpload} /> : null}
-            {requestsReleased ? <QuickTask icon="call-outline" label="Rückruf anfordern" onPress={onRequestCallback} /> : null}
-          </View>
-        </View> : null}
-      </View> : null}
-
-      {!family ? <View style={styles.budgetExperience} testID="client-portal-budget-visuals">
-        <View style={styles.budgetHeading}>
-          <View style={styles.budgetHeadingIcon}>
-            <Ionicons name="wallet-outline" color={ink.blue} size={22} />
-          </View>
-          <View style={styles.budgetHeadingCopy}>
-            <Text accessibilityRole="header" testID="client-portal-budget-heading" style={[type.cardTitle, styles.sectionTitle]}>Ihre finanziellen Möglichkeiten</Text>
-            <Text testID="client-portal-budget-explanation" style={[type.caption, styles.sectionSubtitle]}>
-              Entlastungsbetrag und 40-%-Umwandlung bleiben für Sie immer verständlich sichtbar.
-            </Text>
-          </View>
-        </View>
-        <ClientBudgetVisualCards models={data.budgetVisuals} />
-      </View> : null}
-
-      <View style={styles.sectionHeading}>
-        <View style={styles.sectionHeadingCopy} testID="client-portal-sections-copy">
-          <Text accessibilityRole="header" testID="client-portal-sections-heading" style={[type.cardTitle, styles.sectionTitle]}>Ihre Bereiche</Text>
-          <Text testID="client-portal-sections-explanation" style={[type.caption, styles.sectionSubtitle]}>Direkt und ohne Umwege zum gewünschten Inhalt.</Text>
-        </View>
+  const files: AreaItem[] = [
+    ...(documentsAllowed ? [{ id: 'documents', label: 'Dokumente', route: '/portal/client/documents' }] : []),
+    ...(signaturesAllowed ? [{ id: 'signatures', label: 'Unterschriften', route: '/portal/client/documents/signatures', count: data.kpis.signatures }] : []),
+    ...(proofsReleased ? [{ id: 'proofs', label: 'Nachweise', route: '/portal/client/proofs' }] : []),
+  ];
+  const exchange: AreaItem[] = [
+    ...(messagesAllowed ? [{ id: 'messages', label: 'Nachrichten', route: '/portal/client/messages', count: data.kpis.messages }] : []),
+    ...(!family ? [{ id: 'announcements', label: 'Mitteilungen', route: '/portal/client/announcements' }, { id: 'academy', label: 'Meine Akademie', route: '/portal/client/akademie' }] : []),
+  ];
+  const guideAction = guide.target === 'signatures' && signaturesAllowed ? () => router.push('/portal/client/documents/signatures' as never)
+    : guide.target === 'messages' && messagesAllowed ? () => router.push('/portal/client/messages' as never)
+      : guide.target === 'proofs' && proofsReleased ? onProofs
+        : guide.target === 'requests' && requestsReleased ? onOpenRequests
+          : guide.target === 'appointments' && appointmentsAllowed ? () => router.push('/portal/client/appointments' as never) : undefined;
+  const attention = guideAction && (data.kpis.signatures > 0 || data.kpis.messages > 0 || data.kpis.proofs > 0 || data.kpis.openRequests > 0)
+    ? <View style={[styles.panel, styles.attention]} testID="client-portal-attention-bar"><Ionicons name="information-circle-outline" size={27} color={c.accent.blue} />
+      <View style={styles.attentionCopy}><Text style={styles.sectionTitle}>{guide.title}</Text><Text style={styles.body}>{guide.message}</Text></View>
+      <PremiumButton title={guide.actionLabel ?? 'Ansehen'} onPress={guideAction} />
+    </View> : null;
+  const appointment = appointmentsAllowed ? <PortalNextAppointmentHero appointment={data.nextAppointment}
+    onRequestChange={requestsReleased ? onRequestChange : undefined} onRequestExtra={requestsReleased ? onRequestExtra : undefined} emptyActionLabel="Einsatz anfragen" /> : null;
+  const quick = quickActions.length ? <View style={[styles.panel, styles.quick]}><Text style={styles.eyebrow}>SCHNELL ERLEDIGT</Text><Text style={styles.sectionTitle}>Was möchten Sie tun?</Text>
+    <View style={styles.quickGrid}>{quickActions.map(item => <Pressable key={item.label} accessibilityRole="button" onPress={item.action}
+      style={({ pressed }) => [styles.quickAction, { flexBasis: textScale > 1.2 ? '100%' : '47%' }, pressed && styles.pressed]}>
+      <Ionicons name={item.icon} size={25} color={c.accent.blue} /><Text style={styles.quickLabel}>{item.label}</Text>
+    </Pressable>)}</View>
+  </View> : null;
+  return <View style={styles.dashboard} testID="client-portal-premium-home">
+    <ClientSignatureAttentionBanner />
+    <View style={[styles.panel, styles.welcome, phone && styles.welcomePhone]} testID="client-portal-premium-home-hero">
+      <View style={styles.welcomeCopy}><Text style={styles.eyebrow}>MEINE VERSORGUNG</Text>
+        <Text accessibilityRole="header" style={[styles.greeting, phone && styles.greetingPhone]}>{heroLines.greetingLine}, {heroLines.nameLine}</Text>
+        <Text style={styles.body}>{context.tenantName}</Text>{!phone ? <View style={styles.welcomeNote}><Ionicons name="heart-outline" size={19} color={c.accent.blue} /><Text style={styles.body}>Schön, dass Sie da sind. Ihre Versorgung im Blick.</Text></View> : null}
       </View>
-
-      <View style={styles.actionGrid}>
-        {appointmentsAllowed ? <HomeActionCard
-          icon="calendar-outline"
-          title="Einsätze"
-          description={data.kpis.appointments > 0 ? plural(data.kpis.appointments, 'kommender Einsatz', 'kommende Einsätze') : 'Planung und Termine öffnen'}
-          count={data.kpis.appointments}
-          accentColor="#056CE8"
-          width={actionWidth}
-          onPress={() => router.push('/portal/client/appointments' as never)}
-        /> : null}
-        {messagesAllowed ? <HomeActionCard
-          icon="chatbubbles-outline"
-          title="Nachrichten"
-          description={data.kpis.messages > 0 ? plural(data.kpis.messages, 'neue Nachricht', 'neue Nachrichten') : 'Verwaltung kontaktieren'}
-          count={data.kpis.messages}
-          accentColor="#6D4AFF"
-          width={actionWidth}
-          onPress={() => router.push('/portal/client/messages' as never)}
-        /> : null}
-        {documentsAllowed ? <HomeActionCard
-          icon="folder-open-outline"
-          title="Dokumente"
-          description={data.kpis.documents > 0 ? plural(data.kpis.documents, 'Dokument verfügbar', 'Dokumente verfügbar') : 'Persönliche Ablage öffnen'}
-          count={data.kpis.documents}
-          accentColor="#0F9F89"
-          width={actionWidth}
-          onPress={() => router.push('/portal/client/documents' as never)}
-        /> : null}
-        {signaturesAllowed ? <HomeActionCard
-          icon="create-outline"
-          title="Unterschriften"
-          description={data.kpis.signatures > 0 ? plural(data.kpis.signatures, 'Unterschrift offen', 'Unterschriften offen') : 'Zurzeit alles erledigt'}
-          count={data.kpis.signatures}
-          accentColor="#C0448F"
-          width={actionWidth}
-          onPress={() => router.push('/portal/client/documents/signatures' as never)}
-        /> : null}
-      </View>
-      {family && !appointmentsAllowed && !messagesAllowed && !documentsAllowed ? <Text style={[type.body, { color: ink.secondary }]}>Für diesen Angehörigenzugang sind noch keine Bereiche freigegeben. Bitte wenden Sie sich bei Fragen an Ihr Pflegebüro.</Text> : null}
-
-      {moreItems.length > 0 ? (
-        <View style={styles.moreStrip}>
-          <Text style={[type.caption, styles.moreStripTitle]}>WEITERE INFORMATIONEN</Text>
-          <View style={styles.moreStripItems}>
-            {moreItems.map((item) => (
-              <Pressable
-                key={item.key}
-                accessibilityRole="button"
-                onPress={item.onPress}
-                style={({ pressed }) => [styles.moreChip, pressed && styles.pressed]}
-              >
-                <Ionicons name={item.icon} color="#9ACBFF" size={18} />
-                <Text style={[type.caption, styles.moreChipText]}>{item.label}</Text>
-                <Ionicons name="chevron-forward" color="rgba(255,255,255,0.58)" size={16} />
-              </Pressable>
-            ))}
-          </View>
-        </View>
-      ) : null}
+      {!phone ? <ClientPortalArtwork id="home" label="Meine Versorgung" size={128} /> : null}
+      <View style={phone ? styles.phoneInfo : undefined}><PortalInfoButton compact={phone} title={guide.title} message={guide.message} actionLabel={guideAction ? guide.actionLabel : undefined} onAction={guideAction} /></View>
     </View>
-  );
+    {!phone ? attention : null}
+    {phone ? <>{appointment}{attention}{quick}</> : <View style={[styles.mainGrid, stacked && styles.stacked]}>
+      {appointment ? <View style={styles.appointmentColumn}>{appointment}</View> : null}{quick ? <View style={styles.quickColumn}>{quick}</View> : null}
+    </View>}
+    <View style={styles.sectionsHeading}><View style={styles.sectionCopy}>
+      <Text accessibilityRole="header" testID="client-portal-sections-heading" style={styles.sectionTitle}>Meine Bereiche</Text>
+      <Text testID="client-portal-sections-explanation" style={styles.body}>Direkt und ohne Umwege zum gewünschten Inhalt.</Text>
+    </View>{openMenu ? <PremiumButton title="Alle Bereiche" variant="secondary" onPress={openMenu} size="sm" /> : null}</View>
+    <View style={styles.areas}><AreaGroup title="Meine Versorgung" items={care} columns={layout.contentColumns} /><AreaGroup title="Meine Unterlagen" items={files} columns={layout.contentColumns} /><AreaGroup title="In Verbindung" items={exchange} columns={layout.contentColumns} /></View>
+    {family && !appointmentsAllowed && !messagesAllowed && !documentsAllowed ? <Text style={styles.body}>Für diesen Angehörigenzugang sind noch keine Bereiche freigegeben. Bitte wenden Sie sich bei Fragen an Ihr Pflegebüro.</Text> : null}
+    {budgetReleased ? <View style={styles.budget}><Text accessibilityRole="header" testID="client-portal-budget-heading" style={styles.sectionTitle}>Ihre finanziellen Möglichkeiten</Text>
+      <Text testID="client-portal-budget-explanation" style={styles.body}>Ihre freigegebenen Budgetdaten und bereits genutzten Leistungen.</Text><ClientBudgetVisualCards models={data.budgetVisuals} /></View> : null}
+    {requestsReleased && data.kpis.openRequests > 0 || activitiesReleased && data.kpis.activities > 0 ? <View style={styles.moreActions}>
+      {requestsReleased && data.kpis.openRequests > 0 ? <PremiumButton title={`Meine Anfragen (${data.kpis.openRequests})`} variant="secondary" onPress={onOpenRequests} /> : null}
+      {activitiesReleased && data.kpis.activities > 0 ? <PremiumButton title={`Aktivitäten (${data.kpis.activities})`} variant="secondary" onPress={onOpenActivities} /> : null}
+    </View> : null}
+    {tripsReleased && appointmentsAllowed && data.kpis.begleitungen ? <PremiumButton title="Geplante Begleitungen" variant="secondary" onPress={() => router.push('/portal/client?module=assist&section=begleitungen' as never)} /> : null}
+    <View style={styles.footer}><Ionicons name="shield-checkmark-outline" size={17} color={c.text.secondary} /><Text style={styles.footerText}>Ihr persönlicher Bereich bei {context.tenantName}</Text></View>
+  </View>;
 }
-
-const styles = StyleSheet.create({
-  dashboard: {
-    width: '100%',
-    maxWidth: 1480,
-    alignSelf: 'center',
-    gap: careSpacing.lg,
-    paddingBottom: careSpacing.xl,
-  },
-  budgetExperience: {
-    width: '100%',
-    gap: careSpacing.md,
-  },
-  budgetHeading: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  budgetHeadingIcon: {
-    width: 44,
-    height: 44,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: 'rgba(5,108,232,0.2)',
-    backgroundColor: 'rgba(5,108,232,0.08)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  budgetHeadingCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 2,
-  },
-  welcomeHero: {
-    minHeight: 220,
-    position: 'relative',
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: 'rgba(154,203,255,0.78)',
-    borderRadius: 26,
-    padding: 26,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 24,
-    ...premiumShadow,
-  },
-  welcomeHeroPhone: {
-    minHeight: 0,
-    width: '100%',
-    alignSelf: 'stretch',
-    padding: 16,
-    borderRadius: 20,
-    flexDirection: 'column',
-    alignItems: 'stretch',
-    gap: 14,
-  },
-  welcomeGlow: {
-    position: 'absolute',
-    right: -90,
-    top: -130,
-    width: 360,
-    height: 360,
-    borderRadius: 999,
-    backgroundColor: 'rgba(53,151,255,0.2)',
-  },
-  welcomeCopy: {
-    flex: 1.25,
-    minWidth: 0,
-    gap: 8,
-  },
-  welcomeCopyPhone: {
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 'auto',
-    width: '100%',
-  },
-  portalPill: {
-    alignSelf: 'flex-start',
-    maxWidth: '100%',
-    minHeight: 32,
-    paddingHorizontal: 11,
-    borderWidth: 1,
-    borderColor: 'rgba(5,108,232,0.22)',
-    borderRadius: 999,
-    backgroundColor: 'rgba(255,255,255,0.72)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  portalPillText: {
-    flexShrink: 1,
-    color: ink.blueDark,
-    fontSize: 11,
-    lineHeight: 14,
-    fontWeight: '900',
-    letterSpacing: 0.75,
-  },
-  welcomeTitle: {
-    color: ink.primary,
-    fontWeight: '900',
-    letterSpacing: -0.6,
-  },
-  welcomeProvider: {
-    color: ink.secondary,
-    fontWeight: '700',
-  },
-  guideArea: {
-    flex: 1,
-    minWidth: 330,
-    maxWidth: 560,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 9,
-  },
-  guideAreaPhone: {
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 'auto',
-    minWidth: 0,
-    maxWidth: '100%',
-    width: '100%',
-    flexDirection: 'column',
-    alignItems: 'stretch',
-  },
-  guideMascot: {
-    width: 102,
-    height: 118,
-    flexShrink: 0,
-  },
-  guideMascotPhone: {
-    width: 58,
-    height: 68,
-    alignSelf: 'center',
-  },
-  guideBubble: {
-    flex: 1,
-    minWidth: 0,
-    position: 'relative',
-    padding: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(5,108,232,0.22)',
-    borderRadius: 17,
-    backgroundColor: 'rgba(255,255,255,0.84)',
-    gap: 5,
-  },
-  guideBubblePhone: {
-    flexGrow: 0,
-    flexShrink: 0,
-    flexBasis: 'auto',
-    width: '100%',
-    padding: 14,
-  },
-  guideBubbleTail: {
-    position: 'absolute',
-    left: -7,
-    bottom: 22,
-    width: 14,
-    height: 14,
-    borderLeftWidth: 1,
-    borderBottomWidth: 1,
-    borderColor: 'rgba(5,108,232,0.22)',
-    backgroundColor: '#F5FAFF',
-    transform: [{ rotate: '45deg' }],
-  },
-  guideTitle: {
-    color: ink.primary,
-    fontWeight: '800',
-  },
-  guideMessage: {
-    color: ink.secondary,
-  },
-  guideAction: {
-    alignSelf: 'flex-start',
-    minHeight: 40,
-    marginTop: 4,
-    paddingHorizontal: 13,
-    borderRadius: 11,
-    backgroundColor: ink.blue,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 7,
-  },
-  guideActionPhone: { width: '100%', alignSelf: 'stretch' },
-  guideActionText: {
-    color: ink.white,
-    fontSize: 13,
-    lineHeight: 17,
-    fontWeight: '800',
-  },
-  attentionBar: {
-    padding: 15,
-    borderWidth: 1,
-    borderColor: 'rgba(112,181,255,0.52)',
-    borderRadius: 18,
-    backgroundColor: 'rgba(231,243,255,0.96)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: 14,
-  },
-  attentionHeading: {
-    minWidth: 220,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  attentionBarPhone: {
-    flexDirection: 'column',
-    alignItems: 'stretch',
-  },
-  attentionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    backgroundColor: 'rgba(5,108,232,0.1)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  attentionHeadingCopy: {
-    flex: 1,
-    gap: 2,
-  },
-  attentionTitle: {
-    color: ink.primary,
-    fontWeight: '900',
-  },
-  attentionSubtitle: {
-    color: ink.secondary,
-  },
-  attentionItems: {
-    flex: 1,
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-    gap: 8,
-  },
-  attentionItemsPhone: {
-    width: '100%',
-    justifyContent: 'flex-start',
-  },
-  attentionItem: {
-    minHeight: 42,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(5,108,232,0.18)',
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 7,
-  },
-  attentionItemLabel: {
-    color: ink.primary,
-    fontWeight: '700',
-  },
-  attentionCount: {
-    minWidth: 24,
-    height: 24,
-    paddingHorizontal: 6,
-    borderRadius: 999,
-    backgroundColor: '#075DC7',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  attentionCountText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    lineHeight: 15,
-    fontWeight: '900',
-  },
-  mainGrid: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'stretch',
-    gap: careSpacing.md,
-  },
-  mainGridStacked: {
-    flexDirection: 'column',
-  },
-  appointmentColumn: {
-    flex: 1.65,
-    minWidth: 0,
-  },
-  quickPanel: {
-    flex: 1,
-    minWidth: 300,
-    position: 'relative',
-    overflow: 'hidden',
-    padding: 20,
-    borderWidth: 1,
-    borderColor: 'rgba(112,181,255,0.46)',
-    borderRadius: 21,
-    gap: 6,
-    ...premiumShadow,
-  },
-  quickPanelStacked: {
-    width: '100%',
-    minWidth: 0,
-  },
-  quickPanelGlow: {
-    position: 'absolute',
-    right: -70,
-    top: -90,
-    width: 230,
-    height: 230,
-    borderRadius: 999,
-    backgroundColor: 'rgba(53,151,255,0.22)',
-  },
-  quickEyebrow: {
-    color: '#9ACBFF',
-    fontWeight: '900',
-    letterSpacing: 0.9,
-  },
-  quickTitle: {
-    color: '#FFFFFF',
-    fontWeight: '900',
-  },
-  quickTasks: {
-    marginTop: 7,
-    gap: 7,
-  },
-  quickTask: {
-    minHeight: 48,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.16)',
-    borderRadius: 13,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  quickTaskPressed: {
-    backgroundColor: 'rgba(255,255,255,0.16)',
-  },
-  quickTaskIcon: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: 'rgba(255,255,255,0.12)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  quickTaskLabel: {
-    flex: 1,
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  sectionHeading: {
-    width: '100%',
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    justifyContent: 'space-between',
-    gap: 12,
-  },
-  sectionHeadingCopy: { flex: 1, minWidth: 0 },
-  sectionTitle: {
-    color: ink.primary,
-    fontWeight: '900',
-  },
-  sectionSubtitle: {
-    marginTop: 3,
-    color: ink.secondary,
-  },
-  actionGrid: {
-    width: '100%',
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 12,
-  },
-  actionCardHost: {
-    minHeight: 108,
-    flexGrow: 1,
-    position: 'relative',
-    overflow: 'hidden',
-    padding: 15,
-    borderWidth: 1,
-    borderRadius: 17,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 11,
-    ...premiumShadow,
-  },
-  actionIcon: {
-    width: 46,
-    height: 46,
-    flexShrink: 0,
-    borderWidth: 1,
-    borderRadius: 14,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionCopy: {
-    flex: 1,
-    minWidth: 0,
-    gap: 3,
-  },
-  actionTitle: {
-    color: ink.primary,
-    fontWeight: '900',
-  },
-  actionDescription: {
-    color: ink.secondary,
-  },
-  countBadge: {
-    minWidth: 29,
-    height: 29,
-    paddingHorizontal: 7,
-    borderRadius: 999,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  countText: {
-    color: '#FFFFFF',
-    fontSize: 13,
-    lineHeight: 16,
-    fontWeight: '900',
-  },
-  moreStrip: {
-    padding: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(112,181,255,0.28)',
-    borderRadius: 18,
-    backgroundColor: 'rgba(4,26,55,0.68)',
-    gap: 10,
-  },
-  moreStripTitle: {
-    color: '#9ACBFF',
-    fontWeight: '900',
-    letterSpacing: 0.85,
-  },
-  moreStripItems: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-  },
-  moreChip: {
-    minHeight: 44,
-    paddingHorizontal: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
-    borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.07)',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  moreChipText: {
-    color: '#FFFFFF',
-    fontWeight: '700',
-  },
-  pressed: {
-    opacity: 0.8,
-    transform: [{ scale: 0.988 }],
-  },
-});
+const styles = StyleSheet.create(withCareSuiteTypography({
+  dashboard: { width: '100%', minWidth: 0, gap: 20 }, panel: { minWidth: 0, borderWidth: 1, borderColor: c.border, borderRadius: 22, backgroundColor: c.surface },
+  welcome: { minHeight: 170, padding: 25, flexDirection: 'row', alignItems: 'center', gap: 20 }, welcomeCopy: { flex: 1, minWidth: 0, gap: 9 },
+  welcomePhone: { minHeight: 0, padding: 18, paddingBottom: 56 }, phoneInfo: { position: 'absolute', right: 14, bottom: 10 },
+  greeting: { color: c.text.primary, fontSize: font(38), lineHeight: font(47), fontWeight: '700', letterSpacing: -1.1, flexShrink: 1 }, greetingPhone: { fontSize: font(29), lineHeight: font(37) },
+  eyebrow: { color: c.accent.blue, fontSize: font(13), lineHeight: font(19), fontWeight: '700', letterSpacing: 0.6 }, body: { color: c.text.secondary, fontSize: font(16), lineHeight: font(24), flexShrink: 1 },
+  welcomeNote: { alignSelf: 'flex-start', maxWidth: '100%', paddingHorizontal: 11, paddingVertical: 8, borderRadius: 11, backgroundColor: c.control, flexDirection: 'row', alignItems: 'center', gap: 8 },
+  mainGrid: { flexDirection: 'row', alignItems: 'stretch', gap: 20, minWidth: 0 }, stacked: { flexDirection: 'column' }, appointmentColumn: { flex: 1.4, minWidth: 0 }, quickColumn: { flex: 1, minWidth: 0 },
+  quick: { padding: 22, gap: 12, flex: 1 }, quickGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, quickAction: { minHeight: 92, minWidth: 0, flexGrow: 1, gap: 10, borderWidth: 1, borderColor: c.border, backgroundColor: 'rgba(188,238,255,0.035)', borderRadius: 13, padding: 13, justifyContent: 'center' },
+  quickLabel: { color: c.text.primary, fontSize: font(16), lineHeight: font(23), flexShrink: 1 }, attention: { padding: 19, gap: 14, flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center' }, attentionCopy: { flex: 1, flexBasis: 200, minWidth: 0, gap: 4 },
+  sectionTitle: { color: c.text.primary, fontSize: font(22), lineHeight: font(29), fontWeight: '700', flexShrink: 1 }, sectionsHeading: { flexDirection: 'row', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'space-between', gap: 12 }, sectionCopy: { flex: 1, minWidth: 0, flexBasis: 220, gap: 5 },
+  areas: { flexDirection: 'row', flexWrap: 'wrap', gap: 16 }, areaPanel: { flexGrow: 1, minWidth: 0, paddingHorizontal: 19, paddingTop: 18, paddingBottom: 5, borderWidth: 1, borderColor: c.border, borderRadius: 21, backgroundColor: c.surface },
+  areaTitle: { color: c.text.primary, fontSize: font(20), lineHeight: font(27), fontWeight: '700', marginBottom: 11 }, areaRow: { minHeight: 78, minWidth: 0, gap: 11, flexDirection: 'row', alignItems: 'center', borderTopWidth: 1, borderColor: c.borderSoft, paddingVertical: 10 },
+  areaLabel: { flex: 1, minWidth: 0, color: c.text.primary, fontSize: font(16), lineHeight: font(23) }, count: { color: c.accent.blue, fontSize: font(14), lineHeight: font(21), paddingHorizontal: 6, borderRadius: 5, backgroundColor: c.control },
+  budget: { gap: 12, minWidth: 0 }, moreActions: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 }, footer: { flexDirection: 'row', alignItems: 'center', gap: 7, minWidth: 0 }, footerText: { color: c.text.secondary, fontSize: font(13), lineHeight: font(20), flexShrink: 1 }, pressed: { opacity: 0.75 },
+}));

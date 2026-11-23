@@ -7,7 +7,7 @@ import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
-import { PremiumButton } from '@/components/ui';
+import { PremiumButton, ErrorState, LoadingState } from '@/components/ui';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalAppointments } from '@/hooks/usePortalAppointments';
 import { groupPortalAppointmentsByTime } from '@/lib/portal/groupPortalAppointmentsByTime';
@@ -18,15 +18,18 @@ export function ClientPortalProfileAssignmentsSection() {
   const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
-  const { items, loading, isEmpty } = usePortalAppointments('client');
+  const { items, loading, isEmpty, error, refresh, isResolvingClientLink, missingClientLink } = usePortalAppointments('client');
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   const groups = useMemo(() => groupPortalAppointmentsByTime(items), [items]);
   const upcoming = groups.find((g) => g.key === 'upcoming');
   const past = groups.find((g) => g.key === 'past');
 
-  if (loading && items.length === 0) {
-    return null;
+  if ((loading || isResolvingClientLink) && items.length === 0) {
+    return <LoadingState message="Ihre Einsatzhistorie wird geladen…" />;
+  }
+  if ((error || missingClientLink) && items.length === 0) {
+    return <ErrorState title="Einsatzhistorie nicht verfügbar" message={error ?? 'Ihr Klientenprofil konnte nicht verknüpft werden.'} onRetry={refresh} />;
   }
 
   if (isEmpty) {

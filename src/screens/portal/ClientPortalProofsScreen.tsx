@@ -27,8 +27,8 @@ import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 const STATUS_COLORS: Record<string, string> = {
   offen: PORTAL_LIGHT_LINK_ORANGE,
-  unterschrieben: '#167248',
-  abgerechnet: '#245A96',
+  unterschrieben: '#B3F0DF',
+  abgerechnet: '#BCEEFF',
 };
 
 /** Full-screen Leistungsnachweise — PDF, Status, Historie (K.1.2). */
@@ -236,7 +236,7 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
   },
   itemTitle: { flexGrow: 1, flexShrink: 1, minWidth: 0 },
-  actionError: { color: '#9F263E', lineHeight: 22 },
+  actionError: { color: '#FFE1E9', lineHeight: 22 },
   badge: {
     fontWeight: '700',
     textTransform: 'uppercase',

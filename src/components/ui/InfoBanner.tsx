@@ -86,7 +86,7 @@ export function InfoBanner({
   const text = useAuroraAdaptiveText();
   const portal = usePortalPremiumTheme();
   const surfaceTone = useSurfaceContrastTone();
-  const darkSurface = onDarkSurface || surfaceTone === 'dark';
+  const darkSurface = onDarkSurface || surfaceTone === 'dark' || (portal.active && portal.kind === 'client');
   const cfg = CONFIG[variant];
   const surfaceColors = darkSurface
     ? {

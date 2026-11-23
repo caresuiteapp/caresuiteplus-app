@@ -17,7 +17,7 @@ import { fetchPortalCsDocumentRequests } from '@/lib/documents/csTemplates';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 import { subscribeToClientPortalDocumentRequestChanges, type RealtimeHandler } from '@/lib/realtime';
 import { liquidRadius } from '@/liquid-command/foundation/tokens';
-import { portalPremium } from "../../design/tokens/portalPremium.tsx";
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 import { spacing } from '@/theme';
 import { familyPortalAllows } from '@/lib/portal/familyPortalAccessScope';
 type FilterKey = 'open' | 'done';
@@ -81,7 +81,7 @@ export function ClientDocumentSignaturesScreen() {
             <Text style={[type.bodyStrong, styles.refreshText]}>↻ Aktualisieren</Text>
           </Pressable>
         </View>
-        {filter === 'open' ? proofs.map((proof) => <Pressable key={proof.id} accessibilityRole="button" onPress={() => router.push(proof.route as never)} style={{ padding: 16, minHeight: 80, borderRadius: 16, borderWidth: 1, borderColor: portalPremium.borderStrong, backgroundColor: '#FFFFFF', gap: 8 }}>
+        {filter === 'open' ? proofs.map((proof) => <Pressable key={proof.id} accessibilityRole="button" onPress={() => router.push(proof.route as never)} style={{ padding: 16, minHeight: 80, borderRadius: 16, borderWidth: 1, borderColor: portalPremium.borderStrong, backgroundColor: portalPremium.surface, gap: 8 }}>
           <Text style={[type.bodyStrong, { color: portalPremium.text.primary }]}>{proof.title}</Text>
           <Text style={[type.body, { color: portalPremium.accent.blueDark }]}>Leistungsnachweis prüfen und unterschreiben →</Text>
         </Pressable>) : null}

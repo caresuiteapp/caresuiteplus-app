@@ -21,10 +21,13 @@ const TECHNICAL_ERROR_PATTERNS = [
  * The original error remains available to the calling service for logging.
  */
 export function toPortalUserFacingError(
-  error: string | null | undefined,
+  error: unknown,
   fallback = 'Die Daten konnten gerade nicht geladen werden. Bitte versuchen Sie es erneut.',
 ): string {
-  const message = error?.trim();
+  // Thrown values have not passed through a service's error translation.
+  // Keep their technical details out of the portal, and never let error
+  // reporting itself throw when a network or library call rejects.
+  const message = typeof error === 'string' ? error.trim() : '';
   if (!message) return fallback;
   if (TECHNICAL_ERROR_PATTERNS.some((pattern) => pattern.test(message))) return fallback;
   return message;

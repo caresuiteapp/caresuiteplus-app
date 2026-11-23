@@ -1,3 +1,4 @@
+import { useAccountSecurityStyles } from './accountSecurityStyles';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
@@ -14,6 +15,8 @@ export function DeviceSyncStatusCard() {
   return <Content key={`${user.id}:${portalSession.tenantId}:${portalSession.employeeId}:${portalSession.clientId}:${portalSession.accountId}`} />;
 }
 function Content() {
+  const themed = useAccountSecurityStyles();
+  const styles = { ...baseStyles, card: themed.card, title: themed.title, text: themed.text, label: themed.label, error: themed.error };
   const { user, portalSession } = useAuth();
   const actor = usePortalActor();
   const router = useRouter();
@@ -55,4 +58,4 @@ function Content() {
     {error ? <Text accessibilityRole="alert" style={styles.error}>{error}</Text> : null}
   </View>;
 }
-const styles = StyleSheet.create({ card: { gap: 12, padding: 18, borderRadius: 18, borderWidth: 1, borderColor: '#CBD8E6', backgroundColor: '#FFFFFF', minWidth: 0 }, title: { fontSize: 20, lineHeight: 28, fontWeight: '800', color: '#10283F' }, text: { fontSize: 15, lineHeight: 23, color: '#304E69' }, label: { fontSize: 16, lineHeight: 24, color: '#10283F', fontWeight: '700' }, error: { fontSize: 15, lineHeight: 23, color: '#A51E35' } });
+const baseStyles = StyleSheet.create({ card: { gap: 12, padding: 18, borderRadius: 18, borderWidth: 1, borderColor: '#CBD8E6', backgroundColor: '#FFFFFF', minWidth: 0 }, title: { fontSize: 20, lineHeight: 28, fontWeight: '800', color: '#10283F' }, text: { fontSize: 15, lineHeight: 23, color: '#304E69' }, label: { fontSize: 16, lineHeight: 24, color: '#10283F', fontWeight: '700' }, error: { fontSize: 15, lineHeight: 23, color: '#A51E35' } });

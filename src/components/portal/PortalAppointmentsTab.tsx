@@ -34,7 +34,7 @@ import {
 import { spacing } from '@/theme';
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
 import { liquidRadius } from '@/liquid-command/foundation/tokens';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 
 type PortalAppointmentsTabProps = {
   audience: OperationalPortalAudience;

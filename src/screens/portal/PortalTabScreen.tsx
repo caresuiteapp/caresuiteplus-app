@@ -161,11 +161,11 @@ export function PortalTabScreen({
     if (scroll) {
       return (
         <PortalKeyboardScrollView
-          contentContainerStyle={[styles.portalScrollContent, barePaddingStyle]}
+          contentContainerStyle={[styles.clientScrollContent, barePaddingStyle]}
           keyboardShouldPersistTaps="handled"
           nestedScrollEnabled
           showsVerticalScrollIndicator
-          style={styles.portalScrollViewport}
+          style={styles.clientViewport}
           testID="client-portal-tab-scroll"
         >
           {page}
@@ -174,7 +174,7 @@ export function PortalTabScreen({
     }
 
     return (
-      <View style={[styles.portalPage, barePaddingStyle]} testID="client-portal-tab-screen">
+      <View style={[styles.clientPage, barePaddingStyle]} testID="client-portal-tab-screen">
         {page}
       </View>
     );
@@ -232,6 +232,9 @@ export function PortalTabScreen({
 }
 
 const styles = StyleSheet.create({
+  clientViewport: { flex: 1, minWidth: 0, minHeight: 0, backgroundColor: 'transparent' },
+  clientScrollContent: { flexGrow: 1, width: '100%', minWidth: 0 },
+  clientPage: { flex: 1, width: '100%', minWidth: 0, minHeight: 0 },
   employeeHomeViewport: { flex: 1, minWidth: 0, minHeight: 0, width: '100%' },
   employeeHomeContent: { flexGrow: 1, minWidth: 0, width: '100%' },
   content: { flex: 1, width: '100%' },

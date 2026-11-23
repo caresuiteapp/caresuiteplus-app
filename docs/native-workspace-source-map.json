@@ -2713,7 +2713,7 @@
     {
       "web": "src/components/portal/ClientSignatureRequiredDialog.web.tsx",
       "native": "src/components/portal/ClientSignatureRequiredDialog.native.tsx",
-      "sourceHash": "83829a4999297dbf1eacc457aee92e56e861d3427cd4699e3baef752e2f93a8a",
+      "sourceHash": "a216c1fa5457f009a689166495c9842474344cf7c59b8e6ea8b141be761ba3a5",
       "environment": [
         "document"
       ]
@@ -7717,7 +7717,7 @@
     {
       "web": "src/screens/portal/ClientDocumentSignaturesScreen.web.tsx",
       "native": "src/screens/portal/ClientDocumentSignaturesScreen.native.tsx",
-      "sourceHash": "9dc991bed62270a65bc846bd6cf1e44ec195a155e32b99cd49b3916e2973f622",
+      "sourceHash": "10cce0854252834c05c541c61471f54b3886a993205cf0c567e7e12f4ecbf39e",
       "environment": []
     },
     {

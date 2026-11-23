@@ -13,7 +13,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { spacing, typography } from '@/theme';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { ClientPortalGuide } from '@/components/portal/ClientPortalGuide';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 
 export function PortalClientLiveTrackingScreen() {
   const router = useRouter();

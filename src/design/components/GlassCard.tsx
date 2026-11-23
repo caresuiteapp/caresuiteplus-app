@@ -9,6 +9,7 @@ import {
 } from '@/liquid-command/foundation/tokens';
 import { portalPremium, usePortalPremiumTheme } from '@/design/tokens/portalPremium';
 import { useLiquidVisualMode } from '@/liquid-command/components/LiquidPrimitives';
+import { clientPortalNight } from '@/design/tokens/clientPortalNight';
 import { employeePortalWorkspace } from '@/components/portal/employee/employeePortalDesign';
 
 type GlassCardProps = {
@@ -26,13 +27,14 @@ export function GlassCard({ children, onPress, glow = false, accentColor, select
   const orbit = useLiquidVisualMode() === 'orbit';
   const light = portal.active || orbit;
   const employee = portal.kind === 'employee';
+  const client = portal.active && portal.kind === 'client';
   const styles = useMemo(
     () => createStyles(accentColor, glow || selected, light),
     [accentColor, glow, light, selected],
   );
   const body = (
-    <View style={[styles.card, employee && employeeCard, style]}>
-      {!employee ? <LinearGradient
+    <View style={[styles.card, employee && employeeCard, style, client && clientCard]}>
+      {!employee && !client ? <LinearGradient
         colors={light
           ? ['#FFFFFF', '#F3F9FF', '#E4F1FF']
           : ['rgba(6,27,53,0.94)', 'rgba(3,17,39,0.98)']}
@@ -49,6 +51,8 @@ export function GlassCard({ children, onPress, glow = false, accentColor, select
   if (!onPress) return body;
   return <Pressable onPress={onPress} accessibilityRole="button" style={({ pressed }) => pressed ? styles.pressed : undefined}>{body}</Pressable>;
 }
+
+const clientCard: ViewStyle = { borderRadius: 22, borderColor: clientPortalNight.border, backgroundColor: clientPortalNight.surface, ...(Platform.OS === 'web' ? ({ boxShadow: 'none', backdropFilter: 'none' } as ViewStyle) : null) };
 
 const employeeCard: ViewStyle = {
   borderRadius: employeePortalWorkspace.radius,

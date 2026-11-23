@@ -7,6 +7,7 @@ import { systemLiquidGlass } from "@/design/tokens/systemLiquidGlass";
 import {
   portalPremium,
   usePortalPremiumTheme,
+  usePortalPremiumPalette,
 } from "@/design/tokens/portalPremium";
 import {
   lightLiquidGlass,
@@ -47,6 +48,7 @@ export function SectionPanel({
 }: SectionPanelProps) {
   const { colors, typography } = useLegacyTheme();
   const portal = usePortalPremiumTheme();
+  const premium = usePortalPremiumPalette();
   const { isPhone } = useDeviceClass();
   const surfaceTone = useSurfaceContrastTone();
   const forceLightSurface = !onDarkSurface && surfaceTone === "light";
@@ -72,7 +74,7 @@ export function SectionPanel({
             : onDarkSurface
               ? "#0A2747"
               : portal.active
-                ? portalPremium.surface
+                ? premium.surface
                 : forceLightSurface
                   ? lightLiquidGlass.panel
                   : systemLiquidGlass.panel,
@@ -89,7 +91,7 @@ export function SectionPanel({
                       boxShadow: onDarkSurface
                         ? "0 12px 28px rgba(0, 8, 24, 0.28)"
                         : portal.active
-                          ? portalPremium.shadow.card
+                          ? premium.shadow.card
                           : systemLiquidGlass.shadowSoft,
                     }),
               } as unknown as ViewStyle)),
@@ -102,7 +104,7 @@ export function SectionPanel({
           borderColor: onDarkSurface
             ? "rgba(196, 235, 255, 0.12)"
             : portal.active
-              ? portalPremium.innerBorder
+              ? premium.innerBorder
               : forceLightSurface
                 ? lightLiquidGlass.innerBorder
                 : systemLiquidGlass.innerBorder,
@@ -122,7 +124,7 @@ export function SectionPanel({
           color: onDarkSurface
             ? "#FFFFFF"
             : portal.active
-              ? portalPremium.text.primary
+              ? premium.text.primary
               : forceLightSurface
                 ? lightSurfaceText.primary
                 : systemLiquidGlass.text.primary,
@@ -134,7 +136,7 @@ export function SectionPanel({
           color: onDarkSurface
             ? "#BED6E8"
             : portal.active
-              ? portalPremium.text.secondary
+              ? premium.text.secondary
               : forceLightSurface
                 ? lightSurfaceText.secondary
                 : systemLiquidGlass.text.secondary,
@@ -164,7 +166,7 @@ export function SectionPanel({
       moduleAccent,
       fillHeight,
       forceLightSurface,
-      portal.active,
+      portal.active, premium,
       onDarkSurface,
     ],
   );

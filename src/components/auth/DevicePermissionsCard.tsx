@@ -1,3 +1,4 @@
+import { useAccountSecurityStyles } from './accountSecurityStyles';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState, Platform, StyleSheet, Text, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
@@ -10,6 +11,8 @@ export function DevicePermissionsCard() {
   return <DevicePermissionsContent key={identity} />;
 }
 function DevicePermissionsContent() {
+  const themed = useAccountSecurityStyles();
+  const styles = { ...baseStyles, card: themed.card, title: themed.title, text: themed.text, label: themed.label, error: themed.error, item: themed.item, status: themed.status };
   const { user } = useAuth();
   const includeLocation = ['employee_portal', 'caregiver', 'nurse'].includes(String(user?.roleKey));
   const [items, setItems] = useState<DevicePermissionItem[]>([]);
@@ -42,7 +45,7 @@ function DevicePermissionsContent() {
     }} /> : <Text style={styles.text}>Browserfreigaben ändern Sie über das Symbol neben der Website-Adresse.</Text>}
   </View>;
 }
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   card: { padding: 18, gap: 12, borderWidth: 1, borderColor: '#CBD8E6', backgroundColor: '#FFFFFF', borderRadius: 18, minWidth: 0 },
   title: { fontSize: 20, lineHeight: 28, fontWeight: '800', color: '#10283F' },
   text: { fontSize: 15, lineHeight: 23, color: '#304E69', flexShrink: 1 },

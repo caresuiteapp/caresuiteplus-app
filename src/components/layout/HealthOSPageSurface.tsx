@@ -39,7 +39,7 @@ export function HealthOSPageSurface({
   const theme = usePortalPremiumTheme();
   const portal = { ...theme, active: theme.active && theme.kind !== 'workspace' };
   return (
-    <SurfaceContrastProvider tone="light"><View style={[styles.host, fill && styles.hostFill, style]} testID={testID}>
+    <SurfaceContrastProvider tone={portal.kind === 'client' ? 'dark' : 'light'}><View style={[styles.host, fill && styles.hostFill, style]} testID={testID}>
       <View
         style={[styles.surface, !portal.active && styles.desktopSurface, portal.active && styles.portalSurface, fill && styles.surfaceFill]}
         {...(Platform.OS === 'web'

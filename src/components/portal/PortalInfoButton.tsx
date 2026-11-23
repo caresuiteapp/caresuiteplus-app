@@ -2,18 +2,20 @@ import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CareSuiteImage as Image } from '@/components/images/CareSuiteImage';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 
 export function PortalInfoButton({
   title,
   message,
   actionLabel,
   onAction,
+  compact = false,
 }: {
   title: string;
   message: string;
   actionLabel?: string;
   onAction?: () => void;
+  compact?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   return (
@@ -23,11 +25,11 @@ export function PortalInfoButton({
         accessibilityLabel={`Information: ${title}`}
         accessibilityState={{ expanded: open }}
         onPress={() => setOpen(true)}
-        style={styles.button}
+        style={[styles.button, compact && styles.buttonCompact]}
       >
         <Image
           source={require('../../../assets/auth/access-client.png')}
-          style={styles.robot}
+          style={[styles.robot, compact && styles.robotCompact]}
           resizeMode="contain"
           accessible={false}
         />
@@ -65,9 +67,11 @@ const styles = StyleSheet.create({
     borderRadius: 32,
     borderWidth: 1,
     borderColor: portalPremium.borderStrong,
-    backgroundColor: '#FFFFFF',
+    backgroundColor: portalPremium.control,
   },
   robot: { width: 60, height: 60 },
+  buttonCompact: { width: 44, height: 44, borderRadius: 22 },
+  robotCompact: { width: 40, height: 40 },
   badge: {
     position: 'absolute',
     right: -1,
@@ -79,6 +83,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  badgeText: { color: '#FFFFFF', fontWeight: '900', fontSize: 18 },
+  badgeText: { color: portalPremium.text.onStrong, fontWeight: '900', fontSize: 18 },
   message: { fontSize: 17, lineHeight: 26, color: portalPremium.text.primary },
 });

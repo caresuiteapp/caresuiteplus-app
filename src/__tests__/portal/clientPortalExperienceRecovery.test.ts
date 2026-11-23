@@ -30,14 +30,10 @@ describe('client portal experience recovery', () => {
     ).toContain('<AssistPortalOverview');
   });
 
-  it('opens the complete document list from the mobile dashboard', () => {
+  it('keeps the complete document list in the grouped dashboard navigation', () => {
     const home = readSrc('src/components/portal/assist/ClientPortalHomeDashboard.tsx');
-    const documentBlock = home.slice(
-      home.indexOf('title="Dokumente"'),
-      home.indexOf('title="Unterschriften"'),
-    );
-    expect(documentBlock).toContain("router.push('/portal/client/documents'");
-    expect(documentBlock).not.toContain('/documents/signatures');
+    expect(home).toContain("id: 'documents', label: 'Dokumente', route: '/portal/client/documents'");
+    expect(home).toContain('router.push(item.route as never)');
   });
 
   it('keeps the client document read path free of office writes and settings-table gates', () => {

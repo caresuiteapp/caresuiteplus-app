@@ -103,6 +103,11 @@ describe('new portal chat interaction on Android', () => {
     expect(h.create).toHaveBeenCalledTimes(1); expect(closed).not.toHaveBeenCalled();
     finish({ ok: true, data: { id: 'one' } }); await first;
   });
+  it('does not silently classify a general message as the first available category', async () => {
+    h.categories.mockResolvedValue({ ok: true, data: [{ id: 'cancel', label: 'Einsatz absagen' }] });
+    render(); await Promise.resolve(); await Promise.resolve(); input('Allgemeine Frage'); await send();
+    expect(h.create).toHaveBeenCalledWith('test-tenant', expect.anything(), expect.objectContaining({ categoryId: null }));
+  });
   it('can still send if optional categories fail', async () => {
     h.categories.mockRejectedValue(new Error('offline'));
     render(); await Promise.resolve(); input('Allgemeine Frage'); await send();

@@ -1,3 +1,4 @@
+import { clientPortalNight as night } from '@/design/tokens/clientPortalNight';
 import { PortalKeyboardAvoidingView as KeyboardAvoidingView } from '@/components/keyboard/PortalKeyboard';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { BackHandler, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View, type ViewStyle } from 'react-native';
@@ -57,6 +58,8 @@ export function PortalNewChatModal({
 }: PortalNewChatModalProps) {
   const { c } = useCareLightPalette();
   const employee = variant === 'employee';
+  const client = audience === 'client';
+  const chatStyles = useMemo(() => createChatStyles(client), [client]);
   const dialog = presentation === 'dialog';
   const insets = useSafeAreaInsets();
   const { typography } = useLegacyTheme();
@@ -191,7 +194,7 @@ export function PortalNewChatModal({
           if (current && result.data.some((category) => category.id === current)) {
             return current;
           }
-          return result.data[0]?.id ?? null;
+          return null;
         });
         if (result.data.length === 0) {
           setCategoryWarning('Es sind noch keine Themen hinterlegt. Die Nachricht wird als allgemeines Anliegen gesendet.');
@@ -354,6 +357,11 @@ export function PortalNewChatModal({
           <View style={chatStyles.details}>
             <PremiumInput label="Betreff (optional)" value={subject} onChangeText={setSubject} onDarkSurface={employee} />
             <View style={styles.chips}>
+              {categories.length > 0 ? <Pressable accessibilityRole="button"
+                accessibilityLabel="Allgemeines Anliegen" accessibilityState={{ selected: categoryId === null }}
+                onPress={() => setCategoryId(null)} style={[styles.chip, categoryId === null && styles.chipActive]}>
+                <Text style={[styles.chipText, categoryId === null && styles.chipTextActive]}>Allgemeines Anliegen</Text>
+              </Pressable> : null}
               {categories.map((category) => (
                 <Pressable key={category.id} accessibilityRole="button"
                   accessibilityState={{ selected: category.id === categoryId }}
@@ -382,7 +390,7 @@ export function PortalNewChatModal({
           editable={!submitting && familySendingAllowed}
           multiline
           placeholder="Nachricht schreiben…"
-          placeholderTextColor={employee ? employeeInk.muted : '#5B7187'}
+          placeholderTextColor={employee ? employeeInk.muted : client ? night.text.muted : '#5B7187'}
           textAlignVertical="top"
           style={[chatStyles.input, employee && employeeChat.input]}
         />
@@ -421,31 +429,31 @@ export function PortalNewChatModal({
   );
 }
 
-const chatStyles = StyleSheet.create({
-  modal: { flex: 1, backgroundColor: '#F5F9FE' },
-  root: { flex: 1, minHeight: 0, width: '100%', backgroundColor: '#F5F9FE' },
+const createChatStyles = (client: boolean) => StyleSheet.create({
+  modal: { flex: 1, backgroundColor: client ? night.backdrop : '#F5F9FE' },
+  root: { flex: 1, minHeight: 0, width: '100%', backgroundColor: client ? night.backdrop : '#F5F9FE' },
   header: { flexShrink: 0, flexDirection: 'row', alignItems: 'center', gap: 12, padding: 12,
-    backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#D3E3F5' },
+    backgroundColor: client ? night.header : '#FFFFFF', borderBottomWidth: 1, borderBottomColor: client ? night.border : '#D3E3F5' },
   back: { minHeight: 48, justifyContent: 'center', paddingHorizontal: 8 },
-  backText: { color: '#0766C9', fontSize: 15, fontWeight: '700' },
+  backText: { color: client ? night.accent.blue : '#0766C9', fontSize: 15, fontWeight: '700' },
   recipient: { flex: 1, minWidth: 0, gap: 2 },
-  title: { color: '#123251', fontSize: 20, fontWeight: '800' },
-  subtitle: { color: '#456480', fontSize: 14, lineHeight: 20 },
+  title: { color: client ? night.text.primary : '#123251', fontSize: 20, fontWeight: '800' },
+  subtitle: { color: client ? night.text.secondary : '#456480', fontSize: 14, lineHeight: 20 },
   conversation: { flex: 1, minHeight: 0 },
   conversationContent: { flexGrow: 1, padding: 16, gap: 16 },
-  introduction: { backgroundColor: '#E7F1FF', borderRadius: 18, padding: 18, gap: 8 },
-  introductionTitle: { color: '#123251', fontSize: 18, fontWeight: '700' },
-  introductionText: { color: '#355573', fontSize: 16, lineHeight: 24 },
-  context: { color: '#123251', fontSize: 15, fontWeight: '600' },
+  introduction: { backgroundColor: client ? night.surface : '#E7F1FF', borderRadius: 18, padding: 18, gap: 8 },
+  introductionTitle: { color: client ? night.text.primary : '#123251', fontSize: 18, fontWeight: '700' },
+  introductionText: { color: client ? night.text.secondary : '#355573', fontSize: 16, lineHeight: 24 },
+  context: { color: client ? night.text.primary : '#123251', fontSize: 15, fontWeight: '600' },
   detailsButton: { minHeight: 44, justifyContent: 'center' },
   details: { gap: 12 },
-  disclaimer: { color: '#5B7187', fontSize: 12, lineHeight: 18 },
-  composer: { flexShrink: 0, padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: '#D3E3F5', backgroundColor: '#FFFFFF' },
-  input: { minHeight: 64, maxHeight: 112, padding: 12, borderWidth: 1, borderColor: '#B9D2EF', borderRadius: 14, backgroundColor: '#F8FBFF', color: '#123251', fontSize: 16 },
-  send: { minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: '#0876E8', padding: 12 },
+  disclaimer: { color: client ? night.text.muted : '#5B7187', fontSize: 12, lineHeight: 18 },
+  composer: { flexShrink: 0, padding: 12, gap: 8, borderTopWidth: 1, borderTopColor: client ? night.border : '#D3E3F5', backgroundColor: client ? night.header : '#FFFFFF' },
+  input: { minHeight: 64, maxHeight: 112, padding: 12, borderWidth: 1, borderColor: client ? night.borderStrong : '#B9D2EF', borderRadius: 14, backgroundColor: client ? night.control : '#F8FBFF', color: client ? night.text.primary : '#123251', fontSize: 16 },
+  send: { minHeight: 48, borderRadius: 14, alignItems: 'center', justifyContent: 'center', backgroundColor: client ? night.accent.blue : '#0876E8', padding: 12 },
   sending: { opacity: 0.65 },
-  sendText: { color: '#FFFFFF', fontSize: 16, fontWeight: '700' },
-  error: { color: '#A12832', fontSize: 14, lineHeight: 20 },
+  sendText: { color: client ? night.text.onStrong : '#FFFFFF', fontSize: 16, fontWeight: '700' },
+  error: { color: client ? night.accent.danger : '#A12832', fontSize: 14, lineHeight: 20 },
 });
 
 const employeeChat = StyleSheet.create(withCareSuiteTypography({

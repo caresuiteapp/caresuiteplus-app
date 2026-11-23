@@ -45,7 +45,7 @@ import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { useAuth } from '@/lib/auth/context';
-import { portalPremium } from '@/design/tokens/portalPremium';
+import { clientPortalNight as portalPremium } from '@/design/tokens/clientPortalNight';
 import { toPortalUserFacingError } from '@/lib/portal/portalUserFacingError';
 
 const CONTACT_ROLE_LABELS: Record<PortalClientContactSummary['role'], string> = {

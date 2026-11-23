@@ -66,8 +66,9 @@ describe('employee portal responsive visual gate', () => {
     const tab = read('src/screens/portal/PortalTabScreen.tsx');
     const execution = read('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
 
-    expect(shell).toContain('testID="portal-navigation-footer"');
-    expect(shell).toContain('testID="portal-bottom-navigation"');
+    const employeeFrame = read('src/components/portal/employee/EmployeePortalFrame.tsx');
+    expect(shell).toContain('<EmployeePortalChrome');
+    expect(employeeFrame).toContain('testID="portal-navigation-footer"');
     expect(shell).not.toContain('!desktopChrome && !visitExecutionFocus');
     expect(tab).toContain('showBottomTabs && !routeOwnsBottomBar');
     expect(execution).toContain('contentOwnsHero');
@@ -242,16 +243,11 @@ describe('employee portal responsive visual gate', () => {
     expect(employeeHome).toContain('greetingPhone: { flexDirection: \'column\'');
     expect(employeeHome).toContain('greetingCopy: { flexGrow: 1, flexShrink: 1, minWidth: 0');
 
-    for (const styleName of ['welcomeCopyPhone', 'guideAreaPhone', 'guideBubblePhone']) {
-      const styleBlock = clientHome.match(
-        new RegExp(`${styleName}:\\s*\\{([\\s\\S]*?)\\n\\s*\\},`),
-      )?.[1];
-      expect(styleBlock, `${styleName} must have an intrinsic height`).toBeTruthy();
-      expect(styleBlock).toContain('flexGrow: 0');
-      expect(styleBlock).toContain('flexShrink: 0');
-      expect(styleBlock).toContain("flexBasis: 'auto'");
-      expect(styleBlock).not.toMatch(/flex:\s*0/);
-    }
+    expect(clientHome).toContain("welcomePhone: { minHeight: 0");
+    expect(clientHome).toContain("welcome: { minHeight: 170");
+    expect(clientHome).toContain("flexDirection: 'row'");
+    expect(clientHome).toContain("welcomeCopy: { flex: 1, minWidth: 0");
+    expect(clientHome).not.toContain('height: 170');
 
     expect(page).toMatch(
       /scrollContent:\s*\{[\s\S]*?flexGrow:\s*0,[\s\S]*?flexShrink:\s*0,[\s\S]*?flexBasis:\s*'auto'/,
@@ -273,7 +269,8 @@ describe('employee portal responsive visual gate', () => {
     expect(modal).toContain('usePortalPremiumRuntimeTheme');
     expect(modal).toContain('portalPremium.surfaceRaised');
     expect(header).toContain('usePortalPremiumRuntimeTheme');
-    expect(header).toContain('portalPremium.text.secondary');
+    expect(header).toContain('premium.text.secondary');
+    expect(header).toContain('client ? clientPortalNight : portalPremium');
     expect(documentation).toContain('employee-visit-documentation-form');
     expect(documentation).not.toContain('subtitle={statusLabel}');
     for (const source of [documentation, tasks, photos]) {
