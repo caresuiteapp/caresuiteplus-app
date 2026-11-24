@@ -53,8 +53,14 @@ function dsv(file: CatalogSourceFile, required: readonly string[], visit: (get: 
 }
 
 /** Join the three official files without inferring administration instructions. */
-export function parseBfarmCatalog(files: readonly CatalogSourceFile[]): {
+export type BfarmComponent = {
+  number: number; dosageForm: string | null; description: string | null;
+  substances: { name: string; strength: string | null; id: string; rank: number }[];
+};
+
+export function parseBfarmReference(files: readonly CatalogSourceFile[]): {
   source: string; sourceVersion: string; rows: MedicationPackageInput[];
+  componentsByPzn: Record<string, BfarmComponent[]>;
 } {
   if (files.length !== 3) fail('Bitte alle drei DSV-Dateien derselben BfArM-Lieferung auswählen.');
   const inputs = new Map<Table, CatalogSourceFile>();
@@ -72,10 +78,11 @@ export function parseBfarmCatalog(files: readonly CatalogSourceFile[]): {
     inputs.set(table, file);
   }
 
-  type Substance = { name: string; strength: string; rank: number };
+  type Substance = { name: string; strength: string; id: string; rank: number };
   type Product = { row: MedicationPackageInput; parts: Map<string, Substance[]>; combined: boolean };
   const products = new Map<string, Product>();
   const components = new Map<string, Substance[]>();
+  const descriptions = new Map<string, Omit<BfarmComponent, 'substances'>>();
   dsv(inputs.get(tables[0])!, ['RMP_KEY', 'RMP_PZN', 'RMP_MPD_NAME', 'RMP_PFM_NAME', 'RMP_MULTIPLE_PPT'], get => {
     const pzn = pznKey(get('RMP_PZN'));
     const combined = get('RMP_MULTIPLE_PPT');
@@ -95,25 +102,42 @@ export function parseBfarmCatalog(files: readonly CatalogSourceFile[]): {
     const rows: Substance[] = [];
     components.set(key, rows);
     product.parts.set(key, rows);
+    descriptions.set(key, { number: Number(number), dosageForm: get('RPP_PFM_NAME') || get('RPP_PFM_PUT_LONG') || null,
+      description: get('RPP_DESCRIPTION') || null });
   });
   dsv(inputs.get(tables[2])!, ['RSE_KEY', 'RPP_KEY', 'RSE_SUBSTANCE_NAME', 'RSE_SUBSTANCE_STRENGTH', 'RSE_SUBSTANCE_RANK'], get => {
     const key = componentKey(get('RPP_KEY')), rows = components.get(key), rank = Number(get('RSE_SUBSTANCE_RANK'));
     const rawKey = /^(\d{1,8}-\d{1,3})-(\d{1,3})$/.exec(get('RSE_KEY'));
-    if (!rows || !rawKey || componentKey(rawKey[1]) !== key || Number(rawKey[2]) !== rank || !Number.isInteger(rank) || rank < 1 || rank > 999 || rows.some(row => row.rank === rank)) {
+    if (!rows || !rawKey || componentKey(rawKey[1]) !== key || Number(rawKey[2]) !== rank || !/^\d{1,3}$/.test(get('RSE_SUBSTANCE_RANK')) || !Number.isInteger(rank) || rank < 0 || rank > 999 || rows.some(row => row.rank === rank)) {
       fail('Ein BfArM-Wirkstoff ist doppelt oder keiner Komponente zugeordnet.');
     }
-    rows.push({ name: get('RSE_SUBSTANCE_NAME'), strength: get('RSE_SUBSTANCE_STRENGTH'), rank });
+    rows.push({ name: get('RSE_SUBSTANCE_NAME'), strength: get('RSE_SUBSTANCE_STRENGTH'), id: get('RSE_SUBSTANCE_ID'), rank });
   });
 
+  const componentsByPzn: Record<string, BfarmComponent[]> = Object.create(null);
   const rows = [...products.values()].map(({ row, parts, combined }) => {
     if (!parts.size || (parts.size > 1) !== combined) fail('Die drei BfArM-Dateien ergeben keine vollständige Lieferung.');
+    componentsByPzn[row.pzn] = [...parts].map(([key, part]) => ({ ...descriptions.get(key)!,
+      substances: [...part].sort((a, b) => a.rank - b.rank).map(({ strength, ...rest }) => ({ ...rest, strength: strength || null }))
+    })).sort((a, b) => a.number - b.number);
     const substances = [...parts.values()].flatMap(part => [...part].sort((a, b) => a.rank - b.rank));
     const names = [...new Set(substances.map(part => part.name).filter(Boolean))];
-    const strength = !combined && substances.length && substances.every(part => part.name && part.strength)
+    let strength = !combined && substances.length && substances.every(part => part.name && part.strength)
       ? (substances.length === 1 ? substances[0].strength : substances.map(part => `${part.name}: ${part.strength}`).join(' · ')) : null;
+    // The existing order field holds 500 characters. Keep every original strength
+    // in components; omit an overlong summary instead of truncating a value.
+    if (strength && strength.length > 500) strength = null;
     // A combination pack can contain different strengths per component.
     // No single strength, brand, manufacturer, dose or route is derived for it.
     return { ...row, ingredient: names.join(' · ') || null, strength };
   });
-  return { source: 'bfarm-31b', sourceVersion: version, rows };
+  return { source: 'bfarm-31b', sourceVersion: version, rows, componentsByPzn };
+}
+
+/** Legacy feed shape; full BfArM deliveries use the protected server importer. */
+export function parseBfarmCatalog(files: readonly CatalogSourceFile[]): {
+  source: string; sourceVersion: string; rows: MedicationPackageInput[];
+} {
+  const { source, sourceVersion, rows } = parseBfarmReference(files);
+  return { source, sourceVersion, rows };
 }

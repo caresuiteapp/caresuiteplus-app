@@ -24,6 +24,7 @@ import {
   type PracticeLocationOption,
 } from '@/lib/pflege/medicationMasterData';
 import type { ServiceResult } from '@/types';
+import { BfarmReferenceLookup } from './BfarmReferenceLookup';
 
 type DirectoryAccess = { tenantId: string; enabled: boolean; canEditNow: () => boolean };
 type SearchPage<T> = { rows: T[]; nextCursor: string | null; limited?: true };
@@ -327,12 +328,15 @@ const describePracticeLocation = (item: PracticeLocationOption) => ({
 export function MedicationPackagePicker({ selectedKey, onPick, ...access }: DirectoryAccess & {
   selectedKey?: string; onPick: (item: MedicationPackageOption) => void;
 }) {
-  const [directory, setDirectory] = useState<'package' | 'authorization' | null>(null);
+  const [directory, setDirectory] = useState<'package' | 'authorization' | 'bfarm' | null>(null);
   const styles = useDirectoryStyles();
   return <View style={styles.list}>
     <Text accessibilityRole="header" style={styles.heading}>Arzneimittelverzeichnisse</Text>
     <Text style={styles.body}>In der Packungssuche kannst du geprüfte Angaben zur konkreten Packung übernehmen. Die EMA-Suche zeigt Zulassungen ohne Packungsdaten.</Text>
     <View style={styles.choices}>
+      <PremiumButton title={directory === 'bfarm' ? 'BfArM-Abfrage zu' : 'BfArM · PZN'} size="sm"
+        accessibilityLabel={directory === 'bfarm' ? 'BfArM-Abfrage schließen' : 'BfArM-Referenzdaten über die PZN abrufen'}
+        variant="secondary" disabled={!access.enabled} onPress={() => setDirectory(directory === 'bfarm' ? null : 'bfarm')} />
       <PremiumButton title={directory === 'package' ? 'Packungssuche zu' : 'Packung suchen'} size="sm"
         accessibilityLabel={directory === 'package' ? 'Packungssuche schließen' : 'Packung suchen: Präparat im Verzeichnis suchen'}
         variant="secondary" disabled={!access.enabled} onPress={() => setDirectory(directory === 'package' ? null : 'package')} />
@@ -340,6 +344,7 @@ export function MedicationPackagePicker({ selectedKey, onPick, ...access }: Dire
         accessibilityLabel={directory === 'authorization' ? 'EMA-Suche schließen' : 'EMA-Suche: Zugelassene Arzneimittel suchen'}
         variant="secondary" disabled={!access.enabled} onPress={() => setDirectory(directory === 'authorization' ? null : 'authorization')} />
     </View>
+    {directory === 'bfarm' && access.enabled ? <BfarmReferenceLookup key={access.tenantId} {...access} /> : null}
     {directory === 'package' && access.enabled ? <MedicationPackageLookup key={access.tenantId} {...access}
       onPick={(item) => { onPick(item); setDirectory(null); }} /> : null}
     {directory === 'authorization' && access.enabled ? <AuthorizedMedicineLookup key={access.tenantId} {...access} /> : null}
